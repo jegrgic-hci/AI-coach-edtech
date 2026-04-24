@@ -445,6 +445,47 @@
     line-height: 1.6;
   }
 
+  /* ── Test Examples Selector ── */
+  .test-selector-section {
+    margin-bottom: 24px;
+  }
+  .test-selector-panel {
+    background: linear-gradient(135deg, var(--brand-soft), #f0fafe);
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .test-selector-label {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  #exampleSelector {
+    flex: 1;
+    min-width: 300px;
+    padding: 9px 12px;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    background: white;
+    font-size: 13px;
+    color: var(--ink);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  #exampleSelector:hover {
+    border-color: var(--brand);
+  }
+  #exampleSelector:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px var(--brand-soft);
+  }
+
   /* ── Scrollbars ── */
   textarea::-webkit-scrollbar { width: 6px; }
   textarea::-webkit-scrollbar-thumb { background: #d1d9e4; border-radius: 3px; }
@@ -464,6 +505,19 @@
   <div class="intro">
     <h1>How did you use AI?</h1>
     <p>Paste your AI conversation and your final essay. We'll analyze how you engaged — not whether you used AI, but how well you thought with it.</p>
+  </div>
+
+  <!-- Test Examples Selector -->
+  <div class="test-selector-section">
+    <div class="test-selector-panel">
+      <div class="test-selector-label">📋 Try a test example:</div>
+      <select id="exampleSelector">
+        <option value="">Select an example to test...</option>
+        <option value="low">Low Example · "The French Revolution" (copying)</option>
+        <option value="medium">Medium Example · "The Causes..." (engaged learning)</option>
+        <option value="high">High Example · "A Revolution That Consumed..." (critical thinking)</option>
+      </select>
+    </div>
   </div>
 
   <!-- Input panels -->
@@ -603,6 +657,35 @@ This is compared against your AI conversation to assess how much you synthesized
   essayInput.addEventListener("input", updateCounts);
   document.getElementById("clearConv").addEventListener("click",  () => { convInput.value  = ""; updateCounts(); });
   document.getElementById("clearEssay").addEventListener("click", () => { essayInput.value = ""; updateCounts(); });
+
+  // ── Test Examples Loader ──────────────────────────────────────
+  let testExamples = {};
+  async function loadTestExamples() {
+    try {
+      const res = await fetch("./test-examples.json");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.examples && Array.isArray(data.examples)) {
+          data.examples.forEach(ex => {
+            testExamples[ex.id] = ex;
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("Could not load test examples:", e);
+    }
+  }
+  loadTestExamples();
+
+  document.getElementById("exampleSelector").addEventListener("change", (e) => {
+    const exampleId = e.target.value;
+    if (!exampleId || !testExamples[exampleId]) return;
+    const example = testExamples[exampleId];
+    convInput.value = example.conversation;
+    essayInput.value = example.essay;
+    updateCounts();
+    document.getElementById("exampleSelector").value = "";
+  });
 
   // ================================================================
   //  STEP 2 — CONVERSATION PARSER
