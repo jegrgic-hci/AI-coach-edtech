@@ -1176,18 +1176,16 @@ This is compared against your AI conversation to assess how much you synthesized
   });
 
   // NLP validation via Groq
-  async function callGroq(parsed, signals, essay) {
-    if (!groqConfig.apiKey || !groqConfig.enabled) return null;
+  async function callGroq(parsed, essay) {
+    if (!groqConfig.apiKey || !groqConfig.enabled) {
+      console.warn("Groq skipped: apiKey present?", !!groqConfig.apiKey, "enabled?", groqConfig.enabled);
+      return null;
+    }
 
     const { turns } = parsed;
-    const { structure: st, thinking: th, dependency: dep, overlap: ov } = signals;
-    const { T, A, U, S, total, samr } = scoreSession(signals);
 
     // Build conversation excerpt (first 3 exchanges or 500 chars, whichever is shorter)
     const convExcerpt = turns.slice(0, 6).map(t => `${t.role === "student" ? "You" : "AI"}: ${t.text}`).join("\n").slice(0, 600);
-
-    // Build signal summary
-    const signalSummary = `T=${T}/5, A=${A}/5, U=${U}/5, S=${S}/5, Total=${total}/20, SAMR=${samr}, Overlap=${ov.pct}%, OwnVoice=${th.ownVoice}, Synthesis=${dep.synthesisSignals}`;
 
     const prompt = `Analyze this student's critical engagement with AI while writing. Look for evidence of independent thinking vs. passive acceptance.
 
@@ -1215,6 +1213,7 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
 }`;
 
     try {
+      console.log("Calling Groq API...");
       const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -1230,7 +1229,8 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
       });
 
       if (!res.ok) {
-        console.error(`Groq error ${res.status}`);
+        const errText = await res.text();
+        console.error(`Groq error ${res.status}:`, errText);
         return null;
       }
 
