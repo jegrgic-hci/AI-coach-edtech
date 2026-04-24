@@ -948,10 +948,28 @@ This is compared against your AI conversation to assess how much you synthesized
   //  STEP 4 — GROQ NLP INTEGRATION
   // ================================================================
 
+  // Load Groq config from localStorage or config file (never hardcode)
   const groqConfig = {
-    apiKey: "sk_PLACEHOLDER",
+    apiKey: localStorage.getItem("groqKey") || "",
     enabled: localStorage.getItem("groqEnabled") !== "false",
   };
+
+  // Attempt to load from config.json if available (development only)
+  async function loadConfigFile() {
+    try {
+      const res = await fetch("./config.json");
+      if (res.ok) {
+        const cfg = await res.json();
+        if (cfg.groq?.apiKey) {
+          groqConfig.apiKey = cfg.groq.apiKey;
+          localStorage.setItem("groqKey", groqConfig.apiKey);
+        }
+      }
+    } catch (e) {
+      // config.json not found (normal for production) — continue without it
+    }
+  }
+  loadConfigFile();
 
   // Settings modal
   const settingsModal = document.getElementById("settingsModal");

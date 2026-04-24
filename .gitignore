@@ -1,0 +1,23 @@
+# Environment & Config (contains secrets — never commit)
+.env
+.env.local
+.env.*.local
+config.json
+
+# Node / build
+node_modules/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
