@@ -1189,30 +1189,29 @@ This is compared against your AI conversation to assess how much you synthesized
     // Build signal summary
     const signalSummary = `T=${T}/5, A=${A}/5, U=${U}/5, S=${S}/5, Total=${total}/20, SAMR=${samr}, Overlap=${ov.pct}%, OwnVoice=${th.ownVoice}, Synthesis=${dep.synthesisSignals}`;
 
-    const prompt = `Analyze this student's AI use pattern for learning quality.
+    const prompt = `Analyze this student's critical engagement with AI while writing. Look for evidence of independent thinking vs. passive acceptance.
 
-Conversation excerpt (first few turns):
+CONVERSATION (first few exchanges):
 ${convExcerpt}
 
-Essay excerpt (opening):
+ESSAY (opening):
 ${essay.slice(0, 300)}
 
-Algorithmic signals:
-${signalSummary}
+Task: Assess the student's engagement level and identify specific moments showing thinking patterns.
 
-Task: Validate the SAMR level and identify learning depth.
-1. Does the conversation show genuine understanding or just copying?
-2. Is the current SAMR level (${samr}) correct?
-3. What strength did the algorithm miss?
-4. What should they focus on next time?
+Questions to consider:
+- Do questions show curiosity or just extraction? Are there challenges or pushback?
+- Does the essay use the AI's language/ideas, or develop independently?
+- Are there moments of authentic intellectual struggle vs. surface compliance?
 
 Respond ONLY with valid JSON (no markdown, no code blocks):
 {
-  "understanding_genuine": boolean,
-  "samr_correct": boolean,
-  "samr_if_wrong": null or "substitution/augmentation/modification/redefinition",
-  "strength_missed": "brief insight",
-  "growth_focus": "one specific area"
+  "engagement_level": "passive" | "surface" | "active" | "critical",
+  "strongest_moment": "brief quote showing the most genuine critical thinking",
+  "weakest_moment": "brief quote showing the most passive or borrowed moment",
+  "essay_reflects_own_thinking": true | false,
+  "conversation_feels_authentic": true | false,
+  "flags": ["specific concerns observed", "or null/empty if none"]
 }`;
 
     try {
@@ -1252,17 +1251,41 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
   function renderGroqInsights(insights) {
     if (!insights) return "";
 
-    const samrSuggestion = insights.samr_if_wrong
-      ? `<div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; font-size: 13px;"><strong style="color: #92400e;">AI suggests:</strong> The conversation pattern aligns better with <strong>${insights.samr_if_wrong}</strong> than ${insights.samr_correct ? "the computed level" : "what was computed"}.</div>`
+    const levelColors = {
+      passive:  { bg: "#fef2f2", border: "#fecaca", text: "#991b1b" },
+      surface:  { bg: "#fef3c7", border: "#fcd34d", text: "#92400e" },
+      active:   { bg: "#f0fdf4", border: "#bbf7d0", text: "#14532d" },
+      critical: { bg: "#eff6ff", border: "#bfdbfe", text: "#1e3a5f" },
+    };
+    const c = levelColors[insights.engagement_level] || levelColors.surface;
+
+    const flags = (insights.flags || []).length > 0
+      ? `<div style="margin-top:8px; font-size:12px; color:#b91c1c;">
+          ⚑ ${insights.flags.map(f => esc(f)).join(" &nbsp;·&nbsp; ")}
+         </div>`
+      : "";
+
+    const strongest = insights.strongest_moment
+      ? `<div style="margin-bottom:6px;"><strong>Strongest moment:</strong> "${esc(insights.strongest_moment)}"</div>`
+      : "";
+
+    const weakest = insights.weakest_moment
+      ? `<div style="margin-bottom:6px;"><strong>Watch out for:</strong> "${esc(insights.weakest_moment)}"</div>`
       : "";
 
     return `
-      <div style="background: #f0f9ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px; margin-top: 12px; font-size: 13px; color: #075985;">
-        <div style="font-weight: 700; margin-bottom: 6px;">🤖 NLP Validation (Groq)</div>
-        <div style="margin-bottom: 6px;"><strong>Understanding genuine?</strong> ${insights.understanding_genuine ? "✓ Yes" : "⚠ Likely surface-level"}</div>
-        ${samrSuggestion}
-        <div style="margin-bottom: 6px;"><strong>Strength we missed:</strong> ${esc(insights.strength_missed)}</div>
-        <div><strong>Focus next time on:</strong> ${esc(insights.growth_focus)}</div>
+      <div style="background:${c.bg}; border:1px solid ${c.border}; border-radius:10px; padding:12px; margin-top:12px; font-size:13px; color:${c.text};">
+        <div style="font-weight:700; margin-bottom:8px; text-transform:capitalize;">
+          🤖 AI Assessment — ${insights.engagement_level} engagement
+        </div>
+        ${strongest}
+        ${weakest}
+        <div style="margin-bottom:6px;">
+          <strong>Essay reflects own thinking:</strong> ${insights.essay_reflects_own_thinking ? "✅ Yes" : "⚠️ Unclear"}
+          &nbsp;&nbsp;
+          <strong>Conversation authentic:</strong> ${insights.conversation_feels_authentic ? "✅ Yes" : "⚠️ Possibly staged"}
+        </div>
+        ${flags}
       </div>`;
   }
 
@@ -1331,7 +1354,7 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
       if (!groqConfig.apiKey) {
         // Store the analysis to run after key is entered
         pendingAnalysis = async () => {
-          const insights = await callGroq(parsed, signals, essayInput.value);
+          const insights = await callGroq(parsed, essayInput.value);
           if (insights) {
             const resultCard = document.querySelector(".score-section");
             if (resultCard) {
@@ -1346,7 +1369,7 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
         return;
       }
 
-      const insights = await callGroq(parsed, signals, essayInput.value);
+      const insights = await callGroq(parsed, essayInput.value);
       if (insights) {
         const resultCard = document.querySelector(".score-section");
         if (resultCard) {
