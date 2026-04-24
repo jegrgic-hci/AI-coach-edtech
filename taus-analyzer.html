@@ -622,6 +622,24 @@ This is compared against your AI conversation to assess how much you synthesized
     </div>
   </div>
 
+  <!-- API Key Modal -->
+  <div id="apiKeyModal" style="position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; align-items: center; justify-content: center; z-index: 100;">
+    <div style="background: white; border-radius: 14px; padding: 28px; max-width: 480px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.25);">
+      <h2 style="margin: 0 0 8px; font-size: 20px;">Enter API Key</h2>
+      <p style="color: var(--muted); font-size: 13px; margin: 0 0 20px;">Your local NLP API key is needed for validation. It will be stored securely in your browser (localStorage).</p>
+
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 8px;">API Key</label>
+        <input type="password" id="apiKeyInput" placeholder="Enter your API key..." style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: monospace; color: var(--ink); background: white; box-sizing: border-box;">
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button id="cancelApiKey" style="background: none; border: 1px solid var(--border); color: var(--muted); padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">Cancel</button>
+        <button id="saveApiKey" style="background: var(--brand); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">Save & Analyze</button>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <script>
@@ -1159,14 +1177,66 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
   }
 
   // ── Analyze button ────────────────────────────────────────────────
+  // API Key modal handlers
+  const apiKeyModal = document.getElementById("apiKeyModal");
+  const apiKeyInput = document.getElementById("apiKeyInput");
+  let pendingAnalysis = null;
+
+  document.getElementById("cancelApiKey").addEventListener("click", () => {
+    apiKeyModal.style.display = "none";
+    apiKeyInput.value = "";
+    pendingAnalysis = null;
+  });
+
+  document.getElementById("saveApiKey").addEventListener("click", () => {
+    const key = apiKeyInput.value.trim();
+    if (!key) {
+      alert("Please enter an API key");
+      return;
+    }
+    groqConfig.apiKey = key;
+    localStorage.setItem("groqKey", key);
+    apiKeyModal.style.display = "none";
+    apiKeyInput.value = "";
+
+    // Execute pending analysis
+    if (pendingAnalysis) {
+      pendingAnalysis();
+      pendingAnalysis = null;
+    }
+  });
+
+  // Allow Enter key to save
+  apiKeyInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      document.getElementById("saveApiKey").click();
+    }
+  });
+
   analyzeBtn.addEventListener("click", async () => {
     const parsed  = parseConversation(convInput.value);
     const signals = extractSignals(parsed.turns, essayInput.value);
     renderSignals(parsed, signals);
     document.getElementById("resultsArea").scrollIntoView({ behavior: "smooth", block: "start" });
 
-    // Call Groq if enabled
-    if (groqConfig.enabled && groqConfig.apiKey) {
+    // Call NLP if enabled
+    if (groqConfig.enabled) {
+      if (!groqConfig.apiKey) {
+        // Store the analysis to run after key is entered
+        pendingAnalysis = async () => {
+          const insights = await callGroq(parsed, signals, essayInput.value);
+          if (insights) {
+            const resultCard = document.querySelector(".score-section");
+            if (resultCard) {
+              resultCard.insertAdjacentHTML("afterend", renderGroqInsights(insights));
+            }
+          }
+        };
+        apiKeyModal.style.display = "flex";
+        apiKeyInput.focus();
+        return;
+      }
+
       const insights = await callGroq(parsed, signals, essayInput.value);
       if (insights) {
         const resultCard = document.querySelector(".score-section");
