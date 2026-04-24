@@ -847,7 +847,9 @@ This is compared against your AI conversation to assess how much you synthesized
 
   // 5-word n-gram overlap: what fraction of essay words appear verbatim in AI output
   function computeOverlap(essay, aiText) {
-    if (!essay.trim() || !aiText.trim()) return { pct: 0, matches: [], risk: "none" };
+    if (!essay.trim() || !aiText.trim()) {
+      return { pct: 0, matches: [], risk: "none", semanticScore: null, avgSimilarity: null, method: "regex" };
+    }
 
     const N = 5;
     const norm = s => s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
@@ -855,7 +857,9 @@ This is compared against your AI conversation to assess how much you synthesized
 
     const eWords = words(essay);
     const aWords = words(aiText);
-    if (eWords.length < N) return { pct: 0, matches: [], risk: "none" };
+    if (eWords.length < N) {
+      return { pct: 0, matches: [], risk: "none", semanticScore: null, avgSimilarity: null, method: "regex" };
+    }
 
     const aiGrams = new Set();
     for (let i = 0; i <= aWords.length - N; i++) {
@@ -874,7 +878,7 @@ This is compared against your AI conversation to assess how much you synthesized
 
     const pct = Math.round((hit.size / eWords.length) * 100);
     const risk = pct > 40 ? "high" : pct > 20 ? "medium" : pct > 5 ? "low" : "none";
-    return { pct, matches: matches.slice(0, 4), risk };
+    return { pct, matches: matches.slice(0, 4), risk, semanticScore: null, avgSimilarity: null, method: "regex" };
   }
 
   // ================================================================
@@ -906,11 +910,16 @@ This is compared against your AI conversation to assess how much you synthesized
     if (ov.pct < 10 && (dep.synthesisSignals >= 4 || (th.ownVoice >= 3 && th.pushback >= 1))) U++;
 
     // S — Self-Authorship (1-5)
+    // Use hybrid score if semantic data available, otherwise use regex
+    const overlapScore = ov.semanticScore !== null
+      ? Math.round((ov.pct + ov.semanticScore) / 2)
+      : ov.pct;
+
     let S;
-    if      (ov.pct > 40)                              S = 1;
-    else if (ov.pct > 25 || dep.extractionPhrases >= 3) S = 2;
-    else if (ov.pct > 10 || dep.extractionPhrases >= 1) S = 3;
-    else if (ov.pct > 5)                               S = 4;
+    if      (overlapScore > 40)                              S = 1;
+    else if (overlapScore > 25 || dep.extractionPhrases >= 3) S = 2;
+    else if (overlapScore > 10 || dep.extractionPhrases >= 1) S = 3;
+    else if (overlapScore > 5)                               S = 4;
     else                                               S = 5;
     if (st.essayWords < 200 && S > 3) S = 3;
     if (st.essayWords < 100 && S > 2) S = 2;
@@ -1038,11 +1047,92 @@ This is compared against your AI conversation to assess how much you synthesized
           <div class="signal-card"><h3>Conversation Structure</h3><div class="signal-row"><span class="signal-label">Total turns</span><span class="signal-val sig-neutral">${st.totalTurns}</span></div><div class="signal-row"><span class="signal-label">Your messages</span><span class="signal-val sig-neutral">${st.studentTurns}</span></div><div class="signal-row"><span class="signal-label">Avg. message length</span><span class="signal-val sig-neutral">${st.avgStudentWords} words</span></div><div class="signal-row"><span class="signal-label">Essay length</span><span class="signal-val sig-neutral">${st.essayWords} words</span></div><div class="signal-row"><span class="signal-label">You started</span><span class="signal-val ${st.studentFirst ? "sig-good" : "sig-neutral"}">${st.studentFirst ? "Yes" : "No"}</span></div></div>
           <div class="signal-card"><h3>Thinking Initiative</h3><div class="signal-row"><span class="signal-label">Questions asked</span><span class="signal-val ${qColor}">${th.totalQuestions}</span></div><div class="signal-row"><span class="signal-label">"Why" questions</span><span class="signal-val ${th.whyQuestions > 0 ? "sig-good" : "sig-neutral"}">${th.whyQuestions}</span></div><div class="signal-row"><span class="signal-label">Follow-up phrases</span><span class="signal-val ${th.followUps > 0 ? "sig-good" : "sig-neutral"}">${th.followUps}</span></div><div class="signal-row"><span class="signal-label">Own voice ("I think…")</span><span class="signal-val ${th.ownVoice > 0 ? "sig-good" : "sig-warn"}">${th.ownVoice}</span></div><div class="signal-row"><span class="signal-label">Pushback</span><span class="signal-val ${th.pushback > 0 ? "sig-good" : "sig-neutral"}">${th.pushback}</span></div></div>
           <div class="signal-card"><h3>AI Dependency</h3><div class="signal-row"><span class="signal-label">Extraction phrases</span><span class="signal-val ${extColor}">${dep.extractionPhrases}</span></div><div class="signal-row"><span class="signal-label">Synthesis signals</span><span class="signal-val ${dep.synthesisSignals > 0 ? "sig-good" : "sig-neutral"}">${dep.synthesisSignals}</span></div><div class="signal-row"><span class="signal-label">Student word share</span><span class="signal-val sig-neutral">${st.studentWords + st.aiWords > 0 ? Math.round((st.studentWords / (st.studentWords + st.aiWords)) * 100) + "%" : "—"}</span></div></div>
-          <div class="signal-card"><h3>Essay ↔ AI Overlap</h3><div class="signal-row"><span class="signal-label">Verbatim overlap</span><span class="signal-val ${ovColor}">${ov.pct}%</span></div><div class="signal-row"><span class="signal-label">Risk level</span><span class="signal-val ${ovColor}">${ov.risk.charAt(0).toUpperCase() + ov.risk.slice(1)}</span></div><div class="overlap-bar"><div class="overlap-fill ${ovFill}" style="width:${Math.min(ov.pct,100)}%"></div></div>${matchHTML}</div>
+          <div class="signal-card"><h3>Essay ↔ AI Overlap</h3><div class="signal-row"><span class="signal-label">Verbatim overlap</span><span class="signal-val ${ovColor}">${ov.pct}%</span></div>${ov.semanticScore !== null ? `<div class="signal-row"><span class="signal-label">Semantic similarity</span><span class="signal-val ${ovColor}">${ov.semanticScore}%</span></div><div class="signal-row"><span class="signal-label">Avg similarity</span><span class="signal-val ${ovColor}">${ov.avgSimilarity}%</span></div>` : ""}<div class="signal-row"><span class="signal-label">Risk level</span><span class="signal-val ${ovColor}">${ov.risk.charAt(0).toUpperCase() + ov.risk.slice(1)}</span></div><div class="overlap-bar"><div class="overlap-fill ${ovFill}" style="width:${Math.min(ov.pct,100)}%"></div></div>${matchHTML}</div>
         </div>
       </div>`;
 
     document.getElementById("resultsArea").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // ================================================================
+  //  STEP 3.5 — SEMANTIC SIMILARITY SCORING
+  // ================================================================
+
+  async function getEmbeddings(texts) {
+    const res = await fetch("https://api.groq.com/openai/v1/embeddings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + groqConfig.apiKey,
+      },
+      body: JSON.stringify({
+        model: "nomic-embed-text-v1.5",
+        input: texts,
+      }),
+    });
+    const data = await res.json();
+    return data.data.map(d => d.embedding);
+  }
+
+  function cosineSimilarity(a, b) {
+    const dot = a.reduce((sum, ai, i) => sum + ai * b[i], 0);
+    const magA = Math.sqrt(a.reduce((sum, ai) => sum + ai * ai, 0));
+    const magB = Math.sqrt(b.reduce((sum, bi) => sum + bi * bi, 0));
+    return dot / (magA * magB);
+  }
+
+  // Compute semantic similarity between essay and AI text
+  // Breaks text into sentences and scores similarity
+  async function computeSemanticOverlap(essay, aiText, apiKey) {
+    if (!apiKey || !essay.trim() || !aiText.trim()) {
+      return { semanticScore: 0, avgSimilarity: 0, risks: [] };
+    }
+
+    try {
+      // Split into sentences (simple approach)
+      const sentenceRegex = /[^.!?]+[.!?]+/g;
+      const essaySentences = (essay.match(sentenceRegex) || [])
+        .map(s => s.trim())
+        .filter(s => s.length > 20)
+        .slice(0, 10); // Limit to 10 sentences to avoid API cost
+
+      const aiSentences = (aiText.match(sentenceRegex) || [])
+        .map(s => s.trim())
+        .filter(s => s.length > 20)
+        .slice(0, 10);
+
+      if (essaySentences.length === 0 || aiSentences.length === 0) {
+        return { semanticScore: 0, avgSimilarity: 0, risks: [] };
+      }
+
+      // Get embeddings for both
+      const allTexts = [...essaySentences, ...aiSentences];
+      const embeddings = await getEmbeddings(allTexts);
+
+      const essayEmbeds = embeddings.slice(0, essaySentences.length);
+      const aiEmbeds = embeddings.slice(essaySentences.length);
+
+      // Compute max similarity for each essay sentence
+      const similarities = essayEmbeds.map(eEmbed => {
+        const scores = aiEmbeds.map(aEmbed => cosineSimilarity(eEmbed, aEmbed));
+        return Math.max(...scores);
+      });
+
+      const avgSimilarity = similarities.reduce((a, b) => a + b, 0) / similarities.length;
+
+      // High similarity = high risk of semantic copying
+      const semanticScore = Math.round(avgSimilarity * 100);
+      const risks = similarities
+        .map((sim, i) => ({ sentence: essaySentences[i], similarity: Math.round(sim * 100) }))
+        .filter(r => r.similarity > 75)
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, 3);
+
+      return { semanticScore, avgSimilarity: Math.round(avgSimilarity * 100), risks };
+    } catch (err) {
+      console.error("Semantic similarity error:", err.message);
+      return { semanticScore: 0, avgSimilarity: 0, risks: [] };
+    }
   }
 
   // ================================================================
@@ -1214,8 +1304,25 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
   });
 
   analyzeBtn.addEventListener("click", async () => {
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = "Analyzing...";
+
     const parsed  = parseConversation(convInput.value);
     const signals = extractSignals(parsed.turns, essayInput.value);
+
+    // Compute semantic overlap if API key available
+    if (groqConfig.apiKey && groqConfig.enabled) {
+      const aiTurns = parsed.turns.filter(t => t.role === "ai");
+      const aiText = aiTurns.map(t => t.text).join(" ");
+      if (aiText.trim()) {
+        const semantic = await computeSemanticOverlap(essayInput.value, aiText, groqConfig.apiKey);
+        if (semantic.semanticScore !== null) {
+          signals.overlap.semanticScore = semantic.semanticScore;
+          signals.overlap.avgSimilarity = semantic.avgSimilarity;
+        }
+      }
+    }
+
     renderSignals(parsed, signals);
     document.getElementById("resultsArea").scrollIntoView({ behavior: "smooth", block: "start" });
 
@@ -1231,6 +1338,8 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
               resultCard.insertAdjacentHTML("afterend", renderGroqInsights(insights));
             }
           }
+          analyzeBtn.disabled = false;
+          analyzeBtn.textContent = "Analyze my AI use →";
         };
         apiKeyModal.style.display = "flex";
         apiKeyInput.focus();
@@ -1245,6 +1354,9 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
         }
       }
     }
+
+    analyzeBtn.disabled = false;
+    analyzeBtn.textContent = "Analyze my AI use →";
   });
 </script>
 
