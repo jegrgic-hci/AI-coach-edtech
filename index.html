@@ -1041,7 +1041,7 @@ This is compared against your AI conversation to assess how much you synthesized
     const { authenticQuestionCopying } = signals;
     if (authenticQuestionCopying && authenticQuestionCopying.length > 0) {
       const pair = authenticQuestionCopying[0];
-      fb.push(`Great authentic question: "${pair.studentQuestion.slice(0, 60)}..." — but I notice ${pair.overlapPct}% of your essay uses the AI's exact words for this answer. To strengthen your critical thinking, rewrite this section in your own voice. Show us how YOU understand it.`);
+      fb.push(`✓ You asked a genuine question: "${pair.studentQuestion.slice(0, 50)}..." But I notice you copied the response directly into your essay. Try developing the concept yourself — rewrite it in your own words to show what you actually understand.`);
     }
 
 
@@ -1187,7 +1187,7 @@ This is compared against your AI conversation to assess how much you synthesized
           const overlap = findTurnEssayOverlap(aiResponse.text, essayText);
           
           // Flag if overlap is significant (>20%)
-          if (overlap.pct >= 20 && overlap.snippets.length > 0) {
+          if (overlap.pct >= 10 && overlap.snippets.length > 0) {
             problematicPairs.push({
               studentQuestion: turns[i].text,
               aiResponse: aiResponse.text,
