@@ -541,11 +541,11 @@
   .flow-bubble.student { grid-column: 1; }
   .pattern-badge {
     display: inline-block;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 6px 12px;
     border-radius: 99px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     text-transform: capitalize;
     letter-spacing: .3px;
   }
@@ -1163,6 +1163,12 @@ This is compared against your AI conversation to assess how much you synthesized
 
     let html = `<div class="flow-header" onclick="this.nextElementSibling.classList.toggle('open'); this.querySelector('.flow-arrow').classList.toggle('open');"><span class="flow-toggle">▶ Show me the pattern</span><span class="flow-arrow">▶</span></div>`;
     html += `<div class="flow-diagram">`;
+    html += `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><span style="display: inline-block; background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 99px; font-weight: 700;">Authentic</span><span style="color: var(--muted);">Genuine question</span></div>
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><span style="display: inline-block; background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 99px; font-weight: 700;">Extraction</span><span style="color: var(--muted);">Asking AI to write</span></div>
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><span style="display: inline-block; background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 99px; font-weight: 700;">Own Voice</span><span style="color: var(--muted);">Your perspective</span></div>
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><span style="display: inline-block; background: #ccfbf1; color: #0f766e; padding: 3px 8px; border-radius: 99px; font-weight: 700;">Pushback</span><span style="color: var(--muted);">Disagreement</span></div>
+    </div>`;
 
     // Pair up student and AI turns: for each student turn, find the next AI turn
     const pairs = [];
