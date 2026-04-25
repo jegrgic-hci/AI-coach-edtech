@@ -1037,14 +1037,6 @@ This is compared against your AI conversation to assess how much you synthesized
     const { thinking: th, dependency: dep, overlap: ov, structure: st } = signals;
     const fb = [];
 
-    // Check for authentic questions with copied responses
-    const { authenticQuestionCopying } = signals;
-    if (authenticQuestionCopying && authenticQuestionCopying.length > 0) {
-      const pair = authenticQuestionCopying[0];
-      fb.push(`✓ You asked a genuine question: "${pair.studentQuestion.slice(0, 50)}..." But I notice you copied the response directly into your essay. Try developing the concept yourself — rewrite it in your own words to show what you actually understand.`);
-    }
-
-
     if (T >= 4) {
       fb.push("You drove the conversation with your own questions and perspective — that's what good AI use looks like.");
     } else if (th.ownVoice === 0 && th.totalQuestions < 2) {
