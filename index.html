@@ -928,7 +928,8 @@ This is compared against your AI conversation to assess how much you synthesized
     // ── Essay vs AI output overlap ──
     const overlap = computeOverlap(essayText, aiText);
 
-    return { structure, thinking, dependency, overlap };
+    const authenticQuestionCopying = detectAuthenticQuestionCopying(turns, essayText);
+    return { structure, thinking, dependency, overlap, authenticQuestionCopying };
   }
 
   function countMatches(text, pattern) {
@@ -1036,6 +1037,14 @@ This is compared against your AI conversation to assess how much you synthesized
     const { thinking: th, dependency: dep, overlap: ov, structure: st } = signals;
     const fb = [];
 
+    // Check for authentic questions with copied responses
+    const { authenticQuestionCopying } = signals;
+    if (authenticQuestionCopying && authenticQuestionCopying.length > 0) {
+      const pair = authenticQuestionCopying[0];
+      fb.push(`Great authentic question: "${pair.studentQuestion.slice(0, 60)}..." — but I notice ${pair.overlapPct}% of your essay uses the AI's exact words for this answer. To strengthen your critical thinking, rewrite this section in your own voice. Show us how YOU understand it.`);
+    }
+
+
     if (T >= 4) {
       fb.push("You drove the conversation with your own questions and perspective — that's what good AI use looks like.");
     } else if (th.ownVoice === 0 && th.totalQuestions < 2) {
@@ -1073,40 +1082,40 @@ This is compared against your AI conversation to assess how much you synthesized
 
   function classifyStudentTurn(text) {
     const EXTRACTION_PATTERNS = [
-      /\bwrite (me|my|the|a|an|this|that)\b/gi,
-      /\bdraft (me|my|a|an|the|this)\b/gi,
-      /\bgive me (a |the |an )?(thesis|intro|paragraph|conclusion|essay|outline|hook|draft)\b/gi,
-      /\b(finish|complete) (my|the|this) (essay|paragraph|sentence|draft)\b/gi,
-      /\bdo it for me\b/gi,
-      /\bjust (write|draft|do|finish)\b/gi,
-      /\b(can you|could you|please) (write|draft|compose)\b/gi,
+      /\bwrite (me|my|the|a|an|this|that)\b/i,
+      /\bdraft (me|my|a|an|the|this)\b/i,
+      /\bgive me (a |the |an )?(thesis|intro|paragraph|conclusion|essay|outline|hook|draft)\b/i,
+      /\b(finish|complete) (my|the|this) (essay|paragraph|sentence|draft)\b/i,
+      /\bdo it for me\b/i,
+      /\bjust (write|draft|do|finish)\b/i,
+      /\b(can you|could you|please) (write|draft|compose)\b/i,
     ];
     const PUSHBACK_PATTERNS = [
-      /\bI disagree\b/gi,
-      /\bI don.?t think\b/gi,
-      /\bactually,?\s+(I|that|this)\b/gi,
-      /\bbut (that.?s not|isn.?t that)\b/gi,
-      /\bwhat if (instead|we|you)\b/gi,
+      /\bI disagree\b/i,
+      /\bI don.?t think\b/i,
+      /\bactually,?\s+(I|that|this)\b/i,
+      /\bbut (that.?s not|isn.?t that)\b/i,
+      /\bwhat if (instead|we|you)\b/i,
     ];
     const AUTHENTIC_PATTERNS = [
-      /\bwhy\b[^?]*\?/gi,
-      /\bhow\b[^?]*\?/gi,
-      /\bwhat\b[^?]*\?/gi,
-      /\b(who|where|when)\b[^?]*\?/gi,
-      /\bbut (why|how|what|when)\b/gi,
-      /\bwait\b/gi,
-      /\bcan you (clarify|explain|elaborate|expand)\b/gi,
+      /\bwhy\b[^?]*\?/i,
+      /\bhow\b[^?]*\?/i,
+      /\bwhat\b[^?]*\?/i,
+      /\b(who|where|when)\b[^?]*\?/i,
+      /\bbut (why|how|what|when)\b/i,
+      /\bwait\b/i,
+      /\bcan you (clarify|explain|elaborate|expand)\b/i,
     ];
     const OWN_VOICE_PATTERNS = [
-      /\bI (think|believe|argue|feel|claim|contend)\b/gi,
-      /\bin my (opinion|view|perspective)\b/gi,
-      /\bmy (thesis|argument|point|take|view)\b/gi,
+      /\bI (think|believe|argue|feel|claim|contend)\b/i,
+      /\bin my (opinion|view|perspective)\b/i,
+      /\bmy (thesis|argument|point|take|view)\b/i,
     ];
 
-    const extraction = (text.match(EXTRACTION_PATTERNS.join("|")) || []).length > 0;
-    const pushback = (text.match(PUSHBACK_PATTERNS.join("|")) || []).length > 0;
-    const authentic = (text.match(AUTHENTIC_PATTERNS.join("|")) || []).length > 0;
-    const ownVoice = (text.match(OWN_VOICE_PATTERNS.join("|")) || []).length > 0;
+    const extraction = EXTRACTION_PATTERNS.some(pattern => pattern.test(text));
+    const pushback = PUSHBACK_PATTERNS.some(pattern => pattern.test(text));
+    const authentic = AUTHENTIC_PATTERNS.some(pattern => pattern.test(text));
+    const ownVoice = OWN_VOICE_PATTERNS.some(pattern => pattern.test(text));
 
     if (extraction) return "extraction";
     if (pushback) return "pushback";
@@ -1152,6 +1161,44 @@ This is compared against your AI conversation to assess how much you synthesized
 
     const pct = eWords.length > 0 ? Math.round((hit.size / eWords.length) * 100) : 0;
     return { pct, snippets: matches.slice(0, 2) };
+
+  // Detect authentic questions whose AI responses appear in the essay (copying pattern)
+  function detectAuthenticQuestionCopying(turns, essayText) {
+    const problematicPairs = [];
+    
+    for (let i = 0; i < turns.length; i++) {
+      if (turns[i].role === "student") {
+        // Find the next AI response
+        let aiResponse = null;
+        for (let j = i + 1; j < turns.length; j++) {
+          if (turns[j].role === "ai") {
+            aiResponse = turns[j];
+            break;
+          }
+        }
+        
+        if (!aiResponse) continue;
+        
+        // Check if this student turn is authentic
+        const studentClass = classifyStudentTurn(turns[i].text);
+        if (studentClass === "authentic") {
+          // Check overlap between this AI response and essay
+          const overlap = findTurnEssayOverlap(aiResponse.text, essayText);
+          
+          // Flag if overlap is significant (>20%)
+          if (overlap.pct >= 20 && overlap.snippets.length > 0) {
+            problematicPairs.push({
+              studentQuestion: turns[i].text,
+              aiResponse: aiResponse.text,
+              overlapPct: overlap.pct,
+              snippet: overlap.snippets[0]
+            });
+          }
+        }
+      }
+    }
+    
+    return problematicPairs;
   }
 
   // ================================================================
