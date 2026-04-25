@@ -1112,10 +1112,10 @@ This is compared against your AI conversation to assess how much you synthesized
       /\bmy (thesis|argument|point|take|view)\b/gi,
     ];
 
-    const extraction = (text.match(EXTRACTION_PATTERNS.join("|")) || []).length > 0;
-    const pushback = (text.match(PUSHBACK_PATTERNS.join("|")) || []).length > 0;
-    const authentic = (text.match(AUTHENTIC_PATTERNS.join("|")) || []).length > 0;
-    const ownVoice = (text.match(OWN_VOICE_PATTERNS.join("|")) || []).length > 0;
+    const extraction = EXTRACTION_PATTERNS.some(pattern => pattern.test(text));
+    const pushback = PUSHBACK_PATTERNS.some(pattern => pattern.test(text));
+    const authentic = AUTHENTIC_PATTERNS.some(pattern => pattern.test(text));
+    const ownVoice = OWN_VOICE_PATTERNS.some(pattern => pattern.test(text));
 
     if (extraction) return "extraction";
     if (pushback) return "pushback";
