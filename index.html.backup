@@ -486,97 +486,6 @@
     box-shadow: 0 0 0 3px var(--brand-soft);
   }
 
-  /* ── Flow diagram (Show Me) ── */
-  .flow-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 20px 0 12px;
-    cursor: pointer;
-    user-select: none;
-  }
-  .flow-header:hover { opacity: 0.8; }
-  .flow-toggle {
-    font-size: 14px;
-    color: var(--muted);
-    font-weight: 600;
-    flex: 1;
-  }
-  .flow-arrow { transition: transform .2s ease; }
-  .flow-arrow.open { transform: rotate(90deg); }
-  .flow-diagram {
-    margin-top: 12px;
-    padding: 16px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    display: none;
-  }
-  .flow-diagram.open { display: block; }
-  .flow-turn {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 16px;
-    align-items: start;
-  }
-  .flow-turn:last-child { margin-bottom: 0; }
-  .flow-bubble {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px;
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--ink);
-  }
-  .flow-bubble.student {
-    background: var(--brand-soft);
-    border-color: #c7d2fe;
-  }
-  .flow-bubble.ai {
-    background: #fafbfd;
-    grid-column: 2;
-  }
-  .flow-bubble.student { grid-column: 1; }
-  .pattern-badge {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 4px 10px;
-    border-radius: 99px;
-    margin-bottom: 8px;
-    text-transform: capitalize;
-    letter-spacing: .3px;
-  }
-  .badge-authentic { background: #dcfce7; color: #166534; }
-  .badge-ownVoice { background: #dbeafe; color: #1e40af; }
-  .badge-pushback { background: #ccfbf1; color: #0f766e; }
-  .badge-extraction { background: #fee2e2; color: #991b1b; }
-  .badge-neutral { background: #f3f4f6; color: #6b7280; }
-  .flow-text {
-    color: var(--ink);
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.5;
-  }
-  .essay-match-callout {
-    background: #fef3c7;
-    border: 1px solid #fcd34d;
-    border-radius: 8px;
-    padding: 8px 10px;
-    margin-top: 10px;
-    font-size: 12px;
-    color: #92400e;
-    line-height: 1.4;
-  }
-  .match-phrase {
-    font-weight: 600;
-    font-style: italic;
-    color: #78350f;
-  }
-  .flow-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 20px 0; }
-
   /* ── Scrollbars ── */
   textarea::-webkit-scrollbar { width: 6px; }
   textarea::-webkit-scrollbar-thumb { background: #d1d9e4; border-radius: 3px; }
@@ -1066,144 +975,8 @@ This is compared against your AI conversation to assess how much you synthesized
   }
 
   // ================================================================
-  //  STEP 2.5 — TURN CLASSIFICATION (for Show Me feature)
-  // ================================================================
-
-  function classifyStudentTurn(text) {
-    const EXTRACTION_PATTERNS = [
-      /\bwrite (me|my|the|a|an|this|that)\b/gi,
-      /\bdraft (me|my|a|an|the|this)\b/gi,
-      /\bgive me (a |the |an )?(thesis|intro|paragraph|conclusion|essay|outline|hook|draft)\b/gi,
-      /\b(finish|complete) (my|the|this) (essay|paragraph|sentence|draft)\b/gi,
-      /\bdo it for me\b/gi,
-      /\bjust (write|draft|do|finish)\b/gi,
-      /\b(can you|could you|please) (write|draft|compose)\b/gi,
-    ];
-    const PUSHBACK_PATTERNS = [
-      /\bI disagree\b/gi,
-      /\bI don.?t think\b/gi,
-      /\bactually,?\s+(I|that|this)\b/gi,
-      /\bbut (that.?s not|isn.?t that)\b/gi,
-      /\bwhat if (instead|we|you)\b/gi,
-    ];
-    const AUTHENTIC_PATTERNS = [
-      /\bwhy\b[^?]*\?/gi,
-      /\bhow\b[^?]*\?/gi,
-      /\bwhat\b[^?]*\?/gi,
-      /\b(who|where|when)\b[^?]*\?/gi,
-      /\bbut (why|how|what|when)\b/gi,
-      /\bwait\b/gi,
-      /\bcan you (clarify|explain|elaborate|expand)\b/gi,
-    ];
-    const OWN_VOICE_PATTERNS = [
-      /\bI (think|believe|argue|feel|claim|contend)\b/gi,
-      /\bin my (opinion|view|perspective)\b/gi,
-      /\bmy (thesis|argument|point|take|view)\b/gi,
-    ];
-
-    const extraction = (text.match(EXTRACTION_PATTERNS.join("|")) || []).length > 0;
-    const pushback = (text.match(PUSHBACK_PATTERNS.join("|")) || []).length > 0;
-    const authentic = (text.match(AUTHENTIC_PATTERNS.join("|")) || []).length > 0;
-    const ownVoice = (text.match(OWN_VOICE_PATTERNS.join("|")) || []).length > 0;
-
-    if (extraction) return "extraction";
-    if (pushback) return "pushback";
-    if (authentic) return "authentic";
-    if (ownVoice) return "ownVoice";
-    return "neutral";
-  }
-
-  // Find 5-gram overlaps between a single AI turn and the essay
-  function findTurnEssayOverlap(aiTurnText, essayText) {
-    if (!aiTurnText.trim() || !essayText.trim()) {
-      return { pct: 0, snippets: [] };
-    }
-
-    const N = 5;
-    const norm = s => s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
-    const words = s => norm(s).split(" ").filter(Boolean);
-
-    const aWords = words(aiTurnText);
-    const eWords = words(essayText);
-
-    if (aWords.length < N || eWords.length < N) {
-      return { pct: 0, snippets: [] };
-    }
-
-    // Build all 5-grams from AI turn
-    const aiGrams = new Map();
-    for (let i = 0; i <= aWords.length - N; i++) {
-      const gram = aWords.slice(i, i + N).join(" ");
-      if (!aiGrams.has(gram)) aiGrams.set(gram, i);
-    }
-
-    // Find matches in essay
-    const matches = [];
-    const hit = new Set();
-    for (let i = 0; i <= eWords.length - N; i++) {
-      const gram = eWords.slice(i, i + N).join(" ");
-      if (aiGrams.has(gram) && !hit.has(i)) {
-        matches.push(gram);
-        for (let j = i; j < i + N; j++) hit.add(j);
-      }
-    }
-
-    const pct = eWords.length > 0 ? Math.round((hit.size / eWords.length) * 100) : 0;
-    return { pct, snippets: matches.slice(0, 2) };
-  }
-
-  // ================================================================
   //  STEP 3 — SIGNAL RENDERER (with TAUS score)
   // ================================================================
-
-  function renderFlowDiagram(turns, essayText) {
-    if (turns.length < 2) {
-      return `<div class="flow-empty">Add more turns to see a pattern map</div>`;
-    }
-
-    let html = `<div class="flow-header" onclick="this.nextElementSibling.classList.toggle('open'); this.querySelector('.flow-arrow').classList.toggle('open');"><span class="flow-toggle">▶ Show me the pattern</span><span class="flow-arrow">▶</span></div>`;
-    html += `<div class="flow-diagram">`;
-
-    // Pair up student and AI turns: for each student turn, find the next AI turn
-    const pairs = [];
-    for (let i = 0; i < turns.length; i++) {
-      if (turns[i].role === "student") {
-        for (let j = i + 1; j < turns.length; j++) {
-          if (turns[j].role === "ai") {
-            pairs.push({ student: turns[i], ai: turns[j] });
-            break;
-          }
-        }
-      }
-    }
-
-    // Show first 10 pairs
-    pairs.slice(0, 10).forEach(pair => {
-      const studentClass = classifyStudentTurn(pair.student.text);
-      const overlap = findTurnEssayOverlap(pair.ai.text, essayText);
-      const studentExcerpt = pair.student.text.length > 120 ? pair.student.text.slice(0, 120) + "…" : pair.student.text;
-      const aiExcerpt = pair.ai.text.length > 80 ? pair.ai.text.slice(0, 80) + "…" : pair.ai.text;
-
-      const badgeLabel = {
-        authentic: "Authentic Question",
-        ownVoice: "Own Voice",
-        pushback: "Pushback",
-        extraction: "Extraction",
-        neutral: "Message",
-      }[studentClass];
-
-      html += `<div class="flow-turn">`;
-      html += `<div class="flow-bubble student"><div class="pattern-badge badge-${studentClass}">${badgeLabel}</div><p class="flow-text">${esc(studentExcerpt)}</p></div>`;
-      html += `<div class="flow-bubble ai"><p class="flow-text">${esc(aiExcerpt)}</p>`;
-      if (overlap.pct > 0 && overlap.snippets.length > 0) {
-        html += `<div class="essay-match-callout">⚠ <span class="match-phrase">"${esc(overlap.snippets[0])}"</span> → appears in your essay</div>`;
-      }
-      html += `</div></div>`;
-    });
-
-    html += `</div>`;
-    return html;
-  }
 
   function renderSignals(parsed, signals) {
     const { turns, method } = parsed;
@@ -1244,8 +1017,6 @@ This is compared against your AI conversation to assess how much you synthesized
       return `<div class="dim-card"><div class="dim-header"><span class="dim-letter">${k}</span><span class="dim-name">${DIM_LABELS[k]}</span><span class="dim-score-val">${score}/5</span></div><div class="dim-bar"><div class="dim-fill" style="width:${score * 20}%"></div></div><div class="dim-desc-text">${DIM_DESC[k][score - 1]}</div></div>`;
     }).join("");
 
-    const flowDiagramHTML = renderFlowDiagram(turns, essayInput.value);
-
     const qColor   = th.totalQuestions >= 5 ? "sig-good" : th.totalQuestions >= 2 ? "sig-neutral" : "sig-warn";
     const ovColor  = ov.risk === "none" ? "sig-good" : ov.risk === "low" ? "sig-neutral" : ov.risk === "medium" ? "sig-warn" : "sig-bad";
     const ovFill   = ov.risk === "none" || ov.risk === "low" ? "fill-good" : ov.risk === "medium" ? "fill-warn" : "fill-bad";
@@ -1265,8 +1036,6 @@ This is compared against your AI conversation to assess how much you synthesized
           </div>
           <div class="dim-grid">${dimCards}</div>
         </div>
-
-        ${flowDiagramHTML}
 
         <div class="section-label">Feedback</div>
         <ul class="feedback-list">${fbHTML}</ul>
