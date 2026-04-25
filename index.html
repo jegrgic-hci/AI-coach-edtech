@@ -1169,7 +1169,6 @@ This is compared against your AI conversation to assess how much you synthesized
     
     for (let i = 0; i < turns.length; i++) {
       if (turns[i].role === "student") {
-        // Find the next AI response
         let aiResponse = null;
         for (let j = i + 1; j < turns.length; j++) {
           if (turns[j].role === "ai") {
@@ -1186,8 +1185,9 @@ This is compared against your AI conversation to assess how much you synthesized
           // Check overlap between this AI response and essay
           const overlap = findTurnEssayOverlap(aiResponse.text, essayText);
           
-          // Flag if overlap is significant (>20%)
-          if (overlap.pct >= 10 && overlap.snippets.length > 0) {
+          // Flag if there are meaningful phrase matches (even just one good match)
+          // This catches cases where copying is present but not a huge percentage of the essay
+          if (overlap.snippets.length > 0) {
             problematicPairs.push({
               studentQuestion: turns[i].text,
               aiResponse: aiResponse.text,
