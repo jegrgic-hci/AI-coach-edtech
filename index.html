@@ -1161,6 +1161,7 @@ This is compared against your AI conversation to assess how much you synthesized
 
     const pct = eWords.length > 0 ? Math.round((hit.size / eWords.length) * 100) : 0;
     return { pct, snippets: matches.slice(0, 2) };
+  }
 
   // Detect authentic questions whose AI responses appear in the essay (copying pattern)
   function detectAuthenticQuestionCopying(turns, essayText) {
