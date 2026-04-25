@@ -1251,8 +1251,14 @@ This is compared against your AI conversation to assess how much you synthesized
       html += `<div class="flow-turn">`;
       html += `<div class="flow-bubble student"><div class="pattern-badge badge-${studentClass}">${badgeLabel}</div><p class="flow-text">${esc(studentExcerpt)}</p></div>`;
       html += `<div class="flow-bubble ai"><p class="flow-text">${esc(aiExcerpt)}</p>`;
-      if (overlap.pct > 0 && overlap.snippets.length > 0) {
-        html += `<div class="essay-match-callout">⚠ <span class="match-phrase">"${esc(overlap.snippets[0])}"</span> → appears in your essay</div>`;
+      if (overlap.snippets.length > 0) {
+        // Show coaching message for authentic questions with copied responses
+        if (studentClass === "authentic") {
+          html += `<div class="essay-match-callout" style="background: #fef3c7; border-color: #f59e0b; color: #92400e;">💡 <strong>You asked a genuine question</strong> — but try developing the concept yourself. Rewrite this in your own words.</div>`;
+        } else {
+          // Generic overlap warning for other types
+          html += `<div class="essay-match-callout">⚠ <span class="match-phrase">"${esc(overlap.snippets[0])}"</span> → appears in your essay</div>`;
+        }
       }
       html += `</div></div>`;
     });
