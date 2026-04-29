@@ -445,6 +445,84 @@
     line-height: 1.6;
   }
 
+  /* ── Transformation Analysis ── */
+  .transformation-section {
+    background: linear-gradient(135deg, #f0f4ff 0%, #f9f5ff 100%);
+    border: 1px solid #e4dffb;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+  }
+  .transformation-section h3 {
+    margin: 0 0 16px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--brand);
+    font-weight: 700;
+  }
+  .transformation-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 780px) {
+    .transformation-grid { grid-template-columns: 1fr; }
+  }
+  .transform-metric {
+    background: white;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #e4dffb;
+  }
+  .transform-metric-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .transform-metric-val {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--brand);
+  }
+  .critical-engagement {
+    padding: 12px 16px;
+    background: white;
+    border-radius: 8px;
+    border-left: 4px solid var(--brand);
+  }
+  .critical-engagement.strong { border-left-color: var(--good); }
+  .critical-engagement.moderate { border-left-color: #f59e0b; }
+  .critical-engagement.low { border-left-color: #dc2626; }
+  .engagement-level {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .engagement-label {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .engagement-label.strong { color: var(--good); }
+  .engagement-label.moderate { color: #f59e0b; }
+  .engagement-label.low { color: #dc2626; }
+  .transform-signals {
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  .transform-signals li {
+    margin-bottom: 4px;
+  }
+
   /* ── Test Examples Selector ── */
   .test-selector-section {
     margin-bottom: 24px;
@@ -551,11 +629,13 @@
     white-space: nowrap;
     vertical-align: middle;
   }
-  .badge-authentic { background: #dcfce7 !important; color: #166534 !important; }
-  .badge-ownVoice { background: #dbeafe !important; color: #1e40af !important; }
-  .badge-pushback { background: #ccfbf1 !important; color: #0f766e !important; }
-  .badge-extraction { background: #fee2e2 !important; color: #991b1b !important; }
-  .badge-neutral { background: #f3f4f6 !important; color: #6b7280 !important; }
+  .badge-extraction  { background: #fee2e2 !important; color: #991b1b !important; }
+  .badge-feedback    { background: #fef3c7 !important; color: #92400e !important; }
+  .badge-conceptual  { background: #dcfce7 !important; color: #166534 !important; }
+  .badge-claim       { background: #dbeafe !important; color: #1e40af !important; }
+  .badge-stuck       { background: #ffedd5 !important; color: #9a3412 !important; }
+  .badge-validation  { background: #f5f3ff !important; color: #6b21a8 !important; }
+  .badge-neutral     { background: #f3f4f6 !important; color: #6b7280 !important; }
   .flow-text {
     color: var(--ink);
     margin: 0;
@@ -976,6 +1056,137 @@ This is compared against your AI conversation to assess how much you synthesized
   }
 
   // ================================================================
+  //  STEP 2.7 — KNOWLEDGE GRAPH EXTRACTION & TRANSFORMATION ANALYSIS
+  // ================================================================
+
+  // Normalize relationship types for consistency
+  function normalizeRelationType(type) {
+    if (!type) return 'related';
+    const lower = type.toLowerCase();
+    if (['produces', 'creates', 'causes', 'leads to', 'results in', 'results from'].includes(lower)) return 'causes';
+    if (['enables', 'supports', 'facilitates', 'allows', 'permits'].includes(lower)) return 'enables';
+    if (['reduces', 'decreases', 'opposes', 'contradicts', 'opposes', 'prevents'].includes(lower)) return 'opposes';
+    if (['defines', 'is', 'describes', 'means'].includes(lower)) return 'defines';
+    if (['influences', 'affects', 'impacts'].includes(lower)) return 'affects';
+    return lower;
+  }
+
+  // Extract knowledge graph from text using Groq (simplified for app context)
+  async function extractKnowledgeGraphFromText(text, apiKey) {
+    if (!apiKey || !text || text.trim().length < 100) {
+      return null; // Not enough text or no API key
+    }
+
+    try {
+      const prompt = `Extract key entities and relationships from this text. Return ONLY valid JSON:
+{
+  "entities": ["entity1", "entity2"],
+  "relationships": [{"from": "entity1", "to": "entity2", "type": "causes"}]
+}
+Relationship types: causes, enables, opposes, defines, affects
+
+Text: ${text.substring(0, 2000)}`;
+
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-8b-instant',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.3,
+          max_tokens: 1024,
+        }),
+      });
+
+      if (!response.ok) return null;
+      const data = await response.json();
+      const content = data.choices[0].message.content.trim();
+      const graph = JSON.parse(content);
+      return graph;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // Analyze transformation between AI graph and essay graph
+  function analyzeTransformation(aiGraph, essayGraph, comparison) {
+    if (!aiGraph || !essayGraph) return null;
+
+    // Synthesis ratio: kept concepts but changed relationships
+    const synthesisRatio = comparison.conceptOverlap > 0
+      ? Math.round((comparison.conceptOverlap / 100) * (1 - (comparison.relationshipOverlap / 100)) * 100)
+      : 0;
+
+    // Contradiction detection
+    const aiEdgesNormalized = new Map();
+    (aiGraph.relationships || []).forEach(r => {
+      const key = `${r.from.toLowerCase()}→${r.to.toLowerCase()}`;
+      aiEdgesNormalized.set(key, normalizeRelationType(r.type));
+    });
+
+    const essayEdgesNormalized = new Map();
+    (essayGraph.relationships || []).forEach(r => {
+      const key = `${r.from.toLowerCase()}→${r.to.toLowerCase()}`;
+      essayEdgesNormalized.set(key, normalizeRelationType(r.type));
+    });
+
+    const contradictions = [];
+    const opposites = { 'causes': ['opposes'], 'enables': ['opposes'], 'opposes': ['enables', 'causes'] };
+
+    aiEdgesNormalized.forEach((aiType, edge) => {
+      if (essayEdgesNormalized.has(edge)) {
+        const essayType = essayEdgesNormalized.get(edge);
+        if (aiType !== essayType) {
+          contradictions.push({ edge, aiType, essayType });
+        }
+      }
+    });
+
+    // New synthesis edges
+    const aiConceptsSet = new Set((aiGraph.entities || []).map(e => e.toLowerCase()));
+    const newSynthesisEdges = (essayGraph.relationships || []).filter(r => {
+      const fromInAI = aiConceptsSet.has(r.from.toLowerCase());
+      const toInAI = aiConceptsSet.has(r.to.toLowerCase());
+      if (fromInAI && toInAI) {
+        const key = `${r.from.toLowerCase()}→${r.to.toLowerCase()}`;
+        return !Array.from(aiEdgesNormalized.keys()).some(k => k === key);
+      }
+      return false;
+    }).length;
+
+    // Determine critical engagement
+    let criticalEngagement = 'LOW';
+    let signals = [];
+
+    if (contradictions.length > 0) {
+      signals.push(`${contradictions.length} relationship reframes`);
+      criticalEngagement = 'MODERATE';
+    }
+
+    if (newSynthesisEdges > 2) {
+      signals.push(`${newSynthesisEdges} novel connections`);
+      if (criticalEngagement === 'LOW') criticalEngagement = 'MODERATE';
+      if (newSynthesisEdges > 3) criticalEngagement = 'STRONG';
+    }
+
+    if ((comparison.newConcepts || []).length > (comparison.totalConcepts || 1) * 0.3) {
+      signals.push('many new concepts');
+      if (criticalEngagement === 'LOW') criticalEngagement = 'MODERATE';
+    }
+
+    return {
+      synthesisRatio,
+      contradictions,
+      newSynthesisEdges,
+      criticalEngagement,
+      signals: signals.length > 0 ? signals : ['limited transformation'],
+    };
+  }
+
+  // ================================================================
   //  STEP 3 — SCORING ENGINE
   // ================================================================
 
@@ -1082,37 +1293,63 @@ This is compared against your AI conversation to assess how much you synthesized
       /\bjust (write|draft|do|finish)\b/gi,
       /\b(can you|could you|please) (write|draft|compose)\b/gi,
     ];
-    const PUSHBACK_PATTERNS = [
+    const FEEDBACK_PATTERNS = [
+      /\b(can you|could you|please) (review|check|evaluate|assess|proofread)\b/gi,
+      /\bwhat do you think (of|about) (my|this)\b/gi,
+      /\bis this (good|right|okay|ok|correct|clear|strong|weak)\b/gi,
+      /\bgive me feedback\b/gi,
+      /\bhow (can|could) I improve\b/gi,
+      /\bdoes this (sound|make sense|work|flow)\b/gi,
+      /\bany (suggestions|comments|feedback|notes)\b/gi,
+      /\brate (my|this)\b/gi,
+    ];
+    const STUCK_PATTERNS = [
+      /\bI (don.?t|dont) understand\b/gi,
+      /\bI.?m (confused|lost|stuck|unsure|not sure)\b/gi,
+      /\bI can.?t (figure out|understand|get|see)\b/gi,
+      /\bthis (doesn.?t|does not|isn.?t|is not) make sense\b/gi,
+      /\bI don.?t know (how|what|where|why|when)\b/gi,
+      /\bhelp me (understand|figure out|with)\b/gi,
+      /\bI.?m having (trouble|difficulty|a hard time)\b/gi,
+      /\bwhat am I (doing wrong|missing|supposed to)\b/gi,
+    ];
+    const VALIDATION_PATTERNS = [
+      /\bis this (right|correct|accurate|appropriate|enough)\b/gi,
+      /\bam I (right|correct|on track|doing this right)\b/gi,
+      /\bdid I (get|do|say|explain) (this|that|it) (right|correctly)\b/gi,
+      /\b(can you|could you) (confirm|verify)\b/gi,
+      /\bwould this (work|be okay|be fine|be acceptable)\b/gi,
+      /\bwas (my|that|this) (answer|response|idea|point) (right|correct|good)\b/gi,
+    ];
+    const CONCEPTUAL_PATTERNS = [
+      /\bwhy\b[^?]*\?/gi,
+      /\bhow (does|do|did|would|should|can|could)\b[^?]*\?/gi,
+      /\bwhat (is|are|does|do|did|means|causes|happens)\b[^?]*\?/gi,
+      /\b(who|where|when)\b[^?]*\?/gi,
+      /\bexplain (me|the|how|why|what)\b/gi,
+      /\btell me (about|how|why|what)\b/gi,
+      /\bcan you (clarify|explain|elaborate|expand)\b/gi,
+      /\bI want to understand\b/gi,
+      /\bwhat.?s the (difference|relationship|connection)\b/gi,
+    ];
+    const CLAIM_PATTERNS = [
+      /\bI (think|believe|argue|feel|claim|contend)\b/gi,
+      /\bin my (opinion|view|perspective)\b/gi,
+      /\bmy (thesis|argument|point|take|view)\b/gi,
       /\bI disagree\b/gi,
       /\bI don.?t think\b/gi,
       /\bactually,?\s+(I|that|this)\b/gi,
       /\bbut (that.?s not|isn.?t that)\b/gi,
       /\bwhat if (instead|we|you)\b/gi,
-    ];
-    const AUTHENTIC_PATTERNS = [
-      /\bwhy\b[^?]*\?/gi,
-      /\bhow\b[^?]*\?/gi,
-      /\bwhat\b[^?]*\?/gi,
-      /\b(who|where|when)\b[^?]*\?/gi,
-      /\bbut (why|how|what|when)\b/gi,
-      /\bwait\b/gi,
-      /\bcan you (clarify|explain|elaborate|expand)\b/gi,
-    ];
-    const OWN_VOICE_PATTERNS = [
-      /\bI (think|believe|argue|feel|claim|contend)\b/gi,
-      /\bin my (opinion|view|perspective)\b/gi,
-      /\bmy (thesis|argument|point|take|view)\b/gi,
+      /\bI would (argue|say|suggest)\b/gi,
     ];
 
-    const extraction = EXTRACTION_PATTERNS.some(pattern => pattern.test(text));
-    const pushback = PUSHBACK_PATTERNS.some(pattern => pattern.test(text));
-    const authentic = AUTHENTIC_PATTERNS.some(pattern => pattern.test(text));
-    const ownVoice = OWN_VOICE_PATTERNS.some(pattern => pattern.test(text));
-
-    if (extraction) return "extraction";
-    if (pushback) return "pushback";
-    if (authentic) return "authentic";
-    if (ownVoice) return "ownVoice";
+    if (EXTRACTION_PATTERNS.some(p => p.test(text)))  return "extraction";
+    if (FEEDBACK_PATTERNS.some(p => p.test(text)))    return "feedback";
+    if (STUCK_PATTERNS.some(p => p.test(text)))       return "stuck";
+    if (VALIDATION_PATTERNS.some(p => p.test(text)))  return "validation";
+    if (CONCEPTUAL_PATTERNS.some(p => p.test(text)))  return "conceptual";
+    if (CLAIM_PATTERNS.some(p => p.test(text)))       return "claim";
     return "neutral";
   }
 
@@ -1171,9 +1408,9 @@ This is compared against your AI conversation to assess how much you synthesized
         
         if (!aiResponse) continue;
         
-        // Check if this student turn is authentic
+        // Flag turns where copying AI responses into the essay is most concerning
         const studentClass = classifyStudentTurn(turns[i].text);
-        if (studentClass === "authentic") {
+        if (studentClass === "conceptual" || studentClass === "stuck" || studentClass === "validation") {
           // Check overlap between this AI response and essay
           const overlap = findTurnEssayOverlap(aiResponse.text, essayText);
           
@@ -1206,10 +1443,12 @@ This is compared against your AI conversation to assess how much you synthesized
     let html = `<div class="flow-header" onclick="this.nextElementSibling.classList.toggle('open'); this.querySelector('.flow-arrow').classList.toggle('open');"><span class="flow-toggle">▶ Show me the pattern</span><span class="flow-arrow">▶</span></div>`;
     html += `<div class="flow-diagram">`;
     html += `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
-      <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><span style="display: inline-block; background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 99px; font-weight: 700;">Authentic</span><span style="color: var(--muted);">Genuine question</span></div>
       <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><span style="display: inline-block; background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 99px; font-weight: 700;">Extraction</span><span style="color: var(--muted);">Asking AI to write</span></div>
-      <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><span style="display: inline-block; background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 99px; font-weight: 700;">Own Voice</span><span style="color: var(--muted);">Your perspective</span></div>
-      <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><span style="display: inline-block; background: #ccfbf1; color: #0f766e; padding: 3px 8px; border-radius: 99px; font-weight: 700;">Pushback</span><span style="color: var(--muted);">Disagreement</span></div>
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><span style="display: inline-block; background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 99px; font-weight: 700;">Feedback</span><span style="color: var(--muted);">Asking for review</span></div>
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><span style="display: inline-block; background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 99px; font-weight: 700;">Conceptual</span><span style="color: var(--muted);">Exploring ideas</span></div>
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><span style="display: inline-block; background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 99px; font-weight: 700;">Claim</span><span style="color: var(--muted);">Your argument</span></div>
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><span style="display: inline-block; background: #ffedd5; color: #9a3412; padding: 3px 8px; border-radius: 99px; font-weight: 700;">Stuck</span><span style="color: var(--muted);">Expressing confusion</span></div>
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><span style="display: inline-block; background: #f5f3ff; color: #6b21a8; padding: 3px 8px; border-radius: 99px; font-weight: 700;">Validation</span><span style="color: var(--muted);">Seeking confirmation</span></div>
     </div>`;
 
     // Pair up student and AI turns: for each student turn, find the next AI turn
@@ -1233,24 +1472,31 @@ This is compared against your AI conversation to assess how much you synthesized
       const aiExcerpt = pair.ai.text.length > 80 ? pair.ai.text.slice(0, 80) + "…" : pair.ai.text;
 
       const badgeLabel = {
-        authentic: "Authentic Question",
-        ownVoice: "Own Voice",
-        pushback: "Pushback",
-        extraction: "Extraction",
-        neutral: "Message",
+        extraction:  "Extraction",
+        feedback:    "Feedback",
+        conceptual:  "Conceptual",
+        claim:       "Claim",
+        stuck:       "Stuck",
+        validation:  "Validation",
+        neutral:     "Message",
+      }[studentClass];
+
+      const coachingMessage = {
+        extraction:  "You asked the AI to write this — that's content generation, not thinking. Rewrite this passage in your own words.",
+        feedback:    "You asked for feedback, then copied the AI's suggestions directly. Use feedback as a guide, not a script.",
+        conceptual:  "You asked a genuine question — but try developing the concept yourself before writing it into your essay.",
+        claim:       "You expressed your own view — but the AI's response appears in your essay. Trust your original argument.",
+        stuck:       "You were confused here — explaining it in your own words (not the AI's) is how understanding actually forms.",
+        validation:  "You asked if this was right, then used the AI's answer directly. Verify ideas, don't copy responses.",
       }[studentClass];
 
       html += `<div class="flow-turn">`;
       html += `<div class="flow-bubble student"><div class="pattern-badge badge-${studentClass}">${badgeLabel}</div><p class="flow-text">${esc(studentExcerpt)}</p></div>`;
       html += `<div class="flow-bubble ai"><p class="flow-text">${esc(aiExcerpt)}</p>`;
-      if (overlap.snippets.length > 0) {
-        // Show coaching message for authentic questions with copied responses
-        if (studentClass === "authentic") {
-          html += `<div class="essay-match-callout" style="background: #fef3c7; border-color: #f59e0b; color: #92400e;">💡 <strong>You asked a genuine question</strong> — but try developing the concept yourself. Rewrite this in your own words.</div>`;
-        } else {
-          // Generic overlap warning for other types
-          html += `<div class="essay-match-callout">⚠ <span class="match-phrase">"${esc(overlap.snippets[0])}"</span> → appears in your essay</div>`;
-        }
+      if (overlap.snippets.length > 0 && coachingMessage) {
+        html += `<div class="essay-match-callout" style="background: #fef3c7; border-color: #f59e0b; color: #92400e;">💡 ${coachingMessage}</div>`;
+      } else if (overlap.snippets.length > 0) {
+        html += `<div class="essay-match-callout">⚠ <span class="match-phrase">"${esc(overlap.snippets[0])}"</span> → appears in your essay</div>`;
       }
       html += `</div></div>`;
     });
@@ -1259,7 +1505,7 @@ This is compared against your AI conversation to assess how much you synthesized
     return html;
   }
 
-  function renderSignals(parsed, signals) {
+  function renderSignals(parsed, signals, transformation) {
     const { turns, method } = parsed;
     const { structure: st, thinking: th, dependency: dep, overlap: ov } = signals;
 
@@ -1334,6 +1580,44 @@ This is compared against your AI conversation to assess how much you synthesized
           <div class="signal-card"><h3>AI Dependency</h3><div class="signal-row"><span class="signal-label">Extraction phrases</span><span class="signal-val ${extColor}">${dep.extractionPhrases}</span></div><div class="signal-row"><span class="signal-label">Synthesis signals</span><span class="signal-val ${dep.synthesisSignals > 0 ? "sig-good" : "sig-neutral"}">${dep.synthesisSignals}</span></div><div class="signal-row"><span class="signal-label">Student word share</span><span class="signal-val sig-neutral">${st.studentWords + st.aiWords > 0 ? Math.round((st.studentWords / (st.studentWords + st.aiWords)) * 100) + "%" : "—"}</span></div></div>
           <div class="signal-card"><h3>Essay ↔ AI Overlap</h3><div class="signal-row"><span class="signal-label">Verbatim overlap</span><span class="signal-val ${ovColor}">${ov.pct}%</span></div>${ov.semanticScore !== null ? `<div class="signal-row"><span class="signal-label">Semantic similarity</span><span class="signal-val ${ovColor}">${ov.semanticScore}%</span></div><div class="signal-row"><span class="signal-label">Avg similarity</span><span class="signal-val ${ovColor}">${ov.avgSimilarity}%</span></div>` : ""}<div class="signal-row"><span class="signal-label">Risk level</span><span class="signal-val ${ovColor}">${ov.risk.charAt(0).toUpperCase() + ov.risk.slice(1)}</span></div><div class="overlap-bar"><div class="overlap-fill ${ovFill}" style="width:${Math.min(ov.pct,100)}%"></div></div>${matchHTML}</div>
         </div>
+
+        ${transformation ? `
+        <div class="section-label">Critical Thinking Analysis (Beta)</div>
+        <div class="transformation-section">
+          <h3>How You Engaged with AI</h3>
+          <div class="transformation-grid">
+            <div class="transform-metric">
+              <div class="transform-metric-label">Synthesis Ratio</div>
+              <div class="transform-metric-val">${transformation.synthesisRatio}%</div>
+            </div>
+            <div class="transform-metric">
+              <div class="transform-metric-label">Novel Connections</div>
+              <div class="transform-metric-val">${transformation.newSynthesisEdges || 0}</div>
+            </div>
+          </div>
+          <div class="critical-engagement ${transformation.criticalEngagement.toLowerCase()}">
+            <div class="engagement-level">Critical Thinking Level</div>
+            <div class="engagement-label ${transformation.criticalEngagement.toLowerCase()}">${transformation.criticalEngagement}</div>
+            <ul class="transform-signals">
+              ${transformation.signals.map(s => `<li>✓ ${esc(s)}</li>`).join("")}
+            </ul>
+          </div>
+          ${transformation.criticalEngagement === 'STRONG' ? `
+            <div style="margin-top: 12px; padding: 12px; background: #f0fdf4; border-left: 4px solid var(--good); border-radius: 6px; font-size: 13px; color: #166534;">
+              <strong>Great work!</strong> You reorganized and extended the AI's ideas—this shows critical thinking and synthesis.
+            </div>
+          ` : transformation.criticalEngagement === 'MODERATE' ? `
+            <div style="margin-top: 12px; padding: 12px; background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 6px; font-size: 13px; color: #92400e;">
+              <strong>Good effort.</strong> You incorporated some of the AI's ideas into your own thinking, but consider going deeper—question the assumptions, extend the ideas, create new connections.
+            </div>
+          ` : `
+            <div style="margin-top: 12px; padding: 12px; background: #fef2f2; border-left: 4px solid #dc2626; border-radius: 6px; font-size: 13px; color: #7f1d1d;">
+              <strong>Limited engagement.</strong> Try using AI as a thinking partner—ask follow-up questions, debate the ideas, and build your own synthesis rather than just accepting or ignoring what it says.
+            </div>
+          `}
+        </div>
+        ` : ""}
+      </div>
       </div>`;
 
     document.getElementById("resultsArea").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1649,7 +1933,38 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
       }
     }
 
-    renderSignals(parsed, signals);
+    // Extract knowledge graphs and analyze transformation
+    let transformation = null;
+    if (groqConfig.apiKey && groqConfig.enabled) {
+      const aiTurns = parsed.turns.filter(t => t.role === "ai");
+      const aiText = aiTurns.map(t => t.text).join(" ");
+      if (aiText.trim() && essayInput.value.trim()) {
+        const aiGraph = await extractKnowledgeGraphFromText(aiText, groqConfig.apiKey);
+        const essayGraph = await extractKnowledgeGraphFromText(essayInput.value, groqConfig.apiKey);
+
+        if (aiGraph && essayGraph) {
+          // Compute basic concept overlap for transformation analysis
+          const aiConcepts = new Set((aiGraph.entities || []).map(e => e.toLowerCase()));
+          const essayConcepts = new Set((essayGraph.entities || []).map(e => e.toLowerCase()));
+          const shared = new Set([...aiConcepts].filter(e => essayConcepts.has(e)));
+
+          const conceptOverlap = shared.size / Math.max(aiConcepts.size, essayConcepts.size) || 0;
+          const relationshipOverlap = 0; // Simplified for app
+
+          const comparison = {
+            conceptOverlap: Math.round(conceptOverlap * 100),
+            relationshipOverlap: relationshipOverlap,
+            sharedConcepts: shared.size,
+            totalConcepts: Math.max(aiConcepts.size, essayConcepts.size),
+            newConcepts: [...essayConcepts].filter(e => !aiConcepts.has(e)),
+          };
+
+          transformation = analyzeTransformation(aiGraph, essayGraph, comparison);
+        }
+      }
+    }
+
+    renderSignals(parsed, signals, transformation);
     document.getElementById("resultsArea").scrollIntoView({ behavior: "smooth", block: "start" });
 
     // Call NLP if enabled
