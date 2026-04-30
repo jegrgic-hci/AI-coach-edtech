@@ -116,33 +116,71 @@ function compareGraphs(aiGraph, essayGraph) {
   // New concepts in essay
   const newConcepts = [...essayEntities].filter(e => !aiEntities.has(e));
 
-  // Relationship overlap (with normalized relationship types)
-  // Groups similar types: "causes", "produces", "creates" → "causes"
-  const aiEdges = new Set(aiGraph.relationships.map(r =>
-    `${r.from.toLowerCase()}→${r.to.toLowerCase()}:${normalizeRelationType(r.type)}`
-  ));
-  const essayEdges = new Set(essayGraph.relationships.map(r =>
-    `${r.from.toLowerCase()}→${r.to.toLowerCase()}:${normalizeRelationType(r.type)}`
-  ));
+  // Build relationship maps (normalized types)
+  const aiRelationships = aiGraph.relationships.map(r => ({
+    from: r.from.toLowerCase(),
+    to: r.to.toLowerCase(),
+    type: normalizeRelationType(r.type),
+    original: r,
+  }));
 
-  const sharedEdges = new Set([...aiEdges].filter(e => essayEdges.has(e)));
-  const relationshipOverlap = sharedEdges.size / Math.max(aiEdges.size, essayEdges.size) || 0;
+  const essayRelationships = essayGraph.relationships.map(r => ({
+    from: r.from.toLowerCase(),
+    to: r.to.toLowerCase(),
+    type: normalizeRelationType(r.type),
+    original: r,
+  }));
 
-  // New relationships in essay (keyed by nodes, any type difference is new)
-  const newRelationships = [...essayEdges].filter(e => !aiEdges.has(e));
+  // Relationship overlap: match on (from, to) pairs, check if type is the same
+  let sharedEdgesCount = 0;
+  let changedTypeEdges = 0;
+
+  essayRelationships.forEach(essayRel => {
+    const aiMatch = aiRelationships.find(
+      air => air.from === essayRel.from && air.to === essayRel.to
+    );
+
+    if (aiMatch) {
+      if (aiMatch.type === essayRel.type) {
+        sharedEdgesCount++;
+      } else {
+        changedTypeEdges++;
+      }
+    }
+  });
+
+  // Relationship overlap: % of AI relationships that appear in essay (same or changed type)
+  const relationshipOverlapPct = aiRelationships.length > 0
+    ? Math.round(((sharedEdgesCount + changedTypeEdges) / aiRelationships.length) * 100)
+    : 0;
+
+  // Type match ratio: of relationships that exist in both, what % have same type
+  const existingEdges = sharedEdgesCount + changedTypeEdges;
+  const typeMatchRatio = existingEdges > 0
+    ? Math.round((sharedEdgesCount / existingEdges) * 100)
+    : 100;
+
+  const newRelationships = essayRelationships.filter(
+    essayRel => !aiRelationships.some(
+      air => air.from === essayRel.from && air.to === essayRel.to
+    )
+  );
 
   return {
     conceptOverlap: Math.round(conceptOverlap * 100),
-    relationshipOverlap: Math.round(relationshipOverlap * 100),
+    relationshipOverlap: relationshipOverlapPct,
+    typeMatchRatio, // % of existing edges where type is same (high = copied, low = reorganized)
     sharedConcepts: [...shared].length,
     totalConcepts: Math.max(aiEntities.size, essayEntities.size),
     newConcepts,
     newRelationships,
     aiEntityCount: aiEntities.size,
     essayEntityCount: essayEntities.size,
-    aiEdgeCount: aiEdges.size,
-    essayEdgeCount: essayEdges.size,
-    sharedEdgeCount: sharedEdges.size,
+    aiEdgeCount: aiRelationships.length,
+    essayEdgeCount: essayRelationships.length,
+    sharedEdgeCount: sharedEdgesCount,
+    changedTypeEdges,
+    existingEdgesInBoth: existingEdges,
   };
 }
 
@@ -234,42 +272,56 @@ function analyzeTransformation(aiGraph, essayGraph, comparison) {
     }
   });
 
-  // 5. CRITICAL ENGAGEMENT LEVEL
-  let criticalEngagement = 'LOW';
+  // 5. CRITICAL ENGAGEMENT LEVEL - based on typeMatchRatio
+  // typeMatchRatio = % of matching edges where type is the same
+  // High typeMatchRatio (>70%) = copied structure (BAD)
+  // Low typeMatchRatio (<40%) = reorganized structure (GOOD)
+
+  const typeMatchRatio = comparison.typeMatchRatio || 0;
+  let criticalEngagement = 'UNKNOWN';
   let engagementSignals = [];
 
-  if (contradictions.length > 0) {
-    engagementSignals.push(`${contradictions.length} relationship changes (reframing)`);
-    if (contradictions.some(c => c.type === 'contradiction')) {
-      engagementSignals.push('explicit contradictions detected');
+  // CASE 1: High concept overlap (student used AI's ideas)
+  if (comparison.conceptOverlap >= 60) {
+    if (typeMatchRatio >= 70) {
+      // High concepts + high type match = COPYING
+      criticalEngagement = 'LOW';
+      engagementSignals.push(`High concept overlap (${comparison.conceptOverlap}%) with same relationship types (${typeMatchRatio}%) → copied structure`);
+    } else if (typeMatchRatio >= 40) {
+      // High concepts + medium type match = MIXED
+      criticalEngagement = 'MODERATE';
+      engagementSignals.push(`High concept overlap (${comparison.conceptOverlap}%) but changed relationships (${typeMatchRatio}% match) → mixed reorganization`);
+    } else {
+      // High concepts + low type match = REORGANIZATION
       criticalEngagement = 'STRONG';
+      engagementSignals.push(`High concept overlap (${comparison.conceptOverlap}%) with significant relationship changes (${typeMatchRatio}% match) → reorganized thinking`);
+    }
+  }
+  // CASE 2: Medium concept overlap
+  else if (comparison.conceptOverlap >= 30) {
+    if (typeMatchRatio >= 70) {
+      criticalEngagement = 'LOW';
+      engagementSignals.push('Selective concept usage but kept same structure');
     } else {
       criticalEngagement = 'MODERATE';
+      engagementSignals.push('Selective concept usage with some reorganization');
+    }
+  }
+  // CASE 3: Low concept overlap (independent thinking)
+  else {
+    if (comparison.newConcepts.length > comparison.totalConcepts * 0.4) {
+      criticalEngagement = 'STRONG';
+      engagementSignals.push(`Built mostly new framework (${comparison.newConcepts.length} new concepts) → independent thinking`);
+    } else {
+      criticalEngagement = 'MODERATE';
+      engagementSignals.push('Low concept reuse → independent or minimal AI engagement');
     }
   }
 
-  if (newSynthesisEdges.length > 2) {
-    engagementSignals.push(`${newSynthesisEdges.length} novel concept connections`);
-    if (criticalEngagement === 'LOW') criticalEngagement = 'MODERATE';
-    if (newSynthesisEdges.length > 3) criticalEngagement = 'STRONG';
-  }
-
-  if (comparison.newConcepts.length > comparison.totalConcepts * 0.3) {
-    engagementSignals.push('significant new concepts introduced');
-    if (criticalEngagement === 'LOW') criticalEngagement = 'MODERATE';
-  }
-
-  if (comparison.conceptOverlap < 30 && comparison.relationshipOverlap > 0) {
-    engagementSignals.push('AI concepts used selectively');
-  }
-
   return {
-    synthesisRatio,
-    evidenceScore,
-    contradictions,
-    newSynthesisEdges,
+    typeMatchRatio,
     criticalEngagement,
-    engagementSignals: engagementSignals.length > 0 ? engagementSignals : ['limited transformation detected'],
+    engagementSignals: engagementSignals.length > 0 ? engagementSignals : ['analysis inconclusive'],
   };
 }
 
@@ -292,8 +344,19 @@ function formatGraph(graph, label) {
 function formatComparison(comparison) {
   console.log('\n📈 COMPARISON METRICS');
   console.log('─'.repeat(60));
-  console.log(`Concept Overlap: ${comparison.conceptOverlap}% (${comparison.sharedConcepts}/${comparison.totalConcepts})`);
-  console.log(`Relationship Overlap: ${comparison.relationshipOverlap}% (${comparison.sharedEdgeCount}/${Math.max(comparison.aiEdgeCount, comparison.essayEdgeCount)})`);
+  console.log(`\n🔤 Concept Overlap: ${comparison.conceptOverlap}%`);
+  console.log(`   (${comparison.sharedConcepts}/${comparison.totalConcepts} shared concepts)`);
+
+  console.log(`\n🔗 Relationship Analysis:`);
+  console.log(`   Relationships that appear in both: ${comparison.relationshipOverlap}%`);
+  console.log(`   Type Match Ratio: ${comparison.typeMatchRatio}%`);
+  console.log(`   └─ ${comparison.typeMatchRatio > 70 ? '🔴 HIGH (student kept same relationship types → copied structure)' :
+                       comparison.typeMatchRatio > 40 ? '🟡 MEDIUM (some relationship changes → mixed engagement)' :
+                       '🟢 LOW (changed relationship types → reorganized thinking)'}`);
+
+  if (comparison.existingEdgesInBoth > 0) {
+    console.log(`   Matching edges: ${comparison.sharedEdgeCount} same type, ${comparison.changedTypeEdges} changed type (of ${comparison.existingEdgesInBoth} total)`);
+  }
 
   if (comparison.newConcepts.length > 0) {
     console.log(`\n✨ New Concepts in Essay (${comparison.newConcepts.length}):`);
@@ -305,7 +368,10 @@ function formatComparison(comparison) {
 
   if (comparison.newRelationships.length > 0) {
     console.log(`\n✨ New Relationships in Essay (${comparison.newRelationships.length}):`);
-    comparison.newRelationships.slice(0, 5).forEach(r => console.log(`  • ${r}`));
+    comparison.newRelationships.slice(0, 5).forEach(r => {
+      const rel = r;
+      console.log(`  • ${rel.from}→${rel.to} (${rel.type})`);
+    });
     if (comparison.newRelationships.length > 5) {
       console.log(`  ... and ${comparison.newRelationships.length - 5} more`);
     }
@@ -343,63 +409,34 @@ function formatNarrative(comparison, level) {
 }
 
 function formatTransformationAnalysis(transformation, comparison) {
-  console.log('\n🔬 TRANSFORMATION ANALYSIS (Critical Thinking with AI)');
+  console.log('\n🔬 CRITICAL THINKING ANALYSIS (Graph-Based)');
   console.log('─'.repeat(60));
 
-  console.log(`\n📊 Synthesis Metrics:`);
-  console.log(`  Synthesis Ratio: ${transformation.synthesisRatio}%`);
-  console.log(`  └─ Interpretation: ${transformation.synthesisRatio > 40 ? 'Student reorganized AI concepts' : 'Limited reorganization'}`);
+  console.log(`\n📊 Metrics:`);
+  console.log(`  Concept Overlap: ${comparison.conceptOverlap}%`);
+  console.log(`  Type Match Ratio: ${transformation.typeMatchRatio}%`);
+  console.log(`  └─ ${transformation.typeMatchRatio >= 70 ? '🔴 HIGH: kept same types (copied)' :
+                       transformation.typeMatchRatio >= 40 ? '🟡 MEDIUM: some changes' :
+                       '🟢 LOW: changed types significantly (reorganized)'}`);
 
-  console.log(`\n  Evidence Integration: ${transformation.evidenceScore}`);
-
-  if (comparison.conceptOverlap > 0) {
-    console.log(`  Concepts Retained: ${comparison.sharedConcepts}/${comparison.totalConcepts} (${comparison.conceptOverlap}%)`);
-  }
-
-  console.log(`\n🔄 Relationship Transformations:`);
-  if (transformation.contradictions.length > 0) {
-    console.log(`  Found ${transformation.contradictions.length} relationship changes:`);
-    transformation.contradictions.slice(0, 5).forEach(c => {
-      const arrow = c.type === 'contradiction' ? '↔️ ' : '→ ';
-      console.log(`    ${arrow} ${c.edge.split('→')[0]} (AI: ${c.aiType}, Essay: ${c.essayType})`);
-    });
-    if (transformation.contradictions.length > 5) {
-      console.log(`    ... and ${transformation.contradictions.length - 5} more`);
-    }
-  } else {
-    console.log(`  No detected relationship changes (no reorganization)`);
-  }
-
-  console.log(`\n✨ New Concept Connections:`);
-  if (transformation.newSynthesisEdges.length > 0) {
-    console.log(`  ${transformation.newSynthesisEdges.length} novel connections between AI concepts:`);
-    transformation.newSynthesisEdges.slice(0, 4).forEach(edge => {
-      console.log(`    • ${edge.from} ──[${edge.type}]──> ${edge.to}`);
-    });
-    if (transformation.newSynthesisEdges.length > 4) {
-      console.log(`    ... and ${transformation.newSynthesisEdges.length - 4} more`);
-    }
-  } else {
-    console.log(`  No new concept connections detected`);
-  }
-
-  console.log(`\n🎯 Critical Thinking Assessment:`);
-  console.log(`  Level: ${transformation.criticalEngagement}`);
-  console.log(`  Signals:`);
+  console.log(`\n🎯 Critical Thinking Level: ${transformation.criticalEngagement}`);
+  console.log(`  Evidence:`);
   transformation.engagementSignals.forEach(signal => {
-    console.log(`    ✓ ${signal}`);
+    console.log(`    • ${signal}`);
   });
 
-  console.log(`\n📋 Summary:`);
+  console.log(`\n📋 Interpretation:`);
   if (transformation.criticalEngagement === 'STRONG') {
-    console.log(`  Student engaged critically with AI ideas: reorganized, reframed, or extended them.`);
-    console.log(`  AI augmented thinking rather than replaced it.`);
+    console.log(`  ✅ Strong critical thinking. Student engaged deeply:`);
+    if (comparison.conceptOverlap >= 60) {
+      console.log(`     - Took AI's concepts but reorganized relationships significantly`);
+    } else {
+      console.log(`     - Built mostly independent thinking`);
+    }
   } else if (transformation.criticalEngagement === 'MODERATE') {
-    console.log(`  Student showed some critical engagement: modified AI structure or added new concepts.`);
-    console.log(`  Mixed signal: some augmentation, but also some direct usage.`);
+    console.log(`  🟡 Moderate critical thinking. Some engagement detected.`);
   } else {
-    console.log(`  Limited critical engagement detected: minimal transformation of AI ideas.`);
-    console.log(`  Student may have copied structure or not engaged deeply with AI content.`);
+    console.log(`  ⚠️  Limited critical thinking. Minimal transformation.`);
   }
 }
 

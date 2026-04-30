@@ -333,6 +333,7 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 12px;
+    position: relative;
   }
   .dim-header {
     display: flex; align-items: baseline;
@@ -475,6 +476,7 @@
     padding: 12px;
     border-radius: 8px;
     border: 1px solid #e4dffb;
+    position: relative;
   }
   .transform-metric-label {
     font-size: 11px;
@@ -489,6 +491,53 @@
     font-weight: 700;
     color: var(--brand);
   }
+
+  /* ── Tooltips ── */
+  [data-tooltip] { position: relative; cursor: help; }
+  [data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+    padding: 8px 12px;
+    border-radius: 8px;
+    white-space: normal;
+    width: 220px;
+    text-align: left;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  [data-tooltip]:hover::after { opacity: 1; }
+  .has-tooltip-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .tooltip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--border);
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 700;
+    font-style: normal;
+    cursor: help;
+    flex-shrink: 0;
+  }
+
   .critical-engagement {
     padding: 12px 16px;
     background: white;
@@ -816,6 +865,35 @@ This is compared against your AI conversation to assess how much you synthesized
 </main>
 
 <script>
+  // Toggle accordion visibility
+  function togglePatternVisibility(btn) {
+    setTimeout(() => {
+      const content = document.getElementById('pattern-content');
+      if (!content) return;
+      const isHidden = content.style.display === 'none';
+      content.style.display = isHidden ? 'block' : 'none';
+      const arrow = btn.querySelector('span:last-child');
+      if (arrow) {
+        arrow.style.transform = isHidden ? 'rotate(90deg)' : 'rotate(0deg)';
+        arrow.style.transition = 'transform 0.3s ease';
+      }
+    }, 0);
+  }
+
+  function toggleSignalVisibility(btn) {
+    setTimeout(() => {
+      const content = document.getElementById('signal-details-content');
+      if (!content) return;
+      const isHidden = content.style.display === 'none';
+      content.style.display = isHidden ? 'block' : 'none';
+      const arrow = btn.querySelector('span:last-child');
+      if (arrow) {
+        arrow.style.transform = isHidden ? 'rotate(90deg)' : 'rotate(0deg)';
+        arrow.style.transition = 'transform 0.3s ease';
+      }
+    }, 0);
+  }
+
   // ── Utility ──────────────────────────────────────────────────────
   function countWords(s) {
     return s.trim().split(/\s+/).filter(Boolean).length;
@@ -1387,37 +1465,42 @@ Text: ${text.substring(0, 2000)}`;
     const { structure: st, overlap: ov, _rawSignals: raw } = signals;
     const th = raw.thinking;
     const dep = raw.dependency;
-    const fb = [];
+    const strengths = [];
+    const feedback = [];
 
+    // Prompting Quality
     if (PQ >= 4) {
-      fb.push("You asked thoughtful, deep questions — that's how you get the most from AI collaboration.");
+      strengths.push("You asked thoughtful, deep questions — that's how you get the most from AI collaboration.");
     } else if (th.totalQuestions < 2) {
-      fb.push("Try asking more questions next time. Questions like 'why is that true?' or 'how would you approach this differently?' help you engage more deeply.");
+      feedback.push("Try asking more questions next time. Questions like 'why is that true?' or 'how would you approach this differently?' help you engage more deeply.");
     } else {
-      fb.push("Good start with questions. Push further — ask 'why' and 'how' to go deeper.");
+      feedback.push("Good start with questions. Push further — ask 'why' and 'how' to go deeper.");
     }
 
+    // Selective Use
     if (st.studentTurns < 3) {
-      fb.push(`Only ${st.studentTurns} exchange${st.studentTurns === 1 ? "" : "s"} detected. A deeper back-and-forth helps you process the AI's ideas. Aim for 5+ turns.`);
+      feedback.push(`Only ${st.studentTurns} exchange${st.studentTurns === 1 ? "" : "s"} detected. A deeper back-and-forth helps you process the AI's ideas. Aim for 5+ turns.`);
     } else if (SU >= 4) {
-      fb.push("Excellent use of AI — you iterated multiple times and synthesized the ideas rather than just accepting them.");
+      strengths.push("Excellent use of AI — you iterated multiple times and synthesized the ideas rather than just accepting them.");
     }
 
+    // Calibrated Skepticism
     if (dep.synthesisSignals === 0 && th.ownVoice < 2) {
-      fb.push("No synthesis signals found. Next time, try paraphrasing the AI's key points back in your own words before writing.");
+      feedback.push("No synthesis signals found. Next time, try paraphrasing the AI's key points back in your own words before writing.");
     } else if (CS >= 3) {
-      fb.push("You applied critical thinking — questioning the AI's ideas and integrating your own perspective.");
+      strengths.push("You applied critical thinking — questioning the AI's ideas and integrating your own perspective.");
     }
 
+    // Original Contribution
     if (OC <= 2) {
-      fb.push(`Your essay relies heavily on AI-generated content. Focus on rewriting the key ideas in your own voice and adding your own original analysis.`);
+      feedback.push(`Your essay relies heavily on AI-generated content. Focus on rewriting the key ideas in your own voice and adding your own original analysis.`);
     } else if (dep.extractionPhrases > 0) {
-      fb.push(`You asked the AI to generate content for you ${dep.extractionPhrases} time${dep.extractionPhrases > 1 ? "s" : ""}. Better approach: use it to refine your own ideas, not replace them.`);
+      feedback.push(`You asked the AI to generate content for you ${dep.extractionPhrases} time${dep.extractionPhrases > 1 ? "s" : ""}. Better approach: use it to refine your own ideas, not replace them.`);
     } else if (OC === 5) {
-      fb.push("Excellent originality — the essay is clearly your own work with AI as a supporting tool.");
+      strengths.push("Excellent originality — the essay is clearly your own work with AI as a supporting tool.");
     }
 
-    return fb;
+    return { strengths, feedback };
   }
 
   // ================================================================
@@ -1581,8 +1664,11 @@ Text: ${text.substring(0, 2000)}`;
       return `<div class="flow-empty">Add more turns to see a pattern map</div>`;
     }
 
-    let html = `<div class="flow-header" onclick="this.nextElementSibling.classList.toggle('open'); this.querySelector('.flow-arrow').classList.toggle('open');"><span class="flow-toggle">▶ Show me the pattern</span><span class="flow-arrow">▶</span></div>`;
-    html += `<div class="flow-diagram">`;
+    let html = `<button id="pattern-btn" onclick="togglePatternVisibility(this)" style="background: #f3f4f6; border: 1px solid #e5e7eb; color: #374151; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 16px; width: 100%; text-align: left; display: flex; align-items: center; gap: 8px; font-family: inherit;">
+          <span>🔍 Show me the pattern</span>
+          <span style="margin-left: auto;">▶</span>
+        </button>`;
+    html += `<div id="pattern-content" class="flow-diagram" style="display: none; margin-top: 12px;">`;
     html += `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
       <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><span style="display: inline-block; background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 99px; font-weight: 700;">Extraction</span><span style="color: var(--muted);">Asking AI to write</span></div>
       <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><span style="display: inline-block; background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 99px; font-weight: 700;">Feedback</span><span style="color: var(--muted);">Asking for review</span></div>
@@ -1667,11 +1753,17 @@ Text: ${text.substring(0, 2000)}`;
     const DIM_DESC = {
       T: ["You didn't ask questions or explore the topic deeply.", "Surface-level questions — try asking 'why' or 'how' more often.", "Good mix of questions showing depth of inquiry.", "Strong questioning — you explored assumptions and followed up.", "Exceptional questioning that shows intellectual curiosity and refinement."],
       A: ["You asked the AI to do most of the work.", "Limited engagement with the AI's responses — minimal synthesis.", "Reasonable engagement — you processed some of the AI's ideas.", "Active use of AI as a thinking partner with synthesis moments.", "Deep strategic use — you iterated and built on ideas collaboratively."],
-      U: ["No evidence of synthesis or making the ideas your own.", "Limited synthesis — mostly accepting AI output or asking for more.", "Some synthesis signals — you connected ideas to your thinking.", "Good synthesis — you paraphrased and reframed the AI's ideas.", "Strong synthesis — you transformed AI input into your own understanding."],
+      U: ["You accepted the AI's output without question or verification.", "Minimal pushback — mostly accepting the AI's answers with little critical distance.", "Some skepticism — you questioned certain claims or checked against external sources.", "Good skepticism — you pushed back on ideas, verified claims, and brought in external perspectives.", "Strong skepticism — you consistently questioned the AI, validated claims independently, and maintained critical distance throughout."],
       S: ["Little evidence of original contribution beyond the prompt.", "Some original thinking, but mostly relying on AI-generated content.", "Moderate originality — balanced between AI and your own ideas.", "High originality — the essay is clearly your own work.", "Exceptional originality — your voice and ideas dominate throughout."],
     };
 
     const DIM_LABELS = { T: "Prompting Quality", A: "Selective Use", U: "Calibrated Skepticism", S: "Original Contribution" };
+    const DIM_TOOLTIPS = {
+      T: "How thoughtfully you guided the AI — through specific questions, follow-ups, and targeted exploration of the topic.",
+      A: "How strategically you used the AI's responses — picking what's useful, skipping what isn't, and iterating toward better answers.",
+      U: "Whether you maintained critical distance from the AI — by pushing back on claims, fact-checking with external sources, and questioning rather than accepting at face value.",
+      S: "How much of the final essay reflects your own original ideas, voice, and analysis — not just AI-generated content.",
+    };
     const samrMeta = SAMR_META[samr];
 
     const methodMsg = {
@@ -1685,17 +1777,18 @@ Text: ${text.substring(0, 2000)}`;
     const dimCards = ["T","A","U","S"].map(k => {
       const score = scores[k];
       const label = k === "T" ? "PQ" : k === "A" ? "SU" : k === "U" ? "CS" : "OC";
-      return `<div class="dim-card"><div class="dim-header"><span class="dim-letter">${label}</span><span class="dim-name">${DIM_LABELS[k]}</span><span class="dim-score-val">${score}/5</span></div><div class="dim-bar"><div class="dim-fill" style="width:${score * 20}%"></div></div><div class="dim-desc-text">${DIM_DESC[k][score - 1]}</div></div>`;
+      return `<div class="dim-card"><div class="dim-header"><span class="dim-letter">${label}</span><span class="dim-name has-tooltip-label" data-tooltip="${DIM_TOOLTIPS[k]}">${DIM_LABELS[k]}<i class="tooltip-icon">?</i></span><span class="dim-score-val">${score}/5</span></div><div class="dim-bar"><div class="dim-fill" style="width:${score * 20}%"></div></div><div class="dim-desc-text">${DIM_DESC[k][score - 1]}</div></div>`;
     }).join("");
 
     const flowDiagramHTML = renderFlowDiagram(turns, essayInput.value);
+    const combinedFeedbackHTML = renderCombinedFeedback(null, feedback);
+    window._lastFeedback = feedback;
 
     const qColor   = th.totalQuestions >= 5 ? "sig-good" : th.totalQuestions >= 2 ? "sig-neutral" : "sig-warn";
     const ovColor  = ov.risk === "none" ? "sig-good" : ov.risk === "low" ? "sig-neutral" : ov.risk === "medium" ? "sig-warn" : "sig-bad";
     const ovFill   = ov.risk === "none" || ov.risk === "low" ? "fill-good" : ov.risk === "medium" ? "fill-warn" : "fill-bad";
     const extColor = dep.extractionPhrases === 0 ? "sig-good" : dep.extractionPhrases <= 2 ? "sig-warn" : "sig-bad";
     const matchHTML = ov.matches.length ? `<div class="match-list">Matched: ${ov.matches.map(m => `"${esc(m)}…"`).join(", ")}</div>` : "";
-    const fbHTML = feedback.map(f => `<li>${esc(f)}</li>`).join("");
 
     document.getElementById("resultsArea").innerHTML = `
       <div class="results-content">
@@ -1710,37 +1803,43 @@ Text: ${text.substring(0, 2000)}`;
           <div class="dim-grid">${dimCards}</div>
         </div>
 
-        ${flowDiagramHTML}
+        <button id="signal-details-btn" onclick="toggleSignalVisibility(this)" style="background: #f3f4f6; border: 1px solid #e5e7eb; color: #374151; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 16px; width: 100%; text-align: left; display: flex; align-items: center; gap: 8px;">
+          <span>⚙️ How the score was calculated</span>
+          <span style="margin-left: auto;">▶</span>
+        </button>
 
-        <div class="section-label">Feedback</div>
-        <ul class="feedback-list">${fbHTML}</ul>
+        <div id="signal-details-content" style="display: none;">
+          <div class="section-label">Signal Details <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;">— how this score was calculated</span></div>
+          <div class="${noticeClass}">${esc(methodMsg)}</div>
 
-        <div class="section-label">Signal Details <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;">— how this score was calculated</span></div>
-        <div class="${noticeClass}">${esc(methodMsg)}</div>
-
-        <div class="signal-grid">
-          <div class="signal-card"><h3>Conversation Structure</h3><div class="signal-row"><span class="signal-label">Total turns</span><span class="signal-val sig-neutral">${st.totalTurns}</span></div><div class="signal-row"><span class="signal-label">Your messages</span><span class="signal-val sig-neutral">${st.studentTurns}</span></div><div class="signal-row"><span class="signal-label">Avg. message length</span><span class="signal-val sig-neutral">${st.avgStudentWords} words</span></div><div class="signal-row"><span class="signal-label">Essay length</span><span class="signal-val sig-neutral">${st.essayWords} words</span></div><div class="signal-row"><span class="signal-label">You started</span><span class="signal-val ${st.studentFirst ? "sig-good" : "sig-neutral"}">${st.studentFirst ? "Yes" : "No"}</span></div></div>
-          <div class="signal-card"><h3>Thinking Initiative</h3><div class="signal-row"><span class="signal-label">Questions asked</span><span class="signal-val ${qColor}">${th.totalQuestions}</span></div><div class="signal-row"><span class="signal-label">"Why" questions</span><span class="signal-val ${th.whyQuestions > 0 ? "sig-good" : "sig-neutral"}">${th.whyQuestions}</span></div><div class="signal-row"><span class="signal-label">Follow-up phrases</span><span class="signal-val ${th.followUps > 0 ? "sig-good" : "sig-neutral"}">${th.followUps}</span></div><div class="signal-row"><span class="signal-label">Own voice ("I think…")</span><span class="signal-val ${th.ownVoice > 0 ? "sig-good" : "sig-warn"}">${th.ownVoice}</span></div><div class="signal-row"><span class="signal-label">Pushback</span><span class="signal-val ${th.pushback > 0 ? "sig-good" : "sig-neutral"}">${th.pushback}</span></div></div>
-          <div class="signal-card"><h3>AI Dependency</h3><div class="signal-row"><span class="signal-label">Extraction phrases</span><span class="signal-val ${extColor}">${dep.extractionPhrases}</span></div><div class="signal-row"><span class="signal-label">Synthesis signals</span><span class="signal-val ${dep.synthesisSignals > 0 ? "sig-good" : "sig-neutral"}">${dep.synthesisSignals}</span></div><div class="signal-row"><span class="signal-label">Student word share</span><span class="signal-val sig-neutral">${st.studentWords + st.aiWords > 0 ? Math.round((st.studentWords / (st.studentWords + st.aiWords)) * 100) + "%" : "—"}</span></div></div>
-          <div class="signal-card"><h3>Essay ↔ AI Overlap</h3><div class="signal-row"><span class="signal-label">Verbatim overlap</span><span class="signal-val ${ovColor}">${ov.pct}%</span></div>${ov.semanticScore !== null ? `<div class="signal-row"><span class="signal-label">Semantic similarity</span><span class="signal-val ${ovColor}">${ov.semanticScore}%</span></div><div class="signal-row"><span class="signal-label">Avg similarity</span><span class="signal-val ${ovColor}">${ov.avgSimilarity}%</span></div>` : ""}<div class="signal-row"><span class="signal-label">Risk level</span><span class="signal-val ${ovColor}">${ov.risk.charAt(0).toUpperCase() + ov.risk.slice(1)}</span></div><div class="overlap-bar"><div class="overlap-fill ${ovFill}" style="width:${Math.min(ov.pct,100)}%"></div></div>${matchHTML}${ov.divergence && ov.divergence.hasDivergence ? `<div style="margin-top: 12px; padding: 10px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px; font-size: 12px; color: #92400e;"><strong>⚠️ Divergence Detected:</strong> ${ov.divergence.reason}</div>` : ""}</div>
+          <div class="signal-grid">
+            <div class="signal-card"><h3>Conversation Structure</h3><div class="signal-row"><span class="signal-label">Total turns</span><span class="signal-val sig-neutral">${st.totalTurns}</span></div><div class="signal-row"><span class="signal-label">Your messages</span><span class="signal-val sig-neutral">${st.studentTurns}</span></div><div class="signal-row"><span class="signal-label">Avg. message length</span><span class="signal-val sig-neutral">${st.avgStudentWords} words</span></div><div class="signal-row"><span class="signal-label">Essay length</span><span class="signal-val sig-neutral">${st.essayWords} words</span></div><div class="signal-row"><span class="signal-label">You started</span><span class="signal-val ${st.studentFirst ? "sig-good" : "sig-neutral"}">${st.studentFirst ? "Yes" : "No"}</span></div></div>
+            <div class="signal-card"><h3>Thinking Initiative</h3><div class="signal-row"><span class="signal-label">Questions asked</span><span class="signal-val ${qColor}">${th.totalQuestions}</span></div><div class="signal-row"><span class="signal-label">"Why" questions</span><span class="signal-val ${th.whyQuestions > 0 ? "sig-good" : "sig-neutral"}">${th.whyQuestions}</span></div><div class="signal-row"><span class="signal-label">Follow-up phrases</span><span class="signal-val ${th.followUps > 0 ? "sig-good" : "sig-neutral"}">${th.followUps}</span></div><div class="signal-row"><span class="signal-label">Own voice ("I think…")</span><span class="signal-val ${th.ownVoice > 0 ? "sig-good" : "sig-warn"}">${th.ownVoice}</span></div><div class="signal-row"><span class="signal-label">Pushback</span><span class="signal-val ${th.pushback > 0 ? "sig-good" : "sig-neutral"}">${th.pushback}</span></div></div>
+            <div class="signal-card"><h3>AI Dependency</h3><div class="signal-row"><span class="signal-label">Extraction phrases</span><span class="signal-val ${extColor}">${dep.extractionPhrases}</span></div><div class="signal-row"><span class="signal-label">Synthesis signals</span><span class="signal-val ${dep.synthesisSignals > 0 ? "sig-good" : "sig-neutral"}">${dep.synthesisSignals}</span></div><div class="signal-row"><span class="signal-label">Student word share</span><span class="signal-val sig-neutral">${st.studentWords + st.aiWords > 0 ? Math.round((st.studentWords / (st.studentWords + st.aiWords)) * 100) + "%" : "—"}</span></div></div>
+            <div class="signal-card"><h3>Essay ↔ AI Overlap</h3><div class="signal-row"><span class="signal-label">Verbatim overlap</span><span class="signal-val ${ovColor}">${ov.pct}%</span></div>${ov.semanticScore !== null ? `<div class="signal-row"><span class="signal-label">Semantic similarity</span><span class="signal-val ${ovColor}">${ov.semanticScore}%</span></div><div class="signal-row"><span class="signal-label">Avg similarity</span><span class="signal-val ${ovColor}">${ov.avgSimilarity}%</span></div>` : ""}<div class="signal-row"><span class="signal-label">Risk level</span><span class="signal-val ${ovColor}">${ov.risk.charAt(0).toUpperCase() + ov.risk.slice(1)}</span></div><div class="overlap-bar"><div class="overlap-fill ${ovFill}" style="width:${Math.min(ov.pct,100)}%"></div></div>${matchHTML}${ov.divergence && ov.divergence.hasDivergence ? `<div style="margin-top: 12px; padding: 10px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px; font-size: 12px; color: #92400e;"><strong>⚠️ Divergence Detected:</strong> ${ov.divergence.reason}</div>` : ""}</div>
+          </div>
         </div>
+
+        <div id="feedback-container">${combinedFeedbackHTML}</div>
+
+        ${flowDiagramHTML}
 
         ${transformation ? `
         <div class="section-label">Critical Thinking Analysis (Beta)</div>
         <div class="transformation-section">
           <h3>How You Engaged with AI</h3>
           <div class="transformation-grid">
-            <div class="transform-metric">
-              <div class="transform-metric-label">Synthesis Ratio</div>
+            <div class="transform-metric" data-tooltip="How often you kept AI concepts but reorganized the connections between them. Higher means more intellectual transformation of the AI's ideas.">
+              <div class="transform-metric-label">Ideas Synthesized <i class="tooltip-icon">?</i></div>
               <div class="transform-metric-val">${transformation.synthesisRatio}%</div>
             </div>
-            <div class="transform-metric">
-              <div class="transform-metric-label">Novel Connections</div>
+            <div class="transform-metric" data-tooltip="New concept relationships you created that weren't in the AI's response. Each one shows original thinking that goes beyond the source.">
+              <div class="transform-metric-label">Your New Connections <i class="tooltip-icon">?</i></div>
               <div class="transform-metric-val">${transformation.newSynthesisEdges || 0}</div>
             </div>
             ${transformation.typeMatchRatio !== undefined ? `
-            <div class="transform-metric">
-              <div class="transform-metric-label">Type Match Ratio</div>
+            <div class="transform-metric" data-tooltip="How closely your concept relationships match the AI's. Lower means you changed more connections — indicating more original thinking and synthesis.">
+              <div class="transform-metric-label">How You Reorganized <i class="tooltip-icon">?</i></div>
               <div class="transform-metric-val">${transformation.typeMatchRatio}%</div>
             </div>
             ` : ""}
@@ -1791,7 +1890,7 @@ Text: ${text.substring(0, 2000)}`;
         }),
       });
       if (!res.ok) {
-        console.warn("Embeddings API error:", res.status);
+        console.warn("Embeddings API error:", res.status, res.statusText, "- Groq embeddings may not be available");
         return null;
       }
       const data = await res.json();
@@ -1982,7 +2081,9 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
 {
   "engagement_level": "passive" | "surface" | "active" | "critical",
   "strongest_moment": "brief quote showing the most genuine critical thinking",
+  "strongest_moment_reason": "why this moment demonstrates critical thinking",
   "weakest_moment": "brief quote showing the most passive or borrowed moment",
+  "weakest_moment_reason": "why this moment shows passive/borrowed thinking",
   "essay_reflects_own_thinking": true | false,
   "conversation_feels_authentic": true | false,
   "flags": ["specific concerns observed", "or null/empty if none"]
@@ -2024,46 +2125,68 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
     }
   }
 
-  function renderGroqInsights(insights) {
-    if (!insights) return "";
+  function renderCombinedFeedback(insights, algorithmicFeedback) {
+    // Collect all strengths and feedback from both sources
+    const allStrengths = [];
+    const allFeedback = [];
 
-    const strengthsBlock = insights.strongest_moment
-      ? `<div style="background:#dcfce7; border:1px solid #86efac; border-radius:10px; padding:14px; margin-top:12px; font-size:13px; color:#166534;">
-          <div style="font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
-            ✨ <span>Strengths</span>
-          </div>
-          <div style="margin-bottom:6px;"><strong>Strongest moment:</strong> "${esc(insights.strongest_moment)}"</div>
-        </div>`
-      : "";
+    // Add algorithmic strengths and feedback
+    if (algorithmicFeedback) {
+      allStrengths.push(...(algorithmicFeedback.strengths || []));
+      allFeedback.push(...(algorithmicFeedback.feedback || []));
+    }
 
-    const feedbackBlock = (insights.weakest_moment || (insights.flags && insights.flags.length > 0))
-      ? `<div style="background:#dbeafe; border:1px solid #7dd3fc; border-radius:10px; padding:14px; margin-top:12px; font-size:13px; color:#164e63;">
-          <div style="font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
-            💡 <span>Feedback</span>
-          </div>
-          ${insights.weakest_moment ? `<div style="margin-bottom:6px;"><strong>Watch out for:</strong> "${esc(insights.weakest_moment)}"</div>` : ""}
-          ${(insights.flags || []).length > 0 ? `<div style="font-size:12px; color:#0c4a6e; margin-top:6px;">
-            ⚑ ${insights.flags.map(f => esc(f)).join(" &nbsp;·&nbsp; ")}
-          </div>` : ""}
-        </div>`
-      : "";
+    // Add Groq insights strengths and feedback
+    if (insights) {
+      if (insights.strongest_moment) {
+        const strongText = insights.strongest_moment_reason
+          ? insights.strongest_moment + " — " + insights.strongest_moment_reason
+          : insights.strongest_moment;
+        allStrengths.push(strongText);
+      }
+      if (insights.essay_reflects_own_thinking) {
+        allStrengths.push("Your essay reflects your own thinking");
+      }
+      if (insights.conversation_feels_authentic) {
+        allStrengths.push("Your conversation with the AI felt authentic");
+      }
+      if (insights.weakest_moment) {
+        const weakText = insights.weakest_moment_reason
+          ? insights.weakest_moment + " — " + insights.weakest_moment_reason
+          : insights.weakest_moment;
+        allFeedback.push(weakText);
+      }
+      if (insights.flags && insights.flags.length > 0) {
+        allFeedback.push(...insights.flags);
+      }
+    }
 
-    const overallBlock = `<div style="background:#ffffff; border:1px solid #e4e8ef; border-radius:10px; padding:14px; margin-top:12px; font-size:13px; color:#1a2332;">
-      <div style="font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
-        🤖 <span>Overall Analysis</span>
-      </div>
-      <div style="margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #e4e8ef;">
-        <strong>Engagement Level:</strong> <span style="text-transform:capitalize; color:#4f46e5; font-weight:600;">${insights.engagement_level}</span>
-      </div>
-      <div style="margin-bottom:6px;">
-        <strong>Essay reflects own thinking:</strong> ${insights.essay_reflects_own_thinking ? "✅ Yes" : "⚠️ Unclear"}
-      </div>
-      <div>
-        <strong>Conversation authentic:</strong> ${insights.conversation_feels_authentic ? "✅ Yes" : "⚠️ Possibly staged"}
-      </div>
+    const strengthsList = allStrengths.map(s => `<li style="margin-bottom:8px;">${esc(s)}</li>`).join("");
+    const feedbackList = allFeedback.map(f => `<li style="margin-bottom:8px;">${esc(f)}</li>`).join("");
+
+    const showStrengths = allStrengths.length > 0;
+    const showFeedback = allFeedback.length > 0;
+
+    if (!showStrengths && !showFeedback) return "";
+
+    return `<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:12px;">
+      ${showStrengths ? `<div style="background:#dcfce7; border:1px solid #86efac; border-radius:10px; padding:14px; font-size:13px; color:#166534;">
+        <div style="font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+          ✨ <span>Strengths</span>
+        </div>
+        <ul style="margin:0; padding-left:18px; line-height:1.6;">
+          ${strengthsList}
+        </ul>
+      </div>` : ""}
+      ${showFeedback ? `<div style="background:#dbeafe; border:1px solid #7dd3fc; border-radius:10px; padding:14px; font-size:13px; color:#164e63;">
+        <div style="font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+          💡 <span>Feedback</span>
+        </div>
+        <ul style="margin:0; padding-left:18px; line-height:1.6;">
+          ${feedbackList}
+        </ul>
+      </div>` : ""}
     </div>`;
-
-    return `${strengthsBlock}${feedbackBlock}${overallBlock}`;
   }
 
   // ── Analyze button ────────────────────────────────────────────────
@@ -2110,21 +2233,27 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
     const parsed  = parseConversation(convInput.value);
     const signals = extractSignals(parsed.turns, essayInput.value);
 
-    // Compute semantic overlap if API key available
-    if (groqConfig.apiKey && groqConfig.enabled) {
-      const aiTurns = parsed.turns.filter(t => t.role === "ai");
-      const aiText = aiTurns.map(t => t.text).join(" ");
-      if (aiText.trim()) {
-        const semantic = await computeSemanticOverlap(essayInput.value, aiText, groqConfig.apiKey);
-        if (semantic.semanticScore !== null) {
-          signals.overlap.semanticScore = semantic.semanticScore;
-          signals.overlap.avgSimilarity = semantic.avgSimilarity;
-          signals.overlap.semanticRisks = semantic.risks;
+    // Compute semantic overlap if API key available (but don't break if it fails)
+    // Disabled for now - Groq embeddings may not be available
+    if (false && groqConfig.apiKey && groqConfig.enabled) {
+      try {
+        const aiTurns = parsed.turns.filter(t => t.role === "ai");
+        const aiText = aiTurns.map(t => t.text).join(" ");
+        if (aiText.trim()) {
+          const semantic = await computeSemanticOverlap(essayInput.value, aiText, groqConfig.apiKey);
+          if (semantic && semantic.semanticScore !== null) {
+            signals.overlap.semanticScore = semantic.semanticScore;
+            signals.overlap.avgSimilarity = semantic.avgSimilarity;
+            signals.overlap.semanticRisks = semantic.risks;
 
-          // Phase 2: Detect divergence between algorithmic and semantic overlap
-          const divergence = detectOverlapDivergence(signals.overlap.pct, semantic.semanticScore);
-          signals.overlap.divergence = divergence;
+            // Phase 2: Detect divergence between algorithmic and semantic overlap
+            const divergence = detectOverlapDivergence(signals.overlap.pct, semantic.semanticScore);
+            signals.overlap.divergence = divergence;
+          }
         }
+      } catch (err) {
+        console.warn("Semantic overlap computation failed:", err.message);
+        // Continue with just algorithmic overlap
       }
     }
 
@@ -2167,9 +2296,9 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
         pendingAnalysis = async () => {
           const insights = await callGroq(parsed, essayInput.value);
           if (insights) {
-            const resultCard = document.querySelector(".score-section");
-            if (resultCard) {
-              resultCard.insertAdjacentHTML("afterend", renderGroqInsights(insights));
+            const feedbackContainer = document.getElementById("feedback-container");
+            if (feedbackContainer) {
+              feedbackContainer.innerHTML = renderCombinedFeedback(insights, window._lastFeedback);
             }
           }
           analyzeBtn.disabled = false;
@@ -2182,9 +2311,9 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
 
       const insights = await callGroq(parsed, essayInput.value);
       if (insights) {
-        const resultCard = document.querySelector(".score-section");
-        if (resultCard) {
-          resultCard.insertAdjacentHTML("afterend", renderGroqInsights(insights));
+        const feedbackContainer = document.getElementById("feedback-container");
+        if (feedbackContainer) {
+          feedbackContainer.innerHTML = renderCombinedFeedback(insights, window._lastFeedback);
         }
       }
     }
