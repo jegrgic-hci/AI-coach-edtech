@@ -1638,7 +1638,7 @@ Text: ${text.substring(0, 2000)}`;
           <div class="signal-card"><h3>Conversation Structure</h3><div class="signal-row"><span class="signal-label">Total turns</span><span class="signal-val sig-neutral">${st.totalTurns}</span></div><div class="signal-row"><span class="signal-label">Your messages</span><span class="signal-val sig-neutral">${st.studentTurns}</span></div><div class="signal-row"><span class="signal-label">Avg. message length</span><span class="signal-val sig-neutral">${st.avgStudentWords} words</span></div><div class="signal-row"><span class="signal-label">Essay length</span><span class="signal-val sig-neutral">${st.essayWords} words</span></div><div class="signal-row"><span class="signal-label">You started</span><span class="signal-val ${st.studentFirst ? "sig-good" : "sig-neutral"}">${st.studentFirst ? "Yes" : "No"}</span></div></div>
           <div class="signal-card"><h3>Thinking Initiative</h3><div class="signal-row"><span class="signal-label">Questions asked</span><span class="signal-val ${qColor}">${th.totalQuestions}</span></div><div class="signal-row"><span class="signal-label">"Why" questions</span><span class="signal-val ${th.whyQuestions > 0 ? "sig-good" : "sig-neutral"}">${th.whyQuestions}</span></div><div class="signal-row"><span class="signal-label">Follow-up phrases</span><span class="signal-val ${th.followUps > 0 ? "sig-good" : "sig-neutral"}">${th.followUps}</span></div><div class="signal-row"><span class="signal-label">Own voice ("I think…")</span><span class="signal-val ${th.ownVoice > 0 ? "sig-good" : "sig-warn"}">${th.ownVoice}</span></div><div class="signal-row"><span class="signal-label">Pushback</span><span class="signal-val ${th.pushback > 0 ? "sig-good" : "sig-neutral"}">${th.pushback}</span></div></div>
           <div class="signal-card"><h3>AI Dependency</h3><div class="signal-row"><span class="signal-label">Extraction phrases</span><span class="signal-val ${extColor}">${dep.extractionPhrases}</span></div><div class="signal-row"><span class="signal-label">Synthesis signals</span><span class="signal-val ${dep.synthesisSignals > 0 ? "sig-good" : "sig-neutral"}">${dep.synthesisSignals}</span></div><div class="signal-row"><span class="signal-label">Student word share</span><span class="signal-val sig-neutral">${st.studentWords + st.aiWords > 0 ? Math.round((st.studentWords / (st.studentWords + st.aiWords)) * 100) + "%" : "—"}</span></div></div>
-          <div class="signal-card"><h3>Essay ↔ AI Overlap</h3><div class="signal-row"><span class="signal-label">Verbatim overlap</span><span class="signal-val ${ovColor}">${ov.pct}%</span></div>${ov.semanticScore !== null ? `<div class="signal-row"><span class="signal-label">Semantic similarity</span><span class="signal-val ${ovColor}">${ov.semanticScore}%</span></div><div class="signal-row"><span class="signal-label">Avg similarity</span><span class="signal-val ${ovColor}">${ov.avgSimilarity}%</span></div>` : ""}<div class="signal-row"><span class="signal-label">Risk level</span><span class="signal-val ${ovColor}">${ov.risk.charAt(0).toUpperCase() + ov.risk.slice(1)}</span></div><div class="overlap-bar"><div class="overlap-fill ${ovFill}" style="width:${Math.min(ov.pct,100)}%"></div></div>${matchHTML}</div>
+          <div class="signal-card"><h3>Essay ↔ AI Overlap</h3><div class="signal-row"><span class="signal-label">Verbatim overlap</span><span class="signal-val ${ovColor}">${ov.pct}%</span></div>${ov.semanticScore !== null ? `<div class="signal-row"><span class="signal-label">Semantic similarity</span><span class="signal-val ${ovColor}">${ov.semanticScore}%</span></div><div class="signal-row"><span class="signal-label">Avg similarity</span><span class="signal-val ${ovColor}">${ov.avgSimilarity}%</span></div>` : ""}<div class="signal-row"><span class="signal-label">Risk level</span><span class="signal-val ${ovColor}">${ov.risk.charAt(0).toUpperCase() + ov.risk.slice(1)}</span></div><div class="overlap-bar"><div class="overlap-fill ${ovFill}" style="width:${Math.min(ov.pct,100)}%"></div></div>${matchHTML}${ov.divergence && ov.divergence.hasDivergence ? `<div style="margin-top: 12px; padding: 10px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px; font-size: 12px; color: #92400e;"><strong>⚠️ Divergence Detected:</strong> ${ov.divergence.reason}</div>` : ""}</div>
         </div>
 
         ${transformation ? `
@@ -1721,6 +1721,46 @@ Text: ${text.substring(0, 2000)}`;
     const magA = Math.sqrt(a.reduce((sum, ai) => sum + ai * ai, 0));
     const magB = Math.sqrt(b.reduce((sum, bi) => sum + bi * bi, 0));
     return dot / (magA * magB);
+  }
+
+  // Detect divergence between algorithmic and semantic overlap methods
+  // Flags when the two methods disagree significantly (instructor context for integrity review)
+  function detectOverlapDivergence(algorithmicPct, semanticScore) {
+    if (semanticScore === null || semanticScore === undefined) {
+      return { hasDivergence: false, type: null, reason: null, severity: null };
+    }
+
+    const algoRisk = algorithmicPct > 40 ? "high" : algorithmicPct > 20 ? "medium" : "low";
+    const semanticRisk = semanticScore > 60 ? "high" : semanticScore > 35 ? "medium" : "low";
+
+    // Flag divergence if risk levels disagree
+    if (algoRisk !== semanticRisk) {
+      let type, reason, severity;
+
+      if (algoRisk === "low" && semanticRisk === "high") {
+        // Verbatim overlap low but semantic similarity high = possible paraphrasing or clever rewording
+        type = "paraphrasing";
+        reason = "Low verbatim match but high semantic similarity suggests student rephrased AI content";
+        severity = "caution";
+      } else if (algoRisk === "high" && semanticRisk === "low") {
+        // Verbatim overlap high but semantic similarity low = possible false positive or intentional variation
+        type = "variation";
+        reason = "High verbatim match but low semantic similarity suggests AI output was heavily modified";
+        severity = "caution";
+      } else if ((algoRisk === "high" || algoRisk === "medium") && semanticRisk === "low") {
+        type = "possible_modification";
+        reason = "Verbatim phrases match but overall semantic direction differs—essay may have transformed content";
+        severity = "review";
+      } else {
+        type = "minor_divergence";
+        reason = "Overlap metrics slightly misaligned—both methods suggest some concern";
+        severity = "note";
+      }
+
+      return { hasDivergence: true, type, reason, severity, algoRisk, semanticRisk, algoScore: algorithmicPct, semanticScore };
+    }
+
+    return { hasDivergence: false, type: null, reason: null, severity: null };
   }
 
   // Compute semantic similarity between essay and AI text
@@ -1989,6 +2029,11 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
         if (semantic.semanticScore !== null) {
           signals.overlap.semanticScore = semantic.semanticScore;
           signals.overlap.avgSimilarity = semantic.avgSimilarity;
+          signals.overlap.semanticRisks = semantic.risks;
+
+          // Phase 2: Detect divergence between algorithmic and semantic overlap
+          const divergence = detectOverlapDivergence(signals.overlap.pct, semantic.semanticScore);
+          signals.overlap.divergence = divergence;
         }
       }
     }
