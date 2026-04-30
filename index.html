@@ -959,8 +959,8 @@ This is compared against your AI conversation to assess how much you synthesized
       essayWords:        wc(essayText),
     };
 
-    // ── Thinking Initiative ──
-    const thinking = {
+    // ── Raw signal extraction (for backwards compatibility and context) ──
+    const rawSignals = {
       totalQuestions: (studentText.match(/\?/g) || []).length,
       whyQuestions:   countMatches(studentText, /\bwhy\b[^?]*\?/gi),
       howQuestions:   countMatches(studentText, /\bhow\b[^?]*\?/gi),
@@ -982,10 +982,6 @@ This is compared against your AI conversation to assess how much you synthesized
         /\bbut (that.?s not|isn.?t that)\b/gi,
         /\bwhat if (instead|we|you)\b/gi,
       ]),
-    };
-
-    // ── Dependency / extraction ──
-    const dependency = {
       extractionPhrases: countMatchesList(studentText, [
         /\bwrite (me|my|the|a|an|this|that)\b/gi,
         /\bdraft (me|my|a|an|the|this)\b/gi,
@@ -1003,13 +999,74 @@ This is compared against your AI conversation to assess how much you synthesized
         /\bthis (connects|relates) to\b/gi,
         /\bso (then|if I understand)\b/gi,
       ]),
+      externalCitations: countMatchesList(studentText, [
+        /\b(according to|research shows|studies show|one study|the research|scholars|experts)\b/gi,
+        /\b(cited|references|bibliography|source)\b/gi,
+      ]),
     };
 
-    // ── Essay vs AI output overlap ──
+    // ── TAU Score Dimensions ──
+    const promptingQuality = {
+      totalQuestions:     rawSignals.totalQuestions,
+      whyQuestions:       rawSignals.whyQuestions,
+      howQuestions:       rawSignals.howQuestions,
+      deepQuestions:      rawSignals.whyQuestions + rawSignals.howQuestions,
+      followUps:          rawSignals.followUps,
+      questionDensity:    studentTurns.length > 0 ? Math.round((rawSignals.totalQuestions / studentTurns.length) * 100) / 100 : 0,
+    };
+
+    const selectiveUse = {
+      sessionCount:       studentTurns.length,
+      synthesisSignals:   rawSignals.synthesisSignals,
+      ownVoice:          rawSignals.ownVoice,
+      extractionPhrases:  rawSignals.extractionPhrases,
+      averageMessageLength: structure.avgStudentWords,
+      synthesisRatio:     rawSignals.synthesisSignals > 0 ? Math.round((rawSignals.synthesisSignals / (rawSignals.extractionPhrases + rawSignals.synthesisSignals || 1)) * 100) : 0,
+    };
+
+    const calibratedSkepticism = {
+      pushback:           rawSignals.pushback,
+      disagreements:      rawSignals.pushback,
+      externalCitations:  rawSignals.externalCitations,
+      criticality:        rawSignals.pushback + rawSignals.externalCitations,
+    };
+
+    const originalContribution = {
+      essayWords:         structure.essayWords,
+      studentWords:       structure.studentWords,
+      studentWordShare:   structure.studentWords + structure.aiWords > 0 ? Math.round((structure.studentWords / (structure.studentWords + structure.aiWords)) * 100) : 0,
+      placeholder:        "awaiting graph analysis",
+    };
+
+    // ── Essay vs AI output overlap (for instructor context, not scoring) ──
     const overlap = computeOverlap(essayText, aiText);
 
     const authenticQuestionCopying = detectAuthenticQuestionCopying(turns, essayText);
-    return { structure, thinking, dependency, overlap, authenticQuestionCopying };
+
+    return {
+      structure,
+      promptingQuality,
+      selectiveUse,
+      calibratedSkepticism,
+      originalContribution,
+      overlap,
+      authenticQuestionCopying,
+      // Keep raw signals for backwards compatibility with renderSignals
+      _rawSignals: {
+        thinking: {
+          totalQuestions: rawSignals.totalQuestions,
+          whyQuestions: rawSignals.whyQuestions,
+          howQuestions: rawSignals.howQuestions,
+          followUps: rawSignals.followUps,
+          ownVoice: rawSignals.ownVoice,
+          pushback: rawSignals.pushback,
+        },
+        dependency: {
+          extractionPhrases: rawSignals.extractionPhrases,
+          synthesisSignals: rawSignals.synthesisSignals,
+        },
+      },
+    };
   }
 
   function countMatches(text, pattern) {
@@ -1191,89 +1248,89 @@ Text: ${text.substring(0, 2000)}`;
   // ================================================================
 
   function scoreSession(signals) {
-    const { structure: st, thinking: th, dependency: dep, overlap: ov } = signals;
+    const { structure: st, promptingQuality: pq, selectiveUse: su, calibratedSkepticism: cs, originalContribution: oc } = signals;
 
-    // T — Thinking Initiative (1-5)
-    let T = 1;
-    if (th.totalQuestions >= 2)                                        T++;
-    if (th.whyQuestions >= 1 || th.followUps >= 2)                     T++;
-    if (th.ownVoice >= 1)                                              T++;
-    if (th.pushback >= 1 || (th.ownVoice >= 2 && st.avgStudentWords >= 25)) T++;
+    // PQ — Prompting Quality (1-5)
+    // Measures depth and refinement of questions asked
+    let PQ = 1;
+    if (pq.totalQuestions >= 2)                                         PQ++;
+    if (pq.deepQuestions >= 1 || pq.followUps >= 2)                     PQ++;
+    if (pq.totalQuestions >= 4 && pq.deepQuestions >= 1)                PQ++;
+    if (pq.questionDensity >= 0.5 || (pq.totalQuestions >= 6 && pq.followUps >= 3)) PQ++;
 
-    // A — Active Engagement (1-5)
-    let A = 1;
-    if (st.studentTurns >= 3)                                          A++;
-    if (st.studentTurns >= 5 || dep.synthesisSignals >= 1)             A++;
-    if (th.totalQuestions >= 4 || th.followUps >= 2)                   A++;
-    if (st.studentTurns >= 8 || (th.totalQuestions >= 6 && th.followUps >= 3)) A++;
+    // SU — Selective Use (1-5)
+    // Measures strategic, iterative use of AI with synthesis
+    let SU = 1;
+    if (su.sessionCount >= 3)                                           SU++;
+    if (su.synthesisSignals >= 1 || su.synthesisRatio >= 40)            SU++;
+    if (su.synthesisSignals >= 2 && su.extractionPhrases <= 2)          SU++;
+    if (su.sessionCount >= 5 && su.synthesisRatio >= 60)                SU++;
 
-    // U — Understanding Synthesis (1-5)
-    let U = 1;
-    if (dep.synthesisSignals >= 1 || th.ownVoice >= 1)                 U++;
-    if (dep.synthesisSignals >= 2 || (th.ownVoice >= 2 && ov.pct < 30)) U++;
-    if ((dep.synthesisSignals >= 3 || th.whyQuestions >= 2) && ov.pct < 25) U++;
-    if (ov.pct < 10 && (dep.synthesisSignals >= 4 || (th.ownVoice >= 3 && th.pushback >= 1))) U++;
+    // CS — Calibrated Skepticism (1-5)
+    // Measures critical evaluation and external perspective integration
+    let CS = 1;
+    if (cs.pushback >= 1)                                               CS++;
+    if (cs.pushback >= 2 || cs.externalCitations >= 1)                  CS++;
+    if (cs.criticality >= 2)                                            CS++;
+    if (cs.pushback >= 3 && cs.externalCitations >= 1)                  CS++;
 
-    // S — Self-Authorship (1-5)
-    // Use hybrid score if semantic data available, otherwise use regex
-    const overlapScore = ov.semanticScore !== null
-      ? Math.round((ov.pct + ov.semanticScore) / 2)
-      : ov.pct;
+    // OC — Original Contribution (1-5)
+    // Placeholder: will be replaced with graph Type Match Ratio in Phase 3
+    // Currently based on essay authenticity signals
+    let OC = 1;
+    if (oc.studentWordShare >= 30)                                      OC++;
+    if (oc.studentWordShare >= 50)                                      OC++;
+    if (oc.studentWordShare >= 70)                                      OC++;
+    if (oc.essayWords >= 500 && oc.studentWordShare >= 60)              OC++;
 
-    let S;
-    if      (overlapScore > 40)                              S = 1;
-    else if (overlapScore > 25 || dep.extractionPhrases >= 3) S = 2;
-    else if (overlapScore > 10 || dep.extractionPhrases >= 1) S = 3;
-    else if (overlapScore > 5)                               S = 4;
-    else                                               S = 5;
-    if (st.essayWords < 200 && S > 3) S = 3;
-    if (st.essayWords < 100 && S > 2) S = 2;
+    PQ = Math.max(1, Math.min(5, PQ));
+    SU = Math.max(1, Math.min(5, SU));
+    CS = Math.max(1, Math.min(5, CS));
+    OC = Math.max(1, Math.min(5, OC));
 
-    T = Math.max(1, Math.min(5, T));
-    A = Math.max(1, Math.min(5, A));
-    U = Math.max(1, Math.min(5, U));
-    S = Math.max(1, Math.min(5, S));
-
-    const total = T + A + U + S;
+    const total = PQ + SU + CS + OC;
     const samr = total >= 17 ? "redefinition"
                : total >= 13 ? "modification"
                : total >= 9  ? "augmentation"
                :               "substitution";
 
-    return { T, A, U, S, total, samr };
+    // Maintain T/A/U/S keys for backwards compatibility with renderSignals
+    return { PQ, SU, CS, OC, T: PQ, A: SU, U: CS, S: OC, total, samr };
   }
 
   function generateFeedback(scores, signals) {
-    const { T, A, U, S } = scores;
-    const { thinking: th, dependency: dep, overlap: ov, structure: st } = signals;
+    const { PQ, SU, CS, OC } = scores;
+    const { structure: st, overlap: ov, _rawSignals: raw } = signals;
+    const th = raw.thinking;
+    const dep = raw.dependency;
     const fb = [];
 
-    if (T >= 4) {
-      fb.push("You drove the conversation with your own questions and perspective — that's what good AI use looks like.");
-    } else if (th.ownVoice === 0 && th.totalQuestions < 2) {
-      fb.push("Try sharing your own view next time. Phrases like 'I think' or 'I argue' signal that you're thinking, not just receiving.");
+    if (PQ >= 4) {
+      fb.push("You asked thoughtful, deep questions — that's how you get the most from AI collaboration.");
+    } else if (th.totalQuestions < 2) {
+      fb.push("Try asking more questions next time. Questions like 'why is that true?' or 'how would you approach this differently?' help you engage more deeply.");
     } else {
-      fb.push("Good start with questions. Push further — ask 'why' and follow up when something surprises you.");
+      fb.push("Good start with questions. Push further — ask 'why' and 'how' to go deeper.");
     }
 
     if (st.studentTurns < 3) {
-      fb.push(`Only ${st.studentTurns} exchange${st.studentTurns === 1 ? "" : "s"} detected. A deeper back-and-forth gives you more to synthesize. Aim for 5+ turns.`);
-    } else if (A >= 4) {
-      fb.push("Active, multi-turn conversation — you kept the dialogue moving forward and building on ideas.");
+      fb.push(`Only ${st.studentTurns} exchange${st.studentTurns === 1 ? "" : "s"} detected. A deeper back-and-forth helps you process the AI's ideas. Aim for 5+ turns.`);
+    } else if (SU >= 4) {
+      fb.push("Excellent use of AI — you iterated multiple times and synthesized the ideas rather than just accepting them.");
     }
 
     if (dep.synthesisSignals === 0 && th.ownVoice < 2) {
-      fb.push("No synthesis signals found. Next time, try paraphrasing the AI's key point back in your own words before writing.");
-    } else if (U >= 4) {
-      fb.push("You processed and reframed the AI's ideas rather than just accepting them — that's strong synthesis.");
+      fb.push("No synthesis signals found. Next time, try paraphrasing the AI's key points back in your own words before writing.");
+    } else if (CS >= 3) {
+      fb.push("You applied critical thinking — questioning the AI's ideas and integrating your own perspective.");
     }
 
-    if (S <= 2) {
-      fb.push(`${ov.pct}% of your essay matches AI output verbatim. That signals copying rather than synthesis — rewrite key passages in your own voice.`);
+    if (OC <= 2) {
+      fb.push(`Your essay relies heavily on AI-generated content. Focus on rewriting the key ideas in your own voice and adding your own original analysis.`);
     } else if (dep.extractionPhrases > 0) {
-      fb.push(`You asked the AI to write content for you ${dep.extractionPhrases} time${dep.extractionPhrases > 1 ? "s" : ""}. Use it to think, not to produce.`);
-    } else if (S === 5) {
-      fb.push("Very low essay-AI overlap — the writing is clearly yours.");
+      fb.push(`You asked the AI to generate content for you ${dep.extractionPhrases} time${dep.extractionPhrases > 1 ? "s" : ""}. Better approach: use it to refine your own ideas, not replace them.`);
+    } else if (OC === 5) {
+      fb.push("Excellent originality — the essay is clearly your own work with AI as a supporting tool.");
     }
 
     return fb;
@@ -1507,11 +1564,13 @@ Text: ${text.substring(0, 2000)}`;
 
   function renderSignals(parsed, signals, transformation) {
     const { turns, method } = parsed;
-    const { structure: st, thinking: th, dependency: dep, overlap: ov } = signals;
+    const { structure: st, overlap: ov, _rawSignals: raw } = signals;
+    const th = raw.thinking;
+    const dep = raw.dependency;
 
     const scores   = scoreSession(signals);
     const feedback = generateFeedback(scores, signals);
-    const { T, A, U, S, total, samr } = scores;
+    const { PQ, SU, CS, OC, total, samr } = scores;
     const pct = Math.round((total / 20) * 100);
 
     const SAMR_META = {
@@ -1522,13 +1581,13 @@ Text: ${text.substring(0, 2000)}`;
     };
 
     const DIM_DESC = {
-      T: ["You didn't ask questions or share your own thinking.", "Some questions, but mostly surface-level prompts.", "You drove parts of the conversation with your own ideas.", "Strong questioning and own-voice statements throughout.", "You led the thinking — questions, pushback, and your own perspective."],
-      A: ["Very few exchanges — minimal back-and-forth.", "Some dialogue, but limited follow-through.", "Reasonable engagement with multiple exchanges.", "Active, multi-turn conversation with synthesis moments.", "Deep engagement — you kept pushing and building on ideas."],
-      U: ["No evidence of synthesis or processing AI output.", "Limited synthesis — mostly accepting AI output as-is.", "Some synthesis signals — you connected ideas to your thinking.", "Good synthesis — you processed and reframed the AI's ideas.", "Strong synthesis — you transformed AI input into your own understanding."],
-      S: ["High overlap — the essay closely mirrors AI output.", "Significant overlap — limited original authorship.", "Moderate overlap — some original thinking present.", "Low overlap — the essay is largely your own work.", "Very low overlap — clearly your own voice and ideas."],
+      T: ["You didn't ask questions or explore the topic deeply.", "Surface-level questions — try asking 'why' or 'how' more often.", "Good mix of questions showing depth of inquiry.", "Strong questioning — you explored assumptions and followed up.", "Exceptional questioning that shows intellectual curiosity and refinement."],
+      A: ["You asked the AI to do most of the work.", "Limited engagement with the AI's responses — minimal synthesis.", "Reasonable engagement — you processed some of the AI's ideas.", "Active use of AI as a thinking partner with synthesis moments.", "Deep strategic use — you iterated and built on ideas collaboratively."],
+      U: ["No evidence of synthesis or making the ideas your own.", "Limited synthesis — mostly accepting AI output or asking for more.", "Some synthesis signals — you connected ideas to your thinking.", "Good synthesis — you paraphrased and reframed the AI's ideas.", "Strong synthesis — you transformed AI input into your own understanding."],
+      S: ["Little evidence of original contribution beyond the prompt.", "Some original thinking, but mostly relying on AI-generated content.", "Moderate originality — balanced between AI and your own ideas.", "High originality — the essay is clearly your own work.", "Exceptional originality — your voice and ideas dominate throughout."],
     };
 
-    const DIM_LABELS = { T: "Thinking Initiative", A: "Active Engagement", U: "Understanding Synthesis", S: "Self-Authorship" };
+    const DIM_LABELS = { T: "Prompting Quality", A: "Selective Use", U: "Calibrated Skepticism", S: "Original Contribution" };
     const samrMeta = SAMR_META[samr];
 
     const methodMsg = {
@@ -1541,7 +1600,8 @@ Text: ${text.substring(0, 2000)}`;
 
     const dimCards = ["T","A","U","S"].map(k => {
       const score = scores[k];
-      return `<div class="dim-card"><div class="dim-header"><span class="dim-letter">${k}</span><span class="dim-name">${DIM_LABELS[k]}</span><span class="dim-score-val">${score}/5</span></div><div class="dim-bar"><div class="dim-fill" style="width:${score * 20}%"></div></div><div class="dim-desc-text">${DIM_DESC[k][score - 1]}</div></div>`;
+      const label = k === "T" ? "PQ" : k === "A" ? "SU" : k === "U" ? "CS" : "OC";
+      return `<div class="dim-card"><div class="dim-header"><span class="dim-letter">${label}</span><span class="dim-name">${DIM_LABELS[k]}</span><span class="dim-score-val">${score}/5</span></div><div class="dim-bar"><div class="dim-fill" style="width:${score * 20}%"></div></div><div class="dim-desc-text">${DIM_DESC[k][score - 1]}</div></div>`;
     }).join("");
 
     const flowDiagramHTML = renderFlowDiagram(turns, essayInput.value);
