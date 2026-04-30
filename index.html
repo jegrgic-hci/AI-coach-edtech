@@ -1035,7 +1035,8 @@ This is compared against your AI conversation to assess how much you synthesized
       essayWords:         structure.essayWords,
       studentWords:       structure.studentWords,
       studentWordShare:   structure.studentWords + structure.aiWords > 0 ? Math.round((structure.studentWords / (structure.studentWords + structure.aiWords)) * 100) : 0,
-      placeholder:        "awaiting graph analysis",
+      typeMatchRatio:     null, // Set by graph analysis if available
+      ocScore:            null, // Set by graph analysis if available
     };
 
     // ── Essay vs AI output overlap (for instructor context, not scoring) ──
@@ -1126,6 +1127,88 @@ This is compared against your AI conversation to assess how much you synthesized
     if (['defines', 'is', 'describes', 'means'].includes(lower)) return 'defines';
     if (['influences', 'affects', 'impacts'].includes(lower)) return 'affects';
     return lower;
+  }
+
+  // Compare AI and essay knowledge graphs for critical thinking (Type Match Ratio)
+  function compareGraphs(aiGraph, essayGraph) {
+    if (!aiGraph || !essayGraph) return null;
+
+    const aiEntities = new Set(aiGraph.entities.map(e => e.toLowerCase()));
+    const essayEntities = new Set(essayGraph.entities.map(e => e.toLowerCase()));
+
+    // Concept overlap
+    const shared = new Set([...aiEntities].filter(e => essayEntities.has(e)));
+    const conceptOverlap = shared.size / Math.max(aiEntities.size, essayEntities.size) || 0;
+
+    // New concepts in essay
+    const newConcepts = [...essayEntities].filter(e => !aiEntities.has(e));
+
+    // Build relationship maps (normalized types)
+    const aiRelationships = aiGraph.relationships.map(r => ({
+      from: r.from.toLowerCase(),
+      to: r.to.toLowerCase(),
+      type: normalizeRelationType(r.type),
+      original: r,
+    }));
+
+    const essayRelationships = essayGraph.relationships.map(r => ({
+      from: r.from.toLowerCase(),
+      to: r.to.toLowerCase(),
+      type: normalizeRelationType(r.type),
+      original: r,
+    }));
+
+    // Relationship overlap: match on (from, to) pairs, check if type is the same
+    let sharedEdgesCount = 0;
+    let changedTypeEdges = 0;
+
+    essayRelationships.forEach(essayRel => {
+      const aiMatch = aiRelationships.find(
+        air => air.from === essayRel.from && air.to === essayRel.to
+      );
+
+      if (aiMatch) {
+        if (aiMatch.type === essayRel.type) {
+          sharedEdgesCount++;
+        } else {
+          changedTypeEdges++;
+        }
+      }
+    });
+
+    // Relationship overlap: % of AI relationships that appear in essay (same or changed type)
+    const relationshipOverlapPct = aiRelationships.length > 0
+      ? Math.round(((sharedEdgesCount + changedTypeEdges) / aiRelationships.length) * 100)
+      : 0;
+
+    // Type match ratio: of relationships that exist in both, what % have same type
+    const existingEdges = sharedEdgesCount + changedTypeEdges;
+    const typeMatchRatio = existingEdges > 0
+      ? Math.round((sharedEdgesCount / existingEdges) * 100)
+      : 100;
+
+    const newRelationships = essayRelationships.filter(
+      essayRel => !aiRelationships.some(
+        air => air.from === essayRel.from && air.to === essayRel.to
+      )
+    );
+
+    return {
+      conceptOverlap: Math.round(conceptOverlap * 100),
+      relationshipOverlap: relationshipOverlapPct,
+      typeMatchRatio, // % of existing edges where type is same (high = copied, low = reorganized)
+      sharedConcepts: [...shared].length,
+      totalConcepts: Math.max(aiEntities.size, essayEntities.size),
+      newConcepts,
+      newRelationships,
+      aiEntityCount: aiEntities.size,
+      essayEntityCount: essayEntities.size,
+      aiEdgeCount: aiRelationships.length,
+      essayEdgeCount: essayRelationships.length,
+      sharedEdgeCount: sharedEdgesCount,
+      changedTypeEdges,
+      existingEdgesInBoth: existingEdges,
+    };
   }
 
   // Extract knowledge graph from text using Groq (simplified for app context)
@@ -1275,13 +1358,14 @@ Text: ${text.substring(0, 2000)}`;
     if (cs.pushback >= 3 && cs.externalCitations >= 1)                  CS++;
 
     // OC — Original Contribution (1-5)
-    // Placeholder: will be replaced with graph Type Match Ratio in Phase 3
-    // Currently based on essay authenticity signals
-    let OC = 1;
-    if (oc.studentWordShare >= 30)                                      OC++;
-    if (oc.studentWordShare >= 50)                                      OC++;
-    if (oc.studentWordShare >= 70)                                      OC++;
-    if (oc.essayWords >= 500 && oc.studentWordShare >= 60)              OC++;
+    // Phase 3: Uses graph Type Match Ratio if available, otherwise falls back to word share
+    let OC = oc.ocScore ? oc.ocScore : 1;
+    if (!oc.ocScore) {
+      if (oc.studentWordShare >= 30)                                    OC++;
+      if (oc.studentWordShare >= 50)                                    OC++;
+      if (oc.studentWordShare >= 70)                                    OC++;
+      if (oc.essayWords >= 500 && oc.studentWordShare >= 60)            OC++;
+    }
 
     PQ = Math.max(1, Math.min(5, PQ));
     SU = Math.max(1, Math.min(5, SU));
@@ -1654,6 +1738,12 @@ Text: ${text.substring(0, 2000)}`;
               <div class="transform-metric-label">Novel Connections</div>
               <div class="transform-metric-val">${transformation.newSynthesisEdges || 0}</div>
             </div>
+            ${transformation.typeMatchRatio !== undefined ? `
+            <div class="transform-metric">
+              <div class="transform-metric-label">Type Match Ratio</div>
+              <div class="transform-metric-val">${transformation.typeMatchRatio}%</div>
+            </div>
+            ` : ""}
           </div>
           <div class="critical-engagement ${transformation.criticalEngagement.toLowerCase()}">
             <div class="engagement-level">Critical Thinking Level</div>
@@ -2048,23 +2138,21 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
         const essayGraph = await extractKnowledgeGraphFromText(essayInput.value, groqConfig.apiKey);
 
         if (aiGraph && essayGraph) {
-          // Compute basic concept overlap for transformation analysis
-          const aiConcepts = new Set((aiGraph.entities || []).map(e => e.toLowerCase()));
-          const essayConcepts = new Set((essayGraph.entities || []).map(e => e.toLowerCase()));
-          const shared = new Set([...aiConcepts].filter(e => essayConcepts.has(e)));
+          // Phase 3: Compare graphs using Type Match Ratio for Original Contribution
+          const comparison = compareGraphs(aiGraph, essayGraph);
 
-          const conceptOverlap = shared.size / Math.max(aiConcepts.size, essayConcepts.size) || 0;
-          const relationshipOverlap = 0; // Simplified for app
+          // Map Type Match Ratio to OC score
+          // >70% = 1 (copied), 40-70% = 3 (mixed), <40% = 5 (reorganized)
+          let ocScore;
+          if (comparison.typeMatchRatio >= 70) ocScore = 1;
+          else if (comparison.typeMatchRatio >= 40) ocScore = 3;
+          else ocScore = 5;
 
-          const comparison = {
-            conceptOverlap: Math.round(conceptOverlap * 100),
-            relationshipOverlap: relationshipOverlap,
-            sharedConcepts: shared.size,
-            totalConcepts: Math.max(aiConcepts.size, essayConcepts.size),
-            newConcepts: [...essayConcepts].filter(e => !aiConcepts.has(e)),
-          };
+          signals.originalContribution.typeMatchRatio = comparison.typeMatchRatio;
+          signals.originalContribution.ocScore = ocScore;
 
           transformation = analyzeTransformation(aiGraph, essayGraph, comparison);
+          transformation.typeMatchRatio = comparison.typeMatchRatio;
         }
       }
     }
