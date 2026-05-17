@@ -16,16 +16,19 @@
       --accent-green: #10B981;
 
       /* green = positive/high-agency, blue = neutral, red/amber = passive/negative */
+      /* positive */
       --label-challenge:        #dcfce7; --label-challenge-text:        #166534;
-      --label-rejection:        #bbf7d0; --label-rejection-text:        #14532d;
-      --label-refinement:       #d1fae5; --label-refinement-text:       #065f46;
-      --label-claim:            #cffafe; --label-claim-text:            #155e75;
-      --label-conceptual:       #dbeafe; --label-conceptual-text:       #1e40af;
-      --label-narrative:        #e0e7ff; --label-narrative-text:        #3730a3;
-      --label-pivot:            #f1f5f9; --label-pivot-text:            #475569;
-      --label-feedback:         #f1f5f9; --label-feedback-text:         #475569;
-      --label-validation:       #fef3c7; --label-validation-text:       #92400e;
-      --label-extraction:       #ffedd5; --label-extraction-text:       #9a3412;
+      --label-rejection:        #dcfce7; --label-rejection-text:        #166534;
+      --label-refinement:       #dcfce7; --label-refinement-text:       #166534;
+      --label-claim:            #dcfce7; --label-claim-text:            #166534;
+      --label-conceptual:       #dcfce7; --label-conceptual-text:       #166534;
+      --label-narrative:        #dcfce7; --label-narrative-text:        #166534;
+      /* neutral */
+      --label-pivot:            #dbeafe; --label-pivot-text:            #1e40af;
+      --label-feedback:         #dbeafe; --label-feedback-text:         #1e40af;
+      --label-extraction:       #dbeafe; --label-extraction-text:       #1e40af;
+      /* negative */
+      --label-validation:       #fee2e2; --label-validation-text:       #991b1b;
       --label-stuck:            #fee2e2; --label-stuck-text:            #991b1b;
       --label-ai-content:       #f8fafc; --label-ai-content-text:       #64748b;
       --label-ai-definition:    #e0f2fe; --label-ai-definition-text:    #075985;
@@ -209,16 +212,43 @@
     .turn-text {
       font-size: 13px; color: var(--text); line-height: 1.5;
     }
-    /* ── Sankey panel ──────────────────────────────────── */
-    #sankeyPanel svg { display: block; margin: 0 auto; }
-    .sankey-legend {
-      display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px;
-      font-size: 12px; color: var(--muted);
+    /* ── Turn Sequence Strip ─────────────────────────────── */
+    .strip-row {
+      display: flex; gap: 3px; align-items: stretch; min-height: 64px; margin-bottom: 4px;
     }
-    .sankey-legend-item { display: flex; align-items: center; gap: 5px; }
-    .swatch {
-      width: 28px; height: 10px; border-radius: 3px; display: inline-block;
+    .strip-block {
+      flex: 1; border-radius: 4px; display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end; padding: 4px 2px 5px;
+      cursor: default; min-width: 28px; position: relative;
     }
+    .strip-block:hover { filter: brightness(1.12); }
+    .strip-num { font-size: 8px; color: rgba(255,255,255,0.8); font-weight: 600; }
+    .strip-ai-divider {
+      width: 3px; background: #e2e8f0; border-radius: 2px; flex-shrink: 0; align-self: stretch;
+    }
+    .pattern-row { position: relative; height: 26px; margin-top: 2px; }
+    .pattern-band {
+      position: absolute; top: 0; height: 22px; border: 1.5px solid; border-radius: 4px;
+      font-size: 10px; font-weight: 600; display: flex; align-items: center;
+      padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .strip-legend {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; font-size: 11px;
+    }
+    .strip-legend-item {
+      display: flex; align-items: center; gap: 5px; color: var(--muted);
+    }
+    .strip-swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+    .strip-summary {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; font-size: 12px;
+    }
+    .strip-stat {
+      padding: 3px 10px; border-radius: 6px; font-weight: 600;
+    }
+    .strip-stat.high    { background: #d1fae5; color: #065f46; }
+    .strip-stat.neutral { background: #f1f5f9; color: #475569; }
+    .strip-stat.low     { background: #fef3c7; color: #78350f; }
+    .strip-stat.patterns { background: #ede9fe; color: #4c1d95; }
 
     /* ── Provenance ────────────────────────────────────── */
     .provenance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -362,6 +392,97 @@
       border: 1px solid var(--border); border-radius: 8px;
     }
     .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+    .legend-learn-btn {
+      background: none; border: none; padding: 0; cursor: pointer;
+      font-size: 12px; color: var(--accent); text-decoration: underline;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .legend-learn-btn:hover { color: var(--accent-fill); }
+
+    /* ── Dimension tooltip ─────────────────────────────────── */
+    .dim-info-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--border); color: var(--muted);
+      font-size: 10px; font-weight: 700; cursor: pointer;
+      border: none; line-height: 1; flex-shrink: 0;
+      transition: background 0.12s, color 0.12s;
+    }
+    .dim-info-btn:hover { background: var(--accent); color: #fff; }
+
+    .dim-name-wrap {
+      position: relative; display: inline-flex; align-items: center; gap: 5px;
+    }
+    .dim-tooltip {
+      position: absolute; z-index: 200;
+      bottom: calc(100% + 8px); left: 0;
+      width: 230px; background: #1e2035; color: #e2e8f0;
+      border-radius: 8px; padding: 10px 12px; font-size: 12px; line-height: 1.5;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      pointer-events: none; opacity: 0; transition: opacity 0.15s;
+    }
+    .dim-tooltip.tt-open { opacity: 1; pointer-events: all; }
+    .dim-tooltip::after {
+      content: ""; position: absolute; top: 100%; left: 14px;
+      border: 6px solid transparent; border-top-color: #1e2035;
+    }
+    .dim-tooltip .tt-learn {
+      display: inline-block; margin-top: 7px;
+      color: #93c5fd; font-size: 11px; text-decoration: underline;
+      cursor: pointer;
+    }
+    .summary-card { position: relative; }
+    .dim-info-btn.active { background: var(--accent); color: #fff; }
+
+    /* ── Detail tray ───────────────────────────────────────── */
+    .detail-tray-overlay {
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,0.25);
+    }
+    .detail-tray-overlay.open { display: block; }
+    .detail-tray {
+      position: fixed; top: 0; right: 0; bottom: 0;
+      width: 420px; max-width: 95vw;
+      background: var(--surface); border-left: 1px solid var(--border);
+      box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+      display: flex; flex-direction: column;
+      transform: translateX(100%); transition: transform 0.25s ease;
+      z-index: 301;
+    }
+    .detail-tray-overlay.open .detail-tray { transform: translateX(0); }
+    .detail-tray-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 20px; border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .detail-tray-header h2 {
+      font-size: 16px; font-weight: 700; color: var(--text); margin: 0;
+    }
+    .detail-tray-close {
+      width: 30px; height: 30px; border-radius: 6px;
+      border: 1px solid var(--border); background: none;
+      font-size: 18px; cursor: pointer; color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.12s;
+    }
+    .detail-tray-close:hover { background: var(--bg); }
+    .detail-tray-body {
+      flex: 1; overflow-y: auto; padding: 20px;
+      font-size: 14px; line-height: 1.65; color: var(--text);
+    }
+    .detail-tray-body h3 {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--muted); margin: 20px 0 6px;
+    }
+    .detail-tray-body h3:first-child { margin-top: 0; }
+    .detail-tray-body p { margin: 0 0 10px; }
+    .detail-tray-body ul { margin: 0 0 10px; padding-left: 18px; }
+    .detail-tray-body li { margin-bottom: 4px; }
+.detail-tray-abbr {
+      display: inline-block; background: var(--accent); color: #fff;
+      border-radius: 5px; padding: 2px 8px; font-size: 11px;
+      font-weight: 700; margin-bottom: 8px;
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
@@ -388,7 +509,6 @@
     <button class="sample-btn" data-sample="low">Low — Pure Extraction (Social Media)</button>
     <button class="sample-btn" data-sample="medium">Medium — Multi-Thread (UBI)</button>
     <button class="sample-btn" data-sample="high">High — Deep Agency (Algorithmic Justice)</button>
-    <button class="demo-btn" id="threadDemoBtn">Thread Demo (French Revolution)</button>
   </div>
 
   <div class="panel">
@@ -441,22 +561,22 @@ Or paste alternating paragraphs (student first)."></textarea>
     <div class="panel full-width" id="tabsPanel">
       <div class="tab-bar">
         <button class="tab-btn active" data-tab="turns">Student Turns</button>
-        <button class="tab-btn" data-tab="sankey">Sankey Chart</button>
+        <button class="tab-btn" data-tab="sequence">Turn Sequence</button>
         <button class="tab-btn" data-tab="provenance">Provenance Map</button>
       </div>
 
       <div class="tab-pane active" id="tabTurns">
-        <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+        <div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-bottom:8px;">
           <div class="legend" id="legend"></div>
+          <button class="legend-learn-btn" id="labelLearnBtn">About these labels</button>
         </div>
         <div id="parseNote" class="parse-note" style="display:none;margin-bottom:8px;"></div>
         <div class="turn-list" id="turnList"></div>
       </div>
 
-      <div class="tab-pane" id="tabSankey">
-        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Thread thickness = engagement level. Time flows left to right — each column is one exchange round. Dormant threads persist as thin connectors. Merges show when the student synthesizes multiple ideas.</p>
-        <div id="sankeyContainer"></div>
-        <div class="sankey-legend" id="sankeyLegend"></div>
+      <div class="tab-pane" id="tabSequence">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Each block is one student turn. Color shows agency tier — green = high agency, amber = low. Thin gray bars are AI responses. Annotated bands below the strip mark detected patterns.</p>
+        <div id="stripContainer"></div>
       </div>
 
       <div class="tab-pane" id="tabProvenance">
@@ -1085,312 +1205,211 @@ function tfidfEmbedTurns(texts) {
   });
 }
 
-// ─── Thread Detection ─────────────────────────────────────────────────────────
+// ─── Turn Sequence Strip ───────────────────────────────────────────────────────
 
-function cosineSimilarity(a, b) {
-  let dot = 0, na = 0, nb = 0;
-  for (let i = 0; i < a.length; i++) { dot += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; }
-  return dot / (Math.sqrt(na) * Math.sqrt(nb) || 1);
-}
-
-const PIVOT_RE = /\b(what about|switching to|on another note|going back to|different question|new topic|moving on|forget that|let me ask about|actually,? (let.?s|can we)|different (angle|point|topic))\b/i;
-const HIGH_DRIFT_LABELS = new Set(["extraction","conceptual","claim","pivot","stuck","rejection"]);
-
-function detectThreads(classified, embeddings) {
-  const student = classified.filter(t => t.role === "student");
-  if (!student.length) return [];
-
-  const threads = [];
-  let active = null;
-
-  for (let i = 0; i < student.length; i++) {
-    const t = student[i];
-    const isPivot = PIVOT_RE.test(t.text);
-
-    // Semantic drift signal
-    let drift = 0;
-    if (embeddings && i >= 2) {
-      drift = 1 - cosineSimilarity(embeddings[i], embeddings[i - 2]);
-    } else if (i >= 2 && !t.responsive && HIGH_DRIFT_LABELS.has(t.label)) {
-      drift = 0.4; // heuristic
-    }
-
-    const DRIFT_THRESH = embeddings ? 0.38 : 0.4;
-    const isNewTopic = isPivot || (drift > DRIFT_THRESH && !t.responsive && i > 0) || (!active && i === 0);
-
-    if (isNewTopic) {
-      // Check for thread return (embedding similarity to a prior dormant thread)
-      let returnTo = null;
-      if (embeddings) {
-        let bestSim = 0.62;
-        for (const th of threads) {
-          if (th === active) continue;
-          const lastTurnIdx = th.turnIndices[th.turnIndices.length - 1];
-          if (i - lastTurnIdx < 2) continue; // must be dormant at least one student turn
-          const sim = cosineSimilarity(embeddings[i], embeddings[lastTurnIdx]);
-          if (sim > bestSim) { bestSim = sim; returnTo = th; }
-        }
-      }
-
-      if (returnTo) {
-        returnTo.turnIndices.push(i);
-        returnTo.activeSpans.push([i, i]);
-        active = returnTo;
-      } else {
-        const th = {
-          id: threads.length,
-          origin: (i === 0 || !t.responsive) ? "student" : "ai",
-          turnIndices: [i],
-          activeSpans: [[i, i]],
-          driftScores: [drift],
-          samrLevel: 1,
-          outcome: null,
-        };
-        threads.push(th);
-        active = th;
-      }
-    } else if (active) {
-      active.turnIndices.push(i);
-      active.activeSpans[active.activeSpans.length - 1][1] = i;
-      active.driftScores.push(drift);
-    }
-  }
-
-  return threads;
-}
-
-// Assign a SAMR level (1–4) to each thread based on its turns' labels
-function assignThreadSAMR(threads, student) {
-  const HIGH = new Set(["rejection","challenge","claim"]);
-  const MID  = new Set(["conceptual","refinement","feedback"]);
-
-  for (const th of threads) {
-    let highCount = 0, midCount = 0, lowCount = 0;
-    for (const idx of th.turnIndices) {
-      const label = student[idx]?.label;
-      if (HIGH.has(label)) highCount++;
-      else if (MID.has(label)) midCount++;
-      else lowCount++;
-    }
-    const total = th.turnIndices.length || 1;
-    const highRate = highCount / total;
-    const midRate  = midCount  / total;
-    if      (highRate >= 0.4)              th.samrLevel = 4;
-    else if (highRate >= 0.2 || midRate >= 0.4) th.samrLevel = 3;
-    else if (midRate >= 0.2)               th.samrLevel = 2;
-    else                                   th.samrLevel = 1;
-  }
-}
-
-// ─── Thread Sankey Renderer ────────────────────────────────────────────────────
-
-const FR_DEMO = {
-  threads: [
-    { id:"T1", label:"Financial Crisis",       color:"#94a3b8", origin:"ai" },
-    { id:"T2", label:"Social Inequality",      color:"#64748b", origin:"ai" },
-    { id:"T3", label:"Enlightenment Ideas",    color:"#4F52C8", origin:"ai" },
-    { id:"T4", label:"Food Shortages",         color:"#f97316", origin:"ai" },
-    { id:"MG", label:"All Causes (Synthesis)", color:"#8b5cf6", origin:"merge" },
-    { id:"T5", label:"Women's Participation",  color:"#10b981", origin:"student" },
-  ],
-  stages: [
-    { T1:1,    T2:1,    T3:1,    T4:1    },
-    { T1:0.15, T2:0.15, T3:0.15, T4:3   },
-    { T1:0.15, T2:0.15, T3:3,    T4:0.15 },
-    { T1:0.15, T2:0.15, T3:3,    T4:0.8  },
-    { T1:0.15, T2:0.15, T3:3,    T4:0.15 },
-    { MG:4                                },
-    { MG:0.3,  T5:3                       },
-  ],
-  flows: [
-    { from:"T1", to:"T1", stage:0 }, { from:"T2", to:"T2", stage:0 },
-    { from:"T3", to:"T3", stage:0 }, { from:"T4", to:"T4", stage:0 },
-    { from:"T1", to:"T1", stage:1 }, { from:"T2", to:"T2", stage:1 },
-    { from:"T3", to:"T3", stage:1 }, { from:"T4", to:"T4", stage:1 },
-    { from:"T1", to:"T1", stage:2 }, { from:"T2", to:"T2", stage:2 },
-    { from:"T3", to:"T3", stage:2 }, { from:"T4", to:"T4", stage:2 },
-    { from:"T1", to:"T1", stage:3 }, { from:"T2", to:"T2", stage:3 },
-    { from:"T3", to:"T3", stage:3 }, { from:"T4", to:"T4", stage:3 },
-    { from:"T1", to:"MG", stage:4 }, { from:"T2", to:"MG", stage:4 },
-    { from:"T3", to:"MG", stage:4 }, { from:"T4", to:"MG", stage:4 },
-    { from:"MG", to:"MG", stage:5 },
-  ],
-  stageLabels: [
-    "R1\n4 causes listed",
-    "R2\nFood focus",
-    "R3\nEnlightenment +\nhint merge",
-    "R4\nMerge rejected",
-    "R5\nEssay synthesis",
-    "R6\nWomen opens",
-    "R7\nWomen continues",
-  ],
+const STRIP_TIER = {
+  challenge:  "high",    rejection:  "high",    claim:      "high",
+  refinement: "medhigh", conceptual: "medhigh",
+  feedback:   "medium",  pivot:      "medium",  narrative:  "medium",
+  extraction: "neutral",
+  validation: "low",     stuck:      "verylow",
 };
 
-function renderThreadSankey(model) {
-  const W = 820, H = 380;
-  const PAD = { top: 58, bottom: 28, left: 12, right: 12 };
-  const COL_W = 26;
-  const N = model.stages.length;
-  const GAP = Math.floor((W - PAD.left - PAD.right - N * COL_W) / (N - 1));
-  const INNER_H = H - PAD.top - PAD.bottom;
-  const NODE_GAP = 6;
-  const MIN_H = 5;
-  const FONT = '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+const STRIP_COLOR = {
+  high:    "#10b981",
+  medhigh: "#3b82f6",
+  medium:  "#8b5cf6",
+  neutral: "#94a3b8",
+  low:     "#f59e0b",
+  verylow: "#ef4444",
+};
 
-  const threadMap = {};
-  for (const t of model.threads) threadMap[t.id] = t;
-  const THREAD_ORDER = model.threads.map(t => t.id);
+const PATTERN_STYLE = {
+  high:   { bg: "#d1fae5", border: "#10b981", text: "#065f46" },
+  medium: { bg: "#ede9fe", border: "#8b5cf6", text: "#4c1d95" },
+  low:    { bg: "#fef3c7", border: "#f59e0b", text: "#78350f" },
+};
 
-  function colX(s) { return PAD.left + s * (COL_W + GAP); }
+function detectPatterns(labels) {
+  const n = labels.length;
+  const patterns = [];
 
-  // Node layouts per stage
-  const nodeLayout = [];
-  for (let s = 0; s < N; s++) {
-    const sd = model.stages[s];
-    const present = THREAD_ORDER.filter(id => sd[id] !== undefined);
-    const totalW  = present.reduce((sum, id) => sum + sd[id], 0);
-    const availH  = INNER_H - (present.length > 1 ? (present.length - 1) * NODE_GAP : 0);
-    let y = PAD.top;
-    const layout = {};
-    for (const id of present) {
-      const w = sd[id];
-      const h = Math.max(MIN_H, (w / totalW) * availH);
-      layout[id] = { y, h, color: threadMap[id].color, label: threadMap[id].label, weight: w };
-      y += h + NODE_GAP;
+  // High agency: challenge arc (2+ consecutive challenges)
+  for (let i = 0; i < n - 1; i++) {
+    if (labels[i] === "challenge" && labels[i + 1] === "challenge") {
+      let end = i + 1;
+      while (end + 1 < n && labels[end + 1] === "challenge") end++;
+      patterns.push({ start: i, end, id: "challenge-arc", label: "Challenge Arc", tier: "high" });
+      i = end;
     }
-    nodeLayout.push(layout);
   }
 
-  // Precompute per-target ribbon stacking offsets
-  const tgtOffsets = {};
-  for (let s = 0; s < N - 1; s++) {
-    const byTarget = {};
-    for (const f of model.flows) {
-      if (f.stage !== s) continue;
-      (byTarget[f.to] = byTarget[f.to] || []).push(f);
+  // High agency: rejection → redirect
+  for (let i = 0; i < n - 1; i++) {
+    if (labels[i] === "rejection" && labels[i + 1] === "refinement") {
+      patterns.push({ start: i, end: i + 1, id: "rejection-redirect", label: "Rejection → Redirect", tier: "high" });
     }
-    for (const [to, flows] of Object.entries(byTarget)) {
-      flows.sort((a, b) => (nodeLayout[s][a.from]?.y ?? 0) - (nodeLayout[s][b.from]?.y ?? 0));
-      const totalInW = flows.reduce((sum, f) => sum + (nodeLayout[s][f.from]?.weight ?? 0), 0);
-      let cum = 0;
-      for (const f of flows) {
-        const w   = nodeLayout[s][f.from]?.weight ?? 0;
-        const frac = totalInW > 0 ? w / totalInW : 1;
-        tgtOffsets[`${s}:${to}:${f.from}`] = { yFrac: cum, hFrac: frac };
-        cum += frac;
+  }
+
+  // High agency: claim-support cycle (claim → conceptual → extraction → claim)
+  for (let i = 0; i < n - 3; i++) {
+    if (labels[i] === "claim" && labels[i+1] === "conceptual" && labels[i+2] === "extraction" && labels[i+3] === "claim") {
+      patterns.push({ start: i, end: i + 3, id: "claim-support", label: "Claim-Support Cycle", tier: "high" });
+    }
+  }
+
+  // Medium: extraction with landing (extraction → claim/refinement/challenge/rejection)
+  const HIGH_LABELS = new Set(["claim", "refinement", "challenge", "rejection"]);
+  for (let i = 0; i < n - 1; i++) {
+    if (labels[i] === "extraction" && HIGH_LABELS.has(labels[i + 1])) {
+      patterns.push({ start: i, end: i + 1, id: "extraction-landing", label: "Extraction → Insight", tier: "medium" });
+    }
+  }
+
+  // Low: extraction loop (3+ consecutive extractions)
+  for (let i = 0; i < n - 2; i++) {
+    if (labels[i] === "extraction" && labels[i+1] === "extraction" && labels[i+2] === "extraction") {
+      let end = i + 2;
+      while (end + 1 < n && labels[end + 1] === "extraction") end++;
+      patterns.push({ start: i, end, id: "extraction-loop", label: "Extraction Loop", tier: "low" });
+      i = end;
+    }
+  }
+
+  // Low: validation spiral (extraction/validation alternating 4+ turns)
+  for (let i = 0; i < n - 3; i++) {
+    const EV = new Set(["extraction", "validation"]);
+    if (EV.has(labels[i]) && EV.has(labels[i+1]) && labels[i] !== labels[i+1]) {
+      let end = i + 1;
+      while (end + 1 < n && EV.has(labels[end + 1])) end++;
+      if (end - i >= 3) {
+        patterns.push({ start: i, end, id: "validation-spiral", label: "Validation Spiral", tier: "low" });
+        i = end;
       }
     }
   }
 
-  let out = "";
-
-  // Ribbons
-  for (const f of model.flows) {
-    const { from, to, stage: s } = f;
-    const src = nodeLayout[s]?.[from];
-    const tgt = nodeLayout[s + 1]?.[to];
-    if (!src || !tgt) continue;
-    const { yFrac = 0, hFrac = 1 } = tgtOffsets[`${s}:${to}:${from}`] ?? {};
-    const x0 = colX(s) + COL_W, x1 = colX(s + 1);
-    const y0t = src.y,        y0b = src.y + src.h;
-    const y1t = tgt.y + yFrac * tgt.h;
-    const y1b = y1t + hFrac * tgt.h;
-    const mx  = (x0 + x1) / 2;
-    const d   = `M${x0},${y0t.toFixed(1)} C${mx},${y0t.toFixed(1)} ${mx},${y1t.toFixed(1)} ${x1},${y1t.toFixed(1)} ` +
-                `L${x1},${y1b.toFixed(1)} C${mx},${y1b.toFixed(1)} ${mx},${y0b.toFixed(1)} ${x0},${y0b.toFixed(1)}Z`;
-    out += `<path d="${d}" fill="${threadMap[from].color}" opacity="0.45"/>`;
-  }
-
-  // Blocks + inline labels
-  for (let s = 0; s < N; s++) {
-    for (const [id, { y, h, color, label }] of Object.entries(nodeLayout[s])) {
-      out += `<rect x="${colX(s).toFixed(1)}" y="${y.toFixed(1)}" width="${COL_W}" height="${h.toFixed(1)}" fill="${color}" rx="2"/>`;
-      if (h >= 22) {
-        const cx = (colX(s) + COL_W / 2).toFixed(1);
-        const words = label.split(" ");
-        const half  = Math.ceil(words.length / 2);
-        const l1 = words.slice(0, half).join(" ");
-        const l2 = words.slice(half).join(" ");
-        const mid = y + h / 2;
-        if (l2) {
-          out += `<text x="${cx}" y="${(mid - 5).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="8" fill="white" font-weight="600" font-family="${FONT}">${l1}</text>`;
-          out += `<text x="${cx}" y="${(mid + 5).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="8" fill="white" font-family="${FONT}">${l2}</text>`;
-        } else {
-          out += `<text x="${cx}" y="${mid.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="8" fill="white" font-weight="600" font-family="${FONT}">${l1}</text>`;
-        }
+  // Low: helplessness loop (stuck followed by extraction/stuck sequence)
+  for (let i = 0; i < n - 1; i++) {
+    if (labels[i] === "stuck") {
+      let end = i;
+      while (end + 1 < n && (labels[end + 1] === "stuck" || labels[end + 1] === "extraction")) end++;
+      if (end > i) {
+        patterns.push({ start: i, end, id: "helplessness-loop", label: "Helplessness Loop", tier: "low" });
+        i = end;
       }
     }
   }
 
-  // Stage labels (up to 3 lines, split on \n)
-  const stageLabels = model.stageLabels ?? model.stages.map((_, i) => `R${i + 1}`);
-  const labelY = [10, 24, 38];
-  for (let s = 0; s < N; s++) {
-    const cx   = (colX(s) + COL_W / 2).toFixed(1);
-    const parts = stageLabels[s].split("\n");
-    out += `<text x="${cx}" y="${labelY[0]}" text-anchor="middle" font-size="10" font-weight="700" fill="#334155" font-family="${FONT}">${parts[0]}</text>`;
-    for (let li = 1; li < parts.length && li < labelY.length; li++) {
-      out += `<text x="${cx}" y="${labelY[li]}" text-anchor="middle" font-size="8" fill="#94a3b8" font-family="${FONT}">${parts[li]}</text>`;
+  // Low: flitting (3+ pivots with no substantive turns between)
+  for (let i = 0; i < n; i++) {
+    if (labels[i] === "pivot") {
+      let pivotCount = 1, end = i;
+      while (end + 1 < n && !HIGH_LABELS.has(labels[end + 1]) && labels[end + 1] !== "conceptual") {
+        end++;
+        if (labels[end] === "pivot") pivotCount++;
+      }
+      if (pivotCount >= 3) {
+        patterns.push({ start: i, end, id: "flitting", label: "Flitting", tier: "low" });
+        i = end;
+      }
     }
   }
 
-  const legend = model.threads.map(t =>
-    `<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#334155">` +
-    `<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:${t.color}"></span>` +
-    `${esc(t.label)}` +
-    (t.origin === "student" ? ` <em style="color:#94a3b8;font-size:10px">(student-initiated)</em>` : "") +
-    (t.origin === "merge"   ? ` <em style="color:#94a3b8;font-size:10px">(synthesis)</em>` : "") +
-    `</div>`
+  return patterns;
+}
+
+function renderTurnStrip(classified) {
+  const student = classified.filter(t => t.role === "student");
+  if (student.length < 2) {
+    return `<p style="color:var(--muted);font-size:13px;padding:12px 0">Not enough student turns to render sequence strip.</p>`;
+  }
+
+  const N = student.length;
+  const labels = student.map(t => t.label || "extraction");
+  const patterns = detectPatterns(labels);
+
+  // Build strip blocks
+  let blocksHTML = "";
+  for (let i = 0; i < N; i++) {
+    const t = student[i];
+    const tier = STRIP_TIER[t.label] || "neutral";
+    const color = STRIP_COLOR[tier];
+    const displayLabel = (t.label || "?").charAt(0).toUpperCase() + (t.label || "?").slice(1);
+    const preview = t.text ? esc(t.text.substring(0, 80)) + (t.text.length > 80 ? "…" : "") : "";
+    blocksHTML += `<div class="strip-block" style="background:${color}" title="Turn ${i+1}: ${displayLabel}&#10;${preview}">` +
+      `<span class="strip-num">${i + 1}</span></div>`;
+    if (i < N - 1) blocksHTML += `<div class="strip-ai-divider" title="AI response"></div>`;
+  }
+
+  // Pattern bands — stagger rows to avoid overlap
+  let patternHTML = "";
+  if (patterns.length) {
+    // Sort: high first so they render on top
+    const sorted = [...patterns].sort((a, b) => {
+      const order = { high: 0, medium: 1, low: 2 };
+      return order[a.tier] - order[b.tier];
+    });
+
+    // Assign vertical rows to avoid overlap (greedy)
+    const rows = [];
+    const assigned = sorted.map(p => {
+      let row = rows.findIndex(end => end < p.start);
+      if (row === -1) { row = rows.length; rows.push(p.end); }
+      else rows[row] = p.end;
+      return row;
+    });
+
+    const ROW_H = 26;
+    const totalH = (rows.length || 1) * ROW_H;
+    patternHTML = `<div class="pattern-row" style="height:${totalH}px;margin-top:4px">`;
+    for (let pi = 0; pi < sorted.length; pi++) {
+      const p = sorted[pi];
+      const s = PATTERN_STYLE[p.tier];
+      const leftPct = (p.start / N * 100).toFixed(1);
+      const widthPct = ((p.end - p.start + 1) / N * 100).toFixed(1);
+      const top = assigned[pi] * ROW_H;
+      patternHTML += `<div class="pattern-band" style="left:${leftPct}%;width:${widthPct}%;top:${top}px;` +
+        `background:${s.bg};border-color:${s.border};color:${s.text}">${p.label}</div>`;
+    }
+    patternHTML += `</div>`;
+  }
+
+  // Summary counts
+  let highCount = 0, neutralCount = 0, lowCount = 0;
+  for (const label of labels) {
+    const tier = STRIP_TIER[label] || "neutral";
+    if (tier === "high" || tier === "medhigh") highCount++;
+    else if (tier === "neutral" || tier === "medium") neutralCount++;
+    else lowCount++;
+  }
+
+  // Legend
+  const legendItems = [
+    { color: STRIP_COLOR.high,    label: "High agency (challenge, rejection, claim)" },
+    { color: STRIP_COLOR.medhigh, label: "Active (refinement, conceptual)" },
+    { color: STRIP_COLOR.medium,  label: "Exploratory (feedback, pivot, narrative)" },
+    { color: STRIP_COLOR.neutral, label: "Neutral (extraction)" },
+    { color: STRIP_COLOR.low,     label: "Passive (validation)" },
+    { color: STRIP_COLOR.verylow, label: "Blocked (stuck)" },
+  ];
+  const legendHTML = legendItems.map(item =>
+    `<div class="strip-legend-item"><span class="strip-swatch" style="background:${item.color}"></span>${item.label}</div>`
   ).join("");
 
-  return {
-    svg: `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;overflow:visible" xmlns="http://www.w3.org/2000/svg">${out}</svg>`,
-    legend: `<div style="display:flex;flex-wrap:wrap;gap:10px;padding:12px 0">${legend}</div>`,
-  };
-}
-
-function buildThreadModel(threads, classified) {
-  const student = classified.filter(t => t.role === "student");
-  if (!threads.length || student.length < 2) return null;
-  const COLORS = ["#4F52C8","#f97316","#8b5cf6","#10B981","#E24B4A","#F59E0B","#0ea5e9","#94a3b8"];
-  const threadDefs = threads.map((th, i) => ({
-    id: `T${i}`, label: `Thread ${i + 1}`, color: COLORS[i % COLORS.length], origin: th.origin,
-  }));
-  const N = student.length;
-  const stages = [];
-  const flows   = [];
-  for (let s = 0; s < N; s++) {
-    const stage = {};
-    for (let ti = 0; ti < threads.length; ti++) {
-      const th = threads[ti];
-      const id = `T${ti}`;
-      if (s < (th.turnIndices[0] ?? Infinity)) continue;
-      const isActive = th.activeSpans.some(([a, b]) => s >= a && s <= b);
-      stage[id] = isActive ? 3 : 0.15;
-    }
-    if (!Object.keys(stage).length && threads.length) stage["T0"] = 1;
-    stages.push(stage);
-  }
-  for (let s = 0; s < N - 1; s++) {
-    for (let ti = 0; ti < threads.length; ti++) {
-      const id = `T${ti}`;
-      if (stages[s][id] !== undefined && stages[s + 1][id] !== undefined) {
-        flows.push({ from: id, to: id, stage: s });
-      }
-    }
-  }
-  return { threads: threadDefs, stages, flows };
-}
-
-function renderSankey(threads, classified) {
-  const model = buildThreadModel(threads, classified);
-  if (!model) {
-    return {
-      svg: `<p style="color:var(--muted);font-size:13px;padding:12px 0">Not enough turns to render thread chart.</p>`,
-      legend: "",
-    };
-  }
-  return renderThreadSankey(model);
+  return `
+    <div class="strip-wrapper">
+      <div class="strip-row">${blocksHTML}</div>
+      ${patternHTML}
+    </div>
+    <div class="strip-summary">
+      <span class="strip-stat high">High agency: ${highCount}</span>
+      <span class="strip-stat neutral">Neutral/exploratory: ${neutralCount}</span>
+      <span class="strip-stat low">Passive: ${lowCount}</span>
+      ${patterns.length ? `<span class="strip-stat patterns">Patterns: ${patterns.length}</span>` : ""}
+    </div>
+    <div class="strip-legend">${legendHTML}</div>
+  `;
 }
 
 // ─── Provenance helpers ───────────────────────────────────────────────────────
@@ -1577,6 +1596,13 @@ function scoreClass(n) {
   return `score-${n}`;
 }
 
+const DIM_TOOLTIPS = {
+  PQ: "Measures how actively the student drives the conversation — asking follow-up questions, challenging AI responses, and exploring ideas rather than just extracting content.",
+  SU: "Measures what the student does after pulling content from the AI. Extraction is neutral; what follows it reveals whether the student is processing or just collecting.",
+  CS: "Measures whether the student evaluates AI outputs critically — rejecting incorrect claims and refining imprecise ones rather than accepting everything at face value.",
+  OC: "Measures how much of the essay's conceptual content originates from the student rather than the AI, traced through the conversation history.",
+};
+
 function renderSummary(scores, usingGroq) {
   const dims = [
     { key: "PQ", name: "Prompt Quality",          abbr: "PQ", detail: "Responsive + challenge turns" },
@@ -1586,7 +1612,16 @@ function renderSummary(scores, usingGroq) {
   ];
   const cards = dims.map(d => `
     <div class="summary-card">
-      <div class="dim-name">${d.name}</div>
+      <div class="dim-name">
+        <span class="dim-name-wrap">
+          ${d.name}
+          <button class="dim-info-btn" tabindex="0" aria-label="About ${d.name}">i</button>
+          <div class="dim-tooltip">
+            ${DIM_TOOLTIPS[d.key]}
+            <br><span class="tt-learn" data-learn="${d.key}">Learn more &rarr;</span>
+          </div>
+        </span>
+      </div>
       <div class="dim-score ${scoreClass(scores[d.key])}">${scores[d.key]}<span style="font-size:16px;font-weight:400;color:var(--muted)">/5</span></div>
       <div class="dim-detail">${d.detail}</div>
     </div>`).join("");
@@ -1613,7 +1648,7 @@ function renderTurns(classified) {
 }
 
 function renderLegend() {
-  const labels = ["challenge","rejection","refinement","claim","conceptual","narrative","pivot","feedback","validation","extraction","stuck"];
+  const labels = ["challenge","rejection","refinement","claim","conceptual","narrative","pivot","feedback","extraction","validation","stuck"];
   return labels.map(l => `<div class="legend-item">${labelBadge(l)}</div>`).join("");
 }
 
@@ -1833,15 +1868,10 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
   let usingGroq = !!groq.apiKey;
   let groqLabels = null;
   let provenanceItems = null;
-  let embeddings = null;
   let groqErrors = [];
 
   try {
     const studentTurns = turns.filter(t => t.role === "student");
-    const studentTexts = studentTurns.map(t => t.text);
-
-    // Thread detection always uses client-side TF-IDF (Groq removed embedding model support)
-    if (studentTexts.length) embeddings = tfidfEmbedTurns(studentTexts);
 
     if (groq.apiKey) {
       // Fire 2 Groq calls in parallel (classification + provenance)
@@ -1875,9 +1905,6 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
     // TAU scoring
     const scores = scoreTAU(classified, provenanceData);
 
-    // Thread detection
-    const threads = detectThreads(classified, embeddings);
-
     // Integrity flags
     const flags = computeIntegrityFlags(classified, provenanceData);
 
@@ -1886,14 +1913,7 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
     document.getElementById("summaryGrid").innerHTML = renderSummary(scores, usingGroq && !groqErrors.includes("provenance"));
     document.getElementById("feedbackPanel").innerHTML = renderFeedback(generateFeedback(scores));
 
-    const sankeyResult = renderSankey(threads, classified);
-    if (typeof sankeyResult === "string") {
-      document.getElementById("sankeyContainer").innerHTML = sankeyResult;
-      document.getElementById("sankeyLegend").innerHTML = "";
-    } else {
-      document.getElementById("sankeyContainer").innerHTML = sankeyResult.svg;
-      document.getElementById("sankeyLegend").innerHTML = sankeyResult.legend;
-    }
+    document.getElementById("stripContainer").innerHTML = renderTurnStrip(classified);
 
     document.getElementById("turnList").innerHTML = renderTurns(classified);
     document.getElementById("legend").innerHTML   = renderLegend();
@@ -1970,7 +1990,7 @@ loadGroqKey().then(updateApiKeyStatus);
 
 // ─── Tab switching ────────────────────────────────────────────────────────────
 
-const TAB_MAP = { turns: "tabTurns", sankey: "tabSankey", provenance: "tabProvenance" };
+const TAB_MAP = { turns: "tabTurns", sequence: "tabSequence", provenance: "tabProvenance" };
 
 function activateTab(key) {
   document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -1987,15 +2007,6 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
 
 // ─── Sample buttons ───────────────────────────────────────────────────────────
 
-document.getElementById("threadDemoBtn").addEventListener("click", () => {
-  const result = renderThreadSankey(FR_DEMO);
-  document.getElementById("sankeyContainer").innerHTML = result.svg;
-  document.getElementById("sankeyLegend").innerHTML    = result.legend;
-  document.getElementById("results").style.display = "flex";
-  activateTab("sankey");
-  document.getElementById("results").scrollIntoView({ behavior: "smooth", block: "start" });
-});
-
 document.querySelectorAll(".sample-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     const key = btn.dataset.sample;
@@ -2008,6 +2019,188 @@ document.querySelectorAll(".sample-btn").forEach(btn => {
     document.getElementById("analyzeBtn").click();
   });
 });
+</script>
+
+<!-- ── Detail tray ─────────────────────────────────────────────────────── -->
+<div class="detail-tray-overlay" id="detailTrayOverlay">
+  <div class="detail-tray" id="detailTray">
+    <div class="detail-tray-header">
+      <h2 id="detailTrayTitle">Dimension</h2>
+      <button class="detail-tray-close" id="detailTrayClose" aria-label="Close">&#x2715;</button>
+    </div>
+    <div class="detail-tray-body" id="detailTrayBody"></div>
+  </div>
+</div>
+
+<script>
+// ── Dimension detail content ──────────────────────────────────────────────────
+const DIM_DETAILS = {
+  PQ: {
+    title: "Prompting Quality",
+    body: `
+      <span class="detail-tray-abbr">PQ</span>
+      <h3>What it measures</h3>
+      <p>How actively the student shapes the conversation. A high PQ score means the student is asking probing questions, pushing back on AI responses, and steering the dialogue — rather than passively accepting whatever the AI offers.</p>
+      <h3>Signals we look for</h3>
+      <ul>
+        <li><strong>Responsive turns</strong> — follow-up prompts that directly engage with the AI's previous answer, not topic jumps or copy-paste requests.</li>
+        <li><strong>Challenge turns</strong> — prompts that question the AI's reasoning, ask for evidence, or test an assumption.</li>
+        <li><strong>Conceptual turns</strong> — prompts that explore ideas rather than request content.</li>
+      </ul>
+      <h3>What a high score looks like</h3>
+      <p>The student asks "why do you think that?" or "what evidence supports this?" — engaging with the AI as a sparring partner rather than a content dispenser.</p>
+      <h3>What a low score looks like</h3>
+      <p>Most turns are instructions to produce content ("write me a paragraph about…") with little dialogue or interrogation of the AI's output.</p>
+    `
+  },
+  SU: {
+    title: "Selective Use",
+    body: `
+      <span class="detail-tray-abbr">SU</span>
+      <h3>What it measures</h3>
+      <p>What the student does <em>after</em> extracting content from the AI. Extraction itself is neutral — every student uses AI to retrieve information. SU measures whether those moments are followed by higher-order thinking or more passive consumption.</p>
+      <h3>Signals we look for</h3>
+      <ul>
+        <li><strong>High-agency follow-ups</strong> — after pulling content from the AI, the student makes a claim, challenges, refines, or rejects part of the response.</li>
+        <li><strong>Low-agency follow-ups</strong> — after extraction, the student extracts again, passively validates, or gets stuck.</li>
+      </ul>
+      <h3>What a high score looks like</h3>
+      <p>The student pulls a fact from the AI, then follows with "but I think that contradicts what you said earlier…" — using the extraction as a springboard for their own thinking.</p>
+      <h3>What a low score looks like</h3>
+      <p>Extraction turns chain together without any analytical turns in between — the student is collecting content rather than processing it.</p>
+    `
+  },
+  CS: {
+    title: "Calibrated Skepticism",
+    body: `
+      <span class="detail-tray-abbr">CS</span>
+      <h3>What it measures</h3>
+      <p>Whether the student treats AI outputs as claims to be evaluated rather than facts to be accepted. High CS means the student is actively adjudicating the AI's responses — rejecting incorrect claims and refining imprecise ones.</p>
+      <h3>Signals we look for</h3>
+      <ul>
+        <li><strong>Rejection turns</strong> — the student explicitly pushes back ("that's not right", "I disagree with that").</li>
+        <li><strong>Refinement turns</strong> — the student redirects or sharpens the AI's output ("focus more on X", "can you change this to…").</li>
+      </ul>
+      <h3>What a high score looks like</h3>
+      <p>The student regularly disagrees with or redirects the AI, treating it as one input to evaluate rather than an authority to defer to.</p>
+      <h3>What a low score looks like</h3>
+      <p>The student accepts all AI outputs without pushback — no rejections, no corrections, no refinement of inaccuracies.</p>
+    `
+  },
+  OC: {
+    title: "Original Contribution",
+    body: `
+      <span class="detail-tray-abbr">OC</span>
+      <h3>What it measures</h3>
+      <p>How much of the thinking in the final essay originates from the student rather than the AI. This is not about writing style — it traces the <em>conceptual lineage</em> of each idea in the essay back through the conversation.</p>
+      <h3>How we trace provenance</h3>
+      <p>We classify each concept in the essay as one of three origins:</p>
+      <ul>
+        <li><strong>Student-born</strong> — the idea appeared in student turns before the AI raised it, or doesn't appear in the conversation at all (prior knowledge).</li>
+        <li><strong>Synthesized</strong> — developed collaboratively across both sides of the conversation.</li>
+        <li><strong>AI-born</strong> — introduced by the AI and adopted by the student without independent development.</li>
+      </ul>
+      <h3>What a high score looks like</h3>
+      <p>Most ideas in the essay were introduced by the student or built together through genuine back-and-forth — the AI elaborated, but the student drove the conceptual agenda.</p>
+      <h3>What a low score looks like</h3>
+      <p>The essay mostly reflects ideas the AI introduced first, with the student primarily accepting and incorporating them rather than contributing independent thinking.</p>
+    `
+  }
+};
+
+(function () {
+  const overlay = document.getElementById("detailTrayOverlay");
+  const trayTitle = document.getElementById("detailTrayTitle");
+  const trayBody = document.getElementById("detailTrayBody");
+
+  // ── Tray ──────────────────────────────────────────────────────────────────
+  function openTray(key) {
+    const d = DIM_DETAILS[key];
+    if (!d) return;
+    trayTitle.textContent = d.title;
+    trayBody.innerHTML = d.body;
+    overlay.classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeTray() {
+    overlay.classList.remove("open");
+    document.body.style.overflow = "";
+  }
+
+  document.getElementById("detailTrayClose").addEventListener("click", closeTray);
+  overlay.addEventListener("click", e => { if (e.target === overlay) closeTray(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") { closeTray(); closeAllTooltips(); } });
+
+  document.addEventListener("click", e => {
+    const btn = e.target.closest("[data-learn]");
+    if (btn) { e.stopPropagation(); openTray(btn.dataset.learn); }
+  });
+
+  // ── Tooltip click-to-toggle ───────────────────────────────────────────────
+  function closeAllTooltips() {
+    document.querySelectorAll(".dim-tooltip.tt-open").forEach(t => t.classList.remove("tt-open"));
+    document.querySelectorAll(".dim-info-btn.active").forEach(b => b.classList.remove("active"));
+  }
+
+  document.addEventListener("click", e => {
+    const infoBtn = e.target.closest(".dim-info-btn");
+    if (infoBtn) {
+      e.stopPropagation();
+      const tooltip = infoBtn.nextElementSibling;
+      const isOpen = tooltip.classList.contains("tt-open");
+      closeAllTooltips();
+      if (!isOpen) {
+        tooltip.classList.add("tt-open");
+        infoBtn.classList.add("active");
+      }
+      return;
+    }
+    // click outside any open tooltip closes it
+    if (!e.target.closest(".dim-tooltip")) {
+      closeAllTooltips();
+    }
+  });
+
+  // ── Labels tray ───────────────────────────────────────────────────────────
+  const LABELS_TRAY_CONTENT = `
+    <h3 style="margin-top:0">Positive labels <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#dcfce7;border:1px solid #bbf7d0;vertical-align:middle;margin-left:4px"></span></h3>
+    <p>These turns signal that the student is driving the conversation with original thinking, analytical questions, or critical evaluation of AI responses.</p>
+    <ul>
+      <li><strong>Challenge</strong> — the student questions the AI's reasoning, asks for evidence, or tests an assumption ("how do you know that?", "what's the source?").</li>
+      <li><strong>Claim</strong> — the student asserts a position or opinion of their own, independent of what the AI said.</li>
+      <li><strong>Conceptual</strong> — the student explores an idea or asks a question aimed at understanding rather than obtaining content.</li>
+      <li><strong>Rejection</strong> — the student explicitly disagrees with or corrects the AI ("that's not right", "I don't think that's accurate").</li>
+      <li><strong>Refinement</strong> — the student redirects or sharpens the AI's output toward a more specific goal ("focus more on X", "can you change this part").</li>
+      <li><strong>Narrative</strong> — the student contributes personal context, experience, or framing that originates from them.</li>
+    </ul>
+
+    <h3>Neutral labels <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#dbeafe;border:1px solid #bfdbfe;vertical-align:middle;margin-left:4px"></span></h3>
+    <p>These turns are neither good nor bad in isolation — their meaning comes from what surrounds them.</p>
+    <ul>
+      <li><strong>Extraction</strong> — the student requests information, a summary, or content from the AI. Perfectly normal; what follows it is what matters.</li>
+      <li><strong>Pivot</strong> — the student shifts to a new topic or direction ("what about…", "switching to…").</li>
+      <li><strong>Feedback</strong> — the student asks the AI to review or evaluate something they've written.</li>
+    </ul>
+
+    <h3>Passive labels <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#fee2e2;border:1px solid #fecaca;vertical-align:middle;margin-left:4px"></span></h3>
+    <p>These turns suggest the student is not actively processing or evaluating — they may indicate over-reliance on the AI.</p>
+    <ul>
+      <li><strong>Validation</strong> — the student accepts or echoes the AI's output without any evaluation ("yes", "that's great", "ok thanks").</li>
+      <li><strong>Stuck</strong> — the student signals confusion or inability to move forward without AI help ("I don't know what to write", "can you just do it for me").</li>
+    </ul>
+  `;
+
+  const labelLearnBtn = document.getElementById("labelLearnBtn");
+  if (labelLearnBtn) {
+    labelLearnBtn.addEventListener("click", () => {
+      trayTitle.textContent = "Turn Labels";
+      trayBody.innerHTML = LABELS_TRAY_CONTENT;
+      overlay.classList.add("open");
+      document.body.style.overflow = "hidden";
+    });
+  }
+})();
 </script>
 </body>
 </html>
