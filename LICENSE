@@ -1,0 +1,32 @@
+Proprietary Software License
+Copyright (c) 2026 Joseph Grgic. All rights reserved.
+
+This software and associated documentation files (the "Software") are the
+proprietary and confidential property of Joseph Grgic. Access to this
+repository is granted solely for the purpose of evaluation and testing by
+explicitly invited collaborators.
+
+PERMITTED:
+- Viewing and running the Software for personal evaluation and testing
+- Submitting feedback, bug reports, or suggestions to the author
+
+NOT PERMITTED without prior written permission from the author:
+- Copying, reproducing, or distributing the Software or any portion of it
+- Modifying, adapting, or creating derivative works
+- Using the Software in any product, service, or application
+- Sublicensing, selling, renting, or transferring rights to the Software
+- Deploying the Software in any public-facing or commercial context
+- Reverse engineering, decompiling, or disassembling the Software
+
+CONFIDENTIALITY. The Software, its design, algorithms, and associated
+documentation are confidential. Testers and collaborators may not disclose
+any aspect of the Software to third parties without the author's written consent.
+
+TERMINATION. Access may be revoked at any time at the author's discretion.
+Upon termination, all copies of the Software in your possession must be deleted.
+
+THE SOFTWARE IS PROVIDED "AS IS" FOR EVALUATION PURPOSES ONLY, WITHOUT
+WARRANTY OF ANY KIND. THE AUTHOR SHALL NOT BE LIABLE FOR ANY DAMAGES ARISING
+FROM USE OF OR INABILITY TO USE THE SOFTWARE.
+
+For licensing inquiries: jegrgic@gmail.com
