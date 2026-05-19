@@ -1916,7 +1916,7 @@ function renderFlags(flags) {
   return flags.map(f => `
     <div class="flag-row">
       <span class="flag-type">${TYPE_LABEL[f.type] || f.type}</span>
-      <div class="flag-detail">${esc(f.detail)}</div>
+      <div class="flag-detail">${esc(f.detail)} <span class="tt-learn" data-learn="${f.type}">Learn more &rarr;</span></div>
     </div>`).join("");
 }
 
@@ -2381,6 +2381,75 @@ const DIM_DETAILS = {
       <p>Most ideas in the essay were introduced by the student or built together through genuine back-and-forth — the AI elaborated, but the student drove the conceptual agenda.</p>
       <h3>What a low score looks like</h3>
       <p>The essay mostly reflects ideas the AI introduced first, with the student primarily accepting and incorporating them rather than contributing independent thinking.</p>
+    `
+  },
+
+  "stylistic-inconsistency": {
+    title: "Stylistic Inconsistency",
+    body: `
+      <h3>What this flag means</h3>
+      <p>The length of the student's turns varies significantly across the conversation — some turns are very short, others are unusually long. Large jumps in turn length can indicate that some turns were drafted externally (e.g., in a separate AI session) and pasted in, rather than typed in response to the ongoing conversation.</p>
+      <h3>How it's detected</h3>
+      <p>We measure the word count of each student turn and compute the variance. A flag is raised when the standard deviation is high relative to the average, across four or more student turns.</p>
+      <h3>What to look for</h3>
+      <ul>
+        <li>A student who types short, casual prompts suddenly submitting a long, polished paragraph.</li>
+        <li>Abrupt shifts in vocabulary complexity between turns — informal phrasing in one turn, formal academic language in the next.</li>
+      </ul>
+      <h3>Important caveats</h3>
+      <p>Some variation is normal — a student might paste a block of text for feedback, or write a longer turn when they're explaining a nuanced idea. This flag is a prompt for closer reading, not a finding on its own.</p>
+    `
+  },
+
+  "unnatural-fluency": {
+    title: "Unnatural Fluency",
+    body: `
+      <h3>What this flag means</h3>
+      <p>Across the conversation, the student's turns contain almost no hedging language — words and phrases like "I think," "maybe," "probably," "I'm not sure," or "sort of." Natural student writing, especially in exploratory AI conversations, typically includes uncertainty markers. Their absence across the board is unusual.</p>
+      <h3>How it's detected</h3>
+      <p>We check each student turn for a set of common hedging patterns. If fewer than 10% of turns contain any hedging language (across five or more turns), the flag is raised.</p>
+      <h3>What to look for</h3>
+      <ul>
+        <li>Every student turn reads as fully confident and syntactically complete — no false starts, qualifications, or uncertainty.</li>
+        <li>The student's voice sounds more like polished output than live thinking.</li>
+      </ul>
+      <h3>Important caveats</h3>
+      <p>Some students are simply direct communicators, especially in academic contexts. This flag is most meaningful in combination with other signals — on its own, confident writing is not evidence of anything.</p>
+    `
+  },
+
+  "provenance-mismatch": {
+    title: "Provenance Mismatch",
+    body: `
+      <h3>What this flag means</h3>
+      <p>One or more concepts appear in the final essay as if the student originated them, but the conversation log shows those ideas were introduced by the AI first. The student adopted the concept without crediting or independently developing it.</p>
+      <h3>How it's detected</h3>
+      <p>We trace every key concept in the essay back through the conversation using AI-assisted provenance analysis. When the AI introduces an idea before the student, and the student later uses it in the essay as their own framing, it's logged as a mismatch.</p>
+      <h3>What to look for</h3>
+      <ul>
+        <li>A central thesis or argument that was first articulated by the AI, not the student.</li>
+        <li>Specific terminology or framing that the student didn't use until after the AI introduced it.</li>
+      </ul>
+      <h3>Important caveats</h3>
+      <p>Synthesis is legitimate — students are expected to incorporate what they learn from AI. The concern is when AI-originated ideas are presented as the student's own original thinking in the essay, with no acknowledgement or independent development. Provenance tracing is an approximation; always read the conversation directly before drawing conclusions.</p>
+    `
+  },
+
+  "shadow-session-pattern": {
+    title: "Shadow Session Pattern",
+    body: `
+      <h3>What this flag means</h3>
+      <p>The student's turns are overwhelmingly passive — mostly accepting or echoing the AI's output — with almost no pushback, correction, or challenge across the entire conversation. This pattern is consistent with a student who entered the conversation with already-formed content, using the AI primarily to validate or polish it rather than to think through the task.</p>
+      <h3>How it's detected</h3>
+      <p>We measure the ratio of validation turns (passive acceptance) to rejection turns (pushback) across the student's messages. A flag is raised when more than half of turns are validation and fewer than 5% are rejections, across five or more student turns.</p>
+      <h3>What to look for</h3>
+      <ul>
+        <li>A student who agrees with everything the AI says without ever pushing back, even when the AI makes debatable claims.</li>
+        <li>Responses that feel calibrated to the AI's output rather than genuinely reactive — as if the student already knew what answer they wanted.</li>
+        <li>The conversation looks like a transcript of confirmation rather than exploration.</li>
+      </ul>
+      <h3>Important caveats</h3>
+      <p>Some students are genuinely agreeable or deferential, particularly early in a task. The flag is stronger evidence when combined with a low CS score and a provenance mismatch. It does not prove a separate session existed — it marks a pattern worth investigating.</p>
     `
   }
 };
