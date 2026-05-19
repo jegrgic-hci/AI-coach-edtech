@@ -1188,6 +1188,48 @@ Return ONLY a valid JSON array. No explanation.`;
     }));
 }
 
+async function groqParseLog(raw) {
+  const prompt = `You will receive a raw chat log between a student and an AI assistant.
+The log may use any format: labeled turns (e.g. "You:", "ChatGPT:", "Assistant:"), timestamps, platform exports (ChatGPT, Claude, Gemini, etc.), markdown, or unlabeled alternating paragraphs.
+
+Your task: identify every turn in the conversation and assign each a role of "student" or "ai".
+
+Rules:
+- The student is the human asking questions or giving instructions.
+- The AI is the assistant responding.
+- Preserve the full content of each turn, stripping only the role label/prefix if present.
+- If a turn is ambiguous (system messages, metadata), omit it.
+- Do not merge turns from the same speaker that are separated by the other speaker.
+
+Raw log:
+---
+${raw.slice(0, 6000)}
+---
+
+Return ONLY a valid JSON array, no explanation:
+[{"role": "student", "text": "..."}, {"role": "ai", "text": "..."}, ...]`;
+
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${groq.apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "llama-3.1-8b-instant",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.0,
+      max_tokens: 4000,
+    }),
+  });
+  if (!res.ok) throw new Error(`Groq parse error: ${res.status}`);
+  const data = await res.json();
+  const text = data.choices[0].message.content.trim();
+  const match = text.match(/\[[\s\S]*\]/);
+  if (!match) throw new Error("No JSON in parse response");
+  const parsed = JSON.parse(match[0]);
+  return parsed
+    .filter(t => (t.role === "student" || t.role === "ai") && t.text && t.text.trim())
+    .map(t => ({ role: t.role, text: t.text.trim() }));
+}
+
 // Groq removed embedding model support. TF-IDF cosine similarity runs client-side instead.
 function tfidfEmbedTurns(texts) {
   const tokenize = t => t.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(Boolean);
@@ -1857,8 +1899,7 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
 
   if (!logRaw.trim()) { alert("Paste a chat log first."); return; }
 
-  const { turns, method } = parseLog(logRaw);
-  if (!turns.length) { alert("Could not parse the log. Try adding labels like 'You:' and 'ChatGPT:'."); return; }
+  let { turns, method } = parseLog(logRaw);
 
   const btn = document.getElementById("analyzeBtn");
   btn.disabled = true;
@@ -1869,8 +1910,27 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
   let groqLabels = null;
   let provenanceItems = null;
   let groqErrors = [];
+  let parsedWithGroq = false;
 
   try {
+    // If regex parse failed or is ambiguous, use Groq to parse the log
+    if ((method === "unparseable" || method === "alternating") && groq.apiKey) {
+      btn.textContent = "Parsing log…";
+      try {
+        const groqTurns = await groqParseLog(logRaw);
+        if (groqTurns.length >= 2) {
+          turns = groqTurns;
+          method = "groq";
+          parsedWithGroq = true;
+        }
+      } catch (e) {
+        groqErrors.push("log-parsing");
+      }
+    }
+
+    if (!turns.length) { alert("Could not parse the log. Try adding labels like 'You:' and 'ChatGPT:'."); return; }
+    btn.textContent = "Analyzing…";
+
     const studentTurns = turns.filter(t => t.role === "student");
 
     if (groq.apiKey) {
@@ -1886,9 +1946,11 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
       if (provenanceResult.status === "fulfilled") provenanceItems = provenanceResult.value;
       else if (essayRaw.trim()) groqErrors.push("provenance");
 
+      const groqServices = ["classification", "provenance"];
+      if (parsedWithGroq) groqServices.unshift("log parsing");
       groqStatusEl.innerHTML = groqErrors.length
         ? `<div class="groq-status warn">Groq partial — failed: ${groqErrors.join(", ")}. Fallback used.</div>`
-        : `<div class="groq-status ok">Groq active — classification, provenance</div>`;
+        : `<div class="groq-status ok">Groq active — ${groqServices.join(", ")}</div>`;
     } else {
       groqStatusEl.innerHTML = `<div class="groq-status warn">No Groq key — using fallback classifier. OC scored from turn ratios.</div>`;
     }
@@ -1919,7 +1981,10 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
     document.getElementById("legend").innerHTML   = renderLegend();
 
     const noteEl = document.getElementById("parseNote");
-    if (method === "alternating") {
+    if (parsedWithGroq) {
+      noteEl.textContent = "Log format not recognized — turns parsed with AI assistance. Review the turn list below to confirm roles were detected correctly.";
+      noteEl.style.display = "block";
+    } else if (method === "alternating") {
       noteEl.textContent = "No role labels detected — assumed alternating turns (you first). For best accuracy, add labels like 'You:' / 'ChatGPT:'.";
       noteEl.style.display = "block";
     } else {
