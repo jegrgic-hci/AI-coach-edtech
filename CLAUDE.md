@@ -2,7 +2,7 @@
 
 ## Overview
 
-A single-file, client-side web app (`cta2.html`) that analyzes how a student used AI during a writing or research task. It produces a TAU Score (four dimensions, each 1–5) and a Sankey visualization of idea thread development.
+A single-file, client-side web app (`index.html`) that analyzes how a student used AI during a writing or research task. It produces a TAU Score (four dimensions, each 1–5) and a Sankey visualization of idea thread development.
 
 **Input:** AI chat log + final essay
 **Output:** TAU Score, SAMR level, Sankey chart, Teacher integrity flags

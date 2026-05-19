@@ -1188,22 +1188,41 @@ Return ONLY a valid JSON array. No explanation.`;
     }));
 }
 
-async function groqParseLog(raw) {
-  const prompt = `You will receive a raw chat log between a student and an AI assistant.
+const GROQ_PARSE_CHUNK = 5000;
+const GROQ_PARSE_BATCH = 3;
+
+function splitIntoParseChunks(raw, chunkSize) {
+  const chunks = [];
+  let pos = 0;
+  while (pos < raw.length) {
+    let end = pos + chunkSize;
+    if (end < raw.length) {
+      // break at the last double-newline within the chunk to avoid splitting a turn mid-text
+      const boundary = raw.lastIndexOf("\n\n", end);
+      if (boundary > pos) end = boundary;
+    }
+    chunks.push(raw.slice(pos, end).trim());
+    pos = end;
+  }
+  return chunks.filter(Boolean);
+}
+
+async function groqParseChunk(chunk) {
+  const prompt = `You will receive part of a raw chat log between a student and an AI assistant.
 The log may use any format: labeled turns (e.g. "You:", "ChatGPT:", "Assistant:"), timestamps, platform exports (ChatGPT, Claude, Gemini, etc.), markdown, or unlabeled alternating paragraphs.
 
-Your task: identify every turn in the conversation and assign each a role of "student" or "ai".
+Your task: identify every turn in this excerpt and assign each a role of "student" or "ai".
 
 Rules:
 - The student is the human asking questions or giving instructions.
 - The AI is the assistant responding.
 - Preserve the full content of each turn, stripping only the role label/prefix if present.
-- If a turn is ambiguous (system messages, metadata), omit it.
+- If a turn is ambiguous (system messages, metadata, page headers), omit it.
 - Do not merge turns from the same speaker that are separated by the other speaker.
 
-Raw log:
+Excerpt:
 ---
-${raw.slice(0, 6000)}
+${chunk}
 ---
 
 Return ONLY a valid JSON array, no explanation:
@@ -1228,6 +1247,31 @@ Return ONLY a valid JSON array, no explanation:
   return parsed
     .filter(t => (t.role === "student" || t.role === "ai") && t.text && t.text.trim())
     .map(t => ({ role: t.role, text: t.text.trim() }));
+}
+
+async function groqParseLog(raw) {
+  const chunks = splitIntoParseChunks(raw, GROQ_PARSE_CHUNK);
+  const allTurns = [];
+
+  // Process in batches of GROQ_PARSE_BATCH to avoid rate limits
+  for (let i = 0; i < chunks.length; i += GROQ_PARSE_BATCH) {
+    const batch = chunks.slice(i, i + GROQ_PARSE_BATCH);
+    const results = await Promise.allSettled(batch.map(groqParseChunk));
+    for (const result of results) {
+      if (result.status === "fulfilled") allTurns.push(...result.value);
+      // failed chunks are silently skipped — partial results still usable
+    }
+  }
+
+  // Deduplicate consecutive turns with identical role+text (chunk boundary overlap)
+  const deduped = [];
+  for (const turn of allTurns) {
+    const prev = deduped[deduped.length - 1];
+    if (prev && prev.role === turn.role && prev.text === turn.text) continue;
+    deduped.push(turn);
+  }
+
+  return deduped;
 }
 
 // Groq removed embedding model support. TF-IDF cosine similarity runs client-side instead.
@@ -1915,7 +1959,8 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
   try {
     // If regex parse failed or is ambiguous, use Groq to parse the log
     if ((method === "unparseable" || method === "alternating") && groq.apiKey) {
-      btn.textContent = "Parsing log…";
+      const chunkCount = splitIntoParseChunks(logRaw, GROQ_PARSE_CHUNK).length;
+      btn.textContent = chunkCount > 1 ? `Parsing log (${chunkCount} chunks)…` : "Parsing log…";
       try {
         const groqTurns = await groqParseLog(logRaw);
         if (groqTurns.length >= 2) {
