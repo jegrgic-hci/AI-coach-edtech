@@ -133,30 +133,7 @@ main {
 .status-not-started { background: var(--grey-tint); color: var(--text-muted); border: 1px solid var(--border); }
 .status-missing     { background: var(--terra-tint); color: var(--terra); }
 
-/* ── Class view ── */
-.student-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-.student-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 20px;
-  cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.student-card:hover {
-  border-color: var(--blue-light);
-  box-shadow: 0 2px 8px rgba(59,62,168,0.08);
-}
-.student-card-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
+/* ── Avatar ── */
 .avatar {
   width: 36px; height: 36px;
   border-radius: 50%;
@@ -165,22 +142,6 @@ main {
   font-size: 13px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-}
-.student-card-name { font-size: 14px; font-weight: 600; }
-.assignment-statuses { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-.assignment-status-row {
-  display: flex; align-items: center; justify-content: space-between;
-  font-size: 12px;
-}
-.assignment-status-name {
-  color: var(--text-mid); flex: 1;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  padding-right: 8px;
-}
-.student-card-footer {
-  border-top: 1px solid var(--border);
-  padding-top: 12px;
-  display: flex; align-items: center; justify-content: space-between;
 }
 
 /* ── Selectors ── */
@@ -228,6 +189,7 @@ main {
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
+  table-layout: fixed;
 }
 .data-table th {
   text-align: left;
@@ -242,11 +204,13 @@ main {
   padding: 12px 14px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
+  overflow: hidden;
 }
 .data-table tr:last-child td { border-bottom: none; }
-.data-table tbody tr { cursor: pointer; transition: background 0.1s; }
+.data-table tbody tr { cursor: pointer; transition: background 0.1s; height: 64px; }
 .data-table tbody tr:hover { background: var(--grey-tint); }
 .data-table tbody tr.expanded-row { background: var(--blue-tint); }
+.data-table tbody tr.drill-row { height: auto; }
 .data-table tbody tr.drill-row:hover { background: transparent; cursor: default; }
 
 /* ── Drill panel ── */
@@ -300,6 +264,7 @@ main {
   <h1>Critical Thinking Auditor</h1>
   <span class="subtitle">Teacher Dashboard</span>
   <span class="class-label">Period 3 — Digital Literacy</span>
+  <a href="index.html" style="margin-left:auto;font-size:12px;font-weight:600;color:#3B3EA8;background:#f0f1f8;border:1px solid #c5c7e8;padding:5px 12px;border-radius:20px;text-decoration:none;white-space:nowrap;" onmouseover="this.style.background='#e3e4f4'" onmouseout="this.style.background='#f0f1f8'">← Student Tool</a>
 </header>
 
 <nav class="tab-nav">
@@ -514,39 +479,88 @@ function renderDrillPanel(subs, label, extraClass = '') {
 // ── Class view ────────────────────────────────────────────────────────────────
 
 function renderClassView() {
-  const cards = STUDENTS.map(s => {
-    const flagged = hasAnyFlag(s.id);
-    const allSubs = ASSIGNMENTS.flatMap(a => getSubs(s.id, a.id)).sort((a, b) => b.ts - a.ts);
-    const lat     = allSubs[0];
-    const t       = lat ? total(lat) : null;
+  const classSelector = CLASSES.map(c =>
+    `<button class="selector-pill ${c.id === activeClass ? 'active' : ''}" onclick="selectClassOverview('${c.id}')">${c.name}</button>`
+  ).join('');
 
-    const statusRows = ASSIGNMENTS.map(a => {
-      const st = submissionStatus(getSubs(s.id, a.id), a);
-      return `<div class="assignment-status-row">
-        <span class="assignment-status-name">${a.name}</span>
-        <span class="chip ${st.cls}" style="font-size:10px;padding:1px 7px">${st.label}</span>
-      </div>`;
-    }).join('');
+  const cls     = CLASSES.find(x => x.id === activeClass);
+  const students = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
+  const n        = students.length;
 
-    return `<div class="student-card" onclick="switchToStudent('${s.id}')">
-      <div class="student-card-header">
-        <div class="avatar">${s.initials}</div>
-        <span class="student-card-name">${s.name}</span>
-        ${flagged ? `<span class="flag-badge" style="margin-left:auto" title="Suspicious resubmission detected on AI Ethics Essay">⚑ Flag</span>` : ''}
-      </div>
-      <div class="assignment-statuses">${statusRows}</div>
-      <div class="student-card-footer">
-        ${t ? `<span class="samr-badge ${samr(t).cls}">${samr(t).label}</span>` : '<span></span>'}
-        ${t ? verdictChip(t) : '<span class="chip chip-grey">No submissions</span>'}
-      </div>
-    </div>`;
+  const rows = ASSIGNMENTS.map(a => {
+    const allSubs  = students.map(s => getSubs(s.id, a.id));
+    const submitted = allSubs.filter(s => s.length > 0).length;
+    const lats      = allSubs.map(s => latestSub(s)).filter(Boolean);
+    const avgTau    = lats.length ? Math.round(lats.reduce((sum, s) => sum + total(s), 0) / lats.length) : null;
+    const flagCount = students.filter(s => checkFlag(getSubs(s.id, a.id)).length > 0).length;
+    const closed    = a.status === 'closed';
+    const dueStr    = a.due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    // SAMR distribution
+    const samrCounts = { 'Redefinition': 0, 'Modification': 0, 'Augmentation': 0, 'Substitution': 0 };
+    const samrClsMap = { Redefinition:'samr-redef', Modification:'samr-mod', Augmentation:'samr-aug', Substitution:'samr-sub' };
+    lats.forEach(s => samrCounts[samr(total(s)).label]++);
+    const samrBar = ['Redefinition','Modification','Augmentation','Substitution']
+      .filter(l => samrCounts[l] > 0)
+      .map(l => `<span class="samr-badge ${samrClsMap[l]}" style="font-size:10px">${samrCounts[l]} ${l}</span>`)
+      .join('');
+
+    return `<tr style="cursor:pointer" onclick="switchToAssignment('${a.id}')" onmouseover="this.style.background='var(--grey-tint)'" onmouseout="this.style.background=''">
+      <td>
+        <div style="font-weight:600;font-size:13px">${a.name}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Due ${dueStr}</div>
+      </td>
+      <td><span class="chip ${closed ? 'chip-grey' : 'chip-amber'}">${closed ? 'Closed' : 'Open'}</span></td>
+      <td>
+        <span style="font-weight:600">${submitted}</span>
+        <span style="color:var(--text-muted)"> / ${n}</span>
+        ${submitted < n && closed ? `<div style="font-size:11px;color:var(--terra);margin-top:2px">${n - submitted} missing</div>` : ''}
+      </td>
+      <td>${avgTau !== null ? `<span class="tau-total" style="font-size:14px">${avgTau}</span><span class="tau-denom">/20</span>` : '—'}</td>
+      <td>${avgTau !== null ? `<span class="samr-badge ${samr(avgTau).cls}">${samr(avgTau).label}</span>` : '—'}</td>
+      <td><div style="display:flex;gap:6px;flex-wrap:wrap">${samrBar || '—'}</div></td>
+      <td>${flagCount ? `<span class="flag-badge">⚑ ${flagCount}</span>` : '<span style="color:var(--text-muted);font-size:12px">—</span>'}</td>
+    </tr>`;
   }).join('');
 
   document.getElementById('view-class').innerHTML = `
-    <div class="view-heading">Class Overview — Period 3</div>
-    <div class="student-cards">${cards}</div>
-    <p style="margin-top:20px;font-size:12px;color:var(--text-muted)">Click a student card to view their full profile.</p>
+    <div class="selector-row">${classSelector}</div>
+    <table class="data-table">
+      <colgroup>
+        <col style="width:220px">
+        <col style="width:80px">
+        <col style="width:100px">
+        <col style="width:100px">
+        <col style="width:130px">
+        <col style="width:auto">
+        <col style="width:80px">
+      </colgroup>
+      <thead><tr>
+        <th>Assignment</th>
+        <th>Status</th>
+        <th>Submitted</th>
+        <th>Avg TAU</th>
+        <th>Avg SAMR</th>
+        <th>SAMR Spread</th>
+        <th>Flags</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p style="margin-top:14px;font-size:12px;color:var(--text-muted)">Click an assignment to view student breakdown.</p>
   `;
+}
+
+function selectClassOverview(id) {
+  activeClass = id;
+  renderClassView();
+}
+
+function switchToAssignment(aid) {
+  activeAssignment  = aid;
+  expandedStudentId = null;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view === 'assignment'));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-assignment'));
+  renderAssignmentView();
 }
 
 // ── Assignment view ───────────────────────────────────────────────────────────
@@ -601,6 +615,16 @@ function renderAssignmentView() {
       <span class="assign-meta-due">Due ${dueStr}</span>
     </div>
     <table class="data-table">
+      <colgroup>
+        <col style="width:160px">
+        <col style="width:90px">
+        <col style="width:100px">
+        <col style="width:96px">
+        <col style="width:130px">
+        <col style="width:130px">
+        <col style="width:90px">
+        <col style="width:auto">
+      </colgroup>
       <thead><tr>
         <th>Student</th>
         <th>Submissions</th>
@@ -641,6 +665,7 @@ function renderStudentView() {
   const classStudents  = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
 
   const assignHeaders = ASSIGNMENTS.map(a => `<th>${a.name}</th>`).join('');
+  const colgroup = `<colgroup><col style="width:180px">${ASSIGNMENTS.map(() => '<col style="width:auto">').join('')}</colgroup>`;
 
   const rows = classStudents.map(s => {
     const flagged  = hasAnyFlag(s.id);
@@ -685,6 +710,7 @@ function renderStudentView() {
   document.getElementById('view-student').innerHTML = `
     <div class="selector-row">${classSelector}</div>
     <table class="data-table">
+      ${colgroup}
       <thead><tr><th>Student</th>${assignHeaders}</tr></thead>
       <tbody>${rows}</tbody>
     </table>
