@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Dashboard — Critical Thinking Auditor</title>
+<style>
+:root {
+  --blue: #3B3EA8;
+  --blue-mid: #6B7DD4;
+  --blue-light: #9B9DE0;
+  --blue-tint: #f0f1f8;
+  --terra: #b85c38;
+  --terra-light: #e8ae94;
+  --terra-tint: #fdf3ee;
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --border: #e5e5e2;
+  --text: #1a1a1a;
+  --text-mid: #555;
+  --text-muted: #999;
+  --green: #2d7a4f;
+  --green-tint: #edf7f1;
+  --amber: #b07030;
+  --amber-tint: #fdf6ec;
+  --grey-tint: #f2f2f0;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 32px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+header h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; }
+header .subtitle { font-size: 12px; color: var(--text-muted); }
+.class-label {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-mid);
+  background: var(--grey-tint);
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+}
+
+.tab-nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  display: flex;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+main {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 28px 24px;
+}
+
+.view { display: none; }
+.view.active { display: block; }
+
+.view-heading { font-size: 15px; font-weight: 600; margin-bottom: 20px; }
+
+/* ── Chips & badges ── */
+.chip {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+}
+.chip-blue  { background: var(--blue-tint); color: var(--blue); }
+.chip-terra { background: var(--terra-tint); color: var(--terra); }
+.chip-grey  { background: var(--grey-tint); color: var(--text-mid); border: 1px solid var(--border); }
+.chip-green { background: var(--green-tint); color: var(--green); }
+.chip-amber { background: var(--amber-tint); color: var(--amber); }
+
+.samr-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+.samr-redef { background: var(--blue);     color: #fff; }
+.samr-mod   { background: var(--blue-mid); color: #fff; }
+.samr-aug   { background: var(--blue-light); color: #fff; }
+.samr-sub   { background: #ccc; color: #555; }
+
+.flag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--terra);
+  background: var(--terra-tint);
+  border: 1px solid var(--terra-light);
+  padding: 2px 8px;
+  border-radius: 20px;
+  cursor: help;
+}
+
+.status-final       { background: var(--green-tint); color: var(--green); }
+.status-draft       { background: var(--amber-tint); color: var(--amber); }
+.status-not-started { background: var(--grey-tint); color: var(--text-muted); border: 1px solid var(--border); }
+.status-missing     { background: var(--terra-tint); color: var(--terra); }
+
+/* ── Class view ── */
+.student-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.student-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.student-card:hover {
+  border-color: var(--blue-light);
+  box-shadow: 0 2px 8px rgba(59,62,168,0.08);
+}
+.student-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--blue-tint);
+  color: var(--blue);
+  font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.student-card-name { font-size: 14px; font-weight: 600; }
+.assignment-statuses { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.assignment-status-row {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px;
+}
+.assignment-status-name {
+  color: var(--text-mid); flex: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding-right: 8px;
+}
+.student-card-footer {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* ── Selectors ── */
+.selector-row { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+.selector-pill {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text-mid);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.selector-pill:hover { border-color: var(--blue-light); color: var(--text); }
+.selector-pill.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+/* ── Assignment meta bar ── */
+.assign-meta {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 20px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.assign-meta-name { font-size: 14px; font-weight: 600; }
+.assign-meta-due  { font-size: 12px; color: var(--text-muted); }
+
+/* ── Assignment cell in student table ── */
+.assignment-card-name { font-size: 13px; font-weight: 600; }
+.dim-scores { display: flex; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
+.dim-score {
+  font-size: 11px; color: var(--text-mid);
+  background: var(--grey-tint);
+  padding: 2px 6px; border-radius: 3px;
+}
+.dim-score span { font-weight: 700; color: var(--text); }
+
+/* ── Data table ── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.data-table th {
+  text-align: left;
+  font-size: 11px; font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 10px 14px;
+  background: var(--grey-tint);
+  border-bottom: 1px solid var(--border);
+}
+.data-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tbody tr { cursor: pointer; transition: background 0.1s; }
+.data-table tbody tr:hover { background: var(--grey-tint); }
+.data-table tbody tr.expanded-row { background: var(--blue-tint); }
+.data-table tbody tr.drill-row:hover { background: transparent; cursor: default; }
+
+/* ── Drill panel ── */
+.drill-panel {
+  background: var(--blue-tint);
+  border: 1px solid var(--blue-light);
+  border-top: none;
+  padding: 20px 24px;
+}
+.drill-panel.card-drill {
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  margin-top: -1px;
+}
+.drill-panel-header {
+  font-size: 11px; font-weight: 600;
+  color: var(--blue);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 14px;
+}
+.sub-history { display: flex; flex-direction: column; gap: 0; }
+.sub-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.sub-row.flagged { border-color: var(--terra); background: var(--terra-tint); }
+.sub-num { font-size: 11px; font-weight: 600; color: var(--text-muted); width: 22px; flex-shrink: 0; }
+.sub-date { color: var(--text-mid); width: 148px; flex-shrink: 0; }
+.sub-total { font-size: 14px; font-weight: 700; width: 44px; text-align: right; flex-shrink: 0; }
+.sub-flag-note { font-size: 11px; color: var(--terra); font-weight: 600; margin-left: auto; }
+
+.tau-total { font-size: 15px; font-weight: 700; }
+.tau-denom { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+
+.sparkline { display: block; }
+
+@media (max-width: 720px) {
+  .student-cards, .assignment-cards { grid-template-columns: 1fr; }
+  main { padding: 20px 16px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Critical Thinking Auditor</h1>
+  <span class="subtitle">Teacher Dashboard</span>
+  <span class="class-label">Period 3 — Digital Literacy</span>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" data-view="class">Class</button>
+  <button class="tab-btn" data-view="assignment">By Assignment</button>
+  <button class="tab-btn" data-view="student">By Student</button>
+</nav>
+
+<main>
+  <section id="view-class"      class="view active"></section>
+  <section id="view-assignment" class="view"></section>
+  <section id="view-student"    class="view"></section>
+</main>
+
+<script>
+// ── Mock data ─────────────────────────────────────────────────────────────────
+
+const ASSIGNMENTS = [
+  { id: 'a1', name: 'AI Ethics Essay',          due: new Date('2026-05-10'), status: 'closed' },
+  { id: 'a2', name: 'Climate Change Analysis',  due: new Date('2026-05-17'), status: 'closed' },
+  { id: 'a3', name: 'Tech Impact Report',       due: new Date('2026-06-05'), status: 'open'   },
+];
+
+const STUDENTS = [
+  { id: 's1', name: 'Maya Chen',    initials: 'MC' },
+  { id: 's2', name: 'Jordan Kim',   initials: 'JK' },
+  { id: 's3', name: 'Alex Rivera',  initials: 'AR' },
+  { id: 's4', name: 'Sam Park',     initials: 'SP' },
+  { id: 's5', name: 'Taylor Wong',  initials: 'TW' },
+];
+
+const CLASSES = [
+  { id: 'c1', name: 'Period 3 — Digital Literacy', studentIds: ['s1', 's2', 's3'] },
+  { id: 'c2', name: 'Period 5 — AP Research',      studentIds: ['s4', 's5'] },
+];
+
+// Each submission: { ts, pq, su, cs, oc }
+const SUBMISSIONS = {
+  's1_a1': [
+    { ts: new Date('2026-04-28T10:00'), pq:2, su:2, cs:1, oc:2 },
+    { ts: new Date('2026-04-30T14:00'), pq:2, su:3, cs:2, oc:2 },
+    { ts: new Date('2026-05-02T11:00'), pq:3, su:3, cs:2, oc:3 },
+    { ts: new Date('2026-05-07T09:00'), pq:4, su:3, cs:3, oc:3 },
+  ],
+  's1_a2': [
+    { ts: new Date('2026-05-11T15:00'), pq:3, su:2, cs:2, oc:3 },
+    { ts: new Date('2026-05-14T10:00'), pq:3, su:3, cs:3, oc:3 },
+    { ts: new Date('2026-05-16T14:00'), pq:4, su:4, cs:3, oc:4 },
+  ],
+  's1_a3': [
+    { ts: new Date('2026-05-20T11:00'), pq:2, su:3, cs:2, oc:2 },
+    { ts: new Date('2026-05-23T16:00'), pq:3, su:3, cs:2, oc:3 },
+  ],
+  // Jordan: flat then suspicious spike on a1
+  's2_a1': [
+    { ts: new Date('2026-04-28T09:00'), pq:2, su:2, cs:2, oc:2 },
+    { ts: new Date('2026-05-06T14:00'), pq:2, su:2, cs:1, oc:2 },
+    { ts: new Date('2026-05-06T14:07'), pq:5, su:5, cs:5, oc:5 }, // 7 min later — flag fires
+  ],
+  's2_a2': [
+    { ts: new Date('2026-05-12T10:00'), pq:2, su:2, cs:2, oc:2 },
+    { ts: new Date('2026-05-15T15:00'), pq:3, su:2, cs:2, oc:3 },
+  ],
+  's2_a3': [
+    { ts: new Date('2026-05-21T13:00'), pq:2, su:2, cs:1, oc:2 },
+  ],
+  // Alex: consistent high performer
+  's3_a1': [
+    { ts: new Date('2026-04-29T11:00'), pq:3, su:3, cs:3, oc:3 },
+    { ts: new Date('2026-05-03T15:00'), pq:4, su:4, cs:3, oc:3 },
+    { ts: new Date('2026-05-08T10:00'), pq:4, su:4, cs:3, oc:4 },
+  ],
+  's3_a2': [
+    { ts: new Date('2026-05-11T09:00'), pq:3, su:3, cs:2, oc:3 },
+    { ts: new Date('2026-05-13T14:00'), pq:4, su:3, cs:3, oc:3 },
+    { ts: new Date('2026-05-16T11:00'), pq:4, su:4, cs:3, oc:4 },
+  ],
+  's3_a3': [], // not started
+  // Sam Park — Period 5, strong performer
+  's4_a1': [
+    { ts: new Date('2026-04-29T13:00'), pq:4, su:3, cs:3, oc:4 },
+    { ts: new Date('2026-05-05T10:00'), pq:4, su:4, cs:4, oc:4 },
+  ],
+  's4_a2': [
+    { ts: new Date('2026-05-12T11:00'), pq:3, su:4, cs:3, oc:4 },
+    { ts: new Date('2026-05-16T09:00'), pq:4, su:4, cs:4, oc:5 },
+  ],
+  's4_a3': [
+    { ts: new Date('2026-05-22T14:00'), pq:3, su:3, cs:3, oc:3 },
+  ],
+  // Taylor Wong — Period 5, passive pattern
+  's5_a1': [
+    { ts: new Date('2026-04-30T09:00'), pq:2, su:2, cs:1, oc:2 },
+    { ts: new Date('2026-05-08T15:00'), pq:2, su:3, cs:2, oc:2 },
+  ],
+  's5_a2': [
+    { ts: new Date('2026-05-13T10:00'), pq:2, su:2, cs:2, oc:2 },
+  ],
+  's5_a3': [],
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function total(sub)  { return sub.pq + sub.su + sub.cs + sub.oc; }
+
+function samr(t) {
+  if (t >= 17) return { label: 'Redefinition', cls: 'samr-redef' };
+  if (t >= 13) return { label: 'Modification',  cls: 'samr-mod'  };
+  if (t >= 9)  return { label: 'Augmentation',  cls: 'samr-aug'  };
+  return            { label: 'Substitution',  cls: 'samr-sub'  };
+}
+
+function verdictChip(t) {
+  if (t >= 13) return `<span class="chip chip-blue">High engagement</span>`;
+  if (t <= 8)  return `<span class="chip chip-terra">Passive concern</span>`;
+  return `<span style="font-size:12px;font-weight:600;color:var(--text-mid)">Mixed</span>`;
+}
+
+function submissionStatus(subs, assignment) {
+  if (!subs.length) return assignment.status === 'closed'
+    ? { label: 'Missing',     cls: 'status-missing'     }
+    : { label: 'Not started', cls: 'status-not-started' };
+  return assignment.status === 'closed'
+    ? { label: 'Final', cls: 'status-final' }
+    : { label: 'Draft', cls: 'status-draft' };
+}
+
+function checkFlag(subs) {
+  const flags = [];
+  for (let i = 1; i < subs.length; i++) {
+    const prev = subs[i-1], curr = subs[i];
+    const mins      = (curr.ts - prev.ts) / 60000;
+    const scoreDiff = total(curr) - total(prev);
+    const maxDim    = Math.max(...['pq','su','cs','oc'].map(d => curr[d] - prev[d]));
+    if (mins <= 10 && (scoreDiff >= 5 || maxDim >= 3)) {
+      flags.push({ submissionIndex: i, mins: Math.round(mins), scoreDiff, maxDim });
+    }
+  }
+  return flags;
+}
+
+function getSubs(sid, aid) { return SUBMISSIONS[`${sid}_${aid}`] || []; }
+
+function hasAnyFlag(sid) {
+  return ASSIGNMENTS.some(a => checkFlag(getSubs(sid, a.id)).length > 0);
+}
+
+function formatDate(d) {
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function latestSub(subs) { return subs.length ? subs[subs.length - 1] : null; }
+
+function sparklineSVG(subs, w = 80, h = 26) {
+  const flags   = checkFlag(subs);
+  const flagIdx = new Set(flags.map(f => f.submissionIndex));
+  const totals  = subs.map(total);
+  const MIN = 4, MAX = 20;
+
+  const x = i => (subs.length < 2 ? w / 2 : (i / (subs.length - 1)) * (w - 8) + 4);
+  const y = t => h - 4 - ((t - MIN) / (MAX - MIN)) * (h - 8);
+
+  if (!subs.length) return `<svg class="sparkline" width="${w}" height="${h}"></svg>`;
+
+  const pts  = totals.map((t, i) => `${x(i)},${y(t)}`).join(' ');
+  const line = subs.length > 1
+    ? `<polyline points="${pts}" fill="none" stroke="var(--blue-light)" stroke-width="1.5"/>`
+    : '';
+  const dots = totals.map((t, i) =>
+    `<circle cx="${x(i)}" cy="${y(t)}" r="2.5" fill="${flagIdx.has(i) ? 'var(--terra)' : 'var(--blue)'}" />`
+  ).join('');
+
+  return `<svg class="sparkline" width="${w}" height="${h}">${line}${dots}</svg>`;
+}
+
+// ── Drill-down panel ──────────────────────────────────────────────────────────
+
+function renderDrillPanel(subs, label, extraClass = '') {
+  if (!subs.length) return `<div class="drill-panel ${extraClass}"><em style="color:var(--text-muted);font-size:13px">No submissions</em></div>`;
+
+  const flags   = checkFlag(subs);
+  const flagIdx = new Set(flags.map(f => f.submissionIndex));
+
+  const rows = subs.map((sub, i) => {
+    const t        = total(sub);
+    const s        = samr(t);
+    const flagInfo = flagIdx.has(i) ? flags.find(f => f.submissionIndex === i) : null;
+
+    return `<div class="sub-row ${flagInfo ? 'flagged' : ''}">
+      <span class="sub-num">#${i + 1}</span>
+      <span class="sub-date">${formatDate(sub.ts)}</span>
+      <div class="dim-scores" style="flex:1">
+        <span class="dim-score">PQ <span>${sub.pq}</span></span>
+        <span class="dim-score">SU <span>${sub.su}</span></span>
+        <span class="dim-score">CS <span>${sub.cs}</span></span>
+        <span class="dim-score">OC <span>${sub.oc}</span></span>
+      </div>
+      <span class="sub-total">${t}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span></span>
+      <span class="samr-badge ${s.cls}" style="margin-left:8px">${s.label}</span>
+      <span style="margin-left:8px">${verdictChip(t)}</span>
+      ${flagInfo ? `<span class="sub-flag-note">⚑ +${flagInfo.scoreDiff} pts in ${flagInfo.mins} min</span>` : ''}
+    </div>`;
+  }).join('');
+
+  return `<div class="drill-panel ${extraClass}">
+    <div class="drill-panel-header">Submission history — ${label}</div>
+    <div class="sub-history">${rows}</div>
+  </div>`;
+}
+
+// ── Class view ────────────────────────────────────────────────────────────────
+
+function renderClassView() {
+  const cards = STUDENTS.map(s => {
+    const flagged = hasAnyFlag(s.id);
+    const allSubs = ASSIGNMENTS.flatMap(a => getSubs(s.id, a.id)).sort((a, b) => b.ts - a.ts);
+    const lat     = allSubs[0];
+    const t       = lat ? total(lat) : null;
+
+    const statusRows = ASSIGNMENTS.map(a => {
+      const st = submissionStatus(getSubs(s.id, a.id), a);
+      return `<div class="assignment-status-row">
+        <span class="assignment-status-name">${a.name}</span>
+        <span class="chip ${st.cls}" style="font-size:10px;padding:1px 7px">${st.label}</span>
+      </div>`;
+    }).join('');
+
+    return `<div class="student-card" onclick="switchToStudent('${s.id}')">
+      <div class="student-card-header">
+        <div class="avatar">${s.initials}</div>
+        <span class="student-card-name">${s.name}</span>
+        ${flagged ? `<span class="flag-badge" style="margin-left:auto" title="Suspicious resubmission detected on AI Ethics Essay">⚑ Flag</span>` : ''}
+      </div>
+      <div class="assignment-statuses">${statusRows}</div>
+      <div class="student-card-footer">
+        ${t ? `<span class="samr-badge ${samr(t).cls}">${samr(t).label}</span>` : '<span></span>'}
+        ${t ? verdictChip(t) : '<span class="chip chip-grey">No submissions</span>'}
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('view-class').innerHTML = `
+    <div class="view-heading">Class Overview — Period 3</div>
+    <div class="student-cards">${cards}</div>
+    <p style="margin-top:20px;font-size:12px;color:var(--text-muted)">Click a student card to view their full profile.</p>
+  `;
+}
+
+// ── Assignment view ───────────────────────────────────────────────────────────
+
+let activeAssignment  = 'a1';
+let expandedStudentId = null;
+
+function renderAssignmentView() {
+  const selector = ASSIGNMENTS.map(a =>
+    `<button class="selector-pill ${a.id === activeAssignment ? 'active' : ''}" onclick="selectAssignment('${a.id}')">${a.name}</button>`
+  ).join('');
+
+  const a      = ASSIGNMENTS.find(x => x.id === activeAssignment);
+  const closed = a.status === 'closed';
+  const dueStr = a.due.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  const rows = STUDENTS.map(s => {
+    const subs     = getSubs(s.id, a.id);
+    const flags    = checkFlag(subs);
+    const lat      = latestSub(subs);
+    const t        = lat ? total(lat) : null;
+    const st       = submissionStatus(subs, a);
+    const expanded = expandedStudentId === s.id;
+
+    const flagBadge = flags.length
+      ? `<span class="flag-badge" title="${flags.map(f => `Sub ${f.submissionIndex + 1}: +${f.scoreDiff} pts in ${f.mins} min`).join('; ')}">⚑ Flag</span>`
+      : '';
+
+    const dataRow = `<tr class="${expanded ? 'expanded-row' : ''}" onclick="toggleStudentDrill('${s.id}')">
+      <td style="font-weight:500">${s.name}</td>
+      <td style="color:var(--text-mid)">${subs.length}</td>
+      <td>${t ? `<span class="tau-total">${t}</span><span class="tau-denom">/20</span>` : '—'}</td>
+      <td>${sparklineSVG(subs)}</td>
+      <td>${t ? `<span class="samr-badge ${samr(t).cls}">${samr(t).label}</span>` : '—'}</td>
+      <td>${t ? verdictChip(t) : '—'}</td>
+      <td><span class="chip ${st.cls}">${st.label}</span></td>
+      <td>${flagBadge}</td>
+    </tr>`;
+
+    const drillRow = expanded
+      ? `<tr class="drill-row"><td colspan="8" style="padding:0">${renderDrillPanel(subs, s.name)}</td></tr>`
+      : '';
+
+    return dataRow + drillRow;
+  }).join('');
+
+  document.getElementById('view-assignment').innerHTML = `
+    <div class="selector-row">${selector}</div>
+    <div class="assign-meta">
+      <span class="assign-meta-name">${a.name}</span>
+      <span class="chip ${closed ? 'chip-grey' : 'chip-amber'}">${closed ? 'Closed' : 'Open'}</span>
+      <span class="assign-meta-due">Due ${dueStr}</span>
+    </div>
+    <table class="data-table">
+      <thead><tr>
+        <th>Student</th>
+        <th>Submissions</th>
+        <th>Latest TAU</th>
+        <th>Progression</th>
+        <th>SAMR</th>
+        <th>Verdict</th>
+        <th>Status</th>
+        <th>Flags</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function selectAssignment(id) {
+  activeAssignment  = id;
+  expandedStudentId = null;
+  renderAssignmentView();
+}
+
+function toggleStudentDrill(sid) {
+  expandedStudentId = expandedStudentId === sid ? null : sid;
+  renderAssignmentView();
+}
+
+// ── Student view ──────────────────────────────────────────────────────────────
+
+let activeClass          = 'c1';
+let expandedStudentInView = null;
+
+function renderStudentView() {
+  const classSelector = CLASSES.map(c =>
+    `<button class="selector-pill ${c.id === activeClass ? 'active' : ''}" onclick="selectClass('${c.id}')">${c.name}</button>`
+  ).join('');
+
+  const cls            = CLASSES.find(x => x.id === activeClass);
+  const classStudents  = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
+
+  const assignHeaders = ASSIGNMENTS.map(a => `<th>${a.name}</th>`).join('');
+
+  const rows = classStudents.map(s => {
+    const flagged  = hasAnyFlag(s.id);
+    const expanded = expandedStudentInView === s.id;
+
+    const assignCells = ASSIGNMENTS.map(a => {
+      const subs = getSubs(s.id, a.id);
+      const lat  = latestSub(subs);
+      const t    = lat ? total(lat) : null;
+      const st   = submissionStatus(subs, a);
+      if (!t) return `<td><span class="chip ${st.cls}" style="font-size:10px">${st.label}</span></td>`;
+      return `<td>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <span class="chip ${st.cls}" style="font-size:10px;align-self:flex-start">${st.label}</span>
+          <div style="display:flex;align-items:baseline;gap:3px">
+            <span style="font-weight:700;font-size:14px">${t}</span>
+            <span class="tau-denom">/20</span>
+            <span class="samr-badge ${samr(t).cls}" style="font-size:10px;margin-left:4px">${samr(t).label}</span>
+          </div>
+        </div>
+      </td>`;
+    }).join('');
+
+    const dataRow = `<tr class="${expanded ? 'expanded-row' : ''}" onclick="toggleStudentExpand('${s.id}')">
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0">${s.initials}</div>
+          <span style="font-weight:500">${s.name}</span>
+          ${flagged ? `<span class="flag-badge" title="Suspicious resubmission detected">⚑</span>` : ''}
+        </div>
+      </td>
+      ${assignCells}
+    </tr>`;
+
+    const drillRow = expanded
+      ? `<tr class="drill-row"><td colspan="${1 + ASSIGNMENTS.length}" style="padding:0">${renderStudentFullPanel(s)}</td></tr>`
+      : '';
+
+    return dataRow + drillRow;
+  }).join('');
+
+  document.getElementById('view-student').innerHTML = `
+    <div class="selector-row">${classSelector}</div>
+    <table class="data-table">
+      <thead><tr><th>Student</th>${assignHeaders}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function renderStudentFullPanel(s) {
+  const sections = ASSIGNMENTS.map(a => {
+    const subs = getSubs(s.id, a.id);
+    const st   = submissionStatus(subs, a);
+
+    const subRows = subs.length ? (() => {
+      const flags   = checkFlag(subs);
+      const flagIdx = new Set(flags.map(f => f.submissionIndex));
+      return subs.map((sub, i) => {
+        const t        = total(sub);
+        const sv       = samr(t);
+        const flagInfo = flagIdx.has(i) ? flags.find(f => f.submissionIndex === i) : null;
+        return `<div class="sub-row ${flagInfo ? 'flagged' : ''}">
+          <span class="sub-num">#${i + 1}</span>
+          <span class="sub-date">${formatDate(sub.ts)}</span>
+          <div class="dim-scores" style="flex:1">
+            <span class="dim-score">PQ <span>${sub.pq}</span></span>
+            <span class="dim-score">SU <span>${sub.su}</span></span>
+            <span class="dim-score">CS <span>${sub.cs}</span></span>
+            <span class="dim-score">OC <span>${sub.oc}</span></span>
+          </div>
+          <span class="sub-total">${t}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span></span>
+          <span class="samr-badge ${sv.cls}" style="margin-left:8px">${sv.label}</span>
+          <span style="margin-left:8px">${verdictChip(t)}</span>
+          ${flagInfo ? `<span class="sub-flag-note">⚑ +${flagInfo.scoreDiff} pts in ${flagInfo.mins} min</span>` : ''}
+        </div>`;
+      }).join('');
+    })() : `<em style="font-size:12px;color:var(--text-muted)">No submissions</em>`;
+
+    return `<div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:12px;font-weight:600;color:var(--text)">${a.name}</span>
+        <span class="chip ${st.cls}" style="font-size:10px">${st.label}</span>
+        ${sparklineSVG(subs, 60, 22)}
+      </div>
+      <div class="sub-history">${subRows}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="drill-panel" style="border-radius:0;border-left:none;border-right:none">
+    <div class="drill-panel-header">${s.name} — All Assignments</div>
+    ${sections}
+  </div>`;
+}
+
+function selectClass(id) {
+  activeClass           = id;
+  expandedStudentInView = null;
+  renderStudentView();
+}
+
+function toggleStudentExpand(sid) {
+  expandedStudentInView = expandedStudentInView === sid ? null : sid;
+  renderStudentView();
+}
+
+// ── Cross-view navigation ─────────────────────────────────────────────────────
+
+function switchToStudent(sid) {
+  // Find which class this student belongs to
+  const cls = CLASSES.find(c => c.studentIds.includes(sid));
+  if (cls) activeClass = cls.id;
+  expandedStudentInView = sid;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view === 'student'));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-student'));
+  renderStudentView();
+}
+
+// ── Tab nav ───────────────────────────────────────────────────────────────────
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    const view = btn.dataset.view;
+    document.getElementById(`view-${view}`).classList.add('active');
+    if      (view === 'class')      renderClassView();
+    else if (view === 'assignment') renderAssignmentView();
+    else if (view === 'student')    renderStudentView();
+  });
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+renderClassView();
+</script>
+</body>
+</html>
