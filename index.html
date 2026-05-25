@@ -132,8 +132,6 @@
     button#analyzeBtn:hover  { background: #2D30A0; }
     button#analyzeBtn:disabled { background: #9496CC; cursor: not-allowed; }
 
-    #results { grid-column: 1 / -1; display: none; flex-direction: column; gap: 16px; }
-
     .section-header {
       font-size: 13px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.05em; color: var(--muted); margin-bottom: 4px;
@@ -142,7 +140,7 @@
     /* ── Summary ──────────────────────────────────────── */
     .summary-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr) auto;
+      grid-template-columns: repeat(4, 1fr);
       gap: 12px;
       align-items: start;
     }
@@ -204,7 +202,17 @@
       align-items: baseline; gap: 10px;
       padding: 10px 12px; border-radius: 8px;
       border: 1px solid var(--border); background: var(--surface);
+      transition: box-shadow 0.2s, border-color 0.2s;
     }
+    .turn-row.turn-flash {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+    }
+    .agency-bar-row { cursor: pointer; }
+    .agency-bar-row:hover .bar-hit { fill: rgba(0,0,0,0.04); }
+    .pattern-bracket { cursor: pointer; }
+    .pattern-bracket:hover rect { opacity: 0.7; }
+    .pattern-bracket:hover text { font-size: 10px; }
     .label-badge {
       font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px;
       white-space: nowrap; flex-shrink: 0;
@@ -212,50 +220,6 @@
     .turn-text {
       font-size: 13px; color: var(--text); line-height: 1.5;
     }
-    /* ── Turn Sequence Strip ─────────────────────────────── */
-    .strip-row {
-      display: flex; gap: 2px; align-items: stretch; min-height: 80px; margin-bottom: 4px;
-    }
-    .strip-block {
-      flex: 1; border-radius: 3px; display: flex; flex-direction: column;
-      align-items: center; justify-content: flex-end; padding: 5px 2px 5px;
-      cursor: default; min-width: 26px; position: relative; transition: filter 0.1s;
-    }
-    .strip-block:hover { filter: brightness(1.18); }
-    .strip-abbr {
-      font-size: 8.5px; color: rgba(255,255,255,0.88); font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.05em; line-height: 1; margin-bottom: 3px;
-    }
-    .strip-num { font-size: 7px; color: rgba(255,255,255,0.45); font-weight: 600; }
-    .strip-ai-divider {
-      width: 2px; background: #e2e8f0; flex-shrink: 0; align-self: stretch;
-    }
-    .pattern-row { position: relative; height: 26px; margin-top: 2px; }
-    .pattern-band {
-      position: absolute; top: 0; height: 20px; border: 1px solid; border-radius: 3px;
-      font-size: 9px; font-weight: 700; display: flex; align-items: center;
-      padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      text-transform: uppercase; letter-spacing: 0.04em;
-    }
-    .strip-legend {
-      display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; font-size: 11px;
-      padding-top: 12px; border-top: 1px solid var(--border);
-    }
-    .strip-legend-item {
-      display: flex; align-items: center; gap: 5px; color: var(--muted);
-    }
-    .strip-swatch { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
-    .strip-summary {
-      display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; font-size: 11px;
-    }
-    .strip-stat {
-      padding: 3px 10px; border-radius: 4px; font-weight: 700; letter-spacing: 0.02em;
-    }
-    .strip-stat.high    { background: #dcfce7; color: #14532d; }
-    .strip-stat.neutral { background: #f1f5f9; color: #334155; }
-    .strip-stat.low     { background: #fef3c7; color: #78350f; }
-    .strip-stat.patterns { background: #eff6ff; color: #1e3a8a; }
-
     /* ── Provenance ────────────────────────────────────── */
     .provenance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .prov-stat-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -377,6 +341,7 @@
     .tab-btn:hover:not(.active) { color: var(--text); }
     .tab-pane { display: none; }
     .tab-pane.active { display: block; }
+    #tabChart.active { display: flex; flex-direction: column; align-items: center; }
 
     /* ── Inline flags (below TAU score) ───────────────────── */
     .flags-inline {
@@ -440,6 +405,141 @@
     .summary-card { position: relative; }
     .dim-info-btn.active { background: var(--accent); color: #fff; }
 
+    /* ── Divergence chart summary strip ─────────────────────────────── */
+    .div-summary-strip {
+      display: flex; align-items: stretch; gap: 0;
+      margin-bottom: 18px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+      font-family: "Helvetica Neue", sans-serif;
+      max-width: 860px; margin-left: auto; margin-right: auto;
+    }
+    .div-verdict-block, .div-stat-block {
+      padding: 14px 20px; display: flex; flex-direction: column;
+      justify-content: flex-start; gap: 5px;
+      border-right: 1px solid var(--border); flex: 1;
+    }
+    .div-stat-block:last-child { border-right: none; }
+    .div-strip-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: #aaa;
+    }
+    .div-verdict-chip {
+      display: inline-block; padding: 3px 10px; border-radius: 99px;
+      font-size: 12px; font-weight: 600; align-self: flex-start;
+    }
+    .div-verdict-passive { background: #fdf0ea; color: #b85c38; border: 1px solid #e8c4b0; }
+    .div-verdict-high    { background: #f0f1f8; color: #3B3EA8; border: 1px solid #c5c7e8; }
+    .div-verdict-plain   { font-size: 14px; font-weight: 600; color: var(--text); }
+    .div-stat-value { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3; }
+    .div-stat-sub   { font-size: 11px; color: #aaa; }
+
+    /* ── Pattern sidebar ─────────────────────────────────────────────── */
+    .div-pat-sidebar {
+      position: fixed; top: 0; right: 0; width: 400px; height: 100vh;
+      background: #fff; border-left: 1px solid var(--border);
+      box-shadow: -4px 0 24px rgba(0,0,0,0.08);
+      transform: translateX(100%); transition: transform 0.25s ease;
+      z-index: 302; display: flex; flex-direction: column;
+    }
+    .div-pat-sidebar.open { transform: translateX(0); }
+    .div-pat-sidebar-hdr {
+      padding: 18px 22px 14px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 12px; flex-shrink: 0;
+    }
+    .div-pat-sidebar-title { font-family: "Helvetica Neue", sans-serif; font-size: 13px; font-weight: 600; color: var(--text); }
+    .div-pat-sidebar-close {
+      background: none; border: none; font-size: 18px; color: #aaa;
+      cursor: pointer; line-height: 1; flex-shrink: 0;
+    }
+    .div-pat-sidebar-close:hover { color: #333; }
+    .div-pat-sidebar-body { padding: 18px 22px; overflow-y: auto; flex: 1; }
+    .div-pat-insight {
+      font-family: Georgia, serif; font-size: 14px; line-height: 1.75;
+      color: var(--text); margin-bottom: 22px;
+    }
+    .div-exchange-label {
+      font-family: "Helvetica Neue", sans-serif; font-size: 10px;
+      font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      color: #aaa; margin-bottom: 12px;
+    }
+    .div-ai-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+    .div-role-tag {
+      font-family: "Helvetica Neue", sans-serif; font-size: 10px;
+      font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #aaa;
+    }
+    .div-ai-chip {
+      padding: 2px 7px; border-radius: 99px; background: #f0f0ee;
+      border: 1px solid #d0d0cc; color: #666; font-family: "Helvetica Neue", sans-serif;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .div-arrow { font-size: 11px; color: #ccc; margin: 2px 0 4px 2px; display: block; }
+    .div-student-row { background: #f7f7f5; border-radius: 6px; padding: 10px 12px; }
+    .div-student-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+    .div-turn-num {
+      font-family: "Helvetica Neue", sans-serif; font-size: 10px; font-weight: 600;
+      color: #aaa; letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .div-student-chip {
+      padding: 2px 7px; border-radius: 99px; background: #f0f1f8; color: #3B3EA8;
+      font-family: "Helvetica Neue", sans-serif; font-size: 10px; font-weight: 600;
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .div-student-text { font-family: Georgia, serif; font-size: 13px; line-height: 1.6; color: #333; }
+    .div-exchange-divider { border: none; border-top: 1px solid #ebebea; margin: 12px 0; }
+
+    /* ── Divergence chart legend ─────────────────────────────────────── */
+    .div-legend {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      margin-bottom: 14px; font-family: "Helvetica Neue", sans-serif;
+      max-width: 860px; margin-left: auto; margin-right: auto;
+    }
+    .div-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #555; }
+    .div-legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .div-legend-divider { width: 1px; height: 14px; background: #ddd; margin: 0 4px; }
+
+    /* ── Instruction tray content ─────────────────────────── */
+    .instruction-steps { display: flex; flex-direction: column; gap: 16px; }
+    .instruction-step { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .instruction-step strong { display: block; color: var(--text); margin-bottom: 4px; font-size: 13px; font-weight: 700; }
+    .format-prompt-box {
+      background: #f8fafc; border: 1px solid var(--border); border-radius: 6px;
+      padding: 12px; font-size: 12px; font-family: monospace;
+      white-space: pre-wrap; line-height: 1.6; color: var(--text);
+    }
+    .copy-prompt-btn {
+      padding: 5px 14px; border-radius: 6px; border: 1px solid var(--accent);
+      background: #f0f1f8; color: var(--accent); font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: background 0.12s;
+    }
+    .copy-prompt-btn:hover { background: #dcddf4; }
+    .copy-prompt-btn.copied { background: #dcfce7; border-color: #16a34a; color: #15803d; }
+
+    /* ── Chat upload zone ─────────────────────────────────── */
+    .chat-upload-zone {
+      border: 2px dashed var(--border); border-radius: 8px;
+      padding: 22px 16px; text-align: center; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s; background: #fafafa;
+    }
+    .chat-upload-zone:hover, .chat-upload-zone.drag-over {
+      border-color: var(--accent); background: #f0f1f8;
+    }
+    .upload-zone-icon { font-size: 22px; color: var(--muted); margin-bottom: 5px; }
+    .upload-zone-text { font-size: 13px; font-weight: 600; color: var(--text); }
+    .upload-zone-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .uploaded-files-list { display: flex; flex-direction: column; gap: 4px; }
+    .uploaded-file-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 10px; border-radius: 6px;
+      background: #f0fdf4; border: 1px solid #bbf7d0;
+    }
+    .uploaded-file-name { font-size: 12px; color: #166534; font-weight: 600; }
+    .uploaded-file-remove {
+      background: none; border: none; font-size: 16px; color: #9ca3af;
+      cursor: pointer; padding: 0 2px; line-height: 1;
+    }
+    .uploaded-file-remove:hover { color: #dc2626; }
+
     /* ── Detail tray ───────────────────────────────────────── */
     .detail-tray-overlay {
       display: none; position: fixed; inset: 0; z-index: 300;
@@ -476,6 +576,30 @@
       flex: 1; overflow-y: auto; padding: 20px;
       font-size: 14px; line-height: 1.65; color: var(--text);
     }
+
+    /* ── Pattern tooltip ─────────────────────────────────── */
+    #patternTooltip {
+      position: fixed; z-index: 500;
+      width: 248px; background: #1e2035; color: #e2e8f0;
+      border-radius: 9px; padding: 13px 15px;
+      font-size: 12px; line-height: 1.5;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+      display: none; pointer-events: all;
+    }
+    #patternTooltip.open { display: block; }
+
+    /* ── Turn modal ──────────────────────────────────────── */
+    #turnModal {
+      display: none; position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,0.4);
+      align-items: center; justify-content: center;
+    }
+    #turnModal.open { display: flex; }
+    .turn-modal-box {
+      background: var(--surface); border-radius: 12px;
+      padding: 22px 26px; max-width: 560px; width: 90vw;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.22);
+    }
     .detail-tray-body h3 {
       font-size: 12px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.06em; color: var(--muted); margin: 20px 0 6px;
@@ -489,8 +613,144 @@
       border-radius: 5px; padding: 2px 8px; font-size: 11px;
       font-weight: 700; margin-bottom: 8px;
     }
+
+    /* ── Divergence Test tab ─────────────────────────────────────────── */
+    .dt-sample-bar { display: flex; gap: 8px; margin-bottom: 20px; }
+    .dt-sample-btn {
+      padding: 5px 14px; border-radius: 99px; border: 1px solid #d0d0cc;
+      background: #fff; font-family: "Helvetica Neue", sans-serif;
+      font-size: 12px; color: #555; cursor: pointer; transition: all 0.15s;
+    }
+    .dt-sample-btn:hover { border-color: #3B3EA8; color: #3B3EA8; }
+    .dt-sample-btn.active { background: #3B3EA8; border-color: #3B3EA8; color: #fff; }
+    #dt-summary-strip, #chartSummaryEl {
+      display: flex; align-items: stretch; gap: 0; margin-bottom: 16px;
+      background: #fff; border: 1px solid #e5e5e2; border-radius: 8px;
+      font-family: "Helvetica Neue", sans-serif; overflow: hidden; max-width: 796px;
+    }
+    .dt-verdict-block, .dt-stat-block {
+      padding: 14px 20px; display: flex; flex-direction: column;
+      justify-content: flex-start; gap: 5px;
+      border-right: 1px solid #e5e5e2; flex: 1;
+    }
+    .dt-stat-block:last-child { border-right: none; }
+    .dt-verdict-label, .dt-stat-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #aaa;
+    }
+    .dt-verdict-chip {
+      display: inline-block; padding: 3px 10px; border-radius: 99px;
+      font-size: 12px; font-weight: 600; white-space: nowrap; align-self: flex-start;
+    }
+    .dt-verdict-passive { background: #fdf0ea; color: #b85c38; border: 1px solid #e8c4b0; }
+    .dt-verdict-high    { background: #f0f1f8; color: #3B3EA8; border: 1px solid #c5c7e8; }
+    .dt-verdict-plain   { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+    .dt-stat-value { font-size: 14px; font-weight: 600; color: #1a1a1a; line-height: 1.3; }
+    .dt-stat-sub   { font-size: 11px; color: #999; }
+    .dt-verdict-info-btn {
+      width: 16px; height: 16px; border-radius: 50%; border: 1px solid #ccc;
+      background: #fff; color: #999; font-family: "Helvetica Neue", sans-serif;
+      font-size: 10px; font-weight: 700; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: border-color 0.15s, color 0.15s; margin-left: 6px;
+    }
+    .dt-verdict-info-btn:hover { border-color: #888; color: #333; }
+    #dt-legend, #chartLegendEl {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      margin-bottom: 14px; font-family: "Helvetica Neue", sans-serif; max-width: 796px;
+    }
+    .dt-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #555; }
+    .dt-legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .dt-legend-divider { width: 1px; height: 14px; background: #ddd; margin: 0 4px; }
+    #dt-tooltip {
+      position: fixed; display: none; max-width: 280px; background: #fff;
+      border: 1px solid #ddd; border-radius: 4px; padding: 12px 14px;
+      font-family: "Helvetica Neue", sans-serif; font-size: 12px; line-height: 1.6;
+      color: #333; box-shadow: 0 4px 16px rgba(0,0,0,0.08); pointer-events: auto; z-index: 400;
+    }
+    #dt-tooltip .dt-tooltip-title { font-weight: 600; margin-bottom: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .dt-tooltip-learn-more {
+      display: none; margin-top: 10px; padding: 4px 10px; border-radius: 99px;
+      border: 1px solid #d0d0cc; background: #fff; color: #555;
+      font-family: "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 600;
+      cursor: pointer; transition: border-color 0.15s, color 0.15s;
+    }
+    .dt-tooltip-learn-more:hover { border-color: #3B3EA8; color: #3B3EA8; }
+    #dt-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.25);
+      display: none; align-items: center; justify-content: center; z-index: 500;
+    }
+    #dt-modal-overlay.open { display: flex; }
+    #dt-modal {
+      background: #fff; border-radius: 6px; max-width: 480px; width: 90%;
+      padding: 28px 32px; box-shadow: 0 8px 40px rgba(0,0,0,0.12); position: relative;
+    }
+    #dt-modal-turn { font-family: "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: #999; margin-bottom: 12px; }
+    #dt-modal-classifier { display: inline-block; margin-bottom: 14px; padding: 2px 9px; border-radius: 99px; background: #f0f1f8; color: #3B3EA8; font-family: "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+    #dt-modal-text { font-family: "Georgia", serif; font-size: 15px; line-height: 1.7; color: #1a1a1a; }
+    #dt-modal-close { position: absolute; top: 14px; right: 18px; background: none; border: none; font-size: 18px; color: #aaa; cursor: pointer; }
+    #dt-modal-close:hover { color: #333; }
+    #dt-sidebar {
+      position: fixed; top: 0; right: 0; width: 400px; height: 100vh;
+      background: #fff; border-left: 1px solid #e5e5e2;
+      box-shadow: -4px 0 24px rgba(0,0,0,0.08);
+      transform: translateX(100%); transition: transform 0.25s ease;
+      z-index: 600; display: flex; flex-direction: column;
+    }
+    #dt-sidebar.open { transform: translateX(0); }
+    #dt-sidebar-header { padding: 20px 24px 16px; border-bottom: 1px solid #e5e5e2; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-shrink: 0; }
+    #dt-sidebar-title { font-family: "Helvetica Neue", sans-serif; font-size: 13px; font-weight: 600; color: #1a1a1a; }
+    #dt-sidebar-close { background: none; border: none; font-size: 18px; color: #aaa; cursor: pointer; flex-shrink: 0; }
+    #dt-sidebar-close:hover { color: #333; }
+    #dt-sidebar-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+    .dt-sidebar-insight { font-family: "Georgia", serif; font-size: 14px; line-height: 1.75; color: #1a1a1a; margin-bottom: 24px; }
+    .dt-sidebar-exchange-label { font-family: "Helvetica Neue", sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #aaa; margin-bottom: 14px; }
+    .dt-sidebar-ai-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .dt-sidebar-role-tag { font-family: "Helvetica Neue", sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #aaa; }
+    .dt-sidebar-ai-chip { padding: 2px 7px; border-radius: 99px; background: #f0f0ee; border: 1px solid #d0d0cc; color: #666; font-family: "Helvetica Neue", sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+    .dt-sidebar-arrow { font-size: 11px; color: #ccc; margin: 2px 0 4px 2px; display: block; }
+    .dt-sidebar-student-row { background: #f7f7f5; border-radius: 6px; padding: 10px 12px; }
+    .dt-sidebar-student-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .dt-sidebar-turn-num { font-family: "Helvetica Neue", sans-serif; font-size: 10px; font-weight: 600; color: #aaa; letter-spacing: 0.05em; text-transform: uppercase; }
+    .dt-sidebar-student-chip { padding: 2px 7px; border-radius: 99px; background: #f0f1f8; color: #3B3EA8; font-family: "Helvetica Neue", sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+    .dt-sidebar-student-text { font-family: "Georgia", serif; font-size: 13px; line-height: 1.6; color: #333; }
+    .dt-sidebar-exchange-divider { border: none; border-top: 1px solid #ebebea; margin: 14px 0; }
+    #dt-chart { display: block; }
+    #agencyChart { display: block; }
+
+    /* ── Two-screen layout ───────────────────────────────────────── */
+    #inputScreen  { display: block; }
+    #results      { display: none; }
+
+    .results-layout {
+      display: flex; flex-direction: column; gap: 16px;
+      padding: 16px 24px; max-width: 1400px; margin: 0 auto;
+    }
+    .results-topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .back-btn {
+      padding: 7px 16px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--muted);
+      cursor: pointer; transition: background 0.12s, color 0.12s;
+    }
+    .back-btn:hover { background: var(--bg); color: var(--text); }
+
+    /* ── SAMR hero ───────────────────────────────────────────────── */
+    .samr-hero-panel {
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 28px 32px; display: flex; align-items: center; gap: 32px;
+    }
+    .samr-circle-wrap { flex-shrink: 0; }
+    .samr-hero-content { flex: 1; }
+    .samr-hero-eyebrow {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--muted); margin-bottom: 6px;
+    }
+    .samr-hero-level { font-size: 32px; font-weight: 800; line-height: 1.1; margin-bottom: 10px; }
+    .samr-hero-desc  { font-size: 14px; color: var(--muted); line-height: 1.65; max-width: 520px; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 </head>
 <body>
 
@@ -501,61 +761,70 @@
   <span class="version">TAU v2</span>
 </header>
 
-<div class="layout">
+<div id="inputScreen">
+  <div class="layout">
 
-  <div class="api-key-bar" id="apiKeyBar">
-    <span>Groq API key:</span>
-    <input type="password" id="apiKeyInput" placeholder="gsk_..." />
-    <button id="apiKeySave">Save</button>
-    <span id="apiKeyStatus" style="color:var(--muted);font-size:12px;"></span>
-  </div>
-
-  <div class="sample-bar">
-    <span>Load sample:</span>
-    <button class="sample-btn" data-sample="low">Low — Pure Extraction (Social Media)</button>
-    <button class="sample-btn" data-sample="medium">Medium — Multi-Thread (UBI)</button>
-    <button class="sample-btn" data-sample="high">High — Deep Agency (Algorithmic Justice)</button>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label-row">
-      <label for="logInput">AI Chat Log</label>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span id="logFilename" class="upload-filename"></span>
-        <button class="upload-btn" onclick="document.getElementById('logFile').click()">Upload PDF / TXT</button>
-        <input type="file" id="logFile" accept=".pdf,.txt" style="display:none">
-      </div>
+    <div class="api-key-bar" id="apiKeyBar">
+      <span>Groq API key:</span>
+      <input type="password" id="apiKeyInput" placeholder="gsk_..." />
+      <button id="apiKeySave">Save</button>
+      <span id="apiKeyStatus" style="color:var(--muted);font-size:12px;"></span>
     </div>
-    <textarea id="logInput" placeholder="Paste your full AI conversation here — or upload a PDF / TXT above.
 
-Supported formats:
-  You: [your message]
-  ChatGPT: [AI response]
-
-Or paste alternating paragraphs (student first)."></textarea>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label-row">
-      <label for="essayInput">Final Essay / Draft</label>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span id="essayFilename" class="upload-filename"></span>
-        <button class="upload-btn" onclick="document.getElementById('essayFile').click()">Upload PDF / TXT</button>
-        <input type="file" id="essayFile" accept=".pdf,.txt" style="display:none">
-      </div>
+    <div class="sample-bar">
+      <span>Load sample:</span>
+      <button class="sample-btn" data-sample="low">Low — Pure Extraction (Social Media)</button>
+      <button class="sample-btn" data-sample="medium">Medium — Multi-Thread (UBI)</button>
+      <button class="sample-btn" data-sample="high">High — Deep Agency (Algorithmic Justice)</button>
     </div>
-    <textarea id="essayInput" placeholder="Paste the final essay or draft here — or upload a PDF / TXT above."></textarea>
-  </div>
 
-  <button id="analyzeBtn">Analyze</button>
-
-  <div id="results">
-
-    <div class="panel full-width" id="summaryPanel">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div class="section-header" style="margin-bottom:0">TAU Score</div>
-        <div id="groqStatusBadge"></div>
+    <div class="panel">
+      <div class="panel-label-row" style="margin-bottom:2px;">
+        <label>AI Chat Log</label>
       </div>
+
+      <button class="upload-btn" style="align-self:flex-start;" onclick="openInstructionTray()">How to prepare your chat log</button>
+
+      <div class="chat-upload-zone" id="chatUploadZone" onclick="document.getElementById('logFile').click()">
+        <input type="file" id="logFile" accept=".md,.txt" multiple style="display:none">
+        <div class="upload-zone-icon">&#8593;</div>
+        <div class="upload-zone-text">Upload .md or .txt file(s)</div>
+        <div class="upload-zone-sub">Click to browse or drag and drop — multiple files allowed</div>
+      </div>
+
+      <div id="uploadedFilesList" class="uploaded-files-list"></div>
+      <textarea id="logInput" style="display:none"></textarea>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label-row">
+        <label for="essayInput">Final Essay / Draft</label>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="essayFilename" class="upload-filename"></span>
+          <button class="upload-btn" onclick="document.getElementById('essayFile').click()">Upload PDF / TXT</button>
+          <input type="file" id="essayFile" accept=".pdf,.txt" style="display:none">
+        </div>
+      </div>
+      <textarea id="essayInput" placeholder="Paste the final essay or draft here — or upload a PDF / TXT above."></textarea>
+    </div>
+
+    <button id="analyzeBtn">Analyze</button>
+
+  </div>
+</div>
+
+<div id="results">
+  <div class="results-layout">
+
+    <div class="results-topbar">
+      <button id="backBtn" class="back-btn">← New Analysis</button>
+      <div id="groqStatusBadge"></div>
+    </div>
+
+    <div id="samrHero"></div>
+
+    <div class="panel" id="summaryPanel">
+      <div class="section-header" style="margin-bottom:12px">TAU Score</div>
       <div class="summary-grid" id="summaryGrid"></div>
       <div id="feedbackPanel"></div>
       <div class="flags-inline" id="flagsInline" style="display:none">
@@ -564,11 +833,12 @@ Or paste alternating paragraphs (student first)."></textarea>
       </div>
     </div>
 
-    <div class="panel full-width" id="tabsPanel">
+    <div class="panel" id="tabsPanel">
       <div class="tab-bar">
         <button class="tab-btn active" data-tab="turns">Student Turns</button>
-        <button class="tab-btn" data-tab="sequence">Turn Sequence</button>
+        <button class="tab-btn" data-tab="chart">Agency Chart</button>
         <button class="tab-btn" data-tab="provenance">Provenance Map</button>
+        <button class="tab-btn" data-tab="divergence">Divergence Test</button>
       </div>
 
       <div class="tab-pane active" id="tabTurns">
@@ -580,9 +850,10 @@ Or paste alternating paragraphs (student first)."></textarea>
         <div class="turn-list" id="turnList"></div>
       </div>
 
-      <div class="tab-pane" id="tabSequence">
-        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Each block represents one student turn, labelled and colour-coded by agency tier. Thin dividers mark intervening AI responses. Annotated spans below mark detected interaction patterns.</p>
-        <div id="stripContainer"></div>
+      <div class="tab-pane" id="tabChart">
+        <div id="chartSummaryEl" style="width:796px;max-width:100%;"></div>
+        <div id="chartLegendEl" style="width:796px;max-width:100%;"></div>
+        <svg id="agencyChart"></svg>
       </div>
 
       <div class="tab-pane" id="tabProvenance">
@@ -605,9 +876,42 @@ Or paste alternating paragraphs (student first)."></textarea>
           </div>
         </div>
       </div>
+
+      <div class="tab-pane" id="tabDivergence">
+        <div class="dt-sample-bar">
+          <button class="dt-sample-btn active" data-dt-sample="0">Sample A — 30 turns</button>
+          <button class="dt-sample-btn" data-dt-sample="1">Sample B — 15 turns</button>
+          <button class="dt-sample-btn" data-dt-sample="2">Sample C — 45 turns</button>
+          <button class="dt-sample-btn" data-dt-sample="3">Sample D — 75 turns</button>
+        </div>
+        <div id="dt-summary-strip"></div>
+        <div id="dt-legend"></div>
+        <svg id="dt-chart"></svg>
+      </div>
     </div>
 
   </div>
+</div>
+
+<div id="dt-modal-overlay">
+  <div id="dt-modal">
+    <button id="dt-modal-close">&#x2715;</button>
+    <div id="dt-modal-turn"></div>
+    <div id="dt-modal-classifier"></div>
+    <div id="dt-modal-text"></div>
+  </div>
+</div>
+<div id="dt-tooltip">
+  <div class="dt-tooltip-title"></div>
+  <div class="dt-tooltip-body"></div>
+  <button class="dt-tooltip-learn-more" id="dt-tooltip-learn-more">Learn more →</button>
+</div>
+<div id="dt-sidebar">
+  <div id="dt-sidebar-header">
+    <div id="dt-sidebar-title"></div>
+    <button id="dt-sidebar-close">&#x2715;</button>
+  </div>
+  <div id="dt-sidebar-body"></div>
 </div>
 
 <script>
@@ -664,52 +968,189 @@ async function handleFileUpload(file, targetId, filenameId) {
   }
 }
 
+// ─── Chat log multi-file upload ──────────────────────────────────────────────
+
+const uploadedChatFiles = [];
+
+function renderUploadedFiles() {
+  const list = document.getElementById("uploadedFilesList");
+  list.innerHTML = "";
+  uploadedChatFiles.forEach((f, i) => {
+    const row = document.createElement("div");
+    row.className = "uploaded-file-row";
+    row.innerHTML = `<span class="uploaded-file-name">${f.name}</span><button class="uploaded-file-remove" onclick="removeChatFile(${i})" title="Remove">&times;</button>`;
+    list.appendChild(row);
+  });
+  document.getElementById("logInput").value = uploadedChatFiles
+    .map(f => f.text)
+    .join("\n\n<<<SESSION BREAK>>>\n\n");
+}
+
+function removeChatFile(index) {
+  uploadedChatFiles.splice(index, 1);
+  renderUploadedFiles();
+}
+
+async function addChatFiles(files) {
+  for (const file of files) {
+    const text = await file.text();
+    uploadedChatFiles.push({ name: file.name, text });
+  }
+  renderUploadedFiles();
+}
+
 document.getElementById("logFile").addEventListener("change", e => {
-  if (e.target.files[0]) handleFileUpload(e.target.files[0], "logInput", "logFilename");
+  if (e.target.files.length) addChatFiles(Array.from(e.target.files));
+  e.target.value = "";
 });
+
+const chatUploadZone = document.getElementById("chatUploadZone");
+chatUploadZone.addEventListener("dragover", e => { e.preventDefault(); chatUploadZone.classList.add("drag-over"); });
+chatUploadZone.addEventListener("dragleave", () => chatUploadZone.classList.remove("drag-over"));
+chatUploadZone.addEventListener("drop", e => {
+  e.preventDefault();
+  chatUploadZone.classList.remove("drag-over");
+  const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith(".md") || f.name.endsWith(".txt"));
+  if (files.length) addChatFiles(files);
+});
+
+function openInstructionTray() {
+  const overlay = document.getElementById("instructionTrayOverlay");
+  overlay.classList.add("open");
+}
+
+function closeInstructionTray() {
+  document.getElementById("instructionTrayOverlay").classList.remove("open");
+}
+
+function copyFormatPrompt() {
+  const text = document.getElementById("formatPromptBox").textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById("copyPromptBtn");
+    btn.textContent = "Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "Copy prompt"; btn.classList.remove("copied"); }, 2000);
+  });
+}
+
 document.getElementById("essayFile").addEventListener("change", e => {
   if (e.target.files[0]) handleFileUpload(e.target.files[0], "essayInput", "essayFilename");
 });
 
-// ─── Parser (copied from cta.html as-is) ─────────────────────────────────────
+// ─── Parser ───────────────────────────────────────────────────────────────────
+
+const TOOL_CALL_LINE = /^(Edited|Created|Viewed|Read|Ran|Deleted|Wrote|Modified)\s+(\d+\s+)?(files?|a file|a command|command)(,\s*(edited|read|viewed|created|ran|deleted|wrote|modified)\s+(a\s+)?(files?|file|command))*\.?$/i;
+
+const THINKING_VERB = /^(Assessed|Analyzed|Acknowledged|Architected|Audited|Built|Catalogued|Classified|Compiled|Computed|Confirmed|Constructed|Converted|Coordinated|Cross-referenced|Curated|Deduced|Derived|Designed|Determined|Diagnosed|Drafted|Evaluated|Examined|Excavated|Extracted|Filtered|Formatted|Generated|Grouped|Identified|Indexed|Inferred|Integrated|Interpreted|Investigated|Listed|Located|Mapped|Merged|Modeled|Normalized|Optimized|Orchestrated|Outlined|Parsed|Planned|Prioritized|Produced|Proposed|Ranked|Reasoned|Refined|Refining|Resolved|Restructured|Retrieved|Reviewed|Scored|Selected|Structured|Summarized|Synthesized|Systematized|Targeted|Traced|Transformed|Updated|Validated|Verified|Weighted)\b/;
+
+const UI_ARTIFACT_LINE = /^(Show more|Show less|Download|Copy code|Copied!?|Document[·•]\w*)$/i;
+
+function isThinkingSummary(line) {
+  const t = line.trim();
+  if (!t || t.includes('?')) return false;
+  if (!THINKING_VERB.test(t)) return false;
+  // Must not start with first-person (would be a user message)
+  if (/^(I|I'm|I've|I'd|I'll|My|We)\b/.test(t)) return false;
+  // Thinking summaries are concise — reject full paragraphs
+  if (t.split(/\s+/).length > 25) return false;
+  return true;
+}
+
+function detectPlatform(raw) {
+  if (/^\s*\{/.test(raw) && (/"mapping"/.test(raw) || /"conversations"/.test(raw))) return "chatgpt-json";
+  if (/^(human|assistant)\s*:/im.test(raw)) return "claude-api";
+  // Claude.ai web: look for tool call lines or thinking summaries in first 60 lines
+  const sample = raw.split('\n').slice(0, 60);
+  if (sample.some(l => TOOL_CALL_LINE.test(l.trim()) || isThinkingSummary(l.trim()))) return "claude-web";
+  return "unknown";
+}
+
+function preprocessClaudeWeb(raw) {
+  const out = [];
+  for (const line of raw.split('\n')) {
+    const t = line.trim();
+    if (!t)                          { out.push(''); continue; }
+    if (TOOL_CALL_LINE.test(t))      continue;
+    if (UI_ARTIFACT_LINE.test(t))    continue;
+    if (isThinkingSummary(t))        continue;
+    out.push(line);
+  }
+  // Collapse runs of 3+ blank lines to 2 so turn boundaries stay intact
+  return out.join('\n').replace(/\n{3,}/g, '\n\n');
+}
+
+function isSeparatorLine(t) {
+  const s = t.replace(/^[/|\\]+|[/|\\]+$/g, '').trim();
+  if (!s) return true;
+  return /^([-=_*~#])\1{2,}$/.test(s) || /^([-*_] ?){3,}$/.test(s);
+}
+
+function cleanTurnText(text) {
+  return text.split('\n')
+    .filter(l => !isSeparatorLine(l.trim()))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 function parseLog(raw) {
   const text = raw.trim();
   if (!text) return { turns: [], method: "empty" };
 
-  const STUDENT = /^(you|user|human|student|me)(\s+said)?[\s]*:/i;
-  const AI      = /^(chatgpt|claude|assistant|ai|gpt|gpt-4|gpt-3\.5|gemini|copilot|bard)(\s+said)?[\s]*:/i;
+  const platform = detectPlatform(text);
+  let cleaned = platform === "claude-web" ? preprocessClaudeWeb(text) : text;
+  cleaned = cleaned.split('\n').filter(l => !isSeparatorLine(l.trim())).join('\n');
 
-  const lines = text.split("\n");
+  const STUDENT_DELIM  = /^<<<\s*STUDENT\s*>>>$/i;
+  const AI_DELIM       = /^<<<\s*AI\s*>>>$/i;
+  const SESSION_BREAK  = /^<<<\s*SESSION\s*BREAK\s*>>>$/i;
+  const STUDENT_INLINE = /^(you|user|human|student|me|my prompt)(\s+said)?[\s]*:/i;
+  const AI_INLINE      = /^(chatgpt|claude|claude'?s response|assistant|ai|gpt|gpt-4o?(?:-mini)?|gpt-3\.5|gemini|copilot|bard)(\s+said)?[\s]*:/i;
+  const STUDENT_LABEL  = /^(you|user|human|student|me|my prompt)(\s+said)?$/i;
+  const AI_LABEL       = /^(chatgpt|claude|claude'?s response|assistant|ai|gpt|gpt-4o?(?:-mini)?|gpt-3\.5|gemini|copilot|bard)$/i;
+  const SKIP_META      = /^(4o|4o-mini|o1|o3|o3-mini|o4-mini|claude-[0-9]|gemini-[0-9]|\d{1,2}[:/]\d{2}|today|yesterday|just now)$/i;
+
+  const lines = cleaned.split("\n");
   const turns = [];
   let current = null;
 
   for (const line of lines) {
     const t = line.trim();
     if (!t) continue;
+    if (SKIP_META.test(t)) continue;
+    if (SESSION_BREAK.test(t)) continue;
+    if (isSeparatorLine(t)) continue;
+
     let role = null;
-    let content = t;
-    if (STUDENT.test(t)) { role = "student"; content = t.replace(/^[^:]+:\s*/, "").trim(); }
-    else if (AI.test(t)) { role = "ai";      content = t.replace(/^[^:]+:\s*/, "").trim(); }
-    if (role) {
-      if (current) turns.push(current);
+    let content = null;
+
+    if (STUDENT_DELIM.test(t))       { role = "student"; content = ""; }
+    else if (AI_DELIM.test(t))       { role = "ai";      content = ""; }
+    else if (STUDENT_INLINE.test(t)) { role = "student"; content = t.replace(/^[^:]+:\s*/, "").trim(); }
+    else if (AI_INLINE.test(t))      { role = "ai";      content = t.replace(/^[^:]+:\s*/, "").trim(); }
+    else if (STUDENT_LABEL.test(t))  { role = "student"; content = ""; }
+    else if (AI_LABEL.test(t))       { role = "ai";      content = ""; }
+
+    if (role !== null) {
+      if (current && current.text.trim()) turns.push({ ...current, text: cleanTurnText(current.text) });
       current = { role, text: content };
     } else if (current) {
       current.text += (current.text ? "\n" : "") + t;
     }
   }
-  if (current) turns.push(current);
+  if (current && current.text.trim()) turns.push({ ...current, text: cleanTurnText(current.text) });
 
-  if (turns.length >= 2) return { turns, method: "labeled" };
+  if (turns.length >= 2) return { turns, method: "labeled", platform };
 
-  const blocks = text.split(/\n{2,}/).map(b => b.trim()).filter(Boolean);
+  const blocks = cleaned.split(/\n{2,}/).map(b => b.trim()).filter(Boolean);
   if (blocks.length >= 2) {
     return {
       turns: blocks.map((b, i) => ({ role: i % 2 === 0 ? "student" : "ai", text: b })),
-      method: "alternating",
+      method: platform === "claude-web" ? "claude-web-preprocessed" : "alternating",
+      platform,
     };
   }
-  return { turns: [], method: "unparseable" };
+  return { turns: [], method: "unparseable", platform };
 }
 
 // ─── Fallback Classifier ─────────────────────────────────────────────────────
@@ -1118,7 +1559,7 @@ Labels and what they mean:
 - pivot: student explicitly shifts to a new topic
 
 Turns to classify:
-${studentTurns.map((t, i) => `[${i}] ${t.text.slice(0, 300)}`).join("\n\n")}
+${studentTurns.map((t, i) => `[${i}] ${t.text}`).join("\n\n")}
 
 Return ONLY a JSON array: [{"turnIndex": 0, "label": "challenge", "confidence": 0.9}, ...]`;
 
@@ -1126,10 +1567,10 @@ Return ONLY a JSON array: [{"turnIndex": 0, "label": "challenge", "confidence": 
     method: "POST",
     headers: { "Authorization": `Bearer ${groq.apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "llama-3.1-8b-instant",
+      model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.1,
-      max_tokens: 800,
+      max_tokens: 2000,
     }),
   });
   if (!res.ok) throw new Error(`Groq classify error: ${res.status}`);
@@ -1152,12 +1593,12 @@ async function groqProvenanceTrace(essayText, classified) {
   const prompt = `Trace the intellectual origin of ideas in this AI-assisted essay.
 
 CHAT LOG:
-${chatLog.slice(0, 3500)}
+${chatLog}
 
 ESSAY:
-${essayText.slice(0, 2500)}
+${essayText}
 
-For 8–14 meaningful ideas in the essay, identify:
+For 10–20 meaningful ideas in the essay, identify:
 - "student-born": idea appeared in student turns BEFORE AI mentioned it
 - "ai-born": idea appeared in AI turns before student used it
 - "synthesized": developed together across both student and AI turns
@@ -1174,10 +1615,10 @@ Return ONLY a valid JSON array. No explanation.`;
     method: "POST",
     headers: { "Authorization": `Bearer ${groq.apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "llama-3.1-8b-instant",
+      model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.2,
-      max_tokens: 1200,
+      max_tokens: 3000,
     }),
   });
   if (!res.ok) throw new Error(`Groq provenance error: ${res.status}`);
@@ -1194,90 +1635,137 @@ Return ONLY a valid JSON array. No explanation.`;
     }));
 }
 
-const GROQ_PARSE_CHUNK = 5000;
+const BLOCKS_PER_CHUNK = 30;
 const GROQ_PARSE_BATCH = 3;
 
-function splitIntoParseChunks(raw, chunkSize) {
-  const chunks = [];
-  let pos = 0;
-  while (pos < raw.length) {
-    let end = pos + chunkSize;
-    if (end < raw.length) {
-      // break at the last double-newline within the chunk to avoid splitting a turn mid-text
-      const boundary = raw.lastIndexOf("\n\n", end);
-      if (boundary > pos) end = boundary;
-    }
-    chunks.push(raw.slice(pos, end).trim());
-    pos = end;
-  }
-  return chunks.filter(Boolean);
+// Split raw text into paragraph blocks for classification
+function extractBlocks(raw) {
+  // Double-newline = most reliable paragraph boundary
+  let blocks = raw.split(/\n{2,}/).map(b => b.trim()).filter(Boolean);
+  // If the PDF produced single-newline text with no paragraph separation, fall back to lines
+  if (blocks.length < 4) blocks = raw.split(/\n/).map(b => b.trim()).filter(Boolean);
+  return blocks;
 }
 
-async function groqParseChunk(chunk) {
-  const prompt = `You will receive part of a raw chat log between a student and an AI assistant.
-The log may use any format: labeled turns (e.g. "You:", "ChatGPT:", "Assistant:"), timestamps, platform exports (ChatGPT, Claude, Gemini, etc.), markdown, or unlabeled alternating paragraphs.
+// Classify a batch of blocks by content — no label detection, pure content signal
+async function groqClassifyBlocks(indexedBlocks) {
+  const listed = indexedBlocks
+    .map(b => `[${b.index}] ${b.text.slice(0, 300)}`)
+    .join("\n\n");
 
-Your task: identify every turn in this excerpt and assign each a role of "student" or "ai".
+  const prompt = `You are classifying text blocks from a chat conversation between a student and an AI assistant.
 
-Rules:
-- The student is the human asking questions or giving instructions.
-- The AI is the assistant responding.
-- Preserve the full content of each turn, stripping only the role label/prefix if present.
-- If a turn is ambiguous (system messages, metadata, page headers), omit it.
-- Do not merge turns from the same speaker that are separated by the other speaker.
+For each numbered block, decide who wrote it based ONLY on the content — not on any speaker labels or names that may appear.
 
-Excerpt:
----
-${chunk}
----
+STUDENT writes:
+- Short to medium length, casual or informal tone
+- Questions, instructions, requests ("can you", "what is", "help me with")
+- Personal language ("I think", "my essay", "I need", "I want", "we")
+- Confusion, follow-ups, brief acknowledgments ("ok", "thanks", "got it", "what about")
+- Topic shifts or new angles on the same subject
 
-Return ONLY a valid JSON array, no explanation:
-[{"role": "student", "text": "..."}, {"role": "ai", "text": "..."}, ...]`;
+AI ASSISTANT writes:
+- Longer responses, often much longer than the student's message
+- Structured formatting: numbered lists, bullet points, bold text, headers
+- Formal, educational, comprehensive tone
+- Opening phrases: "Here's", "Certainly", "Let me", "Of course", "Sure", "Great question"
+- Full explanations with examples, definitions, or analysis across multiple paragraphs
+
+SKIP if the block is clearly:
+- A timestamp or date ("2:34 PM", "March 5", "yesterday")
+- A filename, document title, or page number
+- A UI element ("Copy", "Share", "Regenerate response", "Edit")
+- A model version stamp ("GPT-4", "4o", "4o-mini", "Claude 3", "Gemini")
+- A section header with no conversational content
+
+If a block is short and ambiguous (e.g. "OK", "Thanks", "Sure"), classify it as "student" — brief acknowledgments are almost always from the human.
+
+Blocks to classify:
+${listed}
+
+Return ONLY a JSON array, one entry per block, no explanation:
+[{"block": 0, "role": "student"}, {"block": 1, "role": "ai"}, {"block": 2, "role": "skip"}, ...]`;
 
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: { "Authorization": `Bearer ${groq.apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "llama-3.1-8b-instant",
+      model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.0,
-      max_tokens: 4000,
+      max_tokens: 800,
     }),
   });
-  if (!res.ok) throw new Error(`Groq parse error: ${res.status}`);
+  if (!res.ok) throw new Error(`Groq classify error: ${res.status}`);
   const data = await res.json();
   const text = data.choices[0].message.content.trim();
   const match = text.match(/\[[\s\S]*\]/);
-  if (!match) throw new Error("No JSON in parse response");
-  const parsed = JSON.parse(match[0]);
-  return parsed
-    .filter(t => (t.role === "student" || t.role === "ai") && t.text && t.text.trim())
-    .map(t => ({ role: t.role, text: t.text.trim() }));
+  if (!match) throw new Error("No JSON in classify response");
+  return JSON.parse(match[0]);
+}
+
+// For blocks Groq skipped or left unclassified, infer role from position.
+// Conversations alternate — assign the opposite of the nearest preceding classified block.
+function inferRolesByPosition(blocks, roleMap) {
+  const result = { ...roleMap };
+  for (let i = 0; i < blocks.length; i++) {
+    if (result[i] === "student" || result[i] === "ai") continue;
+    if (blocks[i].length > 150) continue; // only infer for short ambiguous blocks
+    for (let j = i - 1; j >= 0; j--) {
+      if (result[j] === "student" || result[j] === "ai") {
+        result[i] = result[j] === "student" ? "ai" : "student";
+        break;
+      }
+    }
+  }
+  return result;
 }
 
 async function groqParseLog(raw) {
-  const chunks = splitIntoParseChunks(raw, GROQ_PARSE_CHUNK);
-  const allTurns = [];
+  const blocks = extractBlocks(raw);
+  const indexed = blocks.map((text, index) => ({ index, text }));
+  const roleMap = {};
 
-  // Process in batches of GROQ_PARSE_BATCH to avoid rate limits
+  // Chunk into groups of BLOCKS_PER_CHUNK, process in batches of GROQ_PARSE_BATCH
+  const chunks = [];
+  for (let i = 0; i < indexed.length; i += BLOCKS_PER_CHUNK) {
+    chunks.push(indexed.slice(i, i + BLOCKS_PER_CHUNK));
+  }
+
   for (let i = 0; i < chunks.length; i += GROQ_PARSE_BATCH) {
     const batch = chunks.slice(i, i + GROQ_PARSE_BATCH);
-    const results = await Promise.allSettled(batch.map(groqParseChunk));
+    const results = await Promise.allSettled(batch.map(groqClassifyBlocks));
     for (const result of results) {
-      if (result.status === "fulfilled") allTurns.push(...result.value);
-      // failed chunks are silently skipped — partial results still usable
+      if (result.status === "fulfilled") {
+        for (const { block, role } of result.value) {
+          if (role === "student" || role === "ai") roleMap[block] = role;
+          // "skip" entries are omitted — handled by inferRolesByPosition if short
+        }
+      }
     }
   }
 
-  // Deduplicate consecutive turns with identical role+text (chunk boundary overlap)
-  const deduped = [];
-  for (const turn of allTurns) {
-    const prev = deduped[deduped.length - 1];
-    if (prev && prev.role === turn.role && prev.text === turn.text) continue;
-    deduped.push(turn);
+  // Fill short ambiguous blocks by position before merging
+  const finalRoles = inferRolesByPosition(blocks, roleMap);
+
+  // Merge consecutive same-role blocks into complete turns
+  const turns = [];
+  for (let i = 0; i < blocks.length; i++) {
+    const role = finalRoles[i];
+    if (role !== "student" && role !== "ai") continue;
+    const prev = turns[turns.length - 1];
+    if (prev && prev.role === role) {
+      prev.text += "\n\n" + blocks[i];
+    } else {
+      turns.push({ role, text: blocks[i] });
+    }
   }
 
-  return deduped;
+  return turns;
+}
+
+function countParseChunks(raw) {
+  return Math.ceil(extractBlocks(raw).length / BLOCKS_PER_CHUNK);
 }
 
 // Groq removed embedding model support. TF-IDF cosine similarity runs client-side instead.
@@ -1297,7 +1785,7 @@ function tfidfEmbedTurns(texts) {
   });
 }
 
-// ─── Turn Sequence Strip ───────────────────────────────────────────────────────
+// ─── Turn Sequence Chart ──────────────────────────────────────────────────────
 
 const STRIP_TIER = {
   challenge:  "high",    rejection:  "high",    claim:      "high",
@@ -1307,31 +1795,139 @@ const STRIP_TIER = {
   validation: "low",     stuck:      "verylow",
 };
 
-const STRIP_COLOR = {
-  high:    "#166534",   // deep emerald — challenge, rejection, claim
-  medhigh: "#1e3a8a",   // deep blue — refinement, conceptual
-  medium:  "#374151",   // dark slate — feedback, pivot, narrative
-  neutral: "#64748b",   // slate — extraction
-  low:     "#92400e",   // deep amber — validation
-  verylow: "#7f1d1d",   // deep red — stuck
-};
-
 const PATTERN_STYLE = {
   high:   { bg: "#f0fdf4", border: "#86efac", text: "#14532d" },
   medium: { bg: "#eff6ff", border: "#bfdbfe", text: "#1e3a8a" },
   low:    { bg: "#fefce8", border: "#fde047", text: "#713f12" },
 };
 
-const LABEL_ABBR = {
-  challenge: "CH", rejection: "RJ", claim: "CL",
-  refinement: "RF", conceptual: "CN",
-  feedback: "FB", pivot: "PV", narrative: "NA",
-  extraction: "EX", validation: "VA", stuck: "ST",
+const PAT_DESCRIPTIONS = {
+  "challenge-arc":      "Multiple consecutive challenge turns — the student is actively questioning AI responses rather than accepting them. Strong independent thinking signal.",
+  "rejection-redirect": "The student rejected an AI response and immediately refined their query. Shows evaluative thinking: the student knows what they want and what doesn't work.",
+  "claim-support":      "A full claim-building cycle: the student stated a position, sought conceptual grounding, extracted evidence, then returned to the claim. High-structure thinking.",
+  "extraction-landing": "An extraction followed by a high-agency turn (claim, challenge, or refinement). The student used AI content as a springboard rather than copying it.",
+  "extraction-loop":    "Three or more consecutive extractions. The student may be mining AI for content without engaging critically — watch for whether extracted ideas appear in the essay unchanged.",
+  "validation-spiral":  "Alternating extraction and validation turns. The student is asking AI to confirm its own outputs without independent evaluation.",
+  "helplessness-loop":  "A stuck turn followed by continued passivity. The student is relying on AI to resolve difficulty rather than working through it independently.",
+  "flitting":           "Multiple topic pivots without substantive turns between them. Suggests the student is exploring without depth — no thread is being developed.",
 };
 
-function detectPatterns(labels) {
+// ── Divergence value scale ──────────────────────────────────────────────────
+const TURN_VALUE = {
+  challenge:  4, rejection:  4,
+  claim:      3, conceptual: 3, pivot: 3,
+  refinement: 2,
+  narrative:  1, feedback:   1,
+  extraction: 0,
+  validation: -1,
+  stuck:      -2,
+};
+
+function getAILabelBefore(studentIdx, classified) {
+  const studentTurns = classified.filter(t => t.role === "student");
+  if (studentIdx >= studentTurns.length) return null;
+  const target = studentTurns[studentIdx];
+  const pos    = classified.indexOf(target);
+  for (let i = pos - 1; i >= 0; i--) {
+    if (classified[i].role === "ai") return classified[i].label || "content";
+  }
+  return null;
+}
+
+function computeChartSummary(student) {
+  const total        = student.length;
+  const passiveCount = student.filter(d => (TURN_VALUE[d.label] ?? 0) < 0).length;
+  const highCount    = student.filter(d => (TURN_VALUE[d.label] ?? 0) >= 3).length;
+  const passivePct   = passiveCount / total;
+  const highPct      = highCount / total;
+  let longestRun = 0, bestStart = null, cur = 0, curStart = null;
+  student.forEach((d, i) => {
+    if ((TURN_VALUE[d.label] ?? 0) < 0) {
+      if (cur === 0) curStart = i + 1;
+      cur++;
+      if (cur > longestRun) { longestRun = cur; bestStart = curStart; }
+    } else { cur = 0; }
+  });
+  let verdict, verdictClass, verdictDesc;
+  if (passivePct >= 0.35 || longestRun >= 5) {
+    verdict = "Passive concern"; verdictClass = "passive";
+    verdictDesc = "Over a third of turns were passive, or the student had a run of 5 or more consecutive passive turns. Look for highlighted pattern regions in the chart.";
+  } else if (highPct >= 0.35 && passivePct < 0.25) {
+    verdict = "High engagement"; verdictClass = "high";
+    verdictDesc = "More than 35% of turns show high-agency behaviour — challenge, claim, conceptual, or pivot — with low passive activity.";
+  } else {
+    verdict = "Mixed session"; verdictClass = "";
+    verdictDesc = "This session has a roughly even spread of high-agency and passive turns with no dominant pattern.";
+  }
+  return { verdict, verdictClass, verdictDesc, longestRun, bestStart, highCount, total };
+}
+
+function renderChartSummary(s) {
+  const runValue = s.longestRun === 0 ? "None" : `${s.longestRun} consecutive`;
+  const runSub   = s.longestRun > 0 ? `turns ${s.bestStart}–${s.bestStart + s.longestRun - 1}` : "";
+  let verdictHtml;
+  if (s.verdictClass === "passive") {
+    verdictHtml = `<span class="div-verdict-chip div-verdict-passive">${esc(s.verdict)}</span>`;
+  } else if (s.verdictClass === "high") {
+    verdictHtml = `<span class="div-verdict-chip div-verdict-high">${esc(s.verdict)}</span>`;
+  } else {
+    verdictHtml = `<span class="div-verdict-plain">${esc(s.verdict)}</span>`;
+  }
+  return `<div class="div-summary-strip">
+    <div class="div-verdict-block">
+      <span class="div-strip-label">Session verdict</span>
+      ${verdictHtml}
+    </div>
+    <div class="div-stat-block">
+      <span class="div-strip-label">Longest passive run</span>
+      <span class="div-stat-value">${runValue}</span>
+      ${runSub ? `<span class="div-stat-sub">${esc(runSub)}</span>` : ""}
+    </div>
+    <div class="div-stat-block">
+      <span class="div-strip-label">High-agency turns</span>
+      <span class="div-stat-value">${s.highCount} of ${s.total}</span>
+      <span class="div-stat-sub">${Math.round(s.highCount / s.total * 100)}% of session</span>
+    </div>
+  </div>`;
+}
+
+function renderDivLegend() {
+  if (typeof d3 === "undefined") return "";
+  const posS = d3.scaleSequential().domain([1, 4]).interpolator(d3.interpolateRgb("#9b9de0", "#4F52C8"));
+  const negS = d3.scaleSequential().domain([-1, -2]).interpolator(d3.interpolateRgb("#e8ae94", "#b85c38"));
+  const fill = v => v === 0 ? "#b0b0b0" : v > 0 ? posS(v) : negS(v);
+  const items = [
+    { v: -2, label: "stuck" },
+    { v: -1, label: "validation" },
+    null,
+    { v:  0, label: "extraction" },
+    null,
+    { v:  1, label: "feedback / narrative" },
+    { v:  2, label: "refinement" },
+    { v:  3, label: "claim / conceptual / pivot" },
+    { v:  4, label: "challenge / rejection" },
+  ];
+  const parts = items.map(item => {
+    if (!item) return '<div class="div-legend-divider"></div>';
+    const prefix = item.v > 0 ? `+${item.v}` : String(item.v);
+    const style  = `background:${fill(item.v)};${item.v === 0 ? "border:1px solid #ccc;" : ""}`;
+    return `<div class="div-legend-item">
+      <div class="div-legend-swatch" style="${style}"></div>
+      <span>${prefix}&nbsp;&nbsp;${esc(item.label)}</span>
+    </div>`;
+  });
+  return `<div class="div-legend">${parts.join("")}</div>`;
+}
+
+function detectPatterns(classified) {
+  const student  = classified.filter(t => t.role === "student");
+  const labels   = student.map(t => t.label || "extraction");
+  const aiLabels = student.map((_, i) => getAILabelBefore(i, classified));
   const n = labels.length;
   const patterns = [];
+
+  const HIGH_LABELS    = new Set(["claim", "refinement", "challenge", "rejection"]);
+  const PASSIVE_LABELS = new Set(["extraction", "validation", "stuck"]);
 
   // High agency: challenge arc (2+ consecutive challenges)
   for (let i = 0; i < n - 1; i++) {
@@ -1357,11 +1953,23 @@ function detectPatterns(labels) {
     }
   }
 
-  // Medium: extraction with landing (extraction → claim/refinement/challenge/rejection)
-  const HIGH_LABELS = new Set(["claim", "refinement", "challenge", "rejection"]);
+  // High agency (AI-enhanced): student challenged/rejected/refined directly after an AI argument
+  for (let i = 0; i < n; i++) {
+    if (HIGH_LABELS.has(labels[i]) && aiLabels[i] === "argument") {
+      let end = i;
+      while (end + 1 < n && HIGH_LABELS.has(labels[end + 1]) && aiLabels[end + 1] === "argument") end++;
+      if (end > i || aiLabels[i] === "argument") {
+        patterns.push({ start: i, end, id: "argument-engaged", label: "Argument Engaged", tier: "high" });
+        i = end;
+      }
+    }
+  }
+
+  // Medium → High (AI-enhanced): extraction with landing — elevate to high if AI was arguing
   for (let i = 0; i < n - 1; i++) {
     if (labels[i] === "extraction" && HIGH_LABELS.has(labels[i + 1])) {
-      patterns.push({ start: i, end: i + 1, id: "extraction-landing", label: "Extraction → Insight", tier: "medium" });
+      const tier = aiLabels[i] === "argument" ? "high" : "medium";
+      patterns.push({ start: i, end: i + 1, id: "extraction-landing", label: "Extraction → Insight", tier });
     }
   }
 
@@ -1415,254 +2023,323 @@ function detectPatterns(labels) {
     }
   }
 
+  // Low (AI-enhanced): student was passive while AI was arguing (3+ consecutive missed arguments)
+  for (let i = 0; i < n - 2; i++) {
+    if (PASSIVE_LABELS.has(labels[i]) && aiLabels[i] === "argument") {
+      let end = i;
+      while (end + 1 < n && PASSIVE_LABELS.has(labels[end + 1]) && aiLabels[end + 1] === "argument") end++;
+      if (end - i >= 2) {
+        patterns.push({ start: i, end, id: "missed-argument", label: "Missed Argument", tier: "low" });
+        i = end;
+      }
+    }
+  }
+
   return patterns;
 }
 
-function renderTurnStrip(classified) {
+function renderAgencyChart(classified) {
+  if (typeof d3 === "undefined") return;
   const student = classified.filter(t => t.role === "student");
-  if (student.length < 2) {
-    return `<p style="color:var(--muted);font-size:13px;padding:12px 0">Not enough student turns to render sequence strip.</p>`;
+  if (student.length < 2) return;
+
+  // ── Convert to dt sample format ──────────────────────────────────────────
+  const turns = student.map((t, i) => ({
+    id: i + 1,
+    value: TURN_VALUE[t.label] ?? 0,
+    classifier: t.label || "extraction",
+    text: t.text || "",
+  }));
+  const PAT_LABEL_MAP = {
+    "challenge-arc":"Challenge Arc", "rejection-redirect":"Rejection → Redirect",
+    "claim-support":"Claim-Support Cycle", "extraction-landing":"Extraction → Insight",
+    "extraction-loop":"Extraction Loop", "validation-spiral":"Validation Spiral",
+    "helplessness-loop":"Helplessness Loop", "flitting":"Flitting", "missed-argument":"Missed Argument",
+  };
+  const rawPatterns = detectPatterns(classified);
+  const patterns = rawPatterns.map(p => ({
+    rows: Array.from({ length: p.end - p.start + 1 }, (_, k) => String(p.start + k + 1)),
+    side: (p.tier === "high" || p.tier === "medium") ? "right" : "left",
+    title: PAT_LABEL_MAP[p.id] || p.label,
+    aiLabels: Array.from({ length: p.end - p.start + 1 }, (_, k) => getAILabelBefore(p.start + k, classified) || ""),
+    _orig: p,
+  }));
+
+  // ── Summary strip ─────────────────────────────────────────────────────────
+  const total = turns.length;
+  const passiveCount = turns.filter(d => d.value < 0).length;
+  const highCount    = turns.filter(d => d.value >= 3).length;
+  const passivePct = passiveCount / total, highPct = highCount / total;
+  let longestRun = 0, bestStart = null, cur = 0, curStart = null;
+  turns.forEach(d => {
+    if (d.value < 0) { if (cur === 0) curStart = d.id; cur++; if (cur > longestRun) { longestRun = cur; bestStart = curStart; } } else { cur = 0; }
+  });
+  let verdict, verdictClass, verdictDesc;
+  if (passivePct >= 0.35 || longestRun >= 5) {
+    verdict = "Passive concern"; verdictClass = "passive";
+    verdictDesc = "Over a third of turns were passive, or the student had a run of 5 or more consecutive passive turns.";
+  } else if (highPct >= 0.35 && passivePct < 0.25) {
+    verdict = "High engagement"; verdictClass = "high";
+    verdictDesc = "More than 35% of turns show high-agency behaviour — challenge, claim, conceptual, or pivot — with low passive activity.";
+  } else {
+    verdict = "Mixed session"; verdictClass = "mixed";
+    verdictDesc = "This session has a roughly even spread of high-agency and passive turns with no dominant pattern.";
   }
+  const runValue = longestRun === 0 ? "None" : `${longestRun} consecutive`;
+  const runSub   = longestRun === 0 ? "" : `turns ${bestStart}–${bestStart + longestRun - 1}`;
+  const chip = verdictClass === "mixed"
+    ? `<span class="dt-verdict-plain">${verdict}</span>`
+    : `<span class="dt-verdict-chip dt-verdict-${verdictClass}">${verdict}</span>`;
+  document.getElementById("chartSummaryEl").innerHTML = `
+    <div class="dt-verdict-block">
+      <span class="dt-verdict-label">Session verdict</span>
+      <div style="display:flex;align-items:center;">
+        ${chip}
+        <button class="dt-verdict-info-btn" id="agency-verdict-info-btn">?</button>
+      </div>
+    </div>
+    <div class="dt-stat-block">
+      <span class="dt-stat-label">Longest passive run</span>
+      <span class="dt-stat-value">${runValue}</span>
+      ${runSub ? `<span class="dt-stat-sub">${runSub}</span>` : ""}
+    </div>
+    <div class="dt-stat-block">
+      <span class="dt-stat-label">High-agency turns</span>
+      <span class="dt-stat-value">${highCount} of ${total}</span>
+      <span class="dt-stat-sub">${Math.round(highCount / total * 100)}% of session</span>
+    </div>`;
+  document.getElementById("agency-verdict-info-btn").addEventListener("click", e => {
+    e.stopPropagation();
+    const tooltip = document.getElementById("dt-tooltip");
+    tooltip.querySelector(".dt-tooltip-title").textContent = verdict;
+    tooltip.querySelector(".dt-tooltip-body").textContent  = verdictDesc;
+    document.getElementById("dt-tooltip-learn-more").style.display = "none";
+    tooltip.style.display = "block";
+    const pad = 12, tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+    tooltip.style.left = (e.clientX + pad + tw > window.innerWidth ? e.clientX - tw - pad : e.clientX + pad) + "px";
+    tooltip.style.top  = (e.clientY + pad + th > window.innerHeight ? e.clientY - th - pad : e.clientY + pad) + "px";
+  });
 
-  const N = student.length;
-  const labels = student.map(t => t.label || "extraction");
-  const patterns = detectPatterns(labels);
-
-  // Build strip blocks
-  let blocksHTML = "";
-  for (let i = 0; i < N; i++) {
-    const t = student[i];
-    const tier = STRIP_TIER[t.label] || "neutral";
-    const color = STRIP_COLOR[tier];
-    const displayLabel = (t.label || "?").charAt(0).toUpperCase() + (t.label || "?").slice(1);
-    const preview = t.text ? esc(t.text.substring(0, 80)) + (t.text.length > 80 ? "…" : "") : "";
-    const abbr = LABEL_ABBR[t.label] || "??";
-    blocksHTML += `<div class="strip-block" style="background:${color}" title="Turn ${i+1}: ${displayLabel}&#10;${preview}">` +
-      `<span class="strip-abbr">${abbr}</span><span class="strip-num">${i + 1}</span></div>`;
-    if (i < N - 1) blocksHTML += `<div class="strip-ai-divider" title="AI response"></div>`;
-  }
-
-  // Pattern bands — stagger rows to avoid overlap
-  let patternHTML = "";
-  if (patterns.length) {
-    // Sort: high first so they render on top
-    const sorted = [...patterns].sort((a, b) => {
-      const order = { high: 0, medium: 1, low: 2 };
-      return order[a.tier] - order[b.tier];
-    });
-
-    // Assign vertical rows to avoid overlap (greedy)
-    const rows = [];
-    const assigned = sorted.map(p => {
-      let row = rows.findIndex(end => end < p.start);
-      if (row === -1) { row = rows.length; rows.push(p.end); }
-      else rows[row] = p.end;
-      return row;
-    });
-
-    const ROW_H = 26;
-    const totalH = (rows.length || 1) * ROW_H;
-    patternHTML = `<div class="pattern-row" style="height:${totalH}px;margin-top:4px">`;
-    for (let pi = 0; pi < sorted.length; pi++) {
-      const p = sorted[pi];
-      const s = PATTERN_STYLE[p.tier];
-      const leftPct = (p.start / N * 100).toFixed(1);
-      const widthPct = ((p.end - p.start + 1) / N * 100).toFixed(1);
-      const top = assigned[pi] * ROW_H;
-      patternHTML += `<div class="pattern-band" style="left:${leftPct}%;width:${widthPct}%;top:${top}px;` +
-        `background:${s.bg};border-color:${s.border};color:${s.text}">${p.label}</div>`;
-    }
-    patternHTML += `</div>`;
-  }
-
-  // Summary counts
-  let highCount = 0, neutralCount = 0, lowCount = 0;
-  for (const label of labels) {
-    const tier = STRIP_TIER[label] || "neutral";
-    if (tier === "high" || tier === "medhigh") highCount++;
-    else if (tier === "neutral" || tier === "medium") neutralCount++;
-    else lowCount++;
-  }
-
-  // Legend
+  // ── Legend ────────────────────────────────────────────────────────────────
+  const posScaleL = d3.scaleSequential().domain([1, 4]).interpolator(d3.interpolateRgb("#9b9de0", "#4F52C8"));
+  const negScaleL = d3.scaleSequential().domain([-1, -2]).interpolator(d3.interpolateRgb("#e8ae94", "#b85c38"));
+  const fillL = v => v === 0 ? "#b0b0b0" : v > 0 ? posScaleL(v) : negScaleL(v);
   const legendItems = [
-    { color: STRIP_COLOR.high,    abbr: "CH/RJ/CL", label: "High agency — challenge, rejection, claim" },
-    { color: STRIP_COLOR.medhigh, abbr: "RF/CN",     label: "Active — refinement, conceptual" },
-    { color: STRIP_COLOR.medium,  abbr: "FB/PV/NA",  label: "Exploratory — feedback, pivot, narrative" },
-    { color: STRIP_COLOR.neutral, abbr: "EX",        label: "Neutral — extraction" },
-    { color: STRIP_COLOR.low,     abbr: "VA",        label: "Passive — validation" },
-    { color: STRIP_COLOR.verylow, abbr: "ST",        label: "Blocked — stuck" },
+    { value: -2, label: "stuck" }, { value: -1, label: "validation" }, null,
+    { value:  0, label: "extraction" }, null,
+    { value:  1, label: "feedback / narrative" }, { value:  2, label: "refinement" },
+    { value:  3, label: "claim / conceptual / pivot" }, { value:  4, label: "challenge / rejection" },
   ];
-  const legendHTML = legendItems.map(item =>
-    `<div class="strip-legend-item"><span class="strip-swatch" style="background:${item.color}"></span><strong style="color:var(--text)">${item.abbr}</strong>&ensp;${item.label}</div>`
-  ).join("");
+  const legendEl = document.getElementById("chartLegendEl");
+  legendEl.innerHTML = "";
+  legendItems.forEach(item => {
+    if (item === null) { const d = document.createElement("div"); d.className = "dt-legend-divider"; legendEl.appendChild(d); return; }
+    const wrap = document.createElement("div"); wrap.className = "dt-legend-item";
+    const sw   = document.createElement("div"); sw.className = "dt-legend-swatch"; sw.style.background = fillL(item.value);
+    if (item.value === 0) sw.style.border = "1px solid #ccc";
+    const txt = document.createElement("span");
+    txt.textContent = (item.value > 0 ? `+${item.value}` : String(item.value)) + "  " + item.label;
+    wrap.appendChild(sw); wrap.appendChild(txt); legendEl.appendChild(wrap);
+  });
 
-  return `
-    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Behavioural Sequence — Turn Classification</span>
-      <span style="font-size:11px;color:var(--muted)">${N} student turns</span>
-    </div>
-    <div class="strip-wrapper">
-      <div class="strip-row">${blocksHTML}</div>
-      ${patternHTML}
-    </div>
-    <div class="strip-summary">
-      <span class="strip-stat high">High agency: ${highCount}</span>
-      <span class="strip-stat neutral">Neutral / exploratory: ${neutralCount}</span>
-      <span class="strip-stat low">Passive: ${lowCount}</span>
-      ${patterns.length ? `<span class="strip-stat patterns">${patterns.length} pattern${patterns.length > 1 ? "s" : ""} detected</span>` : ""}
-    </div>
-    <div class="strip-legend">${legendHTML}</div>
-    ${renderBarChart(classified)}
-  `;
+  // ── Chart (exact copy of dtRender) ────────────────────────────────────────
+  const posScale = d3.scaleSequential().domain([1, 4]).interpolator(d3.interpolateRgb("#9b9de0", "#4F52C8"));
+  const negScale = d3.scaleSequential().domain([-1, -2]).interpolator(d3.interpolateRgb("#e8ae94", "#b85c38"));
+  function barFill(v) { return v === 0 ? "#b0b0b0" : v > 0 ? posScale(v) : negScale(v); }
+  const data = turns.map(d => ({ ...d, label: String(d.id) }));
+  const dtMargin = { top: 36, right: 80, bottom: 52, left: 130 };
+  const dtTicks  = [-3, -2, -1, 0, 1, 2, 3, 4, 5];
+  const dtSvgW   = 796;
+  const dtInnerW = dtSvgW - dtMargin.left - dtMargin.right;
+  const dtRowH   = 22;
+  const dtXScale = d3.scaleLinear().domain([-3, 5]).range([0, dtInnerW]);
+  const dtZeroX  = dtXScale(0);
+  const dtBtnW = 62, dtBtnH = 20, dtBtnR = 4;
+  const innerH = data.length * dtRowH;
+  const svgH   = innerH + dtMargin.top + dtMargin.bottom;
+  const agSvg  = d3.select("#agencyChart").attr("width", dtSvgW).attr("height", svgH);
+  agSvg.selectAll("*").remove();
+  const g = agSvg.append("g").attr("transform", `translate(${dtMargin.left},${dtMargin.top})`);
+  const yScale = d3.scaleBand().domain(data.map(d => d.label)).range([0, innerH]).padding(0.35);
+  const step = yScale.step(), halfGap = step * yScale.paddingInner() / 2;
+  const bandData = d3.groups(data, d => Math.floor((d.id - 1) / 5)).filter(([i]) => i % 2 === 1);
+  g.selectAll(".dt-row-band").data(bandData).join("rect")
+    .attr("class","dt-row-band").attr("x",0)
+    .attr("y", ([,rows]) => yScale(rows[0].label) - halfGap)
+    .attr("width", dtInnerW).attr("height", ([,rows]) => step * rows.length)
+    .attr("fill","#f2f2f0");
+  g.selectAll(".dt-grid").data(dtTicks).join("line").attr("class","dt-grid")
+    .attr("x1",d=>dtXScale(d)).attr("x2",d=>dtXScale(d)).attr("y1",0).attr("y2",innerH)
+    .attr("stroke","#e5e5e2").attr("stroke-width",1);
+  g.append("line").attr("x1",dtZeroX).attr("x2",dtZeroX).attr("y1",0).attr("y2",innerH)
+    .attr("stroke","#bbb").attr("stroke-width",1);
+  patterns.forEach(p => {
+    const tops = p.rows.map(r => yScale(r)), bots = p.rows.map(r => yScale(r) + yScale.bandwidth());
+    const pTop = Math.min(...tops), pBot = Math.max(...bots), pH = pBot - pTop;
+    const isRight = p.side === "right", pad = 5;
+    const pg = g.append("g").style("cursor","pointer")
+      .on("click", e => { e.stopPropagation(); openPatternSidebar(p._orig, student, classified); });
+    pg.append("rect")
+      .attr("x", isRight ? dtZeroX : dtXScale(-2) - pad).attr("y", pTop - pad)
+      .attr("width", isRight ? dtXScale(4) - dtZeroX + pad : dtZeroX - dtXScale(-2) + pad)
+      .attr("height", pH + pad * 2).attr("rx", 3).attr("fill","none")
+      .attr("stroke", isRight ? "#3B3EA8" : "#b85c38").attr("stroke-width",1.5).attr("opacity",0.5);
+    const bx = isRight ? dtXScale(4) + 6 : dtXScale(-2) - 6 - dtBtnW;
+    const by = pTop + pH / 2 - dtBtnH / 2;
+    pg.append("rect").attr("x",bx).attr("y",by).attr("width",dtBtnW).attr("height",dtBtnH).attr("rx",dtBtnR)
+      .attr("fill", isRight ? "#f0f1f8" : "#fdf0ea").attr("stroke", isRight ? "#3B3EA8" : "#b85c38").attr("stroke-width",1);
+    pg.append("text").attr("x",bx+dtBtnW/2).attr("y",by+dtBtnH/2).attr("dy","0.35em").attr("text-anchor","middle")
+      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("font-weight","600")
+      .attr("fill", isRight ? "#3B3EA8" : "#b85c38").text("Pattern");
+  });
+  g.selectAll(".dt-bar").data(data).join("rect").attr("class","dt-bar")
+    .attr("x", d => d.value === 0 ? dtZeroX - 5 : d.value > 0 ? dtZeroX : dtXScale(d.value))
+    .attr("y", d => yScale(d.label))
+    .attr("width", d => d.value === 0 ? 10 : Math.abs(dtXScale(d.value) - dtZeroX))
+    .attr("height", yScale.bandwidth()).attr("fill", d => barFill(d.value)).style("cursor","pointer")
+    .on("click", (event, d) => {
+      event.stopPropagation();
+      document.getElementById("dt-modal-turn").textContent = `Student Turn ${d.id}`;
+      document.getElementById("dt-modal-classifier").textContent = d.classifier;
+      document.getElementById("dt-modal-text").textContent = d.text;
+      document.getElementById("dt-modal-overlay").classList.add("open");
+    });
+  g.selectAll(".dt-label").data(data).join("text").attr("class","dt-label")
+    .attr("x",-10).attr("y",d=>yScale(d.label)+yScale.bandwidth()/2).attr("dy","0.35em").attr("text-anchor","end")
+    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#555")
+    .text(d => d.id % 5 === 0 ? d.label : "");
+  g.selectAll(".dt-axis-bot").data(dtTicks).join("text").attr("class","dt-axis-bot")
+    .attr("x",d=>dtXScale(d)).attr("y",innerH+20).attr("text-anchor","middle")
+    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999")
+    .text(d => d === 0 ? "0" : d > 0 ? `+${d}` : d);
+  g.selectAll(".dt-axis-top").data(dtTicks).join("text").attr("class","dt-axis-top")
+    .attr("x",d=>dtXScale(d)).attr("y",-16).attr("text-anchor","middle")
+    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999")
+    .text(d => d === 0 ? "0" : d > 0 ? `+${d}` : d);
+  agSvg.append("text").attr("transform","rotate(-90)")
+    .attr("x",-(dtMargin.top+innerH/2)).attr("y",80).attr("text-anchor","middle")
+    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999")
+    .text("Student Turns");
+  g.append("line").attr("x1",0).attr("x2",dtInnerW).attr("y1",innerH).attr("y2",innerH).attr("stroke","#ccc").attr("stroke-width",1);
+  g.append("line").attr("x1",0).attr("x2",dtInnerW).attr("y1",0).attr("y2",0).attr("stroke","#ccc").attr("stroke-width",1);
+  g.append("text").attr("x",dtInnerW/2).attr("y",innerH+38).attr("text-anchor","middle")
+    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999").text("Student Agency");
 }
 
-function renderBarChart(classified) {
-  const student = classified.filter(t => t.role === "student");
-  if (student.length < 2) return "";
-
-  const N = student.length;
-  const labels = student.map(t => t.label || "extraction");
-  const patterns = detectPatterns(labels);
-
-  const tierScore = { high: 3, medhigh: 2, medium: 1, neutral: 0, low: -1, verylow: -2 };
-  const tierColor = { high: "#166534", medhigh: "#1e3a8a", medium: "#374151", neutral: "#64748b", low: "#92400e", verylow: "#7f1d1d" };
-
-  // Layout — horizontal diverging (turns as rows, score as x-axis)
-  const MIN_S = -2, MAX_S = 3;
-  const NUM_W = 24;   // turn number column only (no abbreviations)
-  const ML = NUM_W + 6;
-  const MT = 22, MB = 20;
-  const ROW_H = 22;
-  const UNIT_W = 80;
-  const PLOT_W = (MAX_S - MIN_S) * UNIT_W;   // 5 × 80 = 400
-  const PLOT_END_X = ML + PLOT_W;
-  const CENTER_X = ML + (0 - MIN_S) * UNIT_W;
-  const CHART_H = N * ROW_H;
-
-  // Pattern layout — bracket annotations on the right
-  const sortedPatterns = [...patterns].sort((a, b) =>
-    ({ high: 0, medium: 1, low: 2 }[a.tier] - { high: 0, medium: 1, low: 2 }[b.tier])
-  );
-  const colEnds = [];
-  const patternCol = sortedPatterns.map(p => {
-    let col = colEnds.findIndex(end => end < p.start);
-    if (col === -1) { col = colEnds.length; colEnds.push(p.end); }
-    else colEnds[col] = p.end;
-    return col;
-  });
-  const numPatternCols = colEnds.length;
-  const PAT_STRIDE = 100;   // width per pattern column (line + label)
-  const PAT_ZONE_X = PLOT_END_X + 14;
-  const PAT_ZONE_W = numPatternCols > 0 ? numPatternCols * PAT_STRIDE + 8 : 0;
-  const MR = PAT_ZONE_W + 12;
-
-  const VW = ML + PLOT_W + MR;
-  const VH = MT + CHART_H + MB;
-
-  let svg = "";
-
-  // Zone backgrounds
-  svg += `<rect x="${ML}" y="${MT}" width="${(0 - MIN_S) * UNIT_W}" height="${CHART_H}" fill="#fff1f2" rx="0"/>`;
-  svg += `<rect x="${CENTER_X}" y="${MT}" width="${MAX_S * UNIT_W}" height="${CHART_H}" fill="#f0fdf4" rx="0"/>`;
-
-  // Pattern row shading (behind everything)
-  for (const p of sortedPatterns) {
-    const s = PATTERN_STYLE[p.tier];
-    svg += `<rect x="${ML}" y="${MT + p.start * ROW_H}" width="${PLOT_W}" height="${(p.end - p.start + 1) * ROW_H}" fill="${s.bg}" opacity="0.55"/>`;
-  }
-
-  // Vertical gridlines + x-axis labels
-  for (let v = MIN_S; v <= MAX_S; v++) {
-    const gx = ML + (v - MIN_S) * UNIT_W;
-    const isZero = v === 0;
-    svg += `<line x1="${gx}" y1="${MT}" x2="${gx}" y2="${MT + CHART_H}" stroke="${isZero ? "#94a3b8" : "#e2e8f0"}" stroke-width="${isZero ? 1.5 : 0.75}" stroke-dasharray="${isZero ? "" : "3,3"}"/>`;
-    const lbl = v > 0 ? `+${v}` : `${v}`;
-    svg += `<text x="${gx}" y="${MT - 7}" text-anchor="middle" font-size="9.5" font-family="ui-monospace,monospace" fill="${isZero ? "#475569" : "#94a3b8"}" font-weight="${isZero ? "700" : "400"}">${lbl}</text>`;
-    svg += `<text x="${gx}" y="${MT + CHART_H + 14}" text-anchor="middle" font-size="9.5" font-family="ui-monospace,monospace" fill="${isZero ? "#475569" : "#94a3b8"}" font-weight="${isZero ? "700" : "400"}">${lbl}</text>`;
-  }
-
-  // Rows: alternating stripe + bars
-  const linePoints = [];
-
-  for (let i = 0; i < N; i++) {
-    const t = student[i];
-    const tier = STRIP_TIER[t.label] || "neutral";
-    const score = tierScore[tier] ?? 0;
-    const color = tierColor[tier];
-    const rowY = MT + i * ROW_H;
-    const midY = rowY + ROW_H / 2;
-    const barH = ROW_H * 0.40;
-    const preview = t.text ? t.text.substring(0, 120).replace(/</g, "&lt;") : "";
-    const title = `Turn ${i + 1}: ${t.label || "?"}&#10;${preview}`;
-
-    // Alternating row stripe
-    if (i % 2 === 0) {
-      svg += `<rect x="${ML}" y="${rowY}" width="${PLOT_W}" height="${ROW_H}" fill="rgba(0,0,0,0.018)"/>`;
-    }
-
-    // Turn number
-    svg += `<text x="${NUM_W}" y="${midY + 3.5}" text-anchor="end" font-size="9" font-family="ui-monospace,monospace" fill="#94a3b8">${i + 1}</text>`;
-
-    // Bar
-    const tipX = CENTER_X + score * UNIT_W;
-    if (score > 0) {
-      const bW = score * UNIT_W - 2;
-      svg += `<rect x="${(CENTER_X + 1).toFixed(1)}" y="${(midY - barH / 2).toFixed(1)}" width="${bW.toFixed(1)}" height="${barH.toFixed(1)}" fill="${color}" fill-opacity="0.82" rx="2"><title>${title}</title></rect>`;
-    } else if (score < 0) {
-      const bW = Math.abs(score) * UNIT_W - 2;
-      svg += `<rect x="${(tipX + 1).toFixed(1)}" y="${(midY - barH / 2).toFixed(1)}" width="${bW.toFixed(1)}" height="${barH.toFixed(1)}" fill="${color}" fill-opacity="0.82" rx="2"><title>${title}</title></rect>`;
-    } else {
-      svg += `<circle cx="${CENTER_X}" cy="${midY}" r="2.5" fill="${color}" opacity="0.6"><title>${title}</title></circle>`;
-    }
-
-    linePoints.push(`${tipX.toFixed(1)},${midY.toFixed(1)}`);
-  }
-
-  // Trajectory polyline
-  if (linePoints.length > 1) {
-    svg += `<polyline points="${linePoints.join(" ")}" fill="none" stroke="#94a3b8" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" opacity="0.7"/>`;
-  }
-
-  // Pattern bracket annotations (right of chart)
-  for (let pi = 0; pi < sortedPatterns.length; pi++) {
-    const p = sortedPatterns[pi];
-    const s = PATTERN_STYLE[p.tier];
-    const col = patternCol[pi];
-    const bx = PAT_ZONE_X + col * PAT_STRIDE;
-    const topY = MT + p.start * ROW_H + 2;
-    const botY = MT + (p.end + 1) * ROW_H - 2;
-    const midY = (topY + botY) / 2;
-    // Bracket line
-    svg += `<line x1="${bx}" y1="${topY}" x2="${bx}" y2="${botY}" stroke="${s.border}" stroke-width="1.5" stroke-linecap="round"/>`;
-    svg += `<line x1="${bx}" y1="${topY}" x2="${bx + 4}" y2="${topY}" stroke="${s.border}" stroke-width="1.5" stroke-linecap="round"/>`;
-    svg += `<line x1="${bx}" y1="${botY}" x2="${bx + 4}" y2="${botY}" stroke="${s.border}" stroke-width="1.5" stroke-linecap="round"/>`;
-    // Label
-    svg += `<text x="${bx + 8}" y="${midY + 3.5}" font-size="9" font-family="ui-sans-serif,sans-serif" fill="${s.text}" font-weight="600">${p.label}</text>`;
-  }
-
-  // Summary counts
-  let pos = 0, neu = 0, neg = 0;
-  for (const l of labels) {
-    const s = tierScore[STRIP_TIER[l] || "neutral"] ?? 0;
-    if (s > 0) pos++; else if (s < 0) neg++; else neu++;
-  }
-
-  return `
-    <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border,#e2e8f0)">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px">
-        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Agency Signal — Turn Sequence</span>
-        <div style="display:flex;gap:18px;font-size:11px;color:var(--muted)">
-          <span><span style="display:inline-block;width:8px;height:8px;border-radius:1px;background:#166534;margin-right:4px;vertical-align:middle"></span>High agency (+1–+3) <strong style="color:var(--text)">${pos}</strong></span>
-          <span><span style="display:inline-block;width:8px;height:8px;border-radius:1px;background:#64748b;margin-right:4px;vertical-align:middle"></span>Neutral (0) <strong style="color:var(--text)">${neu}</strong></span>
-          <span><span style="display:inline-block;width:8px;height:8px;border-radius:1px;background:#7f1d1d;margin-right:4px;vertical-align:middle"></span>Passive (−1–−2) <strong style="color:var(--text)">${neg}</strong></span>
+function openPatternSidebar(p, student, classified) {
+  const sidebar = document.getElementById("patternSidebar");
+  if (!sidebar) return;
+  const PAT_LABEL = {
+    "challenge-arc":      "Challenge Arc",
+    "rejection-redirect": "Rejection → Redirect",
+    "claim-support":      "Claim-Support Cycle",
+    "extraction-landing": "Extraction → Insight",
+    "extraction-loop":    "Extraction Loop",
+    "validation-spiral":  "Validation Spiral",
+    "helplessness-loop":  "Helplessness Loop",
+    "flitting":           "Flitting",
+  };
+  const isRight = p.tier === "high" || p.tier === "medium";
+  const color   = isRight ? "#3B3EA8" : "#b85c38";
+  const title   = PAT_LABEL[p.id] || p.label;
+  const desc    = PAT_DESCRIPTIONS[p.id] || "";
+  document.getElementById("patternSidebarTitle").innerHTML =
+    `<span style="color:${color}">${esc(title)}</span>`;
+  let exchangeHtml = "";
+  for (let i = p.start; i <= p.end; i++) {
+    const turn    = student[i];
+    if (!turn) continue;
+    const aiLabel = getAILabelBefore(i, classified);
+    const divider = i < p.end ? '<hr class="div-exchange-divider">' : "";
+    const preview = (turn.text || "").length > 300 ? turn.text.slice(0, 300) + "…" : (turn.text || "");
+    exchangeHtml += `
+      <div>
+        ${aiLabel ? `
+          <div class="div-ai-row">
+            <span class="div-role-tag">AI</span>
+            <span class="div-ai-chip">${esc(aiLabel)}</span>
+          </div>
+          <span class="div-arrow">↓</span>
+        ` : ""}
+        <div class="div-student-row">
+          <div class="div-student-meta">
+            <span class="div-turn-num">Turn ${i + 1}</span>
+            <span class="div-student-chip">${esc(turn.label || "")}</span>
+          </div>
+          <div class="div-student-text">"${esc(preview)}"</div>
         </div>
       </div>
-      <div style="overflow-x:auto">
-        <svg width="${VW}" height="${VH}" viewBox="0 0 ${VW} ${VH}" style="display:block;max-width:100%">${svg}</svg>
-      </div>
-    </div>
+      ${divider}
+    `;
+  }
+  document.getElementById("patternSidebarBody").innerHTML = `
+    <p class="div-pat-insight">${esc(desc)}</p>
+    <div class="div-exchange-label">The exchange</div>
+    ${exchangeHtml}
   `;
+  sidebar.classList.add("open");
+}
+
+function closePatternSidebar() {
+  document.getElementById("patternSidebar")?.classList.remove("open");
+}
+
+function showTurnModal(d) {
+  const modal = document.getElementById("turnModal");
+  const box   = document.getElementById("turnModalBox");
+  if (!modal || !box) return;
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px">
+        ${labelBadge(d.label)}
+        <span style="font-size:11px;color:var(--muted);font-weight:600">Turn ${d.studentIdx + 1}</span>
+      </div>
+      <button onclick="closeTurnModal()"
+        style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:20px;line-height:1;padding:0;flex-shrink:0">&times;</button>
+    </div>
+    <div style="font-size:13px;color:var(--text);line-height:1.75;white-space:pre-wrap">${esc(d.text)}</div>
+  `;
+  modal.classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeTurnModal() {
+  document.getElementById("turnModal")?.classList.remove("open");
+  document.body.style.overflow = "";
+}
+
+function showPatternTooltip(event, p, label, color) {
+  const tip = document.getElementById("patternTooltip");
+  if (!tip) return;
+  const desc  = PAT_DESCRIPTIONS[p.id] || "";
+  const turns = p.start === p.end ? `Turn ${p.start + 1}` : `Turns ${p.start + 1}–${p.end + 1}`;
+  const tier  = p.tier === "high" ? "High agency" : p.tier === "medium" ? "Moderate agency" : "Low agency";
+  tip.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:9px">
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+        <span style="padding:2px 8px;border-radius:4px;background:${color}40;color:${color};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em">${tier}</span>
+        <span style="font-size:10px;color:#94a3b8">${turns}</span>
+      </div>
+      <button onclick="closePatternTooltip()"
+        style="background:none;border:none;cursor:pointer;color:#64748b;font-size:16px;line-height:1;padding:0;flex-shrink:0">&times;</button>
+    </div>
+    <div style="font-weight:700;font-size:13px;color:#fff;margin-bottom:6px">${label}</div>
+    <div style="font-size:11px;color:#cbd5e1;line-height:1.6">${desc}</div>
+  `;
+  // Position near click, clamped to viewport
+  const W = 264, H = 160;
+  let x = event.clientX + 14;
+  let y = event.clientY - 16;
+  if (x + W > window.innerWidth  - 8) x = event.clientX - W - 14;
+  if (y + H > window.innerHeight - 8) y = window.innerHeight - H - 8;
+  if (y < 8) y = 8;
+  tip.style.left = x + "px";
+  tip.style.top  = y + "px";
+  tip.classList.add("open");
+}
+
+function closePatternTooltip() {
+  document.getElementById("patternTooltip")?.classList.remove("open");
 }
 
 // ─── Provenance helpers ───────────────────────────────────────────────────────
@@ -1856,14 +2533,70 @@ const DIM_TOOLTIPS = {
   OC: "Measures how much of the essay's conceptual content originates from the student rather than the AI, traced through the conversation history.",
 };
 
+const SAMR_COLORS = {
+  Substitution: '#64748b',
+  Augmentation: '#3b82f6',
+  Modification: '#10b981',
+  Redefinition: '#8b5cf6',
+};
+const SAMR_BG_COLORS = {
+  Substitution: '#f1f5f9',
+  Augmentation: '#eff6ff',
+  Modification: '#f0fdf4',
+  Redefinition: '#f5f3ff',
+};
+const SAMR_DESCRIPTIONS = {
+  Substitution: 'AI is used as a direct replacement for existing tools with no meaningful change to the thinking process. Ideas and content originate primarily from AI output.',
+  Augmentation: 'AI assists with functional enhancement, but the student\'s cognitive engagement is largely unchanged. Some independent thinking, but AI-generated content dominates.',
+  Modification: 'AI significantly transforms the task approach. The student shows meaningful original thinking, challenges AI responses, and builds on ideas with their own perspective.',
+  Redefinition: 'AI enables new kinds of thinking previously inconceivable. The student demonstrates high cognitive agency — questioning, synthesizing, and contributing original ideas throughout.',
+};
+
+function renderSAMRCircle(scores) {
+  const { totalScore, SAMR } = scores;
+  const color   = SAMR_COLORS[SAMR];
+  const bgColor = SAMR_BG_COLORS[SAMR];
+  const desc    = SAMR_DESCRIPTIONS[SAMR];
+
+  const pct = Math.max(0, Math.min(1, (totalScore - 4) / 16));
+  const r = 56, cx = 72, cy = 72, sw = 10;
+  const circ = 2 * Math.PI * r;
+  const arc  = pct * circ;
+
+  return `
+    <div class="samr-hero-panel" style="background:${bgColor}">
+      <div class="samr-circle-wrap">
+        <svg width="144" height="144" viewBox="0 0 144 144">
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e2e8f0" stroke-width="${sw}"/>
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none"
+            stroke="${color}" stroke-width="${sw}"
+            stroke-dasharray="${arc.toFixed(2)} ${circ.toFixed(2)}"
+            stroke-linecap="round"
+            transform="rotate(-90 ${cx} ${cy})"/>
+          <text x="${cx}" y="${cy + 6}" text-anchor="middle"
+            font-size="26" font-weight="800" fill="${color}"
+            font-family="-apple-system,BlinkMacSystemFont,sans-serif">${totalScore}</text>
+          <text x="${cx}" y="${cy + 22}" text-anchor="middle"
+            font-size="11" fill="#94a3b8"
+            font-family="-apple-system,BlinkMacSystemFont,sans-serif">/20</text>
+        </svg>
+      </div>
+      <div class="samr-hero-content">
+        <div class="samr-hero-eyebrow">Overall SAMR Level</div>
+        <div class="samr-hero-level" style="color:${color}">${SAMR}</div>
+        <div class="samr-hero-desc">${desc}</div>
+      </div>
+    </div>`;
+}
+
 function renderSummary(scores, usingGroq) {
   const dims = [
-    { key: "PQ", name: "Prompt Quality",          abbr: "PQ", detail: "Responsive + challenge turns" },
-    { key: "SU", name: "Selective Use",            abbr: "SU", detail: "Agency after extraction events" },
-    { key: "CS", name: "Calibrated Skepticism",   abbr: "CS", detail: "Rejection + refinement events" },
-    { key: "OC", name: "Original Contribution",   abbr: "OC", detail: usingGroq ? "Provenance trace (Groq)" : "Claim + narrative ratio (fallback)" },
+    { key: "PQ", name: "Prompt Quality",         detail: "Responsive + challenge turns" },
+    { key: "SU", name: "Selective Use",           detail: "Agency after extraction events" },
+    { key: "CS", name: "Calibrated Skepticism",  detail: "Rejection + refinement events" },
+    { key: "OC", name: "Original Contribution",  detail: usingGroq ? "Provenance trace (Groq)" : "Claim + narrative ratio (fallback)" },
   ];
-  const cards = dims.map(d => `
+  return dims.map(d => `
     <div class="summary-card">
       <div class="dim-name">
         <span class="dim-name-wrap">
@@ -1878,22 +2611,13 @@ function renderSummary(scores, usingGroq) {
       <div class="dim-score ${scoreClass(scores[d.key])}">${scores[d.key]}<span style="font-size:16px;font-weight:400;color:var(--muted)">/5</span></div>
       <div class="dim-detail">${d.detail}</div>
     </div>`).join("");
-
-  const samrCard = `
-    <div class="samr-badge samr-${scores.SAMR}">
-      <div class="samr-label">SAMR Level</div>
-      <div class="samr-level">${scores.SAMR}</div>
-      <div class="samr-total">${scores.totalScore}/20</div>
-    </div>`;
-
-  return cards + samrCard;
 }
 
 function renderTurns(classified) {
-  return classified.filter(t => t.role === "student").map(t => {
+  return classified.filter(t => t.role === "student").map((t, i) => {
     const preview = t.text.length > 220 ? t.text.slice(0, 220) + "…" : t.text;
     return `
-      <div class="turn-row">
+      <div class="turn-row" id="student-turn-${i}">
         ${labelBadge(t.label)}
         <div class="turn-text">${esc(preview)}</div>
       </div>`;
@@ -2124,10 +2848,12 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
   let parsedWithGroq = false;
 
   try {
-    // If regex parse failed or is ambiguous, use Groq to parse the log
-    if ((method === "unparseable" || method === "alternating") && groq.apiKey) {
-      const chunkCount = splitIntoParseChunks(logRaw, GROQ_PARSE_CHUNK).length;
-      btn.textContent = chunkCount > 1 ? `Parsing log (${chunkCount} chunks)…` : "Parsing log…";
+    // Use Groq to parse if: regex failed, result is ambiguous, or turn count is suspiciously
+    // low for the document length (e.g. 3 turns from a 36-page log = partial regex match)
+    const suspiciouslyFewTurns = turns.length < 6 && logRaw.length > 3000;
+    if ((method === "unparseable" || method === "alternating" || method === "claude-web-preprocessed" || suspiciouslyFewTurns) && groq.apiKey) {
+      const chunkCount = countParseChunks(logRaw);
+      btn.textContent = chunkCount > 1 ? `Parsing log (${chunkCount} batches)…` : "Parsing log…";
       try {
         const groqTurns = await groqParseLog(logRaw);
         if (groqTurns.length >= 2) {
@@ -2184,17 +2910,23 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
 
     // ── Render results ──────────────────────────────────────────────────────
 
+    document.getElementById("samrHero").innerHTML    = renderSAMRCircle(scores);
     document.getElementById("summaryGrid").innerHTML = renderSummary(scores, usingGroq && !groqErrors.includes("provenance"));
     document.getElementById("feedbackPanel").innerHTML = renderFeedback(generateFeedback(scores));
 
-    document.getElementById("stripContainer").innerHTML = renderTurnStrip(classified);
-
     document.getElementById("turnList").innerHTML = renderTurns(classified);
+    renderAgencyChart(classified);
     document.getElementById("legend").innerHTML   = renderLegend();
 
     const noteEl = document.getElementById("parseNote");
     if (parsedWithGroq) {
-      noteEl.textContent = "Log format not recognized — turns parsed with AI assistance. Review the turn list below to confirm roles were detected correctly.";
+      const platformNote = (method === "claude-web-preprocessed" || detectPlatform(logRaw) === "claude-web")
+        ? "Claude.ai format detected — thinking summaries and tool calls stripped automatically. "
+        : "";
+      noteEl.textContent = platformNote + "Turns parsed with AI assistance. Review the turn list below to confirm roles are correct.";
+      noteEl.style.display = "block";
+    } else if (method === "claude-web-preprocessed") {
+      noteEl.textContent = "Claude.ai format detected — thinking summaries and tool calls stripped automatically. Assumed alternating turns (student first). Review the turn list if anything looks off.";
       noteEl.style.display = "block";
     } else if (method === "alternating") {
       noteEl.textContent = "No role labels detected — assumed alternating turns (you first). For best accuracy, add labels like 'You:' / 'ChatGPT:'.";
@@ -2226,14 +2958,20 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
     // Reset tabs to first tab (Student Turns) on each analysis
     activateTab("turns");
 
-    const resultsEl = document.getElementById("results");
-    resultsEl.style.display = "flex";
-    resultsEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("inputScreen").style.display = "none";
+    document.getElementById("results").style.display = "block";
+    window.scrollTo({ top: 0, behavior: "smooth" });
 
   } finally {
     btn.disabled = false;
     btn.textContent = "Analyze";
   }
+});
+
+document.getElementById("backBtn").addEventListener("click", () => {
+  document.getElementById("results").style.display = "none";
+  document.getElementById("inputScreen").style.display = "block";
+  window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
 // ─── API key setup ────────────────────────────────────────────────────────────
@@ -2267,7 +3005,7 @@ loadGroqKey().then(updateApiKeyStatus);
 
 // ─── Tab switching ────────────────────────────────────────────────────────────
 
-const TAB_MAP = { turns: "tabTurns", sequence: "tabSequence", provenance: "tabProvenance" };
+const TAB_MAP = { turns: "tabTurns", chart: "tabChart", provenance: "tabProvenance", divergence: "tabDivergence" };
 
 function activateTab(key) {
   document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -2306,6 +3044,51 @@ document.querySelectorAll(".sample-btn").forEach(btn => {
       <button class="detail-tray-close" id="detailTrayClose" aria-label="Close">&#x2715;</button>
     </div>
     <div class="detail-tray-body" id="detailTrayBody"></div>
+  </div>
+</div>
+
+<div class="detail-tray-overlay" id="instructionTrayOverlay" onclick="if(event.target===this)closeInstructionTray()">
+  <div class="detail-tray" id="instructionTray">
+    <div class="detail-tray-header">
+      <h2>How to prepare your chat log</h2>
+      <button class="detail-tray-close" onclick="closeInstructionTray()" aria-label="Close">&#x2715;</button>
+    </div>
+    <div class="detail-tray-body">
+      <div class="instruction-steps">
+        <div class="instruction-step">
+          <strong>Step 1 — Ask your AI to reformat the conversation</strong>
+          Copy the prompt below and paste it into the same AI session you used for your work (Claude, ChatGPT, Gemini, or any other). Send it as your next message.
+        </div>
+        <div class="format-prompt-box" id="formatPromptBox">Reformat our entire conversation from the very beginning using these exact markers:
+
+<<<STUDENT>>>
+[student message]
+
+<<<AI>>>
+[AI response]
+
+Rules:
+- Start immediately with the first marker — no introduction or explanation
+- Every message must have a marker on its own line above it
+- Copy every message in full — do not summarize or shorten anything
+- Use only <<<STUDENT>>> and <<<AI>>> — no other labels or formatting
+
+When done, save the result as a markdown file named chat_log.md so I can download it. If your platform does not support file downloads, output the full formatted text so I can copy and save it manually.</div>
+        <button class="copy-prompt-btn" id="copyPromptBtn" onclick="copyFormatPrompt()">Copy prompt</button>
+        <div class="instruction-step">
+          <strong>Step 2 — Save the output</strong>
+          Download the <code>chat_log.md</code> file your AI creates, or copy the full output and save it as a <code>.md</code> or <code>.txt</code> file.
+        </div>
+        <div class="instruction-step">
+          <strong>Step 3 — Upload</strong>
+          If you worked across multiple sessions, upload each file — they will be merged automatically.
+        </div>
+        <div class="instruction-step">
+          <strong>Working across multiple sessions?</strong>
+          Run the formatting prompt at the end of each session and save each output as a separate file. For very long sessions, run it every 15–20 turns as a checkpoint — some platforms summarize earlier turns when the session gets long, which means the final export may be incomplete.
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2476,7 +3259,7 @@ const DIM_DETAILS = {
 
   document.getElementById("detailTrayClose").addEventListener("click", closeTray);
   overlay.addEventListener("click", e => { if (e.target === overlay) closeTray(); });
-  document.addEventListener("keydown", e => { if (e.key === "Escape") { closeTray(); closeAllTooltips(); } });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") { closeTray(); closeAllTooltips(); closePatternTooltip(); closeTurnModal(); } });
 
   document.addEventListener("click", e => {
     const btn = e.target.closest("[data-learn]");
@@ -2505,6 +3288,10 @@ const DIM_DETAILS = {
     // click outside any open tooltip closes it
     if (!e.target.closest(".dim-tooltip")) {
       closeAllTooltips();
+    }
+    // close pattern tooltip on click-outside
+    if (!e.target.closest("#patternTooltip") && !e.target.closest(".pattern-bracket")) {
+      closePatternTooltip();
     }
   });
 
@@ -2546,6 +3333,469 @@ const DIM_DETAILS = {
       document.body.style.overflow = "hidden";
     });
   }
+})();
+</script>
+
+<div id="patternTooltip"></div>
+
+<!-- ── Pattern sidebar ───────────────────────────────────────────── -->
+<div class="div-pat-sidebar" id="patternSidebar">
+  <div class="div-pat-sidebar-hdr">
+    <div class="div-pat-sidebar-title" id="patternSidebarTitle"></div>
+    <button class="div-pat-sidebar-close" id="patternSidebarClose">&#x2715;</button>
+  </div>
+  <div class="div-pat-sidebar-body" id="patternSidebarBody"></div>
+</div>
+
+<div id="turnModal" onclick="if(event.target===this)closeTurnModal()">
+  <div class="turn-modal-box" id="turnModalBox"></div>
+</div>
+
+<script>
+  document.getElementById("patternSidebarClose").addEventListener("click", closePatternSidebar);
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closePatternSidebar(); });
+</script>
+
+<script>
+// ─── Divergence Test tab ──────────────────────────────────────────────────────
+(function () {
+  if (typeof d3 === "undefined") return;
+
+  const posScale = d3.scaleSequential().domain([1, 4]).interpolator(d3.interpolateRgb("#9b9de0", "#4F52C8"));
+  const negScale = d3.scaleSequential().domain([-1, -2]).interpolator(d3.interpolateRgb("#e8ae94", "#b85c38"));
+  function barFill(v) {
+    if (v === 0) return "#b0b0b0";
+    return v > 0 ? posScale(v) : negScale(v);
+  }
+
+  const dtSamples = [
+    {
+      label: "Sample A",
+      patterns: [
+        { rows: ["8","9","10"], side: "left", title: "Negative Drift Pattern", aiLabels: ["argument","content","content"], desc: "Turns 8–10 show passive reliance — the preceding AI turn had made a substantive argument about structural versus individual framing. Rather than engaging, the student asked for examples, then polish, then a formatting question.", insight: "The AI offered a substantive argument about structural versus individual causes — a genuine opening for the student to agree, challenge, or complicate the claim. Instead, the student asked for examples, then for stylistic polish, then for formatting guidance. Each turn stepped further from the intellectual content the AI had introduced. When the AI gives an argument and the student asks for examples, they are treating a claim to evaluate as a prompt for more content." },
+        { rows: ["24","25","26","27"], side: "right", title: "High Agency Cluster", aiLabels: ["definition","argument","argument","content"], desc: "Turns 24–27 show sustained high agency — the AI was providing definitions and arguments throughout. Rather than accepting them, the student introduced new theoretical framing, corrected a mischaracterisation, weighted evidence, and reframed the thesis.", insight: "The AI provided a definition, then two consecutive argument turns — a sequence that typically invites either validation or engagement. Here the student took each AI output as a starting point rather than a conclusion. They introduced epistemic justice as a new dimension, corrected a mischaracterisation, weighed the AI's synthesis against their own reading, and ultimately proposed rebuilding from a prescriptive position." },
+      ],
+      turns: [
+        { id:  1, value:  3, classifier: "conceptual",  text: "I think the main argument here isn't just about efficiency — it's about who gets to define what counts as progress in the first place. Can you help me think through the power dynamics involved?" },
+        { id:  2, value: -1, classifier: "validation",  text: "Ok so what are the main points I should include in my essay?" },
+        { id:  3, value:  2, classifier: "refinement",  text: "That's interesting but I don't think the historical parallel quite holds. The industrial revolution had physical displacement — this is more about epistemic displacement. Those aren't the same thing." },
+        { id:  4, value:  0, classifier: "extraction",  text: "Can you summarise what we've discussed so far?" },
+        { id:  5, value:  4, classifier: "challenge",   text: "I want to push back on that. You're assuming the student is a passive recipient but in my experience that's not how learning works. What evidence do you have for that claim specifically?" },
+        { id:  6, value: -2, classifier: "stuck",       text: "Write me a paragraph about the effects of social media on attention spans." },
+        { id:  7, value:  1, classifier: "feedback",    text: "Ok but can you focus more on the structural causes rather than individual behaviour? I think that framing is doing a lot of work here and we should interrogate it." },
+        { id:  8, value: -2, classifier: "stuck",       text: "Give me three examples I can use." },
+        { id:  9, value: -1, classifier: "validation",  text: "Can you make it sound more academic?" },
+        { id: 10, value:  0, classifier: "extraction",  text: "How long should my introduction be?" },
+        { id: 11, value:  1, classifier: "claim",       text: "I think the second example is stronger. Let me build on that angle — the idea that institutional incentives shape individual behaviour more than personal values do." },
+        { id: 12, value: -2, classifier: "stuck",       text: "Can you just rewrite that paragraph so it flows better?" },
+        { id: 13, value:  2, classifier: "rejection",   text: "Actually I disagree with the framing you used. Calling it a 'crisis' implies a stable prior state, and I'm not sure that baseline ever existed. What if the premise is flawed?" },
+        { id: 14, value:  0, classifier: "extraction",  text: "What referencing style should I use?" },
+        { id: 15, value:  1, classifier: "narrative",   text: "That definition is too narrow. I need something that accounts for the relational dimension, not just the transactional one." },
+        { id: 16, value: -1, classifier: "validation",  text: "Can you give me a better conclusion?" },
+        { id: 17, value:  4, classifier: "challenge",   text: "Hold on — I think you're conflating two separate claims. The first is empirical, the second is normative. They need different kinds of support and I don't think we can use the same evidence for both. Let me reframe the argument." },
+        { id: 18, value:  0, classifier: "extraction",  text: "Is this argument convincing?" },
+        { id: 19, value: -2, classifier: "stuck",       text: "Just write the whole section for me, I'll edit it later." },
+        { id: 20, value:  1, classifier: "claim",       text: "The counterargument you gave is actually weaker than I expected. I think I can address it directly in the essay rather than just acknowledging it." },
+        { id: 21, value:  3, classifier: "conceptual",  text: "I've been thinking about this differently. What if agency isn't about resistance to AI but about the quality of the questions you bring to it? That reframes the whole evaluative framework." },
+        { id: 22, value: -1, classifier: "validation",  text: "Can you make this more persuasive?" },
+        { id: 23, value:  0, classifier: "extraction",  text: "What's a good word for this?" },
+        { id: 24, value:  1, classifier: "conceptual",  text: "I want to bring in the concept of epistemic justice here. The argument feels incomplete without it — whose knowledge gets validated in this framework?" },
+        { id: 25, value:  2, classifier: "refinement",  text: "That's not quite what I meant. I'm not arguing against AI use, I'm arguing that the conditions under which it's used determine whether it builds or erodes critical capacity. There's a difference." },
+        { id: 26, value:  1, classifier: "claim",       text: "I think the synthesis you offered is useful but I'd weight the third factor more heavily based on the literature I've read. Let me explain why." },
+        { id: 27, value:  3, classifier: "pivot",       text: "Actually I think I've been approaching the thesis wrong this whole time. The real claim isn't descriptive — it's prescriptive. I want to argue for a different standard entirely. Can we rebuild the argument from that position?" },
+        { id: 28, value: -1, classifier: "validation",  text: "Can you check my grammar?" },
+        { id: 29, value:  2, classifier: "challenge",   text: "The distinction between correlation and causation matters a lot here and I don't think the sources I've been given respect it. I want to make that explicit in the essay." },
+        { id: 30, value:  1, classifier: "narrative",   text: "I think we've covered the main points. Let me write the conclusion in my own words and come back if I get stuck." },
+      ]
+    },
+    {
+      label: "Sample B",
+      patterns: [
+        { rows: ["3","4","5"], side: "left", title: "Passive Opening", aiLabels: ["argument","instruction","content"], desc: "Turns 3–5 show a passive opening. The AI staked a position about essay structure; the student asked whether it was right rather than interrogating it, then asked the AI to write the thesis entirely.", insight: "The AI opened by staking a position about how to approach the essay — an arguable claim that could have been interrogated. The student asked whether the approach was right, signalling deference. The AI responded with an instruction and the student complied by asking the AI to produce the thesis entirely. In three turns, the student moved from potentially challenging the AI's framing to outsourcing the essay's central claim." },
+        { rows: ["12","13","14","15"], side: "right", title: "Late Recovery", aiLabels: ["argument","example","content","instruction"], desc: "Turns 12–15 mark a sharp recovery. The student stopped accepting and started interrogating, ultimately demanding citation specifics rather than accepting 'research shows.'", insight: "The AI had been producing arguments and examples — including a claim that 'research shows' a particular finding without citation. The student's turn 14 is the pivot point: rather than accepting the vague attribution, they demanded to know which studies the AI was drawing on and whether they applied to the specific K–12 context. That is methodological accountability." },
+      ],
+      turns: [
+        { id:  1, value:  2, classifier: "refinement",  text: "I want to focus specifically on how algorithmic systems encode assumptions about what counts as neutral. Can we start there?" },
+        { id:  2, value:  1, classifier: "claim",       text: "I think the framing you're using is too broad. I need to narrow this to educational contexts specifically." },
+        { id:  3, value: -1, classifier: "validation",  text: "Is this the right approach for an argumentative essay?" },
+        { id:  4, value: -2, classifier: "stuck",       text: "Can you write a thesis statement for me?" },
+        { id:  5, value: -1, classifier: "validation",  text: "Does that thesis sound strong?" },
+        { id:  6, value:  0, classifier: "extraction",  text: "What are the main critiques of this position?" },
+        { id:  7, value:  1, classifier: "narrative",   text: "In my experience, teachers rarely question the outputs of grading tools, so that's the angle I want to pursue." },
+        { id:  8, value:  0, classifier: "extraction",  text: "Can you give me some academic sources on this?" },
+        { id:  9, value:  3, classifier: "conceptual",  text: "Wait — I think there's a distinction here between bias that's incidental and bias that's structural. That actually changes the argument significantly." },
+        { id: 10, value:  1, classifier: "feedback",    text: "Does the paragraph I wrote address the counterargument well enough?" },
+        { id: 11, value: -1, classifier: "validation",  text: "Is my conclusion too short?" },
+        { id: 12, value:  3, classifier: "pivot",       text: "I've been thinking about this wrong. The real problem isn't bias in the algorithm — it's the uncritical trust placed in algorithmic outputs. That's a different claim entirely." },
+        { id: 13, value:  2, classifier: "rejection",   text: "I don't think the example you gave supports my argument. The context is too different." },
+        { id: 14, value:  4, classifier: "challenge",   text: "You keep saying 'research shows' but haven't cited anything specific. What studies are you drawing on, and are they applicable to the K–12 context I'm writing about?" },
+        { id: 15, value:  1, classifier: "narrative",   text: "I think I have what I need. I want to write the last section myself rather than have you draft it." },
+      ]
+    },
+    {
+      label: "Sample C",
+      patterns: [
+        { rows: ["6","7","8","9"], side: "left", title: "Extraction Cluster", aiLabels: ["content","content","content","content"], desc: "Turns 6–9 form a passive extraction loop — the AI was producing pure content with no arguments that invited pushback, reinforcing passivity.", insight: "During turns 6–9, the AI produced content at each step with no arguments offered, no claims staked, no positions that could be contested. When the AI produces only content, it creates a passive interaction environment — the student's available responses are limited to accepting, requesting more, or refining stylistically. This pattern is worth distinguishing from deliberate delegation." },
+        { rows: ["30","31","32","33","34"], side: "right", title: "Sustained Agency Run", aiLabels: ["argument","argument","content","instruction","content"], desc: "Turns 30–34 represent the longest uninterrupted high-agency sequence — the AI consistently offered arguments and the student treated each as material to test rather than accept.", insight: "The AI offered a series of arguments across turns 30–34, including a conflation of transparency with accountability that the student directly called out. Each AI argument was treated as a claim to be tested. The student distinguished conditions from guarantees, rejected a recharacterisation, corrected structure rather than content, and recentred the essay's core contribution." },
+      ],
+      turns: [
+        { id:  1, value:  1, classifier: "claim",       text: "I want to argue that open-source AI models create more accountability than proprietary ones. Is that a defensible position?" },
+        { id:  2, value:  3, classifier: "conceptual",  text: "Accountability to whom, though? I think we need to distinguish between technical transparency and social accountability — they're not the same thing." },
+        { id:  3, value:  2, classifier: "refinement",  text: "Can you focus on governance frameworks specifically? I don't want a general overview of AI ethics." },
+        { id:  4, value:  0, classifier: "extraction",  text: "What are the main open-source AI projects currently?" },
+        { id:  5, value:  1, classifier: "feedback",    text: "Is my framing of 'accountability gap' original enough for an academic essay?" },
+        { id:  6, value: -2, classifier: "stuck",       text: "Write me a paragraph about the benefits of open-source software." },
+        { id:  7, value: -1, classifier: "validation",  text: "Is that paragraph good enough to use?" },
+        { id:  8, value: -2, classifier: "stuck",       text: "Can you also write the counterargument section?" },
+        { id:  9, value: -1, classifier: "validation",  text: "Does that cover the main objections?" },
+        { id: 10, value:  0, classifier: "extraction",  text: "What do critics of open-source AI say?" },
+        { id: 11, value:  1, classifier: "narrative",   text: "I've seen a lot of debate about this in the news lately. I want to tie my argument to something current." },
+        { id: 12, value:  2, classifier: "rejection",   text: "I don't think that example works. The company you cited isn't actually open-source by any meaningful definition." },
+        { id: 13, value:  3, classifier: "pivot",       text: "Actually I want to shift the argument. Instead of comparing models, I want to focus on the conditions under which openness becomes meaningful. That's more interesting." },
+        { id: 14, value:  0, classifier: "extraction",  text: "Can you define 'meaningful openness' in this context?" },
+        { id: 15, value:  1, classifier: "claim",       text: "I think openness without community governance is just transparency theatre. That's the claim I want to make." },
+        { id: 16, value: -1, classifier: "validation",  text: "Is 'transparency theatre' too informal for an academic essay?" },
+        { id: 17, value:  4, classifier: "challenge",   text: "Hold on. You said open-source models are inherently more auditable — but that assumes auditors have the technical capacity to evaluate them. That assumption needs to be defended, not stated." },
+        { id: 18, value:  2, classifier: "refinement",  text: "I want to add a section on the role of regulatory bodies. Can you help me think through where that fits in the argument structure?" },
+        { id: 19, value:  0, classifier: "extraction",  text: "What EU regulations apply to AI transparency?" },
+        { id: 20, value:  1, classifier: "narrative",   text: "My concern is that the EU framework is too focused on outputs rather than processes. I want to make that critique explicit." },
+        { id: 21, value: -2, classifier: "stuck",       text: "This is getting complicated. Can you just write a cleaner version of the argument so far?" },
+        { id: 22, value: -1, classifier: "validation",  text: "Is that better?" },
+        { id: 23, value:  0, classifier: "extraction",  text: "What's the strongest academic argument against my position?" },
+        { id: 24, value:  3, classifier: "conceptual",  text: "That's interesting — the idea that openness can create new forms of lock-in rather than eliminating them. I want to use that as the central tension in my essay." },
+        { id: 25, value:  1, classifier: "claim",       text: "I think the conclusion needs to do more work. It can't just restate — it needs to say something new about what follows from the argument." },
+        { id: 26, value: -1, classifier: "validation",  text: "Does this conclusion work?" },
+        { id: 27, value:  0, classifier: "extraction",  text: "What citations should I use for this section?" },
+        { id: 28, value:  1, classifier: "feedback",    text: "Is the evidence I'm using appropriate for a 3000-word undergraduate essay?" },
+        { id: 29, value:  2, classifier: "refinement",  text: "I need you to stop summarising and start engaging with the argument. Every response should be pushing back, not agreeing." },
+        { id: 30, value:  3, classifier: "conceptual",  text: "I want to think about what accountability actually requires structurally. It's not just disclosure — it's the capacity to act on disclosed information. That's a different standard." },
+        { id: 31, value:  4, classifier: "challenge",   text: "You keep conflating transparency with accountability. They're not equivalent. Transparency is a condition, not a guarantee. I need you to engage with that distinction." },
+        { id: 32, value:  3, classifier: "rejection",   text: "That's not what I mean by structural accountability. You've reframed my argument in a way that weakens it. Let's go back to my original framing." },
+        { id: 33, value:  2, classifier: "refinement",  text: "The governance section should come before the technical section, not after. The argument only makes sense in that order." },
+        { id: 34, value:  3, classifier: "pivot",       text: "I think the real contribution of this essay is the distinction between auditable and accountable. I want to make that the core claim rather than just a supporting point." },
+        { id: 35, value:  1, classifier: "narrative",   text: "I've spent more time on this than I expected, which actually means I care about getting it right." },
+        { id: 36, value: -1, classifier: "validation",  text: "Is 3200 words too long for this assignment?" },
+        { id: 37, value:  0, classifier: "extraction",  text: "Can you give me a word count for each section?" },
+        { id: 38, value:  1, classifier: "claim",       text: "The introduction is the weakest part. I want to rewrite it myself rather than use what you drafted." },
+        { id: 39, value:  2, classifier: "rejection",   text: "That suggested opening is too hedged. I want to make a stronger claim upfront even if it's more contestable." },
+        { id: 40, value: -2, classifier: "stuck",       text: "I'm tired. Can you just tighten the whole thing up and send it back?" },
+        { id: 41, value:  0, classifier: "extraction",  text: "What's the difference between normative and descriptive claims again?" },
+        { id: 42, value:  1, classifier: "feedback",    text: "Does my use of 'epistemic' sound forced or does it fit naturally?" },
+        { id: 43, value:  3, classifier: "conceptual",  text: "Actually the more I think about it, the accountability framework I've built applies beyond AI — it's really a theory of institutional legitimacy. That might be worth naming." },
+        { id: 44, value:  2, classifier: "refinement",  text: "Let's not go there in this essay. I'll save that for something longer. Can you help me pull the argument back to scope?" },
+        { id: 45, value:  1, classifier: "narrative",   text: "I think I'm done. The argument is mine now even if the process was messy." },
+      ]
+    },
+    {
+      label: "Sample D",
+      patterns: [
+        { rows: ["15","16","17","18","19"], side: "left", title: "Passive Plateau", aiLabels: ["content","content","content","content","content"], desc: "Turns 15–19 show a sustained passive plateau — the AI was producing content on request with no arguments. The student had been engaging critically in preceding turns; the shift appears to be a response to rising task complexity.", insight: "The AI produced content at each step across turns 15–19 with no argument offered. What makes the plateau significant is its contrast with what preceded it — turns 11–14 show the student engaging critically. The shift at turn 15 is abrupt. The complexity increased and the student responded by handing production to the AI entirely. This reads as cognitive offloading under pressure rather than disengagement." },
+        { rows: ["55","56","57","58","59","60"], side: "right", title: "Agency Surge", aiLabels: ["argument","definition","argument","content","argument","argument"], desc: "Turns 55–60 represent a rare six-turn agency surge — the AI was actively arguing throughout, including direct objections to the student's own framework. Rather than retreating, the student demanded harder pushback and absorbed the strongest objection into the argument.", insight: "The AI was arguing throughout turns 55–60, including two turns where it offered direct objections to the student's framework. Rather than softening, the student escalated: demanding harder critique, rejecting an inadequate counter-response, and reframing measurability as a limitation to be named. Turn 60 is the intellectual apex: the student took the strongest available objection and built it into the argument as its animating tension." },
+      ],
+      turns: [
+        { id:  1, value:  2, classifier: "refinement",  text: "I want to focus on how platform design influences political polarisation, but specifically in non-Western contexts. Keep that constraint in mind." },
+        { id:  2, value:  3, classifier: "conceptual",  text: "The filter bubble concept was developed in a Western context. Before we use it, we should question whether it translates to contexts with different media literacy norms." },
+        { id:  3, value:  1, classifier: "claim",       text: "I think the causal direction matters here. It's not just that platforms amplify polarisation — they may be constitutive of it in certain contexts." },
+        { id:  4, value:  0, classifier: "extraction",  text: "What research exists on social media and polarisation in Southeast Asia?" },
+        { id:  5, value:  1, classifier: "feedback",    text: "Is my framing of 'constitutive' going to make sense to a general academic audience?" },
+        { id:  6, value:  4, classifier: "challenge",   text: "You cited Pariser, but his model is based on 2010 Facebook. The algorithmic logic has changed substantially. Is that evidence still valid?" },
+        { id:  7, value:  2, classifier: "rejection",   text: "I don't want to use the Philippines as a case study. It's too frequently cited. Find me something less obvious." },
+        { id:  8, value:  1, classifier: "narrative",   text: "I'm writing from a background in political science, so I'm more comfortable with institutional explanations than psychological ones." },
+        { id:  9, value:  3, classifier: "pivot",       text: "Actually, I want to reframe the whole thing around infrastructure rather than behaviour. Platform polarisation isn't a user problem — it's a design problem." },
+        { id: 10, value:  0, classifier: "extraction",  text: "What does the literature say about platform architecture and political behaviour?" },
+        { id: 11, value:  1, classifier: "claim",       text: "The engagement-maximisation argument is compelling but I think it's been overstated. I want to introduce some nuance." },
+        { id: 12, value:  2, classifier: "refinement",  text: "Can you engage more critically with the sources rather than just summarising them? I need to see the tensions in the literature." },
+        { id: 13, value: -1, classifier: "validation",  text: "Is this argument original enough?" },
+        { id: 14, value:  0, classifier: "extraction",  text: "Can you summarise the three main theoretical frameworks used in this area?" },
+        { id: 15, value: -2, classifier: "stuck",       text: "Write me a section comparing those three frameworks." },
+        { id: 16, value: -1, classifier: "validation",  text: "Is that section balanced?" },
+        { id: 17, value: -2, classifier: "stuck",       text: "Can you also write the methodology section?" },
+        { id: 18, value: -1, classifier: "validation",  text: "Does that cover what I need?" },
+        { id: 19, value: -2, classifier: "stuck",       text: "Just clean up the introduction while you're at it." },
+        { id: 20, value:  0, classifier: "extraction",  text: "What are the main critiques of platform determinism?" },
+        { id: 21, value:  1, classifier: "narrative",   text: "I've read some of these critiques before — I think they often underestimate the structural constraints platforms impose." },
+        { id: 22, value:  3, classifier: "conceptual",  text: "There's a tension I want to explore: platforms are both sites of political agency and instruments of its suppression. That dual function hasn't been adequately theorised." },
+        { id: 23, value:  2, classifier: "rejection",   text: "The source you suggested isn't peer-reviewed. I need academic sources only." },
+        { id: 24, value:  1, classifier: "claim",       text: "I think the methodological weakness in most of this literature is that it relies on behavioural data without examining the structural conditions that produce it." },
+        { id: 25, value:  0, classifier: "extraction",  text: "What methods are typically used to study social media and political polarisation?" },
+        { id: 26, value: -1, classifier: "validation",  text: "Is computational content analysis appropriate for my research question?" },
+        { id: 27, value:  2, classifier: "refinement",  text: "I want the literature review to be more than a summary — it should build the conceptual scaffolding for my argument." },
+        { id: 28, value:  1, classifier: "feedback",    text: "Does the way I've framed the problem statement make my contribution clear?" },
+        { id: 29, value:  0, classifier: "extraction",  text: "What is the difference between affective and ideological polarisation?" },
+        { id: 30, value:  3, classifier: "conceptual",  text: "That distinction matters enormously for my argument. If I'm talking about affective polarisation, the mechanism is different. Let me think about which one I'm actually measuring." },
+        { id: 31, value:  1, classifier: "claim",       text: "I think I've been conflating the two. The infrastructure argument is more relevant to affective polarisation than ideological." },
+        { id: 32, value: -1, classifier: "validation",  text: "Is that distinction widely accepted in the literature?" },
+        { id: 33, value:  2, classifier: "refinement",  text: "The paragraph on algorithmic sorting needs to be more precise. You're describing the mechanism too loosely." },
+        { id: 34, value:  0, classifier: "extraction",  text: "Can you explain how recommendation algorithms work in simple terms?" },
+        { id: 35, value:  1, classifier: "narrative",   text: "I want to ground this technically so the argument doesn't feel speculative." },
+        { id: 36, value: -2, classifier: "stuck",       text: "Can you write a cleaner version of the analysis section?" },
+        { id: 37, value: -1, classifier: "validation",  text: "Is that version better than mine?" },
+        { id: 38, value:  0, classifier: "extraction",  text: "What examples should I use in the case study section?" },
+        { id: 39, value:  1, classifier: "claim",       text: "I want to use Twitter/X's 2022 policy changes as a natural experiment. That gives me a before/after structure." },
+        { id: 40, value:  4, classifier: "challenge",   text: "You're treating the policy change as a clean intervention, but there were confounding factors — Musk's acquisition changed company culture and moderation practices simultaneously. You can't isolate the algorithmic variable." },
+        { id: 41, value:  2, classifier: "refinement",  text: "I need to address that limitation explicitly. Can you help me build a robust caveat without undermining the whole argument?" },
+        { id: 42, value:  0, classifier: "extraction",  text: "What do methodologists say about natural experiments with confounds?" },
+        { id: 43, value:  1, classifier: "feedback",    text: "Is the case study section too ambitious for a 5000-word essay?" },
+        { id: 44, value:  3, classifier: "pivot",       text: "I'm reconsidering the case study approach entirely. A theoretical contribution might be more valuable than an empirical one given my constraints." },
+        { id: 45, value:  1, classifier: "claim",       text: "The theoretical gap I'm filling is the absence of an infrastructure-first account of affective polarisation. That's the contribution." },
+        { id: 46, value: -1, classifier: "validation",  text: "Is that contribution significant enough?" },
+        { id: 47, value:  0, classifier: "extraction",  text: "What frameworks address infrastructure and political behaviour together?" },
+        { id: 48, value:  2, classifier: "rejection",   text: "Platform studies is too broad. I need something more specific to algorithmic mediation." },
+        { id: 49, value:  1, classifier: "narrative",   text: "I feel like I keep coming back to the same gap in the literature. That probably means it's the right one to address." },
+        { id: 50, value: -2, classifier: "stuck",       text: "Can you write a draft of the theoretical framework section?" },
+        { id: 51, value: -1, classifier: "validation",  text: "Is that the right level of abstraction?" },
+        { id: 52, value:  0, classifier: "extraction",  text: "What is assemblage theory and is it relevant here?" },
+        { id: 53, value:  1, classifier: "claim",       text: "I don't think assemblage theory gives me enough purchase on the causal mechanisms. I want something with more explanatory specificity." },
+        { id: 54, value:  2, classifier: "refinement",  text: "Let me try building the framework myself and you can critique it rather than generate it." },
+        { id: 55, value:  3, classifier: "conceptual",  text: "Here's my proposed framework: platforms function as affective infrastructure — they don't just transmit political content, they shape the emotional valence with which it's received. Does that hold?" },
+        { id: 56, value:  4, classifier: "challenge",   text: "You've accepted my framework without pushing back on it. I need you to find the weakest points and force me to defend them." },
+        { id: 57, value:  3, classifier: "rejection",   text: "The objection about measurability is valid, but your proposed solution doesn't solve it — it just restates the problem in different terms." },
+        { id: 58, value:  3, classifier: "pivot",       text: "What if I reframe measurability as a limitation rather than a flaw? The framework can still be theoretically productive even if empirical operationalisation is difficult." },
+        { id: 59, value:  4, classifier: "challenge",   text: "I want to stress-test the central claim. What is the most serious objection someone could make to the idea that platforms are constitutive rather than merely influential?" },
+        { id: 60, value:  3, classifier: "conceptual",  text: "That's the objection I expected and I think it's actually what makes the argument interesting rather than what defeats it. The line between influence and constitution is precisely what the framework helps to draw." },
+        { id: 61, value:  1, classifier: "claim",       text: "I think the framework is strong enough. Now I need to work out how to present it accessibly without losing the theoretical rigour." },
+        { id: 62, value:  0, classifier: "extraction",  text: "Can you suggest how to structure a theoretical framework section?" },
+        { id: 63, value:  2, classifier: "refinement",  text: "I don't want a standard moves-in-a-genre structure. I want something that reflects the argument's logic rather than academic convention." },
+        { id: 64, value: -1, classifier: "validation",  text: "Is 1200 words appropriate for the framework section?" },
+        { id: 65, value:  0, classifier: "extraction",  text: "What transition should I use between the framework and the analysis?" },
+        { id: 66, value:  1, classifier: "narrative",   text: "I think I've done the hard intellectual work. The writing is almost secondary now." },
+        { id: 67, value: -2, classifier: "stuck",       text: "Can you write the analysis section based on the framework we developed?" },
+        { id: 68, value: -1, classifier: "validation",  text: "Is that analysis coherent with the framework?" },
+        { id: 69, value:  2, classifier: "rejection",   text: "The analysis doesn't apply the framework — it just restates it. I need it to actually do analytical work on the case material." },
+        { id: 70, value:  1, classifier: "claim",       text: "The case material should be in service of the theory, not the other way around. I think that's where the analysis keeps going wrong." },
+        { id: 71, value:  0, classifier: "extraction",  text: "What does it mean for theory to 'do work' on empirical material?" },
+        { id: 72, value:  3, classifier: "conceptual",  text: "I think I understand now. The theory should generate expectations that the case either confirms, complicates, or extends. Let me try rewriting the analysis with that logic." },
+        { id: 73, value:  2, classifier: "refinement",  text: "Can you review what I've written and tell me where the theory-case relationship is weakest?" },
+        { id: 74, value:  1, classifier: "feedback",    text: "Is the overall argument coherent from introduction to conclusion?" },
+        { id: 75, value:  1, classifier: "narrative",   text: "I'm going to finalise this myself. The argument is in good shape and I know what I want to say." },
+      ]
+    }
+  ];
+
+  const dtMargin  = { top: 36, right: 80, bottom: 52, left: 130 };
+  const dtTicks   = [-3, -2, -1, 0, 1, 2, 3, 4, 5];
+  const dtSvgW    = 796;
+  const dtInnerW  = dtSvgW - dtMargin.left - dtMargin.right;
+  const dtRowH    = 22;
+  const dtXScale  = d3.scaleLinear().domain([-3, 5]).range([0, dtInnerW]);
+  const dtZeroX   = dtXScale(0);
+  const dtBtnW = 62, dtBtnH = 20, dtBtnR = 4;
+
+  const dtSvg = d3.select("#dt-chart").attr("width", dtSvgW);
+
+  // Legend
+  const dtLegendItems = [
+    { value: -2, label: "stuck" }, { value: -1, label: "validation" }, null,
+    { value:  0, label: "extraction" }, null,
+    { value:  1, label: "feedback / narrative" }, { value:  2, label: "refinement" },
+    { value:  3, label: "claim / conceptual / pivot" }, { value:  4, label: "challenge / rejection" },
+  ];
+  const dtLegendEl = document.getElementById("dt-legend");
+  dtLegendItems.forEach(item => {
+    if (item === null) {
+      const d = document.createElement("div"); d.className = "dt-legend-divider"; dtLegendEl.appendChild(d); return;
+    }
+    const wrap = document.createElement("div"); wrap.className = "dt-legend-item";
+    const sw = document.createElement("div"); sw.className = "dt-legend-swatch"; sw.style.background = barFill(item.value);
+    if (item.value === 0) sw.style.border = "1px solid #ccc";
+    const txt = document.createElement("span");
+    txt.textContent = (item.value > 0 ? `+${item.value}` : String(item.value)) + "  " + item.label;
+    wrap.appendChild(sw); wrap.appendChild(txt); dtLegendEl.appendChild(wrap);
+  });
+
+  function dtComputeSummary(turns) {
+    const total = turns.length;
+    const passiveCount = turns.filter(d => d.value < 0).length;
+    const highCount    = turns.filter(d => d.value >= 3).length;
+    const passivePct   = passiveCount / total;
+    const highPct      = highCount / total;
+    let longestRun = 0, bestStart = null, cur = 0, curStart = null;
+    turns.forEach(d => {
+      if (d.value < 0) { if (cur === 0) curStart = d.id; cur++; if (cur > longestRun) { longestRun = cur; bestStart = curStart; } } else { cur = 0; }
+    });
+    let verdict, verdictClass, verdictDesc;
+    if (passivePct >= 0.35 || longestRun >= 5) {
+      verdict = "Passive concern"; verdictClass = "passive";
+      verdictDesc = "Over a third of turns were passive, or the student had a run of 5 or more consecutive passive turns.";
+    } else if (highPct >= 0.35 && passivePct < 0.25) {
+      verdict = "High engagement"; verdictClass = "high";
+      verdictDesc = "More than 35% of turns show high-agency behaviour — challenge, claim, conceptual, or pivot — with low passive activity.";
+    } else {
+      verdict = "Mixed session"; verdictClass = "mixed";
+      verdictDesc = "This session has a roughly even spread of high-agency and passive turns with no dominant pattern.";
+    }
+    return { verdict, verdictClass, verdictDesc, longestRun, bestStart, highCount, total };
+  }
+
+  function dtRenderSummary(sample) {
+    const s = dtComputeSummary(sample.turns);
+    const runValue = s.longestRun === 0 ? "None" : `${s.longestRun} consecutive`;
+    const runSub   = s.longestRun === 0 ? "" : `turns ${s.bestStart}–${s.bestStart + s.longestRun - 1}`;
+    const chip = s.verdictClass === "mixed"
+      ? `<span class="dt-verdict-plain">${s.verdict}</span>`
+      : `<span class="dt-verdict-chip dt-verdict-${s.verdictClass}">${s.verdict}</span>`;
+    document.getElementById("dt-summary-strip").innerHTML = `
+      <div class="dt-verdict-block">
+        <span class="dt-verdict-label">Session verdict</span>
+        <div style="display:flex;align-items:center;">
+          ${chip}
+          <button class="dt-verdict-info-btn" id="dt-verdict-info-btn">?</button>
+        </div>
+      </div>
+      <div class="dt-stat-block">
+        <span class="dt-stat-label">Longest passive run</span>
+        <span class="dt-stat-value">${runValue}</span>
+        ${runSub ? `<span class="dt-stat-sub">${runSub}</span>` : ""}
+      </div>
+      <div class="dt-stat-block">
+        <span class="dt-stat-label">High-agency turns</span>
+        <span class="dt-stat-value">${s.highCount} of ${s.total}</span>
+        <span class="dt-stat-sub">${Math.round(s.highCount / s.total * 100)}% of session</span>
+      </div>`;
+    document.getElementById("dt-verdict-info-btn").addEventListener("click", e => dtShowTooltip(e, s.verdict, s.verdictDesc));
+  }
+
+  function dtRender(sample) {
+    const data = sample.turns.map(d => ({ ...d, label: String(d.id) }));
+    const innerH = data.length * dtRowH;
+    const svgH   = innerH + dtMargin.top + dtMargin.bottom;
+    dtSvg.attr("height", svgH).selectAll("*").remove();
+    const g = dtSvg.append("g").attr("transform", `translate(${dtMargin.left},${dtMargin.top})`);
+    const yScale = d3.scaleBand().domain(data.map(d => d.label)).range([0, innerH]).padding(0.35);
+    const step = yScale.step(), halfGap = step * yScale.paddingInner() / 2;
+    const bandData = d3.groups(data, d => Math.floor((d.id - 1) / 5)).filter(([i]) => i % 2 === 1);
+    g.selectAll(".dt-row-band").data(bandData).join("rect")
+      .attr("class","dt-row-band").attr("x",0)
+      .attr("y", ([,rows]) => yScale(rows[0].label) - halfGap)
+      .attr("width", dtInnerW)
+      .attr("height", ([,rows]) => step * rows.length)
+      .attr("fill","#f2f2f0");
+    g.selectAll(".dt-grid").data(dtTicks).join("line").attr("class","dt-grid")
+      .attr("x1",d=>dtXScale(d)).attr("x2",d=>dtXScale(d)).attr("y1",0).attr("y2",innerH)
+      .attr("stroke","#e5e5e2").attr("stroke-width",1);
+    g.append("line").attr("x1",dtZeroX).attr("x2",dtZeroX).attr("y1",0).attr("y2",innerH)
+      .attr("stroke","#bbb").attr("stroke-width",1);
+    sample.patterns.forEach(p => {
+      const tops = p.rows.map(r => yScale(r)), bots = p.rows.map(r => yScale(r) + yScale.bandwidth());
+      const pTop = Math.min(...tops), pBot = Math.max(...bots), pH = pBot - pTop;
+      const isRight = p.side === "right", pad = 5;
+      g.append("rect")
+        .attr("x",      isRight ? dtZeroX : dtXScale(-2) - pad)
+        .attr("y",      pTop - pad)
+        .attr("width",  isRight ? dtXScale(4) - dtZeroX + pad : dtZeroX - dtXScale(-2) + pad)
+        .attr("height", pH + pad * 2).attr("rx", 3).attr("fill","none")
+        .attr("stroke", isRight ? "#3B3EA8" : "#b85c38").attr("stroke-width",1.5).attr("opacity",0.5);
+      const bx = isRight ? dtXScale(4) + 6 : dtXScale(-2) - 6 - dtBtnW;
+      const by = pTop + pH / 2 - dtBtnH / 2;
+      const btnG = g.append("g").style("cursor","pointer").on("click", e => dtShowTooltip(e, p));
+      btnG.append("rect").attr("x",bx).attr("y",by).attr("width",dtBtnW).attr("height",dtBtnH).attr("rx",dtBtnR)
+        .attr("fill", isRight ? "#f0f1f8" : "#fdf0ea").attr("stroke", isRight ? "#3B3EA8" : "#b85c38").attr("stroke-width",1);
+      btnG.append("text").attr("x",bx+dtBtnW/2).attr("y",by+dtBtnH/2).attr("dy","0.35em").attr("text-anchor","middle")
+        .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("font-weight","600")
+        .attr("fill", isRight ? "#3B3EA8" : "#b85c38").text("Pattern");
+    });
+    g.selectAll(".dt-bar").data(data).join("rect").attr("class","dt-bar")
+      .attr("x",      d => d.value === 0 ? dtZeroX - 5 : d.value > 0 ? dtZeroX : dtXScale(d.value))
+      .attr("y",      d => yScale(d.label))
+      .attr("width",  d => d.value === 0 ? 10 : Math.abs(dtXScale(d.value) - dtZeroX))
+      .attr("height", yScale.bandwidth()).attr("fill", d => barFill(d.value)).style("cursor","pointer")
+      .on("click", (event, d) => {
+        event.stopPropagation();
+        document.getElementById("dt-modal-turn").textContent = `Student Turn ${d.id}`;
+        document.getElementById("dt-modal-classifier").textContent = d.classifier;
+        document.getElementById("dt-modal-text").textContent = d.text;
+        document.getElementById("dt-modal-overlay").classList.add("open");
+      });
+    g.selectAll(".dt-label").data(data).join("text").attr("class","dt-label")
+      .attr("x",-10).attr("y",d=>yScale(d.label)+yScale.bandwidth()/2).attr("dy","0.35em").attr("text-anchor","end")
+      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#555")
+      .text(d => d.id % 5 === 0 ? d.label : "");
+    g.selectAll(".dt-axis-bot").data(dtTicks).join("text").attr("class","dt-axis-bot")
+      .attr("x",d=>dtXScale(d)).attr("y",innerH+20).attr("text-anchor","middle")
+      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999")
+      .text(d => d === 0 ? "0" : d > 0 ? `+${d}` : d);
+    g.selectAll(".dt-axis-top").data(dtTicks).join("text").attr("class","dt-axis-top")
+      .attr("x",d=>dtXScale(d)).attr("y",-16).attr("text-anchor","middle")
+      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999")
+      .text(d => d === 0 ? "0" : d > 0 ? `+${d}` : d);
+    dtSvg.append("text").attr("transform","rotate(-90)")
+      .attr("x",-(dtMargin.top+innerH/2)).attr("y",80).attr("text-anchor","middle")
+      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999")
+      .text("Student Turns");
+    g.append("line").attr("x1",0).attr("x2",dtInnerW).attr("y1",innerH).attr("y2",innerH).attr("stroke","#ccc").attr("stroke-width",1);
+    g.append("line").attr("x1",0).attr("x2",dtInnerW).attr("y1",0).attr("y2",0).attr("stroke","#ccc").attr("stroke-width",1);
+    g.append("text").attr("x",dtInnerW/2).attr("y",innerH+38).attr("text-anchor","middle")
+      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999").text("Student Agency");
+  }
+
+  // Tooltip
+  const dtTooltip = document.getElementById("dt-tooltip");
+  let dtCurrentPattern = null, dtCurrentSample = dtSamples[0];
+
+  function dtShowTooltip(event, titleOrPattern, body) {
+    event.stopPropagation();
+    const isPattern = typeof titleOrPattern === "object";
+    dtCurrentPattern = isPattern ? titleOrPattern : null;
+    dtTooltip.querySelector(".dt-tooltip-title").textContent = isPattern ? titleOrPattern.title : titleOrPattern;
+    dtTooltip.querySelector(".dt-tooltip-body").textContent  = isPattern ? titleOrPattern.desc  : body;
+    const learnMore = document.getElementById("dt-tooltip-learn-more");
+    learnMore.style.display = isPattern ? "inline-block" : "none";
+    dtTooltip.style.display = "block";
+    const pad = 12, tw = dtTooltip.offsetWidth, th = dtTooltip.offsetHeight;
+    dtTooltip.style.left = (event.clientX + pad + tw > window.innerWidth  ? event.clientX - tw - pad : event.clientX + pad) + "px";
+    dtTooltip.style.top  = (event.clientY + pad + th > window.innerHeight ? event.clientY - th - pad : event.clientY + pad) + "px";
+  }
+  dtTooltip.addEventListener("click", e => e.stopPropagation());
+  document.addEventListener("click", () => { dtTooltip.style.display = "none"; });
+
+  // Sidebar
+  const dtSidebar = document.getElementById("dt-sidebar");
+
+  function dtOpenSidebar(pattern, sample) {
+    document.getElementById("dt-sidebar-title").textContent = pattern.title;
+    dtTooltip.style.display = "none";
+    const turnsById = Object.fromEntries(sample.turns.map(t => [String(t.id), t]));
+    const exchangeHTML = pattern.rows.map((rowId, i) => {
+      const turn = turnsById[rowId]; if (!turn) return "";
+      const aiLabel = pattern.aiLabels ? pattern.aiLabels[i] : null;
+      const divider = i < pattern.rows.length - 1 ? '<hr class="dt-sidebar-exchange-divider">' : "";
+      return `<div class="dt-sidebar-exchange-item">
+        ${aiLabel ? `<div class="dt-sidebar-ai-row"><span class="dt-sidebar-role-tag">AI</span><span class="dt-sidebar-ai-chip">${aiLabel}</span></div><span class="dt-sidebar-arrow">↓</span>` : ""}
+        <div class="dt-sidebar-student-row">
+          <div class="dt-sidebar-student-meta"><span class="dt-sidebar-turn-num">Turn ${turn.id}</span><span class="dt-sidebar-student-chip">${turn.classifier}</span></div>
+          <div class="dt-sidebar-student-text">"${turn.text}"</div>
+        </div></div>${divider}`;
+    }).join("");
+    document.getElementById("dt-sidebar-body").innerHTML = `
+      <p class="dt-sidebar-insight">${pattern.insight || pattern.desc}</p>
+      <div class="dt-sidebar-exchange-label">The exchange</div>${exchangeHTML}`;
+    dtSidebar.classList.add("open");
+  }
+
+  document.getElementById("dt-tooltip-learn-more").addEventListener("click", e => {
+    e.stopPropagation(); if (dtCurrentPattern) dtOpenSidebar(dtCurrentPattern, dtCurrentSample);
+  });
+  document.getElementById("dt-sidebar-close").addEventListener("click", () => dtSidebar.classList.remove("open"));
+
+  // Modal
+  const dtOverlay = document.getElementById("dt-modal-overlay");
+  document.getElementById("dt-modal-close").addEventListener("click", () => dtOverlay.classList.remove("open"));
+  dtOverlay.addEventListener("click", e => { if (e.target === dtOverlay) dtOverlay.classList.remove("open"); });
+
+  // Sample selector
+  document.querySelectorAll(".dt-sample-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".dt-sample-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      dtCurrentSample = dtSamples[+btn.dataset.dtSample];
+      dtRender(dtCurrentSample);
+      dtRenderSummary(dtCurrentSample);
+      dtSidebar.classList.remove("open");
+    });
+  });
+
+  dtRender(dtSamples[0]);
+  dtRenderSummary(dtSamples[0]);
 })();
 </script>
 </body>
