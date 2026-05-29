@@ -828,21 +828,16 @@
       <div class="section-header" style="margin-bottom:12px">TAU Score</div>
       <div class="summary-grid" id="summaryGrid"></div>
       <div id="feedbackPanel"></div>
-      <div class="flags-inline" id="flagsInline" style="display:none">
-        <div class="flags-inline-header">Teacher Integrity Flags</div>
-        <div class="flags-grid" id="flagsList"></div>
-      </div>
     </div>
 
     <div class="panel" id="tabsPanel">
       <div class="tab-bar">
-        <button class="tab-btn active" data-tab="turns">Student Turns</button>
-        <button class="tab-btn" data-tab="chart">Agency Chart</button>
-        <button class="tab-btn" data-tab="provenance">Provenance Map</button>
-        <button class="tab-btn" data-tab="divergence">Divergence Test</button>
+        <button class="tab-btn active" data-tab="chart">Agency Chart</button>
+        <button class="tab-btn" data-tab="turns">Student Turns</button>
+        <button class="tab-btn" data-tab="divergence">Chart Examples</button>
       </div>
 
-      <div class="tab-pane active" id="tabTurns">
+      <div class="tab-pane" id="tabTurns">
         <div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-bottom:8px;">
           <div class="legend" id="legend"></div>
           <button class="legend-learn-btn" id="labelLearnBtn">About these labels</button>
@@ -851,13 +846,13 @@
         <div class="turn-list" id="turnList"></div>
       </div>
 
-      <div class="tab-pane" id="tabChart">
+      <div class="tab-pane active" id="tabChart">
         <div id="chartSummaryEl" style="width:796px;max-width:100%;"></div>
         <div id="chartLegendEl" style="width:796px;max-width:100%;"></div>
         <svg id="agencyChart"></svg>
       </div>
 
-      <div class="tab-pane" id="tabProvenance">
+      <div class="tab-pane" id="tabProvenance" style="display:none!important">
         <div class="prov-stat-row" id="provStats"></div>
         <div id="provenanceContent">
           <div class="provenance-grid">
@@ -2936,11 +2931,6 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
       noteEl.style.display = "none";
     }
 
-    // Integrity flags inline (below TAU score)
-    const flagsInline = document.getElementById("flagsInline");
-    document.getElementById("flagsList").innerHTML = renderFlags(flags);
-    flagsInline.style.display = flags.length ? "block" : "none";
-
     // Provenance tab content
     if (provenanceData && provenanceData.length > 0) {
       document.getElementById("provStats").innerHTML    = renderProvStats(provenanceData);
@@ -2956,8 +2946,8 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
       document.getElementById("conceptList").innerHTML  = "";
     }
 
-    // Reset tabs to first tab (Student Turns) on each analysis
-    activateTab("turns");
+    // Reset tabs to first tab (Agency Chart) on each analysis
+    activateTab("chart");
 
     document.getElementById("inputScreen").style.display = "none";
     document.getElementById("results").style.display = "block";

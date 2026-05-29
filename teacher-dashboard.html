@@ -27,6 +27,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
 
 body {
   font-family: "Helvetica Neue", Arial, sans-serif;
@@ -34,41 +35,50 @@ body {
   color: var(--text);
   font-size: 14px;
   line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
+/* ── Header ── */
 header {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  padding: 16px 32px;
+  padding: 13px 24px;
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
-header h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; }
+header h1 { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
 header .subtitle { font-size: 12px; color: var(--text-muted); }
-.class-label {
+.back-link {
   margin-left: auto;
-  font-size: 12px;
-  color: var(--text-mid);
-  background: var(--grey-tint);
-  padding: 3px 10px;
+  font-size: 12px; font-weight: 600;
+  color: var(--blue);
+  background: var(--blue-tint);
+  border: 1px solid #c5c7e8;
+  padding: 5px 12px;
   border-radius: 20px;
-  border: 1px solid var(--border);
+  text-decoration: none;
+  white-space: nowrap;
 }
+.back-link:hover { background: #e3e4f4; }
 
+/* ── Global tab nav ── */
 .tab-nav {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  padding: 0 32px;
+  padding: 0 24px;
   display: flex;
+  flex-shrink: 0;
 }
 .tab-btn {
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  padding: 12px 18px;
-  font-size: 13px;
-  font-weight: 500;
+  padding: 10px 16px;
+  font-size: 13px; font-weight: 500;
   color: var(--text-muted);
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
@@ -76,22 +86,109 @@ header .subtitle { font-size: 12px; color: var(--text-muted); }
 .tab-btn:hover { color: var(--text); }
 .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
 
-main {
-  max-width: 1040px;
-  margin: 0 auto;
-  padding: 28px 24px;
+/* ── Layout ── */
+.layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
 }
 
-.view { display: none; }
-.view.active { display: block; }
+/* ── Sidebar ── */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-section {
+  font-size: 10px; font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 14px 16px 5px;
+  flex-shrink: 0;
+}
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: background 0.1s;
+  flex-shrink: 0;
+}
+.sidebar-item:hover { background: var(--grey-tint); }
+.sidebar-item.active { background: var(--blue-tint); border-left-color: var(--blue); }
+.sidebar-item-name {
+  font-size: 13px; font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-item.active .sidebar-item-name { color: var(--blue); font-weight: 600; }
+.sidebar-item-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.flag-dot {
+  font-size: 11px;
+  color: var(--terra);
+  flex-shrink: 0;
+  line-height: 1;
+}
+.sidebar-search {
+  padding: 12px 12px 6px;
+  flex-shrink: 0;
+}
+.sidebar-search input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  font-family: inherit;
+}
+.sidebar-search input:focus { border-color: var(--blue-light); }
 
-.view-heading { font-size: 15px; font-weight: 600; margin-bottom: 20px; }
+/* ── Content ── */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 32px;
+  background: var(--bg);
+}
+.content-header {
+  margin-bottom: 22px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.content-title {
+  font-size: 18px; font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text);
+}
+.content-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
 
 /* ── Chips & badges ── */
 .chip {
   display: inline-block;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 11px; font-weight: 600;
   padding: 2px 8px;
   border-radius: 20px;
   letter-spacing: 0.3px;
@@ -104,13 +201,12 @@ main {
 
 .samr-badge {
   display: inline-block;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 11px; font-weight: 600;
   padding: 2px 8px;
   border-radius: 3px;
 }
-.samr-redef { background: var(--blue);     color: #fff; }
-.samr-mod   { background: var(--blue-mid); color: #fff; }
+.samr-redef { background: var(--blue);       color: #fff; }
+.samr-mod   { background: var(--blue-mid);   color: #fff; }
 .samr-aug   { background: var(--blue-light); color: #fff; }
 .samr-sub   { background: #ccc; color: #555; }
 
@@ -118,8 +214,7 @@ main {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 11px; font-weight: 600;
   color: var(--terra);
   background: var(--terra-tint);
   border: 1px solid var(--terra-light);
@@ -130,56 +225,19 @@ main {
 
 .status-final       { background: var(--green-tint); color: var(--green); }
 .status-draft       { background: var(--amber-tint); color: var(--amber); }
-.status-not-started { background: var(--grey-tint); color: var(--text-muted); border: 1px solid var(--border); }
+.status-not-started { background: var(--grey-tint);  color: var(--text-muted); border: 1px solid var(--border); }
 .status-missing     { background: var(--terra-tint); color: var(--terra); }
 
 /* ── Avatar ── */
 .avatar {
-  width: 36px; height: 36px;
+  width: 32px; height: 32px;
   border-radius: 50%;
   background: var(--blue-tint);
   color: var(--blue);
-  font-size: 13px; font-weight: 700;
+  font-size: 12px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-
-/* ── Selectors ── */
-.selector-row { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
-.selector-pill {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 6px 16px;
-  font-size: 13px; font-weight: 500;
-  color: var(--text-mid);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.selector-pill:hover { border-color: var(--blue-light); color: var(--text); }
-.selector-pill.active { background: var(--blue); border-color: var(--blue); color: #fff; }
-
-/* ── Assignment meta bar ── */
-.assign-meta {
-  display: flex; align-items: center; gap: 12px;
-  margin-bottom: 20px;
-  padding: 14px 18px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-.assign-meta-name { font-size: 14px; font-weight: 600; }
-.assign-meta-due  { font-size: 12px; color: var(--text-muted); }
-
-/* ── Assignment cell in student table ── */
-.assignment-card-name { font-size: 13px; font-weight: 600; }
-.dim-scores { display: flex; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
-.dim-score {
-  font-size: 11px; color: var(--text-mid);
-  background: var(--grey-tint);
-  padding: 2px 6px; border-radius: 3px;
-}
-.dim-score span { font-weight: 700; color: var(--text); }
 
 /* ── Data table ── */
 .data-table {
@@ -196,66 +254,308 @@ main {
   font-size: 11px; font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase; letter-spacing: 0.5px;
-  padding: 10px 14px;
+  padding: 10px 12px;
   background: var(--grey-tint);
   border-bottom: 1px solid var(--border);
 }
 .data-table td {
-  padding: 12px 14px;
+  padding: 11px 12px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
   overflow: hidden;
+  text-align: left;
 }
 .data-table tr:last-child td { border-bottom: none; }
-.data-table tbody tr { cursor: pointer; transition: background 0.1s; height: 64px; }
+.data-table tbody tr { cursor: pointer; transition: background 0.1s; }
 .data-table tbody tr:hover { background: var(--grey-tint); }
 .data-table tbody tr.expanded-row { background: var(--blue-tint); }
-.data-table tbody tr.drill-row { height: auto; }
-.data-table tbody tr.drill-row:hover { background: transparent; cursor: default; }
+.data-table tbody tr.drill-row { cursor: default; }
+.data-table tbody tr.drill-row:hover { background: transparent; }
 
 /* ── Drill panel ── */
 .drill-panel {
   background: var(--blue-tint);
-  border: 1px solid var(--blue-light);
-  border-top: none;
-  padding: 20px 24px;
-}
-.drill-panel.card-drill {
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-  margin-top: -1px;
+  border-top: 1px solid var(--blue-light);
+  padding: 16px 20px;
 }
 .drill-panel-header {
   font-size: 11px; font-weight: 600;
   color: var(--blue);
   text-transform: uppercase; letter-spacing: 0.5px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
-.sub-history { display: flex; flex-direction: column; gap: 0; }
+.assignment-summary-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+}
+.assignment-summary-row:hover { background: var(--blue-tint); border-color: var(--blue-light); }
+.assignment-summary-row.expanded { background: var(--blue-tint); border-color: var(--blue-light); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.assignment-summary-row .chevron { font-size: 11px; color: var(--text-muted); width: 14px; flex-shrink: 0; }
+.assignment-drill { border: 1px solid var(--blue-light); border-top: none; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+.sub-history { display: flex; flex-direction: column; gap: 4px; }
 .sub-row {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 10px 14px;
   font-size: 12px;
-  margin-bottom: 4px;
 }
 .sub-row.flagged { border-color: var(--terra); background: var(--terra-tint); }
-.sub-num { font-size: 11px; font-weight: 600; color: var(--text-muted); width: 22px; flex-shrink: 0; }
-.sub-date { color: var(--text-mid); width: 148px; flex-shrink: 0; }
-.sub-total { font-size: 14px; font-weight: 700; width: 44px; text-align: right; flex-shrink: 0; }
-.sub-flag-note { font-size: 11px; color: var(--terra); font-weight: 600; margin-left: auto; }
+.sub-row-main { display: flex; align-items: center; gap: 10px; }
+.sub-num  { font-size: 11px; font-weight: 600; color: var(--text-muted); width: 20px; flex-shrink: 0; }
+.sub-date { color: var(--text-mid); min-width: 140px; flex-shrink: 0; font-size: 11px; }
+.sub-total { font-size: 14px; font-weight: 700; width: 40px; text-align: right; flex-shrink: 0; }
+.integrity-flags-row {
+  display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+  margin-top: 7px; padding-top: 7px;
+  border-top: 1px solid rgba(184, 92, 56, 0.15);
+}
+
+/* ── Dim scores ── */
+.dim-scores { display: flex; gap: 5px; }
+.dim-score {
+  font-size: 11px; color: var(--text-muted);
+  background: var(--grey-tint);
+  padding: 2px 5px; border-radius: 3px;
+}
+.dim-score span { font-weight: 700; color: var(--text); }
 
 .tau-total { font-size: 15px; font-weight: 700; }
 .tau-denom { font-size: 12px; color: var(--text-muted); font-weight: 400; }
-
 .sparkline { display: block; }
 
-@media (max-width: 720px) {
-  .student-cards, .assignment-cards { grid-template-columns: 1fr; }
-  main { padding: 20px 16px; }
+/* ── Flag lines ── */
+.flag-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--terra);
 }
+.flag-learn-more {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--blue);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.flag-learn-more:hover { text-decoration: underline; }
+
+/* ── Side tray ── */
+.tray-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.18);
+  z-index: 100;
+}
+.tray-overlay.open { display: block; }
+
+.side-tray {
+  position: fixed;
+  top: 0; right: 0;
+  width: 400px;
+  height: 100%;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: -4px 0 24px rgba(0,0,0,0.10);
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.22s ease;
+  overflow: hidden;
+}
+.side-tray.open { transform: translateX(0); }
+
+.tray-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.tray-flag-icon {
+  font-size: 16px;
+  color: var(--terra);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.tray-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.2px;
+  flex: 1;
+}
+.tray-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+.tray-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.tray-close:hover { background: var(--grey-tint); color: var(--text); }
+
+.tray-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.tray-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+}
+.tray-section-body {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.6;
+}
+.tray-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 0;
+  padding: 0;
+  list-style: none;
+}
+.tray-steps li {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.tray-step-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--blue);
+  background: var(--blue-tint);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ── Class drill student rows ── */
+.class-student-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.class-student-row:hover { background: rgba(255,255,255,0.7); }
+.class-student-row.missing { background: var(--terra-tint); }
+.class-student-row.missing:hover { background: #f5ddd4; }
+
+/* ── Bar legend ── */
+.bar-legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+.legend-swatch {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  margin-right: 3px;
+  vertical-align: middle;
+}
+/* ── Flag detection modal ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--surface);
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  width: min(680px, 92vw);
+  max-height: 82vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.modal-header {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.modal-title { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; flex: 1; }
+.modal-intro { font-size: 12px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
+.modal-close {
+  background: none; border: none; font-size: 18px;
+  color: var(--text-muted); cursor: pointer;
+  padding: 2px 6px; border-radius: 4px; line-height: 1; flex-shrink: 0;
+}
+.modal-close:hover { background: var(--grey-tint); color: var(--text); }
+.modal-body {
+  flex: 1; overflow-y: auto;
+  padding: 20px 22px;
+  display: flex; flex-direction: column; gap: 0;
+}
+.flag-card {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.flag-card:last-child { border-bottom: none; }
+.flag-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.flag-card-title { font-size: 13px; font-weight: 700; }
+.flag-card-desc { font-size: 12px; color: var(--text-mid); }
+.flag-card-section { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.7px; margin: 10px 0 4px; }
+.flag-card-body { font-size: 12px; color: var(--text-mid); line-height: 1.55; }
+.flag-card-steps { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+.flag-card-steps li { font-size: 12px; color: var(--text-mid); line-height: 1.5; }
+.flag-type-label {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.7px;
+  padding: 2px 7px; border-radius: 20px;
+  flex-shrink: 0;
+}
+.flag-type-integrity { background: var(--terra-tint); color: var(--terra); }
+.flag-type-score    { background: var(--amber-tint); color: var(--amber); }
 </style>
 </head>
 <body>
@@ -263,37 +563,62 @@ main {
 <header>
   <h1>Critical Thinking Auditor</h1>
   <span class="subtitle">Teacher Dashboard</span>
-  <span class="class-label">Period 3 — Digital Literacy</span>
-  <a href="index.html" style="margin-left:auto;font-size:12px;font-weight:600;color:#3B3EA8;background:#f0f1f8;border:1px solid #c5c7e8;padding:5px 12px;border-radius:20px;text-decoration:none;white-space:nowrap;" onmouseover="this.style.background='#e3e4f4'" onmouseout="this.style.background='#f0f1f8'">← Student Tool</a>
+  <button onclick="openFlagModal()" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--terra);background:var(--terra-tint);border:1px solid rgba(184,92,56,0.25);padding:5px 13px;border-radius:20px;cursor:pointer">⚑ Flag detection</button>
+  <a href="index.html" class="back-link" style="margin-left:0">← Student Tool</a>
 </header>
 
 <nav class="tab-nav">
-  <button class="tab-btn active" data-view="class">Class</button>
-  <button class="tab-btn" data-view="assignment">By Assignment</button>
-  <button class="tab-btn" data-view="student">By Student</button>
+  <button class="tab-btn active" data-tab="class">Class</button>
+  <button class="tab-btn" data-tab="assignment">Assignment</button>
+  <button class="tab-btn" data-tab="student">Student</button>
 </nav>
 
-<main>
-  <section id="view-class"      class="view active"></section>
-  <section id="view-assignment" class="view"></section>
-  <section id="view-student"    class="view"></section>
-</main>
+<div class="layout">
+  <aside id="sidebar" class="sidebar"></aside>
+  <main id="content" class="content"></main>
+</div>
+
+<div class="modal-overlay" id="flag-modal-overlay" onclick="closeFlagModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div style="flex:1;min-width:0">
+        <div class="modal-title">Flag detection</div>
+        <div class="modal-intro">The tool automatically checks every submission for these signals. Flags are never shown to students — they appear only in the teacher dashboard to support your review.</div>
+      </div>
+      <button class="modal-close" onclick="closeFlagModal()">✕</button>
+    </div>
+    <div class="modal-body" id="flag-modal-body"></div>
+  </div>
+</div>
+
+<div class="tray-overlay" id="tray-overlay" onclick="closeFlagTray()"></div>
+<div class="side-tray" id="side-tray">
+  <div class="tray-header">
+    <span class="tray-flag-icon">⚑</span>
+    <div style="flex:1">
+      <div class="tray-title" id="tray-title"></div>
+      <div class="tray-subtitle" id="tray-subtitle"></div>
+    </div>
+    <button class="tray-close" onclick="closeFlagTray()">✕</button>
+  </div>
+  <div class="tray-body" id="tray-body"></div>
+</div>
 
 <script>
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// ── Data ──────────────────────────────────────────────────────────────────────
 
 const ASSIGNMENTS = [
-  { id: 'a1', name: 'AI Ethics Essay',          due: new Date('2026-05-10'), status: 'closed' },
-  { id: 'a2', name: 'Climate Change Analysis',  due: new Date('2026-05-17'), status: 'closed' },
-  { id: 'a3', name: 'Tech Impact Report',       due: new Date('2026-06-05'), status: 'open'   },
+  { id: 'a1', name: 'AI Ethics Essay',         due: new Date('2026-05-10'), status: 'closed' },
+  { id: 'a2', name: 'Climate Change Analysis', due: new Date('2026-05-17'), status: 'closed' },
+  { id: 'a3', name: 'Tech Impact Report',      due: new Date('2026-06-05'), status: 'open'   },
 ];
 
 const STUDENTS = [
-  { id: 's1', name: 'Maya Chen',    initials: 'MC' },
-  { id: 's2', name: 'Jordan Kim',   initials: 'JK' },
-  { id: 's3', name: 'Alex Rivera',  initials: 'AR' },
-  { id: 's4', name: 'Sam Park',     initials: 'SP' },
-  { id: 's5', name: 'Taylor Wong',  initials: 'TW' },
+  { id: 's1', name: 'Maya Chen',   initials: 'MC' },
+  { id: 's2', name: 'Jordan Kim',  initials: 'JK' },
+  { id: 's3', name: 'Alex Rivera', initials: 'AR' },
+  { id: 's4', name: 'Sam Park',    initials: 'SP' },
+  { id: 's5', name: 'Taylor Wong', initials: 'TW' },
 ];
 
 const CLASSES = [
@@ -301,7 +626,6 @@ const CLASSES = [
   { id: 'c2', name: 'Period 5 — AP Research',      studentIds: ['s4', 's5'] },
 ];
 
-// Each submission: { ts, pq, su, cs, oc }
 const SUBMISSIONS = {
   's1_a1': [
     { ts: new Date('2026-04-28T10:00'), pq:2, su:2, cs:1, oc:2 },
@@ -318,11 +642,10 @@ const SUBMISSIONS = {
     { ts: new Date('2026-05-20T11:00'), pq:2, su:3, cs:2, oc:2 },
     { ts: new Date('2026-05-23T16:00'), pq:3, su:3, cs:2, oc:3 },
   ],
-  // Jordan: flat then suspicious spike on a1
   's2_a1': [
     { ts: new Date('2026-04-28T09:00'), pq:2, su:2, cs:2, oc:2 },
     { ts: new Date('2026-05-06T14:00'), pq:2, su:2, cs:1, oc:2 },
-    { ts: new Date('2026-05-06T14:07'), pq:5, su:5, cs:5, oc:5 }, // 7 min later — flag fires
+    { ts: new Date('2026-05-06T14:07'), pq:5, su:5, cs:5, oc:5, integrityFlags: ['shadow-session-pattern', 'unnatural-fluency'] },
   ],
   's2_a2': [
     { ts: new Date('2026-05-12T10:00'), pq:2, su:2, cs:2, oc:2 },
@@ -331,7 +654,6 @@ const SUBMISSIONS = {
   's2_a3': [
     { ts: new Date('2026-05-21T13:00'), pq:2, su:2, cs:1, oc:2 },
   ],
-  // Alex: consistent high performer
   's3_a1': [
     { ts: new Date('2026-04-29T11:00'), pq:3, su:3, cs:3, oc:3 },
     { ts: new Date('2026-05-03T15:00'), pq:4, su:4, cs:3, oc:3 },
@@ -342,8 +664,7 @@ const SUBMISSIONS = {
     { ts: new Date('2026-05-13T14:00'), pq:4, su:3, cs:3, oc:3 },
     { ts: new Date('2026-05-16T11:00'), pq:4, su:4, cs:3, oc:4 },
   ],
-  's3_a3': [], // not started
-  // Sam Park — Period 5, strong performer
+  's3_a3': [],
   's4_a1': [
     { ts: new Date('2026-04-29T13:00'), pq:4, su:3, cs:3, oc:4 },
     { ts: new Date('2026-05-05T10:00'), pq:4, su:4, cs:4, oc:4 },
@@ -355,32 +676,25 @@ const SUBMISSIONS = {
   's4_a3': [
     { ts: new Date('2026-05-22T14:00'), pq:3, su:3, cs:3, oc:3 },
   ],
-  // Taylor Wong — Period 5, passive pattern
   's5_a1': [
     { ts: new Date('2026-04-30T09:00'), pq:2, su:2, cs:1, oc:2 },
-    { ts: new Date('2026-05-08T15:00'), pq:2, su:3, cs:2, oc:2 },
+    { ts: new Date('2026-05-08T15:00'), pq:2, su:3, cs:2, oc:2, integrityFlags: ['shadow-session-pattern'] },
   ],
   's5_a2': [
-    { ts: new Date('2026-05-13T10:00'), pq:2, su:2, cs:2, oc:2 },
+    { ts: new Date('2026-05-13T10:00'), pq:2, su:2, cs:2, oc:2, integrityFlags: ['shadow-session-pattern', 'stylistic-inconsistency'] },
   ],
   's5_a3': [],
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function total(sub)  { return sub.pq + sub.su + sub.cs + sub.oc; }
+function total(sub) { return sub.pq + sub.su + sub.cs + sub.oc; }
 
 function samr(t) {
   if (t >= 17) return { label: 'Redefinition', cls: 'samr-redef' };
   if (t >= 13) return { label: 'Modification',  cls: 'samr-mod'  };
   if (t >= 9)  return { label: 'Augmentation',  cls: 'samr-aug'  };
   return            { label: 'Substitution',  cls: 'samr-sub'  };
-}
-
-function verdictChip(t) {
-  if (t >= 13) return `<span class="chip chip-blue">High engagement</span>`;
-  if (t <= 8)  return `<span class="chip chip-terra">Passive concern</span>`;
-  return `<span style="font-size:12px;font-weight:600;color:var(--text-mid)">Mixed</span>`;
 }
 
 function submissionStatus(subs, assignment) {
@@ -391,6 +705,64 @@ function submissionStatus(subs, assignment) {
     ? { label: 'Final', cls: 'status-final' }
     : { label: 'Draft', cls: 'status-draft' };
 }
+
+const FLAG_META = {
+  'stylistic-inconsistency': {
+    short: 'Stylistic inconsistency',
+    desc: 'Vocabulary and complexity shifts sharply between student turns',
+    what: 'The student\'s writing shows significant jumps in vocabulary, sentence complexity, or tone between turns — beyond what normal drafting usually produces.',
+    why: 'These shifts can indicate that text from an external source was introduced mid-session rather than composed in place. Natural revision tends to evolve gradually; abrupt changes are harder to explain by the conversation alone.',
+    steps: [
+      'Compare the flagged turn directly against surrounding turns and look for abrupt tone or vocabulary shifts.',
+      'Ask the student to explain their reasoning in the flagged section in their own words.',
+      'Consider whether the shift aligns with a new topic or a genuine change in approach — those are expected and fine.',
+    ],
+  },
+  'unnatural-fluency': {
+    short: 'Unnatural fluency',
+    desc: 'Student turns lack the hedging and false starts typical of live composition',
+    what: 'The student\'s turns read as polished and certain throughout — no hedging phrases ("I think", "maybe", "not sure if"), no self-corrections, no colloquial language. This pattern is unusual for in-session writing.',
+    why: 'Live composition typically includes uncertainty markers and self-correction. Uniformly high fluency may suggest the student was submitting pre-composed or AI-generated text as their own prompts rather than thinking out loud in real time.',
+    steps: [
+      'Look at whether the student turns read more like essay prose than conversational thinking-out-loud.',
+      'Ask the student to walk you through how they arrived at a specific turn in their own words.',
+      'A low-stakes verbal check-in is often enough to clarify whether the student genuinely engaged with the material.',
+    ],
+  },
+  'provenance-mismatch': {
+    short: 'Provenance mismatch',
+    desc: 'A concept appears in the essay as student-originated but the AI introduced it first',
+    what: 'The provenance analysis found that an idea credited in the essay to the student\'s own thinking was actually introduced by the AI earlier in the conversation.',
+    why: 'This doesn\'t automatically mean the student acted in bad faith — they may have genuinely absorbed and reframed the idea. But it warrants a closer look when the essay presents the concept as independently derived.',
+    steps: [
+      'Identify the specific concept in the chat log and in the essay.',
+      'Ask the student when and how they first encountered that idea.',
+      'This can be a teaching moment: discuss the difference between internalising a concept and independently originating one.',
+    ],
+  },
+  'shadow-session-pattern': {
+    short: 'Shadow session pattern',
+    desc: 'Student responses are well-calibrated to AI output with very little pushback',
+    what: 'The student\'s turns show very high passive acceptance of AI suggestions and almost no challenge, rejection, or refinement. The interaction pattern resembles a student who arrived with polished inputs rather than composing in real time.',
+    why: 'Genuine AI-assisted writing involves friction — students push back, redirect, and question. An unusually smooth acceptance pattern may indicate the AI session was staged after the actual writing was done elsewhere.',
+    steps: [
+      'Review the ratio of extraction and validation turns against challenge and refinement turns in the TAU breakdown.',
+      'Ask the student to describe a moment where they disagreed with or changed something the AI suggested.',
+      'This flag is more significant when paired with Unnatural Fluency — both together strengthen the concern.',
+    ],
+  },
+  'score-spike': {
+    short: 'Score spike',
+    desc: 'TAU score increased sharply between two submissions in a short window',
+    what: 'Two submissions were made within a short time window, but the TAU score jumped significantly — more than would be expected from a normal revision cycle.',
+    why: 'Rapid score improvement can indicate that the student submitted an initial draft, then quickly replaced it with a substantially different session — possibly one prepared in advance or generated with different inputs.',
+    steps: [
+      'Compare the two submissions side by side using the scores and timestamps above.',
+      'Ask the student what changed between the two versions and why they resubmitted so quickly.',
+      'A spike on a single dimension is less concerning than a broad jump across all four.',
+    ],
+  },
+};
 
 function checkFlag(subs) {
   const flags = [];
@@ -406,10 +778,15 @@ function checkFlag(subs) {
   return flags;
 }
 
-function getSubs(sid, aid) { return SUBMISSIONS[`${sid}_${aid}`] || []; }
+function getSubs(sid, aid)      { return SUBMISSIONS[`${sid}_${aid}`] || []; }
+function latestSub(subs)        { return subs.length ? subs[subs.length - 1] : null; }
+function getIntegrityFlags(subs){ return [...new Set(subs.flatMap(s => s.integrityFlags || []))]; }
 
 function hasAnyFlag(sid) {
-  return ASSIGNMENTS.some(a => checkFlag(getSubs(sid, a.id)).length > 0);
+  return ASSIGNMENTS.some(a => {
+    const subs = getSubs(sid, a.id);
+    return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
+  });
 }
 
 function formatDate(d) {
@@ -417,19 +794,14 @@ function formatDate(d) {
     + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-function latestSub(subs) { return subs.length ? subs[subs.length - 1] : null; }
-
-function sparklineSVG(subs, w = 80, h = 26) {
+function sparklineSVG(subs, w = 72, h = 24) {
   const flags   = checkFlag(subs);
   const flagIdx = new Set(flags.map(f => f.submissionIndex));
   const totals  = subs.map(total);
   const MIN = 4, MAX = 20;
-
-  const x = i => (subs.length < 2 ? w / 2 : (i / (subs.length - 1)) * (w - 8) + 4);
+  const x = i => subs.length < 2 ? w / 2 : (i / (subs.length - 1)) * (w - 8) + 4;
   const y = t => h - 4 - ((t - MIN) / (MAX - MIN)) * (h - 8);
-
   if (!subs.length) return `<svg class="sparkline" width="${w}" height="${h}"></svg>`;
-
   const pts  = totals.map((t, i) => `${x(i)},${y(t)}`).join(' ');
   const line = subs.length > 1
     ? `<polyline points="${pts}" fill="none" stroke="var(--blue-light)" stroke-width="1.5"/>`
@@ -437,372 +809,630 @@ function sparklineSVG(subs, w = 80, h = 26) {
   const dots = totals.map((t, i) =>
     `<circle cx="${x(i)}" cy="${y(t)}" r="2.5" fill="${flagIdx.has(i) ? 'var(--terra)' : 'var(--blue)'}" />`
   ).join('');
-
   return `<svg class="sparkline" width="${w}" height="${h}">${line}${dots}</svg>`;
 }
 
-// ── Drill-down panel ──────────────────────────────────────────────────────────
+function distributionBar(studentIds, assignmentId, w = 120, h = 10) {
+  const n = studentIds.length;
+  if (!n) return '';
+  const counts = { Redefinition: 0, Modification: 0, Augmentation: 0, Substitution: 0, None: 0 };
+  studentIds.forEach(sid => {
+    const lat = latestSub(getSubs(sid, assignmentId));
+    if (lat) counts[samr(total(lat)).label]++;
+    else counts.None++;
+  });
+  const colors = { Redefinition: '#3B3EA8', Modification: '#6B7DD4', Augmentation: '#9B9DE0', Substitution: '#cccccc' };
+  const levels = ['Redefinition', 'Modification', 'Augmentation', 'Substitution'];
+  let x = 0;
+  const rects = [];
+  levels.forEach(l => {
+    if (!counts[l]) return;
+    const sw = (counts[l] / n) * w;
+    rects.push(`<rect x="${x.toFixed(1)}" y="0" width="${sw.toFixed(1)}" height="${h}" fill="${colors[l]}"><title>${counts[l]} ${l}</title></rect>`);
+    x += sw;
+  });
+  if (x < w - 0.5) {
+    rects.push(`<rect x="${x.toFixed(1)}" y="0" width="${(w - x).toFixed(1)}" height="${h}" fill="#e5e5e2"><title>${counts.None} not submitted</title></rect>`);
+  }
+  return `<svg width="${w}" height="${h}" style="border-radius:3px;display:block;overflow:hidden">${rects.join('')}</svg>`;
+}
 
-function renderDrillPanel(subs, label, extraClass = '') {
-  if (!subs.length) return `<div class="drill-panel ${extraClass}"><em style="color:var(--text-muted);font-size:13px">No submissions</em></div>`;
+// ── Drill panel ───────────────────────────────────────────────────────────────
 
+function renderDrillPanel(subs, label) {
+  if (!subs.length) return `<div class="drill-panel"><em style="color:var(--text-muted);font-size:13px">No submissions for this assignment.</em></div>`;
   const flags   = checkFlag(subs);
   const flagIdx = new Set(flags.map(f => f.submissionIndex));
-
-  const rows = subs.map((sub, i) => {
+  const rows = [...subs].reverse().map((sub, ri) => {
+    const i = subs.length - 1 - ri;
     const t        = total(sub);
     const s        = samr(t);
     const flagInfo = flagIdx.has(i) ? flags.find(f => f.submissionIndex === i) : null;
+    const iFlags   = sub.integrityFlags || [];
+    const isLast   = i === subs.length - 1;
 
-    return `<div class="sub-row ${flagInfo ? 'flagged' : ''}">
-      <span class="sub-num">#${i + 1}</span>
-      <span class="sub-date">${formatDate(sub.ts)}</span>
-      <div class="dim-scores" style="flex:1">
-        <span class="dim-score">PQ <span>${sub.pq}</span></span>
-        <span class="dim-score">SU <span>${sub.su}</span></span>
-        <span class="dim-score">CS <span>${sub.cs}</span></span>
-        <span class="dim-score">OC <span>${sub.oc}</span></span>
+    const flagLines = [];
+    if (flagInfo) {
+      flagLines.push(`<div class="flag-line">
+        <span>Score jumped +${flagInfo.scoreDiff} points in ${flagInfo.mins} minutes</span>
+        <a class="flag-learn-more" onclick="openFlagTray('score-spike',{scoreDiff:${flagInfo.scoreDiff},mins:${flagInfo.mins}});event.stopPropagation()">Learn more</a>
+      </div>`);
+    }
+    iFlags.forEach(f => {
+      flagLines.push(`<div class="flag-line">
+        <span>${FLAG_META[f]?.desc || f}</span>
+        <a class="flag-learn-more" onclick="openFlagTray('${f}');event.stopPropagation()">Learn more</a>
+      </div>`);
+    });
+
+    const flagRow = flagLines.length
+      ? `<div class="integrity-flags-row">
+           <span style="font-size:11px;font-weight:600;color:var(--terra);flex-shrink:0;margin-top:1px">⚑</span>
+           <div style="flex:1;display:flex;flex-direction:column;gap:3px">${flagLines.join('')}</div>
+         </div>`
+      : '';
+
+    const statusChip = isLast
+      ? `<span style="font-size:10px;font-weight:600;color:var(--green);background:var(--green-tint);padding:2px 7px;border-radius:20px;flex-shrink:0">Final</span>`
+      : `<span style="font-size:10px;font-weight:600;color:var(--text-muted);background:var(--grey-tint);border:1px solid var(--border);padding:2px 7px;border-radius:20px;flex-shrink:0">Draft</span>`;
+
+    return `<div class="sub-row ${flagInfo || iFlags.length ? 'flagged' : ''}">
+      <div class="sub-row-main">
+        <span class="sub-num">#${i + 1}</span>
+        ${statusChip}
+        <span class="sub-date">${formatDate(sub.ts)}</span>
+        <span class="sub-total">${t}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span></span>
+        <div class="dim-scores" style="flex:1">
+          <span class="dim-score">PQ <span>${sub.pq}</span></span>
+          <span class="dim-score">SU <span>${sub.su}</span></span>
+          <span class="dim-score">CS <span>${sub.cs}</span></span>
+          <span class="dim-score">OC <span>${sub.oc}</span></span>
+        </div>
+        <span class="samr-badge ${s.cls}" style="min-width:100px;text-align:center">${s.label}</span>
       </div>
-      <span class="sub-total">${t}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span></span>
-      <span class="samr-badge ${s.cls}" style="margin-left:8px">${s.label}</span>
-      <span style="margin-left:8px">${verdictChip(t)}</span>
-      ${flagInfo ? `<span class="sub-flag-note">⚑ +${flagInfo.scoreDiff} pts in ${flagInfo.mins} min</span>` : ''}
+      ${flagRow}
     </div>`;
   }).join('');
-
-  return `<div class="drill-panel ${extraClass}">
+  return `<div class="drill-panel">
     <div class="drill-panel-header">Submission history — ${label}</div>
     <div class="sub-history">${rows}</div>
   </div>`;
 }
 
-// ── Class view ────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
 
-function renderClassView() {
-  const classSelector = CLASSES.map(c =>
-    `<button class="selector-pill ${c.id === activeClass ? 'active' : ''}" onclick="selectClassOverview('${c.id}')">${c.name}</button>`
-  ).join('');
+let activeTab            = 'class';
+let activeClass          = 'c1';
+let activeAssignment     = 'a1';
+let activeStudent        = 's1';
+let studentSearch        = '';
+let expandedInAssignment = null;
+let expandedInClass      = null;
+let expandedInStudent    = null;
 
-  const cls     = CLASSES.find(x => x.id === activeClass);
-  const students = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
-  const n        = students.length;
+// ── Sidebar renders ───────────────────────────────────────────────────────────
 
-  const rows = ASSIGNMENTS.map(a => {
-    const allSubs  = students.map(s => getSubs(s.id, a.id));
-    const submitted = allSubs.filter(s => s.length > 0).length;
-    const lats      = allSubs.map(s => latestSub(s)).filter(Boolean);
-    const avgTau    = lats.length ? Math.round(lats.reduce((sum, s) => sum + total(s), 0) / lats.length) : null;
-    const flagCount = students.filter(s => checkFlag(getSubs(s.id, a.id)).length > 0).length;
-    const closed    = a.status === 'closed';
-    const dueStr    = a.due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+function renderClassSidebar() {
+  return CLASSES.map(c => {
+    const students = c.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
+    const hasFlags = students.some(s => hasAnyFlag(s.id));
+    const parts    = c.name.split('—').map(s => s.trim());
+    const active   = c.id === activeClass;
+    return `<div class="sidebar-item ${active ? 'active' : ''}" onclick="selectClass('${c.id}')">
+      <div style="flex:1;min-width:0">
+        <div class="sidebar-item-name">${parts[0]}</div>
+        ${parts[1] ? `<div class="sidebar-item-sub">${parts[1]}</div>` : ''}
+        <div class="sidebar-item-sub">${students.length} student${students.length !== 1 ? 's' : ''}</div>
+      </div>
+      ${hasFlags ? '<span class="flag-dot">⚑</span>' : ''}
+    </div>`;
+  }).join('');
+}
 
-    // SAMR distribution
-    const samrCounts = { 'Redefinition': 0, 'Modification': 0, 'Augmentation': 0, 'Substitution': 0 };
-    const samrClsMap = { Redefinition:'samr-redef', Modification:'samr-mod', Augmentation:'samr-aug', Substitution:'samr-sub' };
-    lats.forEach(s => samrCounts[samr(total(s)).label]++);
-    const samrBar = ['Redefinition','Modification','Augmentation','Substitution']
-      .filter(l => samrCounts[l] > 0)
-      .map(l => `<span class="samr-badge ${samrClsMap[l]}" style="font-size:10px">${samrCounts[l]} ${l}</span>`)
-      .join('');
+function renderAssignmentSidebar() {
+  function item(a) {
+    const active   = a.id === activeAssignment;
+    const dueStr   = a.due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const hasFlags = STUDENTS.some(s => {
+      const subs = getSubs(s.id, a.id);
+      return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
+    });
+    return `<div class="sidebar-item ${active ? 'active' : ''}" onclick="selectAssignment('${a.id}')">
+      <div style="flex:1;min-width:0">
+        <div class="sidebar-item-name">${a.name}</div>
+        <div class="sidebar-item-sub">Due ${dueStr}</div>
+      </div>
+      ${hasFlags ? '<span class="flag-dot">⚑</span>' : ''}
+    </div>`;
+  }
+  const open   = ASSIGNMENTS.filter(a => a.status === 'open');
+  const closed = ASSIGNMENTS.filter(a => a.status === 'closed');
+  let html = '';
+  if (open.length)   html += `<div class="sidebar-section">Open</div>${open.map(item).join('')}`;
+  if (closed.length) html += `<div class="sidebar-section" style="margin-top:${open.length ? 4 : 0}px">Closed</div>${closed.map(item).join('')}`;
+  return html;
+}
 
-    return `<tr style="cursor:pointer" onclick="switchToAssignment('${a.id}')" onmouseover="this.style.background='var(--grey-tint)'" onmouseout="this.style.background=''">
-      <td>
-        <div style="font-weight:600;font-size:13px">${a.name}</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Due ${dueStr}</div>
-      </td>
-      <td><span class="chip ${closed ? 'chip-grey' : 'chip-amber'}">${closed ? 'Closed' : 'Open'}</span></td>
-      <td>
-        <span style="font-weight:600">${submitted}</span>
-        <span style="color:var(--text-muted)"> / ${n}</span>
-        ${submitted < n && closed ? `<div style="font-size:11px;color:var(--terra);margin-top:2px">${n - submitted} missing</div>` : ''}
-      </td>
-      <td>${avgTau !== null ? `<span class="tau-total" style="font-size:14px">${avgTau}</span><span class="tau-denom">/20</span>` : '—'}</td>
-      <td>${avgTau !== null ? `<span class="samr-badge ${samr(avgTau).cls}">${samr(avgTau).label}</span>` : '—'}</td>
-      <td><div style="display:flex;gap:6px;flex-wrap:wrap">${samrBar || '—'}</div></td>
-      <td>${flagCount ? `<span class="flag-badge">⚑ ${flagCount}</span>` : '<span style="color:var(--text-muted);font-size:12px">—</span>'}</td>
-    </tr>`;
+function renderStudentList() {
+  const q = studentSearch;
+  if (q) {
+    const filtered = STUDENTS.filter(s => s.name.toLowerCase().includes(q));
+    if (!filtered.length) return `<div style="padding:10px 16px;font-size:12px;color:var(--text-muted)">No students found</div>`;
+    return filtered.map(s => {
+      const active = s.id === activeStudent;
+      return `<div class="sidebar-item ${active ? 'active' : ''}" onclick="selectStudent('${s.id}')">
+        <div class="sidebar-item-name" style="flex:1">${s.name}</div>
+        ${hasAnyFlag(s.id) ? '<span class="flag-dot">⚑</span>' : ''}
+      </div>`;
+    }).join('');
+  }
+  return CLASSES.map(cls => {
+    const classStudents = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
+    const parts = cls.name.split('—').map(s => s.trim());
+    return `<div class="sidebar-section">${parts[0]}${parts[1] ? ' · ' + parts[1] : ''}</div>`
+      + classStudents.map(s => {
+          const active = s.id === activeStudent;
+          return `<div class="sidebar-item ${active ? 'active' : ''}" onclick="selectStudent('${s.id}')">
+            <div class="sidebar-item-name" style="flex:1">${s.name}</div>
+            ${hasAnyFlag(s.id) ? '<span class="flag-dot">⚑</span>' : ''}
+          </div>`;
+        }).join('');
+  }).join('');
+}
+
+function renderStudentSidebar() {
+  return `<div class="sidebar-search">
+      <input type="text" id="student-search-input" placeholder="Search students…"
+             oninput="filterStudents(this.value)" value="${studentSearch}">
+    </div>
+    <div id="student-list">${renderStudentList()}</div>`;
+}
+
+function renderSidebar() {
+  const el = document.getElementById('sidebar');
+  if      (activeTab === 'class')      el.innerHTML = renderClassSidebar();
+  else if (activeTab === 'assignment') el.innerHTML = renderAssignmentSidebar();
+  else                                  el.innerHTML = renderStudentSidebar();
+}
+
+// ── Class drill panel ─────────────────────────────────────────────────────────
+
+function renderClassDrillPanel(a, students) {
+  const isClosed = a.status === 'closed';
+
+  const noSubs   = students.filter(s => getSubs(s.id, a.id).length === 0);
+  const hasSubs  = students.filter(s => getSubs(s.id, a.id).length > 0);
+
+  // Unsubmitted always at top; within each group keep original roster order
+  const ordered = [...noSubs, ...hasSubs];
+
+  const rows = ordered.map(s => {
+    const subs     = getSubs(s.id, a.id);
+    const lat      = latestSub(subs);
+    const t        = lat ? total(lat) : null;
+    const st       = submissionStatus(subs, a);
+    const hasFlags = checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
+    const isMissing = isClosed && !subs.length;
+
+    return `<div class="class-student-row ${isMissing ? 'missing' : ''}"
+                 onclick="gotoStudentFromClass('${s.id}');event.stopPropagation()">
+      <div class="avatar" style="width:24px;height:24px;font-size:10px;flex-shrink:0">${s.initials}</div>
+      <span style="font-size:13px;font-weight:500;flex:1">${s.name}</span>
+      <span class="chip ${st.cls}" style="font-size:10px">${st.label}</span>
+      ${t !== null
+        ? `<span style="font-weight:700;font-size:13px;min-width:36px;text-align:right">${t}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span></span>
+           <span class="samr-badge ${samr(t).cls}" style="font-size:10px;min-width:90px;text-align:center">${samr(t).label}</span>`
+        : `<span style="min-width:36px"></span><span style="min-width:90px"></span>`}
+      ${hasFlags ? `<span class="flag-dot" style="margin-left:2px">⚑</span>` : `<span style="width:14px"></span>`}
+    </div>`;
   }).join('');
 
-  document.getElementById('view-class').innerHTML = `
-    <div class="selector-row">${classSelector}</div>
+  return `<div class="drill-panel">
+    <div class="drill-panel-header" style="display:flex;justify-content:space-between;align-items:center">
+      <span>Students — ${a.name}</span>
+      <a style="font-size:11px;font-weight:600;color:var(--blue);cursor:pointer;text-decoration:none"
+         onclick="gotoAssignment('${a.id}');event.stopPropagation()">View full assignment →</a>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px">${rows}</div>
+  </div>`;
+}
+
+// ── Content renders ───────────────────────────────────────────────────────────
+
+function renderClassContent() {
+  const cls = CLASSES.find(x => x.id === activeClass);
+  if (!cls) return '';
+  const students   = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
+  const n          = students.length;
+  const openCount  = ASSIGNMENTS.filter(a => a.status === 'open').length;
+  const totalFlags = students.filter(s => hasAnyFlag(s.id)).length;
+
+  const byDueDesc = (a, b) => b.due - a.due;
+  const open   = ASSIGNMENTS.filter(a => a.status === 'open').sort(byDueDesc);
+  const closed = ASSIGNMENTS.filter(a => a.status === 'closed').sort(byDueDesc);
+
+  function buildRow(a) {
+    const allSubs   = students.map(s => getSubs(s.id, a.id));
+    const submitted = allSubs.filter(s => s.length > 0).length;
+    const isClosed  = a.status === 'closed';
+    const dueStr    = a.due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const missing   = isClosed && submitted < n ? n - submitted : 0;
+    const flagCount = students.filter(s => {
+      const subs = getSubs(s.id, a.id);
+      return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
+    }).length;
+    const bar      = distributionBar(cls.studentIds, a.id);
+    const expanded = expandedInClass === a.id;
+
+    const mainRow = `<tr class="${expanded ? 'expanded-row' : ''}" onclick="toggleClassDrill('${a.id}')">
+      <td>
+        <div style="font-weight:600;font-size:13px">${a.name}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Due ${dueStr} · ${isClosed ? 'Closed' : 'Open'}</div>
+      </td>
+      <td>
+        <span style="font-weight:600;${isClosed && submitted < n ? 'color:var(--terra)' : ''}">${submitted}</span><span style="color:var(--text-muted)"> / ${n}</span>
+        ${missing ? `<div style="font-size:11px;color:var(--terra);margin-top:2px">${missing} missing</div>` : ''}
+      </td>
+      <td>${bar}</td>
+      <td>${flagCount ? `<span class="flag-badge">⚑ ${flagCount}</span>` : '<span style="color:var(--text-muted);font-size:12px">—</span>'}</td>
+    </tr>`;
+
+    const drillRow = expanded
+      ? `<tr class="drill-row"><td colspan="4" style="padding:0">${renderClassDrillPanel(a, students)}</td></tr>`
+      : '';
+
+    return mainRow + drillRow;
+  }
+
+  function groupHeader(label) {
+    return `<tr style="pointer-events:none">
+      <td colspan="4" style="padding:10px 14px 4px;background:var(--bg);border-bottom:none">
+        <span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px">${label}</span>
+      </td>
+    </tr>`;
+  }
+
+  const rows = [
+    ...(open.length   ? [groupHeader('Open'),   ...open.map(buildRow)]   : []),
+    ...(closed.length ? [groupHeader('Closed'), ...closed.map(buildRow)] : []),
+  ].join('');
+
+  const metaParts = [
+    `${n} student${n !== 1 ? 's' : ''}`,
+    `${ASSIGNMENTS.length} assignment${ASSIGNMENTS.length !== 1 ? 's' : ''}`,
+    openCount ? `${openCount} open` : 'all closed',
+  ];
+  if (totalFlags) metaParts.push(`<span style="color:var(--terra)">⚑ ${totalFlags} flagged</span>`);
+
+  return `
+    <div class="content-header">
+      <div class="content-title">${cls.name}</div>
+      <div class="content-meta">${metaParts.join(' · ')}</div>
+    </div>
     <table class="data-table">
       <colgroup>
-        <col style="width:220px">
-        <col style="width:80px">
-        <col style="width:100px">
-        <col style="width:100px">
-        <col style="width:130px">
         <col style="width:auto">
+        <col style="width:100px">
+        <col style="width:140px">
         <col style="width:80px">
       </colgroup>
       <thead><tr>
         <th>Assignment</th>
-        <th>Status</th>
         <th>Submitted</th>
-        <th>Avg TAU</th>
-        <th>Avg SAMR</th>
-        <th>SAMR Spread</th>
+        <th>Class spread</th>
         <th>Flags</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    <p style="margin-top:14px;font-size:12px;color:var(--text-muted)">Click an assignment to view student breakdown.</p>
+    <div class="bar-legend">
+      <span>Spread:</span>
+      <span><span class="legend-swatch" style="background:#3B3EA8"></span>Redefinition</span>
+      <span><span class="legend-swatch" style="background:#6B7DD4"></span>Modification</span>
+      <span><span class="legend-swatch" style="background:#9B9DE0"></span>Augmentation</span>
+      <span><span class="legend-swatch" style="background:#ccc"></span>Substitution</span>
+      <span><span class="legend-swatch" style="background:#e5e5e2"></span>Not submitted</span>
+    </div>
+    <p style="margin-top:10px;font-size:12px;color:var(--text-muted)">Click an assignment to view student breakdown.</p>
   `;
 }
 
-function selectClassOverview(id) {
-  activeClass = id;
-  renderClassView();
-}
-
-function switchToAssignment(aid) {
-  activeAssignment  = aid;
-  expandedStudentId = null;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view === 'assignment'));
-  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-assignment'));
-  renderAssignmentView();
-}
-
-// ── Assignment view ───────────────────────────────────────────────────────────
-
-let activeAssignment  = 'a1';
-let expandedStudentId = null;
-
-function renderAssignmentView() {
-  const selector = ASSIGNMENTS.map(a =>
-    `<button class="selector-pill ${a.id === activeAssignment ? 'active' : ''}" onclick="selectAssignment('${a.id}')">${a.name}</button>`
-  ).join('');
-
-  const a      = ASSIGNMENTS.find(x => x.id === activeAssignment);
+function renderAssignmentContent() {
+  const a = ASSIGNMENTS.find(x => x.id === activeAssignment);
+  if (!a) return '';
   const closed = a.status === 'closed';
   const dueStr = a.due.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-  const rows = STUDENTS.map(s => {
-    const subs     = getSubs(s.id, a.id);
-    const flags    = checkFlag(subs);
-    const lat      = latestSub(subs);
-    const t        = lat ? total(lat) : null;
-    const st       = submissionStatus(subs, a);
-    const expanded = expandedStudentId === s.id;
+  const rows = [];
+  CLASSES.forEach(cls => {
+    const classStudents = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
+    if (!classStudents.length) return;
 
-    const flagBadge = flags.length
-      ? `<span class="flag-badge" title="${flags.map(f => `Sub ${f.submissionIndex + 1}: +${f.scoreDiff} pts in ${f.mins} min`).join('; ')}">⚑ Flag</span>`
-      : '';
+    rows.push(`<tr style="pointer-events:none">
+      <td colspan="6" style="padding:10px 14px 4px;background:var(--bg);border-bottom:none">
+        <span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px">${cls.name}</span>
+      </td>
+    </tr>`);
 
-    const dataRow = `<tr class="${expanded ? 'expanded-row' : ''}" onclick="toggleStudentDrill('${s.id}')">
-      <td style="font-weight:500">${s.name}</td>
-      <td style="color:var(--text-mid)">${subs.length}</td>
-      <td>${t ? `<span class="tau-total">${t}</span><span class="tau-denom">/20</span>` : '—'}</td>
-      <td>${sparklineSVG(subs)}</td>
-      <td>${t ? `<span class="samr-badge ${samr(t).cls}">${samr(t).label}</span>` : '—'}</td>
-      <td>${t ? verdictChip(t) : '—'}</td>
-      <td><span class="chip ${st.cls}">${st.label}</span></td>
-      <td>${flagBadge}</td>
-    </tr>`;
+    classStudents.forEach(s => {
+      const subs     = getSubs(s.id, a.id);
+      const flags    = checkFlag(subs);
+      const lat      = latestSub(subs);
+      const t        = lat ? total(lat) : null;
+      const st       = submissionStatus(subs, a);
+      const iFlags   = getIntegrityFlags(subs);
+      const expanded = expandedInAssignment === s.id;
+      const hasFlags = flags.length > 0 || iFlags.length > 0;
 
-    const drillRow = expanded
-      ? `<tr class="drill-row"><td colspan="8" style="padding:0">${renderDrillPanel(subs, s.name)}</td></tr>`
-      : '';
+      const flagsCell = hasFlags
+        ? `<span class="flag-badge" title="Expand to see flag details">⚑ Flagged</span>`
+        : `<span style="color:var(--text-muted)">—</span>`;
 
-    return dataRow + drillRow;
-  }).join('');
+      rows.push(`<tr class="${expanded ? 'expanded-row' : ''}" onclick="toggleAssignmentDrill('${s.id}')">
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="avatar" style="width:26px;height:26px;font-size:10px">${s.initials}</div>
+            <span style="font-weight:500;font-size:13px">${s.name}</span>
+          </div>
+        </td>
+        <td style="font-size:12px;color:var(--text-mid)">${subs.length || '<span style="color:var(--text-muted)">—</span>'}</td>
+        <td>${t !== null ? `<span class="tau-total" style="font-size:14px">${t}</span><span class="tau-denom">/20</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+        <td>${t !== null ? `<span class="samr-badge ${samr(t).cls}">${samr(t).label}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+        <td>${`<span class="chip ${st.cls}">${st.label}</span>`}</td>
+        <td>${flagsCell}</td>
+      </tr>`);
 
-  document.getElementById('view-assignment').innerHTML = `
-    <div class="selector-row">${selector}</div>
-    <div class="assign-meta">
-      <span class="assign-meta-name">${a.name}</span>
-      <span class="chip ${closed ? 'chip-grey' : 'chip-amber'}">${closed ? 'Closed' : 'Open'}</span>
-      <span class="assign-meta-due">Due ${dueStr}</span>
+      if (expanded) {
+        rows.push(`<tr class="drill-row"><td colspan="6" style="padding:0">${renderDrillPanel(subs, s.name)}</td></tr>`);
+      }
+    });
+  });
+
+  const flagTotal = STUDENTS.filter(s => {
+    const subs = getSubs(s.id, a.id);
+    return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
+  }).length;
+
+  const metaParts = [`Due ${dueStr}`];
+  if (flagTotal) metaParts.push(`<span style="color:var(--terra)">⚑ ${flagTotal} student${flagTotal !== 1 ? 's' : ''} flagged</span>`);
+
+  return `
+    <div class="content-header">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="content-title">${a.name}</div>
+        <span class="chip ${closed ? 'chip-grey' : 'chip-amber'}">${closed ? 'Closed' : 'Open'}</span>
+      </div>
+      <div class="content-meta">${metaParts.join(' · ')}</div>
     </div>
     <table class="data-table">
       <colgroup>
-        <col style="width:160px">
-        <col style="width:90px">
-        <col style="width:100px">
-        <col style="width:96px">
-        <col style="width:130px">
-        <col style="width:130px">
-        <col style="width:90px">
         <col style="width:auto">
+        <col style="width:100px">
+        <col style="width:100px">
+        <col style="width:140px">
+        <col style="width:120px">
+        <col style="width:120px">
       </colgroup>
       <thead><tr>
         <th>Student</th>
         <th>Submissions</th>
         <th>Latest TAU</th>
-        <th>Progression</th>
         <th>SAMR</th>
-        <th>Verdict</th>
         <th>Status</th>
         <th>Flags</th>
       </tr></thead>
-      <tbody>${rows}</tbody>
+      <tbody>${rows.join('')}</tbody>
     </table>
+    <p style="margin-top:10px;font-size:12px;color:var(--text-muted)">Click a row to see submission history and flag details.</p>
   `;
 }
 
-function selectAssignment(id) {
-  activeAssignment  = id;
-  expandedStudentId = null;
-  renderAssignmentView();
-}
+function renderStudentContent() {
+  const s = STUDENTS.find(x => x.id === activeStudent);
+  if (!s) return '<div style="padding:20px;color:var(--text-muted);font-size:13px">Select a student from the sidebar.</div>';
+  const cls     = CLASSES.find(c => c.studentIds.includes(s.id));
+  const flagged = hasAnyFlag(s.id);
 
-function toggleStudentDrill(sid) {
-  expandedStudentId = expandedStudentId === sid ? null : sid;
-  renderAssignmentView();
-}
+  const sorted = [...ASSIGNMENTS].sort((a, b) => (a.status === b.status ? 0 : a.status === 'open' ? -1 : 1));
+  let lastGroup = null;
+  const sections = sorted.map(a => {
+    const subs     = getSubs(s.id, a.id);
+    const st       = submissionStatus(subs, a);
+    const lat      = latestSub(subs);
+    const t        = lat ? total(lat) : null;
+    const flags    = checkFlag(subs);
+    const iFlags   = getIntegrityFlags(subs);
+    const hasFlags = flags.length > 0 || iFlags.length > 0;
+    const expanded = expandedInStudent === a.id;
 
-// ── Student view ──────────────────────────────────────────────────────────────
+    let groupLabel = '';
+    if (a.status !== lastGroup) {
+      lastGroup = a.status;
+      const isFirst = a.status === 'open';
+      groupLabel = `<div class="sidebar-section" style="padding:0;margin-bottom:6px${isFirst ? '' : ';margin-top:16px'}">${a.status === 'open' ? 'Open' : 'Closed'}</div>`;
+    }
 
-let activeClass          = 'c1';
-let expandedStudentInView = null;
-
-function renderStudentView() {
-  const classSelector = CLASSES.map(c =>
-    `<button class="selector-pill ${c.id === activeClass ? 'active' : ''}" onclick="selectClass('${c.id}')">${c.name}</button>`
-  ).join('');
-
-  const cls            = CLASSES.find(x => x.id === activeClass);
-  const classStudents  = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
-
-  const assignHeaders = ASSIGNMENTS.map(a => `<th>${a.name}</th>`).join('');
-  const colgroup = `<colgroup><col style="width:180px">${ASSIGNMENTS.map(() => '<col style="width:auto">').join('')}</colgroup>`;
-
-  const rows = classStudents.map(s => {
-    const flagged  = hasAnyFlag(s.id);
-    const expanded = expandedStudentInView === s.id;
-
-    const assignCells = ASSIGNMENTS.map(a => {
-      const subs = getSubs(s.id, a.id);
-      const lat  = latestSub(subs);
-      const t    = lat ? total(lat) : null;
-      const st   = submissionStatus(subs, a);
-      if (!t) return `<td><span class="chip ${st.cls}" style="font-size:10px">${st.label}</span></td>`;
-      return `<td>
-        <div style="display:flex;flex-direction:column;gap:4px">
-          <span class="chip ${st.cls}" style="font-size:10px;align-self:flex-start">${st.label}</span>
-          <div style="display:flex;align-items:baseline;gap:3px">
-            <span style="font-weight:700;font-size:14px">${t}</span>
-            <span class="tau-denom">/20</span>
-            <span class="samr-badge ${samr(t).cls}" style="font-size:10px;margin-left:4px">${samr(t).label}</span>
-          </div>
-        </div>
-      </td>`;
-    }).join('');
-
-    const dataRow = `<tr class="${expanded ? 'expanded-row' : ''}" onclick="toggleStudentExpand('${s.id}')">
-      <td>
-        <div style="display:flex;align-items:center;gap:10px">
-          <div class="avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0">${s.initials}</div>
-          <span style="font-weight:500">${s.name}</span>
-          ${flagged ? `<span class="flag-badge" title="Suspicious resubmission detected">⚑</span>` : ''}
-        </div>
-      </td>
-      ${assignCells}
-    </tr>`;
-
-    const drillRow = expanded
-      ? `<tr class="drill-row"><td colspan="${1 + ASSIGNMENTS.length}" style="padding:0">${renderStudentFullPanel(s)}</td></tr>`
+    const drillPanel = expanded
+      ? `<div class="assignment-drill">${renderDrillPanel(subs, a.name)}</div>`
       : '';
 
-    return dataRow + drillRow;
-  }).join('');
-
-  document.getElementById('view-student').innerHTML = `
-    <div class="selector-row">${classSelector}</div>
-    <table class="data-table">
-      ${colgroup}
-      <thead><tr><th>Student</th>${assignHeaders}</tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-  `;
-}
-
-function renderStudentFullPanel(s) {
-  const sections = ASSIGNMENTS.map(a => {
-    const subs = getSubs(s.id, a.id);
-    const st   = submissionStatus(subs, a);
-
-    const subRows = subs.length ? (() => {
-      const flags   = checkFlag(subs);
-      const flagIdx = new Set(flags.map(f => f.submissionIndex));
-      return subs.map((sub, i) => {
-        const t        = total(sub);
-        const sv       = samr(t);
-        const flagInfo = flagIdx.has(i) ? flags.find(f => f.submissionIndex === i) : null;
-        return `<div class="sub-row ${flagInfo ? 'flagged' : ''}">
-          <span class="sub-num">#${i + 1}</span>
-          <span class="sub-date">${formatDate(sub.ts)}</span>
-          <div class="dim-scores" style="flex:1">
-            <span class="dim-score">PQ <span>${sub.pq}</span></span>
-            <span class="dim-score">SU <span>${sub.su}</span></span>
-            <span class="dim-score">CS <span>${sub.cs}</span></span>
-            <span class="dim-score">OC <span>${sub.oc}</span></span>
-          </div>
-          <span class="sub-total">${t}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span></span>
-          <span class="samr-badge ${sv.cls}" style="margin-left:8px">${sv.label}</span>
-          <span style="margin-left:8px">${verdictChip(t)}</span>
-          ${flagInfo ? `<span class="sub-flag-note">⚑ +${flagInfo.scoreDiff} pts in ${flagInfo.mins} min</span>` : ''}
-        </div>`;
-      }).join('');
-    })() : `<em style="font-size:12px;color:var(--text-muted)">No submissions</em>`;
-
-    return `<div style="margin-bottom:20px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <span style="font-size:12px;font-weight:600;color:var(--text)">${a.name}</span>
-        <span class="chip ${st.cls}" style="font-size:10px">${st.label}</span>
-        ${sparklineSVG(subs, 60, 22)}
+    return `${groupLabel}<div style="margin-bottom:${expanded ? 16 : 8}px">
+      <div class="assignment-summary-row ${expanded ? 'expanded' : ''}" onclick="toggleStudentDrill('${a.id}')">
+        <span class="chevron">${expanded ? '▾' : '▸'}</span>
+        <span style="font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}</span>
+        ${t !== null ? `<span style="font-weight:700;font-size:13px;flex-shrink:0">${t}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span></span>` : '<span style="font-size:12px;color:var(--text-muted);flex-shrink:0">—</span>'}
+        ${t !== null ? `<span class="samr-badge ${samr(t).cls}" style="font-size:10px;flex-shrink:0">${samr(t).label}</span>` : ''}
+        ${hasFlags ? `<span class="flag-badge" style="flex-shrink:0">⚑ Flagged</span>` : ''}
+        <span class="chip ${st.cls}" style="font-size:10px;flex-shrink:0">${st.label}</span>
+        <span style="font-size:11px;color:var(--text-muted);flex-shrink:0">${subs.length} sub${subs.length !== 1 ? 's' : ''}</span>
       </div>
-      <div class="sub-history">${subRows}</div>
+      ${drillPanel}
     </div>`;
   }).join('');
 
-  return `<div class="drill-panel" style="border-radius:0;border-left:none;border-right:none">
-    <div class="drill-panel-header">${s.name} — All Assignments</div>
+  return `
+    <div class="content-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="avatar" style="width:40px;height:40px;font-size:14px">${s.initials}</div>
+        <div>
+          <div class="content-title">${s.name}</div>
+          <div class="content-meta">${cls ? cls.name : ''}</div>
+        </div>
+        ${flagged ? `<span class="flag-badge" style="margin-left:8px">⚑ Flagged</span>` : ''}
+      </div>
+    </div>
     ${sections}
-  </div>`;
+  `;
 }
 
-function selectClass(id) {
-  activeClass           = id;
-  expandedStudentInView = null;
-  renderStudentView();
+function renderContent() {
+  const el = document.getElementById('content');
+  if      (activeTab === 'class')      el.innerHTML = renderClassContent();
+  else if (activeTab === 'assignment') el.innerHTML = renderAssignmentContent();
+  else                                  el.innerHTML = renderStudentContent();
 }
 
-function toggleStudentExpand(sid) {
-  expandedStudentInView = expandedStudentInView === sid ? null : sid;
-  renderStudentView();
+// ── Navigation ────────────────────────────────────────────────────────────────
+
+function setTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  render();
 }
 
-// ── Cross-view navigation ─────────────────────────────────────────────────────
+function selectClass(cid)     { activeClass = cid; expandedInClass = null; render(); }
+function selectAssignment(aid){ activeAssignment = aid; expandedInAssignment = null; render(); }
+function selectStudent(sid)   { activeStudent = sid; expandedInStudent = null; render(); }
 
-function switchToStudent(sid) {
-  // Find which class this student belongs to
-  const cls = CLASSES.find(c => c.studentIds.includes(sid));
-  if (cls) activeClass = cls.id;
-  expandedStudentInView = sid;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view === 'student'));
-  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-student'));
-  renderStudentView();
+function gotoAssignment(aid) {
+  activeAssignment     = aid;
+  expandedInAssignment = null;
+  setTab('assignment');
+}
+
+function toggleAssignmentDrill(sid) {
+  expandedInAssignment = expandedInAssignment === sid ? null : sid;
+  renderContent();
+}
+
+function toggleClassDrill(aid) {
+  expandedInClass = expandedInClass === aid ? null : aid;
+  renderContent();
+}
+
+function toggleStudentDrill(aid) {
+  expandedInStudent = expandedInStudent === aid ? null : aid;
+  renderContent();
+}
+
+function gotoStudentFromClass(sid) {
+  activeStudent = sid;
+  setTab('student');
+}
+
+function filterStudents(q) {
+  studentSearch = q.toLowerCase().trim();
+  const listEl = document.getElementById('student-list');
+  if (listEl) listEl.innerHTML = renderStudentList();
+}
+
+function render() {
+  renderSidebar();
+  renderContent();
+}
+
+// ── Flag tray ─────────────────────────────────────────────────────────────────
+
+function openFlagTray(key, spikeCtx) {
+  const meta = FLAG_META[key];
+  if (!meta) return;
+
+  let desc = meta.desc;
+  if (key === 'score-spike' && spikeCtx) {
+    desc = `Score jumped +${spikeCtx.scoreDiff} points in ${spikeCtx.mins} minute${spikeCtx.mins !== 1 ? 's' : ''}`;
+  }
+
+  document.getElementById('tray-title').textContent   = meta.short;
+  document.getElementById('tray-subtitle').textContent = desc;
+  document.getElementById('tray-body').innerHTML = `
+    <div>
+      <div class="tray-section-label">What this means</div>
+      <div class="tray-section-body">${meta.what}</div>
+    </div>
+    <div>
+      <div class="tray-section-label">Why we flagged it</div>
+      <div class="tray-section-body">${meta.why}</div>
+    </div>
+    <div>
+      <div class="tray-section-label">Potential next steps</div>
+      <ul class="tray-steps">
+        ${meta.steps.map((s, i) => `<li><span class="tray-step-num">${i + 1}</span><span>${s}</span></li>`).join('')}
+      </ul>
+    </div>
+  `;
+
+  document.getElementById('tray-overlay').classList.add('open');
+  document.getElementById('side-tray').classList.add('open');
+}
+
+function closeFlagTray() {
+  document.getElementById('tray-overlay').classList.remove('open');
+  document.getElementById('side-tray').classList.remove('open');
+}
+
+// ── Flag detection modal ───────────────────────────────────────────────────────
+
+const FLAG_TYPES = {
+  'stylistic-inconsistency': 'integrity',
+  'unnatural-fluency':       'integrity',
+  'provenance-mismatch':     'integrity',
+  'shadow-session-pattern':  'integrity',
+  'score-spike':             'score',
+};
+
+function openFlagModal() {
+  const body = document.getElementById('flag-modal-body');
+  body.innerHTML = Object.entries(FLAG_META).map(([key, f]) => {
+    const type    = FLAG_TYPES[key] || 'integrity';
+    const typeLabel = type === 'integrity'
+      ? `<span class="flag-type-label flag-type-integrity">Integrity</span>`
+      : `<span class="flag-type-label flag-type-score">Score analysis</span>`;
+    const steps = f.steps?.length
+      ? `<div class="flag-card-section">What to do</div>
+         <ol class="flag-card-steps">${f.steps.map(s => `<li>${s}</li>`).join('')}</ol>`
+      : '';
+    return `<div class="flag-card">
+      <div class="flag-card-header">
+        <span style="font-size:14px;color:var(--terra)">⚑</span>
+        <span class="flag-card-title">${f.short}</span>
+        ${typeLabel}
+      </div>
+      <div class="flag-card-desc">${f.desc}</div>
+      <div class="flag-card-section">What the tool detects</div>
+      <div class="flag-card-body">${f.what}</div>
+      <div class="flag-card-section">Why it matters</div>
+      <div class="flag-card-body">${f.why}</div>
+      ${steps}
+    </div>`;
+  }).join('');
+  document.getElementById('flag-modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFlagModal(e) {
+  if (e && e.target !== document.getElementById('flag-modal-overlay')) return;
+  document.getElementById('flag-modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 // ── Tab nav ───────────────────────────────────────────────────────────────────
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    btn.classList.add('active');
-    const view = btn.dataset.view;
-    document.getElementById(`view-${view}`).classList.add('active');
-    if      (view === 'class')      renderClassView();
-    else if (view === 'assignment') renderAssignmentView();
-    else if (view === 'student')    renderStudentView();
-  });
+  btn.addEventListener('click', () => setTab(btn.dataset.tab));
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
-renderClassView();
+render();
 </script>
 </body>
 </html>
