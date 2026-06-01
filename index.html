@@ -343,6 +343,92 @@
     .tab-pane.active { display: block; }
     #tabChart.active { display: flex; flex-direction: column; align-items: center; }
 
+    /* ── My Session tab ──────────────────────────────────── */
+    .session-strip {
+      display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 20px;
+      padding: 14px 16px; background: var(--surface2); border-radius: 8px;
+    }
+    .session-strip-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--muted); margin-bottom: 10px;
+    }
+    .strip-block {
+      width: 18px; height: 18px; border-radius: 3px; cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .strip-block:hover { transform: scale(1.3); }
+    .strip-block.driving  { background: #22c55e; }
+    .strip-block.following { background: #cbd5e1; }
+    .strip-block.highlighted { outline: 2px solid #f59e0b; outline-offset: 1px; }
+
+    .session-turn-list { display: flex; flex-direction: column; gap: 8px; }
+    .session-turn {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 12px 14px; border-radius: 8px; background: var(--surface2);
+      border-left: 4px solid transparent; transition: background 0.12s;
+    }
+    .session-turn.driving  { border-left-color: #22c55e; }
+    .session-turn.following { border-left-color: #cbd5e1; }
+    .session-turn-num {
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      min-width: 24px; padding-top: 2px;
+    }
+    .session-turn-body { flex: 1; min-width: 0; }
+    .session-turn-text {
+      font-size: 13px; line-height: 1.6; color: var(--text);
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .session-essay-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .04em; color: #92400e;
+      background: #fef3c7; border-radius: 4px;
+      padding: 2px 6px; margin-bottom: 6px;
+    }
+    .session-essay-badge::before {
+      content: ""; display: inline-block; width: 6px; height: 6px;
+      border-radius: 50%; background: #f59e0b;
+    }
+    .session-legend {
+      display: flex; gap: 16px; margin-bottom: 14px; flex-wrap: wrap;
+    }
+    .session-legend-item {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--muted); font-weight: 600;
+    }
+    .session-legend-dot {
+      width: 12px; height: 12px; border-radius: 2px;
+    }
+    .no-essay-note {
+      font-size: 12px; color: var(--muted); font-style: italic;
+      margin-bottom: 12px;
+    }
+
+    /* ── Pattern groups in My Session ────────────────────────── */
+    .pattern-group {
+      border-radius: 10px; padding: 10px 10px 6px;
+      margin-bottom: 4px; position: relative;
+    }
+    .pattern-group.tier-high   { background: #f0fdf4; border: 1.5px solid #86efac; }
+    .pattern-group.tier-medium { background: #eff6ff; border: 1.5px solid #bfdbfe; }
+    .pattern-group.tier-low    { background: #fefce8; border: 1.5px solid #fde047; }
+    .pattern-group-header {
+      display: flex; align-items: flex-start; gap: 8px;
+      margin-bottom: 8px;
+    }
+    .pattern-group-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; padding: 2px 8px; border-radius: 4px;
+      white-space: nowrap;
+    }
+    .tier-high   .pattern-group-label { background: #bbf7d0; color: #14532d; }
+    .tier-medium .pattern-group-label { background: #bfdbfe; color: #1e3a8a; }
+    .tier-low    .pattern-group-label { background: #fde68a; color: #713f12; }
+    .pattern-group-desc {
+      font-size: 12px; line-height: 1.5; color: var(--muted);
+    }
+    .pattern-group .session-turn { margin-bottom: 6px; }
+
     /* ── Inline flags (below TAU score) ───────────────────── */
     .flags-inline {
       margin-top: 14px; padding-top: 14px; border-top: 1px solid #fecdd3;
@@ -497,6 +583,129 @@
     .div-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #555; }
     .div-legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
     .div-legend-divider { width: 1px; height: 14px; background: #ddd; margin: 0 4px; }
+
+    /* ── Dev dropdown ─────────────────────────────────────── */
+    #devDropdownWrap { position: relative; margin-left: 12px; }
+    #devToggleBtn {
+      font-size: 11px; font-weight: 700; padding: 5px 12px;
+      border-radius: 20px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--muted);
+      cursor: pointer; white-space: nowrap; letter-spacing: .03em;
+    }
+    #devToggleBtn:hover { background: var(--bg); color: var(--text); }
+    #devDropdown {
+      position: absolute; right: 0; top: calc(100% + 8px);
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+      z-index: 500; min-width: 360px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    #devDropdown.hidden { display: none; }
+    .dev-section {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .dev-section label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--muted); white-space: nowrap;
+    }
+    .dev-section input[type=password] {
+      flex: 1; min-width: 0; padding: 5px 9px;
+      border: 1px solid var(--border); border-radius: 6px;
+      font-size: 12px; background: var(--bg); color: var(--text);
+    }
+    .dev-section button {
+      font-size: 11px; font-weight: 600; padding: 5px 12px;
+      border-radius: 6px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--accent);
+      cursor: pointer; white-space: nowrap;
+    }
+    .dev-section button:hover { background: #f0f1f8; }
+    .dev-divider { border: none; border-top: 1px solid var(--border); }
+    .dev-sample-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .dev-sample-row label { align-self: center; }
+
+    /* ── Stepper ──────────────────────────────────────────── */
+    .stepper-wrap {
+      max-width: 640px; margin: 32px auto; padding: 0 24px 40px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .step-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+      transition: opacity 0.2s;
+    }
+    .step-card.locked { opacity: 0.45; pointer-events: none; }
+    .step-card-header {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 20px; cursor: pointer; user-select: none;
+    }
+    .step-card.locked .step-card-header { cursor: default; }
+    .step-card-header:hover:not(.locked *) { background: var(--bg); }
+    .step-num {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      background: var(--accent); color: #fff;
+      font-size: 13px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step-num.done { background: #22c55e; }
+    .step-card-title {
+      font-size: 15px; font-weight: 700; color: var(--text); flex: 1;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .optional-tag {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--muted);
+      background: var(--bg); border: 1px solid var(--border);
+      padding: 2px 7px; border-radius: 99px;
+    }
+    .step-file-label {
+      font-size: 12px; color: #166534; font-weight: 600;
+      background: #dcfce7; padding: 2px 10px; border-radius: 99px;
+    }
+    .step-card-body {
+      padding: 0 20px 20px; display: flex; flex-direction: column; gap: 12px;
+    }
+    .step-card.collapsed .step-card-body { display: none; }
+    .step-helper { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .step-mini-list {
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .step-mini-row {
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .step-mini-num {
+      width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+      background: var(--bg); border: 1px solid var(--border);
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 1px;
+    }
+    .step-mini-text { font-size: 13px; color: var(--text); line-height: 1.55; }
+    .step-mini-text code {
+      background: var(--bg); border: 1px solid var(--border);
+      padding: 1px 5px; border-radius: 4px; font-size: 12px;
+    }
+    .step-next-btn {
+      align-self: flex-start; padding: 9px 20px;
+      background: var(--accent); color: #fff; border: none;
+      border-radius: 8px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background 0.12s;
+    }
+    .step-next-btn:hover { background: #2D30A0; }
+    .step-skip-link {
+      align-self: flex-start; font-size: 12px; color: var(--muted);
+      background: none; border: none; cursor: pointer;
+      text-decoration: underline; padding: 0;
+    }
+    .step-skip-link:hover { color: var(--text); }
+    .stepper-wrap > #analyzeBtn {
+      width: 100%; padding: 14px; font-size: 15px; font-weight: 700;
+      background: var(--accent); color: #fff; border: none;
+      border-radius: 10px; cursor: pointer; transition: background 0.15s;
+    }
+    .stepper-wrap > #analyzeBtn:hover  { background: #2D30A0; }
+    .stepper-wrap > #analyzeBtn:disabled { background: #9496CC; cursor: not-allowed; }
 
     /* ── Instruction tray content ─────────────────────────── */
     .instruction-steps { display: flex; flex-direction: column; gap: 16px; }
@@ -760,56 +969,122 @@
   <p>Trace the cognitive provenance of AI-assisted writing</p>
   <span class="version">TAU v2</span>
   <a href="teacher-dashboard.html" target="_blank" style="margin-left:auto;font-size:12px;font-weight:600;color:#3B3EA8;background:#f0f1f8;border:1px solid #c5c7e8;padding:5px 12px;border-radius:20px;text-decoration:none;white-space:nowrap;" onmouseover="this.style.background='#e3e4f4'" onmouseout="this.style.background='#f0f1f8'">Teacher Dashboard →</a>
+  <div id="devDropdownWrap">
+    <button id="devToggleBtn" onclick="toggleDevDropdown()">Dev ▾</button>
+    <div id="devDropdown" class="hidden">
+      <div class="dev-section">
+        <label>Groq API key</label>
+        <input type="password" id="apiKeyInput" placeholder="gsk_..." />
+        <button id="apiKeySave">Save</button>
+        <span id="apiKeyStatus" style="font-size:11px;color:var(--muted)"></span>
+      </div>
+      <div class="dev-divider"></div>
+      <div class="dev-section">
+        <label>Sample</label>
+        <div class="dev-sample-row">
+          <button class="sample-btn" data-sample="low">Low</button>
+          <button class="sample-btn" data-sample="medium">Medium</button>
+          <button class="sample-btn" data-sample="high">High</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </header>
 
 <div id="inputScreen">
-  <div class="layout">
+  <div class="stepper-wrap">
 
-    <div class="api-key-bar" id="apiKeyBar">
-      <span>Groq API key:</span>
-      <input type="password" id="apiKeyInput" placeholder="gsk_..." />
-      <button id="apiKeySave">Save</button>
-      <span id="apiKeyStatus" style="color:var(--muted);font-size:12px;"></span>
-    </div>
-
-    <div class="sample-bar">
-      <span>Load sample:</span>
-      <button class="sample-btn" data-sample="low">Low — Pure Extraction (Social Media)</button>
-      <button class="sample-btn" data-sample="medium">Medium — Multi-Thread (UBI)</button>
-      <button class="sample-btn" data-sample="high">High — Deep Agency (Algorithmic Justice)</button>
-    </div>
-
-    <div class="panel">
-      <div class="panel-label-row" style="margin-bottom:2px;">
-        <label>AI Chat Log</label>
+    <!-- Step 1: Prepare -->
+    <div class="step-card" id="stepCard1">
+      <div class="step-card-header" onclick="stepHeaderClick(1)">
+        <div class="step-num" id="stepNum1">1</div>
+        <div class="step-card-title">Prepare your chat log</div>
       </div>
+      <div class="step-card-body" id="stepBody1">
+        <p class="step-helper">Go back to your AI chat and run this prompt — it reformats your conversation into a file you can upload here.</p>
+        <div class="step-mini-list">
+          <div class="step-mini-row">
+            <div class="step-mini-num">1</div>
+            <div class="step-mini-text">Open the same AI chat you used for your work (ChatGPT, Claude, Gemini, etc.)</div>
+          </div>
+          <div class="step-mini-row">
+            <div class="step-mini-num">2</div>
+            <div class="step-mini-text">Copy the prompt below and paste it as your next message, then send it</div>
+          </div>
+        </div>
+        <div class="format-prompt-box" id="formatPromptBox">Reformat our entire conversation from the very beginning using these exact markers:
 
-      <button class="upload-btn" style="align-self:flex-start;" onclick="openInstructionTray()">How to prepare your chat log</button>
+&lt;&lt;&lt;STUDENT&gt;&gt;&gt;
+[student message]
 
-      <div class="chat-upload-zone" id="chatUploadZone" onclick="document.getElementById('logFile').click()">
-        <input type="file" id="logFile" accept=".md,.txt" multiple style="display:none">
-        <div class="upload-zone-icon">&#8593;</div>
-        <div class="upload-zone-text">Upload .md or .txt file(s)</div>
-        <div class="upload-zone-sub">Click to browse or drag and drop — multiple files allowed</div>
+&lt;&lt;&lt;AI&gt;&gt;&gt;
+[AI response]
+
+Rules:
+- Start immediately with the first marker — no introduction or explanation
+- Every message must have a marker on its own line above it
+- Copy every message in full — do not summarize or shorten anything
+- Use only &lt;&lt;&lt;STUDENT&gt;&gt;&gt; and &lt;&lt;&lt;AI&gt;&gt;&gt; — no other labels or formatting
+
+When done, save the result as a markdown file named chat_log.md so I can download it. If your platform does not support file downloads, output the full formatted text so I can copy and save it manually.</div>
+        <button class="copy-prompt-btn" id="copyPromptBtn" onclick="copyFormatPrompt()">Copy prompt</button>
+        <div class="step-mini-list">
+          <div class="step-mini-row">
+            <div class="step-mini-num">3</div>
+            <div class="step-mini-text">Download the <code>chat_log.md</code> file your AI creates — or copy the output and save it as a <code>.txt</code> file</div>
+          </div>
+        </div>
+        <button class="step-next-btn" onclick="completeStep1()">I have my file — next →</button>
       </div>
-
-      <div id="uploadedFilesList" class="uploaded-files-list"></div>
-      <textarea id="logInput" style="display:none"></textarea>
     </div>
 
-    <div class="panel">
-      <div class="panel-label-row">
-        <label for="essayInput">Final Essay / Draft</label>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span id="essayFilename" class="upload-filename"></span>
-          <button class="upload-btn" onclick="document.getElementById('essayFile').click()">Upload PDF / TXT</button>
-          <input type="file" id="essayFile" accept=".pdf,.txt" style="display:none">
+    <!-- Step 2: Upload chat log -->
+    <div class="step-card locked" id="stepCard2">
+      <div class="step-card-header" onclick="stepHeaderClick(2)">
+        <div class="step-num" id="stepNum2">2</div>
+        <div class="step-card-title">
+          Upload your chat log
+          <span class="step-file-label" id="step2FileLabel" style="display:none"></span>
         </div>
       </div>
-      <textarea id="essayInput" placeholder="Paste the final essay or draft here — or upload a PDF / TXT above."></textarea>
+      <div class="step-card-body" id="stepBody2">
+        <p class="step-helper">Upload the file from step 1. If you worked across multiple sessions, upload each file — they will be merged automatically.</p>
+        <div class="chat-upload-zone" id="chatUploadZone" onclick="document.getElementById('logFile').click()">
+          <input type="file" id="logFile" accept=".md,.txt" multiple style="display:none">
+          <div class="upload-zone-icon">&#8593;</div>
+          <div class="upload-zone-text">Upload .md or .txt file(s)</div>
+          <div class="upload-zone-sub">Click to browse or drag and drop — multiple files allowed</div>
+        </div>
+        <div id="uploadedFilesList" class="uploaded-files-list"></div>
+        <textarea id="logInput" style="display:none"></textarea>
+      </div>
     </div>
 
-    <button id="analyzeBtn">Analyze</button>
+    <!-- Step 3: Upload essay -->
+    <div class="step-card locked" id="stepCard3">
+      <div class="step-card-header" onclick="stepHeaderClick(3)">
+        <div class="step-num" id="stepNum3">3</div>
+        <div class="step-card-title">
+          Upload your essay
+          <span class="optional-tag">Optional</span>
+          <span class="step-file-label" id="step3FileLabel" style="display:none"></span>
+        </div>
+      </div>
+      <div class="step-card-body" id="stepBody3">
+        <p class="step-helper">Adding your essay lets us trace which ideas made it into your final draft. Skip if you're still working on it.</p>
+        <div class="chat-upload-zone" id="essayUploadZone" onclick="document.getElementById('essayFile').click()">
+          <input type="file" id="essayFile" accept=".pdf,.txt,.md" style="display:none">
+          <div class="upload-zone-icon">&#8593;</div>
+          <div class="upload-zone-text">Upload .pdf, .txt or .md file</div>
+          <div class="upload-zone-sub">Click to browse or drag and drop</div>
+        </div>
+        <div id="essayFilesList" class="uploaded-files-list"></div>
+        <textarea id="essayInput" style="display:none"></textarea>
+        <button class="step-skip-link" onclick="skipEssay()">Skip this step →</button>
+      </div>
+    </div>
+
+    <button id="analyzeBtn" disabled>Analyze</button>
 
   </div>
 </div>
@@ -833,18 +1108,10 @@
     <div class="panel" id="tabsPanel">
       <div class="tab-bar">
         <button class="tab-btn active" data-tab="chart">Agency Chart</button>
-        <button class="tab-btn" data-tab="turns">Student Turns</button>
+        <button class="tab-btn" data-tab="reflect">My Session</button>
         <button class="tab-btn" data-tab="divergence">Chart Examples</button>
       </div>
 
-      <div class="tab-pane" id="tabTurns">
-        <div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-bottom:8px;">
-          <div class="legend" id="legend"></div>
-          <button class="legend-learn-btn" id="labelLearnBtn">About these labels</button>
-        </div>
-        <div id="parseNote" class="parse-note" style="display:none;margin-bottom:8px;"></div>
-        <div class="turn-list" id="turnList"></div>
-      </div>
 
       <div class="tab-pane active" id="tabChart">
         <div id="chartSummaryEl" style="width:796px;max-width:100%;"></div>
@@ -871,6 +1138,11 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <div class="tab-pane" id="tabReflect">
+        <div id="parseNote" class="parse-note" style="display:none;margin-bottom:8px;"></div>
+        <div id="reflectContent"></div>
       </div>
 
       <div class="tab-pane" id="tabDivergence">
@@ -1029,8 +1301,151 @@ function copyFormatPrompt() {
   });
 }
 
+// ─── Essay file upload ────────────────────────────────────────────────────────
+
+function renderEssayFile(name) {
+  const list = document.getElementById("essayFilesList");
+  if (!name) { list.innerHTML = ""; return; }
+  list.innerHTML = `<div class="uploaded-file-row">
+    <span class="uploaded-file-name">${name}</span>
+    <button class="uploaded-file-remove" onclick="clearEssayFile()" title="Remove">&times;</button>
+  </div>`;
+}
+
+function clearEssayFile() {
+  document.getElementById("essayInput").value = "";
+  document.getElementById("essayFile").value = "";
+  renderEssayFile(null);
+}
+
+async function loadEssayFile(file) {
+  const zone = document.getElementById("essayUploadZone");
+  zone.querySelector(".upload-zone-text").textContent = "Reading…";
+  try {
+    let text;
+    if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+      text = await extractPDFText(file);
+    } else {
+      text = await file.text();
+    }
+    document.getElementById("essayInput").value = text;
+    renderEssayFile(file.name);
+  } catch (err) {
+    renderEssayFile("Error reading file");
+    console.error(err);
+  } finally {
+    zone.querySelector(".upload-zone-text").textContent = "Upload .pdf, .txt or .md file";
+  }
+}
+
 document.getElementById("essayFile").addEventListener("change", e => {
-  if (e.target.files[0]) handleFileUpload(e.target.files[0], "essayInput", "essayFilename");
+  if (e.target.files[0]) loadEssayFile(e.target.files[0]);
+  e.target.value = "";
+});
+
+const essayUploadZone = document.getElementById("essayUploadZone");
+essayUploadZone.addEventListener("dragover", e => { e.preventDefault(); essayUploadZone.classList.add("drag-over"); });
+essayUploadZone.addEventListener("dragleave", () => essayUploadZone.classList.remove("drag-over"));
+essayUploadZone.addEventListener("drop", e => {
+  e.preventDefault();
+  essayUploadZone.classList.remove("drag-over");
+  const file = Array.from(e.dataTransfer.files).find(f => /\.(pdf|txt|md)$/i.test(f.name));
+  if (file) loadEssayFile(file);
+});
+
+// ─── Stepper ─────────────────────────────────────────────────────────────────
+
+const stepState = { 1: 'active', 2: 'locked', 3: 'locked' };
+
+function stepHeaderClick(n) {
+  if (stepState[n] === 'locked') return;
+  // If already active/complete and body is visible, collapse it (toggle); otherwise expand
+  const body = document.getElementById(`stepBody${n}`);
+  const card = document.getElementById(`stepCard${n}`);
+  const isCollapsed = card.classList.contains('collapsed');
+  if (isCollapsed) {
+    card.classList.remove('collapsed');
+  } else if (stepState[n] === 'complete') {
+    card.classList.add('collapsed');
+  }
+}
+
+function completeStep1() {
+  stepState[1] = 'complete';
+  const num = document.getElementById('stepNum1');
+  num.textContent = '✓'; num.classList.add('done');
+  document.getElementById('stepCard1').classList.add('collapsed');
+  unlockStep(2);
+}
+
+function unlockStep(n) {
+  stepState[n] = 'active';
+  const card = document.getElementById(`stepCard${n}`);
+  card.classList.remove('locked', 'collapsed');
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function markStep2Complete(filename) {
+  stepState[2] = 'complete';
+  const num = document.getElementById('stepNum2');
+  num.textContent = '✓'; num.classList.add('done');
+  const lbl = document.getElementById('step2FileLabel');
+  lbl.textContent = filename; lbl.style.display = '';
+  document.getElementById('stepCard2').classList.add('collapsed');
+  document.getElementById('analyzeBtn').disabled = false;
+  if (stepState[3] === 'locked') unlockStep(3);
+}
+
+function skipEssay() {
+  document.getElementById('stepCard3').classList.add('collapsed');
+}
+
+function resetStepper() {
+  [1, 2, 3].forEach(n => {
+    const card = document.getElementById(`stepCard${n}`);
+    const num  = document.getElementById(`stepNum${n}`);
+    num.textContent = n; num.classList.remove('done');
+    card.classList.remove('collapsed', 'locked');
+    if (n > 1) card.classList.add('locked');
+  });
+  stepState[1] = 'active'; stepState[2] = 'locked'; stepState[3] = 'locked';
+  document.getElementById('step2FileLabel').style.display = 'none';
+  document.getElementById('step3FileLabel').style.display = 'none';
+  document.getElementById('analyzeBtn').disabled = true;
+}
+
+// Intercept chat file uploads to advance stepper
+const _origRenderUploadedFiles = renderUploadedFiles;
+function renderUploadedFiles() {
+  _origRenderUploadedFiles();
+  if (uploadedChatFiles.length > 0 && stepState[2] !== 'complete') {
+    const name = uploadedChatFiles.length === 1
+      ? uploadedChatFiles[0].name
+      : `${uploadedChatFiles.length} files`;
+    markStep2Complete(name);
+  }
+}
+
+// Intercept essay file to update step 3 label
+const _origRenderEssayFile = renderEssayFile;
+function renderEssayFile(name) {
+  _origRenderEssayFile(name);
+  const lbl = document.getElementById('step3FileLabel');
+  if (name) { lbl.textContent = name; lbl.style.display = ''; }
+  else { lbl.style.display = 'none'; }
+}
+
+// ─── Dev dropdown ─────────────────────────────────────────────────────────────
+
+function toggleDevDropdown() {
+  document.getElementById('devDropdown').classList.toggle('hidden');
+}
+
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('devDropdownWrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('devDropdown').classList.add('hidden');
+  }
 });
 
 // ─── Parser ───────────────────────────────────────────────────────────────────
@@ -1806,6 +2221,8 @@ const PAT_DESCRIPTIONS = {
   "validation-spiral":  "Alternating extraction and validation turns. The student is asking AI to confirm its own outputs without independent evaluation.",
   "helplessness-loop":  "A stuck turn followed by continued passivity. The student is relying on AI to resolve difficulty rather than working through it independently.",
   "flitting":           "Multiple topic pivots without substantive turns between them. Suggests the student is exploring without depth — no thread is being developed.",
+  "argument-engaged":   "The AI made an argument and you pushed back with a challenge, rejection, or refinement. This is exactly the kind of critical engagement that develops independent thinking.",
+  "missed-argument":    "The AI was making arguments but your responses stayed passive. These are missed opportunities to evaluate, challenge, or build on what the AI was presenting.",
 };
 
 // ── Divergence value scale ──────────────────────────────────────────────────
@@ -2147,7 +2564,7 @@ function renderAgencyChart(classified) {
   const dtTicks  = [-3, -2, -1, 0, 1, 2, 3, 4, 5];
   const dtSvgW   = 796;
   const dtInnerW = dtSvgW - dtMargin.left - dtMargin.right;
-  const dtRowH   = 22;
+  const dtRowH   = 28;
   const dtXScale = d3.scaleLinear().domain([-3, 5]).range([0, dtInnerW]);
   const dtZeroX  = dtXScale(0);
   const dtBtnW = 62, dtBtnH = 20, dtBtnR = 4;
@@ -2156,7 +2573,7 @@ function renderAgencyChart(classified) {
   const agSvg  = d3.select("#agencyChart").attr("width", dtSvgW).attr("height", svgH);
   agSvg.selectAll("*").remove();
   const g = agSvg.append("g").attr("transform", `translate(${dtMargin.left},${dtMargin.top})`);
-  const yScale = d3.scaleBand().domain(data.map(d => d.label)).range([0, innerH]).padding(0.35);
+  const yScale = d3.scaleBand().domain(data.map(d => d.label)).range([0, innerH]).padding(0.25);
   const step = yScale.step(), halfGap = step * yScale.paddingInner() / 2;
   const bandData = d3.groups(data, d => Math.floor((d.id - 1) / 5)).filter(([i]) => i % 2 === 1);
   g.selectAll(".dt-row-band").data(bandData).join("rect")
@@ -2202,24 +2619,24 @@ function renderAgencyChart(classified) {
     });
   g.selectAll(".dt-label").data(data).join("text").attr("class","dt-label")
     .attr("x",-10).attr("y",d=>yScale(d.label)+yScale.bandwidth()/2).attr("dy","0.35em").attr("text-anchor","end")
-    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#555")
+    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","13px").attr("fill","#555")
     .text(d => d.id % 5 === 0 ? d.label : "");
   g.selectAll(".dt-axis-bot").data(dtTicks).join("text").attr("class","dt-axis-bot")
     .attr("x",d=>dtXScale(d)).attr("y",innerH+20).attr("text-anchor","middle")
-    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999")
+    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999")
     .text(d => d === 0 ? "0" : d > 0 ? `+${d}` : d);
   g.selectAll(".dt-axis-top").data(dtTicks).join("text").attr("class","dt-axis-top")
     .attr("x",d=>dtXScale(d)).attr("y",-16).attr("text-anchor","middle")
-    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999")
+    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999")
     .text(d => d === 0 ? "0" : d > 0 ? `+${d}` : d);
   agSvg.append("text").attr("transform","rotate(-90)")
     .attr("x",-(dtMargin.top+innerH/2)).attr("y",80).attr("text-anchor","middle")
-    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999")
+    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999")
     .text("Student Turns");
   g.append("line").attr("x1",0).attr("x2",dtInnerW).attr("y1",innerH).attr("y2",innerH).attr("stroke","#ccc").attr("stroke-width",1);
   g.append("line").attr("x1",0).attr("x2",dtInnerW).attr("y1",0).attr("y2",0).attr("stroke","#ccc").attr("stroke-width",1);
   g.append("text").attr("x",dtInnerW/2).attr("y",innerH+38).attr("text-anchor","middle")
-    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999").text("Student Agency");
+    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999").text("Student Agency");
 }
 
 function openPatternSidebar(p, student, classified) {
@@ -2620,6 +3037,106 @@ function renderTurns(classified) {
   }).join("");
 }
 
+function matchConceptsToTurns(classified, provenanceData) {
+  const result = {}; // globalTurnIndex -> [concept, ...]
+  if (!provenanceData || !provenanceData.length) return result;
+
+  const relevant = provenanceData.filter(p => p.origin === "student-born" || p.origin === "synthesized");
+  const studentTurns = classified
+    .map((t, i) => ({ ...t, globalIndex: i }))
+    .filter(t => t.role === "student");
+
+  for (const prov of relevant) {
+    const words = prov.concept.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(w => w.length > 3);
+    if (!words.length) continue;
+    for (const turn of studentTurns) {
+      const text = turn.text.toLowerCase();
+      const hits = words.filter(w => text.includes(w)).length;
+      if (hits >= Math.max(1, Math.ceil(words.length * 0.5))) {
+        if (!result[turn.globalIndex]) result[turn.globalIndex] = [];
+        result[turn.globalIndex].push(prov.concept);
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+const DRIVING_LABELS  = new Set(["claim","conceptual","challenge","rejection","refinement","pivot"]);
+const FOLLOWING_LABELS = new Set(["extraction","validation","stuck","feedback","narrative"]);
+
+function sessionBucket(label) {
+  if (DRIVING_LABELS.has(label))  return "driving";
+  if (FOLLOWING_LABELS.has(label)) return "following";
+  return "following";
+}
+
+function renderReflect(classified, provenanceData) {
+  const studentTurns = classified
+    .map((t, i) => ({ ...t, globalIndex: i }))
+    .filter(t => t.role === "student");
+
+  const essayMatches = matchConceptsToTurns(classified, provenanceData);
+  const hasEssay = provenanceData && provenanceData.length > 0;
+
+  // Build index: student turn position → pattern
+  const patterns = detectPatterns(classified);
+  const turnPattern = {};
+  for (const p of patterns) {
+    for (let i = p.start; i <= p.end; i++) turnPattern[i] = p;
+  }
+
+  function renderTurn(t, i) {
+    const bucket = sessionBucket(t.label);
+    const concepts = essayMatches[t.globalIndex] || [];
+    const essayBadge = concepts.length
+      ? `<span class="session-essay-badge">in your essay — ${esc(concepts[0])}</span>`
+      : "";
+    return `
+      <div class="session-turn ${bucket}" id="session-turn-${i}">
+        <div class="session-turn-num">${i + 1}</div>
+        <div class="session-turn-body">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+            ${labelBadge(t.label)}
+            ${essayBadge}
+          </div>
+          <div class="session-turn-text">${esc(t.text)}</div>
+        </div>
+      </div>`;
+  }
+
+  // Walk turns, wrapping pattern groups around consecutive turns in the same pattern
+  let html = "";
+  let i = 0;
+  while (i < studentTurns.length) {
+    const p = turnPattern[i];
+    if (p && p.start === i) {
+      const desc = PAT_DESCRIPTIONS[p.id] || "";
+      html += `<div class="pattern-group tier-${p.tier}">
+        <div class="pattern-group-header">
+          <span class="pattern-group-label">${esc(p.label)}</span>
+          <span class="pattern-group-desc">${esc(desc)}</span>
+        </div>`;
+      for (let j = p.start; j <= p.end; j++) {
+        html += renderTurn(studentTurns[j], j);
+      }
+      html += `</div>`;
+      i = p.end + 1;
+    } else {
+      html += renderTurn(studentTurns[i], i);
+      i++;
+    }
+  }
+
+  const essayNote = !hasEssay
+    ? `<div class="no-essay-note">Paste an essay to see which turns made it into your final draft.</div>`
+    : "";
+
+  return `
+    ${essayNote}
+    <div class="session-turn-list">${html}</div>`;
+}
+
 function renderLegend() {
   const labels = ["challenge","rejection","refinement","claim","conceptual","narrative","pivot","feedback","extraction","validation","stuck"];
   return labels.map(l => `<div class="legend-item">${labelBadge(l)}</div>`).join("");
@@ -2910,9 +3427,8 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
     document.getElementById("summaryGrid").innerHTML = renderSummary(scores, usingGroq && !groqErrors.includes("provenance"));
     document.getElementById("feedbackPanel").innerHTML = renderFeedback(generateFeedback(scores));
 
-    document.getElementById("turnList").innerHTML = renderTurns(classified);
+    document.getElementById("reflectContent").innerHTML = renderReflect(classified, provenanceData);
     renderAgencyChart(classified);
-    document.getElementById("legend").innerHTML   = renderLegend();
 
     const noteEl = document.getElementById("parseNote");
     if (parsedWithGroq) {
@@ -2996,7 +3512,7 @@ loadGroqKey().then(updateApiKeyStatus);
 
 // ─── Tab switching ────────────────────────────────────────────────────────────
 
-const TAB_MAP = { turns: "tabTurns", chart: "tabChart", provenance: "tabProvenance", divergence: "tabDivergence" };
+const TAB_MAP = { chart: "tabChart", provenance: "tabProvenance", divergence: "tabDivergence", reflect: "tabReflect" };
 
 function activateTab(key) {
   document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -3018,10 +3534,27 @@ document.querySelectorAll(".sample-btn").forEach(btn => {
     const key = btn.dataset.sample;
     const sample = SAMPLES[key];
     if (!sample) return;
+
+    // Reset stepper to clean state before bypassing it
+    uploadedChatFiles.length = 0;
+    document.getElementById("uploadedFilesList").innerHTML = "";
     document.getElementById("logInput").value   = sample.conversation;
     document.getElementById("essayInput").value = sample.essay;
+
+    // Advance stepper to completed state
+    resetStepper();
+    stepState[1] = 'complete';
+    const n1 = document.getElementById('stepNum1');
+    n1.textContent = '✓'; n1.classList.add('done');
+    document.getElementById('stepCard1').classList.add('collapsed');
+    stepState[2] = 'active';
+    document.getElementById('stepCard2').classList.remove('locked');
+    markStep2Complete('sample-chat.txt');
+    if (sample.essay) _origRenderEssayFile('sample-essay.txt');
+
     document.querySelectorAll(".sample-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
+    document.getElementById('devDropdown').classList.add('hidden');
     document.getElementById("analyzeBtn").click();
   });
 });
@@ -3050,7 +3583,7 @@ document.querySelectorAll(".sample-btn").forEach(btn => {
           <strong>Step 1 — Ask your AI to reformat the conversation</strong>
           Copy the prompt below and paste it into the same AI session you used for your work (Claude, ChatGPT, Gemini, or any other). Send it as your next message.
         </div>
-        <div class="format-prompt-box" id="formatPromptBox">Reformat our entire conversation from the very beginning using these exact markers:
+        <div class="format-prompt-box">Reformat our entire conversation from the very beginning using these exact markers:
 
 <<<STUDENT>>>
 [student message]
@@ -3065,7 +3598,7 @@ Rules:
 - Use only <<<STUDENT>>> and <<<AI>>> — no other labels or formatting
 
 When done, save the result as a markdown file named chat_log.md so I can download it. If your platform does not support file downloads, output the full formatted text so I can copy and save it manually.</div>
-        <button class="copy-prompt-btn" id="copyPromptBtn" onclick="copyFormatPrompt()">Copy prompt</button>
+        <button class="copy-prompt-btn" onclick="copyFormatPrompt()">Copy prompt</button>
         <div class="instruction-step">
           <strong>Step 2 — Save the output</strong>
           Download the <code>chat_log.md</code> file your AI creates, or copy the full output and save it as a <code>.md</code> or <code>.txt</code> file.
@@ -3567,7 +4100,7 @@ const DIM_DETAILS = {
   const dtTicks   = [-3, -2, -1, 0, 1, 2, 3, 4, 5];
   const dtSvgW    = 796;
   const dtInnerW  = dtSvgW - dtMargin.left - dtMargin.right;
-  const dtRowH    = 22;
+  const dtRowH    = 28;
   const dtXScale  = d3.scaleLinear().domain([-3, 5]).range([0, dtInnerW]);
   const dtZeroX   = dtXScale(0);
   const dtBtnW = 62, dtBtnH = 20, dtBtnR = 4;
@@ -3652,7 +4185,7 @@ const DIM_DETAILS = {
     const svgH   = innerH + dtMargin.top + dtMargin.bottom;
     dtSvg.attr("height", svgH).selectAll("*").remove();
     const g = dtSvg.append("g").attr("transform", `translate(${dtMargin.left},${dtMargin.top})`);
-    const yScale = d3.scaleBand().domain(data.map(d => d.label)).range([0, innerH]).padding(0.35);
+    const yScale = d3.scaleBand().domain(data.map(d => d.label)).range([0, innerH]).padding(0.25);
     const step = yScale.step(), halfGap = step * yScale.paddingInner() / 2;
     const bandData = d3.groups(data, d => Math.floor((d.id - 1) / 5)).filter(([i]) => i % 2 === 1);
     g.selectAll(".dt-row-band").data(bandData).join("rect")
@@ -3699,24 +4232,24 @@ const DIM_DETAILS = {
       });
     g.selectAll(".dt-label").data(data).join("text").attr("class","dt-label")
       .attr("x",-10).attr("y",d=>yScale(d.label)+yScale.bandwidth()/2).attr("dy","0.35em").attr("text-anchor","end")
-      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#555")
+      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","13px").attr("fill","#555")
       .text(d => d.id % 5 === 0 ? d.label : "");
     g.selectAll(".dt-axis-bot").data(dtTicks).join("text").attr("class","dt-axis-bot")
       .attr("x",d=>dtXScale(d)).attr("y",innerH+20).attr("text-anchor","middle")
-      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999")
+      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999")
       .text(d => d === 0 ? "0" : d > 0 ? `+${d}` : d);
     g.selectAll(".dt-axis-top").data(dtTicks).join("text").attr("class","dt-axis-top")
       .attr("x",d=>dtXScale(d)).attr("y",-16).attr("text-anchor","middle")
-      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999")
+      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999")
       .text(d => d === 0 ? "0" : d > 0 ? `+${d}` : d);
     dtSvg.append("text").attr("transform","rotate(-90)")
       .attr("x",-(dtMargin.top+innerH/2)).attr("y",80).attr("text-anchor","middle")
-      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999")
+      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999")
       .text("Student Turns");
     g.append("line").attr("x1",0).attr("x2",dtInnerW).attr("y1",innerH).attr("y2",innerH).attr("stroke","#ccc").attr("stroke-width",1);
     g.append("line").attr("x1",0).attr("x2",dtInnerW).attr("y1",0).attr("y2",0).attr("stroke","#ccc").attr("stroke-width",1);
     g.append("text").attr("x",dtInnerW/2).attr("y",innerH+38).attr("text-anchor","middle")
-      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999").text("Student Agency");
+      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999").text("Student Agency");
   }
 
   // Tooltip

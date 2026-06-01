@@ -310,7 +310,8 @@ header .subtitle { font-size: 12px; color: var(--text-muted); }
 .sub-row.flagged { border-color: var(--terra); background: var(--terra-tint); }
 .sub-row-main { display: flex; align-items: center; gap: 10px; }
 .sub-num  { font-size: 11px; font-weight: 600; color: var(--text-muted); width: 20px; flex-shrink: 0; }
-.sub-date { color: var(--text-mid); min-width: 140px; flex-shrink: 0; font-size: 11px; }
+.sub-date { color: var(--text-mid); width: 140px; flex-shrink: 0; font-size: 11px; }
+.sub-chip { width: 44px; text-align: center; flex-shrink: 0; }
 .sub-total { font-size: 14px; font-weight: 700; width: 40px; text-align: right; flex-shrink: 0; }
 .integrity-flags-row {
   display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
@@ -329,6 +330,16 @@ header .subtitle { font-size: 12px; color: var(--text-muted); }
 
 .tau-total { font-size: 15px; font-weight: 700; }
 .tau-denom { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+
+.overview-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.overview-card:hover { background: var(--blue-tint); border-color: var(--blue-light); }
 .sparkline { display: block; }
 
 /* ── Flag lines ── */
@@ -481,6 +492,53 @@ header .subtitle { font-size: 12px; color: var(--text-muted); }
 .class-student-row.missing { background: var(--terra-tint); }
 .class-student-row.missing:hover { background: #f5ddd4; }
 
+/* ── Signal indicators ── */
+.signal-pill-review {
+  font-size: 10px; font-weight: 700;
+  color: var(--terra);
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.signal-pill-attention {
+  font-size: 10px; font-weight: 700;
+  color: var(--amber);
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.signal-reason {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.3;
+  white-space: normal;
+}
+
+/* ── Filter chips ── */
+.filter-chips {
+  display: flex;
+  gap: 5px;
+  padding: 6px 12px 2px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.filter-chip {
+  font-size: 11px; font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.1s;
+  font-family: inherit;
+}
+.filter-chip:hover { color: var(--text); border-color: #bbb; }
+.filter-chip.active-all      { background: var(--blue-tint);  border-color: var(--blue-light);  color: var(--blue); }
+.filter-chip.active-review   { background: var(--terra-tint); border-color: var(--terra-light); color: var(--terra); }
+.filter-chip.active-attention { background: var(--amber-tint); border-color: #d4a060;           color: var(--amber); }
+
 /* ── Bar legend ── */
 .bar-legend {
   display: flex;
@@ -622,8 +680,8 @@ const STUDENTS = [
 ];
 
 const CLASSES = [
-  { id: 'c1', name: 'Period 3 — Digital Literacy', studentIds: ['s1', 's2', 's3'] },
-  { id: 'c2', name: 'Period 5 — AP Research',      studentIds: ['s4', 's5'] },
+  { id: 'c1', name: 'Digital Literacy', studentIds: ['s1', 's2', 's3'] },
+  { id: 'c2', name: 'AP Research',      studentIds: ['s4', 's5'] },
 ];
 
 const SUBMISSIONS = {
@@ -789,6 +847,60 @@ function hasAnyFlag(sid) {
   });
 }
 
+function getStudentSignal(studentId, assignmentId = null) {
+  const assignments = assignmentId
+    ? [ASSIGNMENTS.find(a => a.id === assignmentId)].filter(Boolean)
+    : ASSIGNMENTS;
+
+  const integrityKeys = [];
+  let hasSpikeFlag = false;
+
+  assignments.forEach(a => {
+    const subs = getSubs(studentId, a.id);
+    getIntegrityFlags(subs).forEach(f => { if (!integrityKeys.includes(f)) integrityKeys.push(f); });
+    if (checkFlag(subs).length) hasSpikeFlag = true;
+  });
+
+  if (integrityKeys.length || hasSpikeFlag) {
+    const has = k => integrityKeys.includes(k);
+    let reason;
+    if (has('shadow-session-pattern') && has('unnatural-fluency')) {
+      reason = 'Multiple integrity signals — consider a conversation';
+    } else if (has('shadow-session-pattern')) {
+      reason = 'Unusually passive acceptance pattern';
+    } else if (has('unnatural-fluency')) {
+      reason = 'Writing style inconsistent with live composition';
+    } else if (has('stylistic-inconsistency')) {
+      reason = 'Vocabulary shifts sharply between turns';
+    } else if (has('provenance-mismatch')) {
+      reason = 'Essay credits ideas the AI introduced first';
+    } else {
+      reason = 'Score jumped sharply between two submissions';
+    }
+    return { status: 'review', reason };
+  }
+
+  const allSubs = assignments.flatMap(a => getSubs(studentId, a.id));
+  if (!allSubs.length) return { status: 'on-track', reason: '' };
+
+  const avg = dim => allSubs.reduce((s, sub) => s + sub[dim], 0) / allSubs.length;
+  const avgPQ    = avg('pq');
+  const avgCS    = avg('cs');
+  const avgOC    = avg('oc');
+  const avgTotal = allSubs.reduce((s, sub) => s + total(sub), 0) / allSubs.length;
+
+  const sorted   = [...allSubs].sort((a, b) => a.ts - b.ts);
+  const declining = sorted.length >= 3 && total(sorted[sorted.length - 1]) < total(sorted[0]) - 2;
+
+  if (declining)              return { status: 'attention', reason: 'Engagement declining across recent submissions' };
+  if (avgTotal < 9)           return { status: 'attention', reason: 'Passive engagement across all submissions' };
+  if (avgCS < 2.5 && avgPQ < 2.5) return { status: 'attention', reason: 'Tends to accept AI responses without questioning' };
+  if (avgCS < 2.5)            return { status: 'attention', reason: 'Rarely challenges or refines AI suggestions' };
+  if (avgOC < 2.5)            return { status: 'attention', reason: 'Most ideas appear AI-initiated' };
+
+  return { status: 'on-track', reason: '' };
+}
+
 function formatDate(d) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -873,8 +985,8 @@ function renderDrillPanel(subs, label) {
       : '';
 
     const statusChip = isLast
-      ? `<span style="font-size:10px;font-weight:600;color:var(--green);background:var(--green-tint);padding:2px 7px;border-radius:20px;flex-shrink:0">Final</span>`
-      : `<span style="font-size:10px;font-weight:600;color:var(--text-muted);background:var(--grey-tint);border:1px solid var(--border);padding:2px 7px;border-radius:20px;flex-shrink:0">Draft</span>`;
+      ? `<span class="sub-chip" style="font-size:10px;font-weight:600;color:var(--green);background:var(--green-tint);padding:2px 7px;border-radius:20px">Final</span>`
+      : `<span class="sub-chip" style="font-size:10px;font-weight:600;color:var(--text-muted);background:var(--grey-tint);border:1px solid var(--border);padding:2px 7px;border-radius:20px">Draft</span>`;
 
     return `<div class="sub-row ${flagInfo || iFlags.length ? 'flagged' : ''}">
       <div class="sub-row-main">
@@ -888,7 +1000,7 @@ function renderDrillPanel(subs, label) {
           <span class="dim-score">CS <span>${sub.cs}</span></span>
           <span class="dim-score">OC <span>${sub.oc}</span></span>
         </div>
-        <span class="samr-badge ${s.cls}" style="min-width:100px;text-align:center">${s.label}</span>
+        <span class="samr-badge ${s.cls}" style="width:100px;text-align:center;flex-shrink:0">${s.label}</span>
       </div>
       ${flagRow}
     </div>`;
@@ -902,10 +1014,11 @@ function renderDrillPanel(subs, label) {
 // ── State ─────────────────────────────────────────────────────────────────────
 
 let activeTab            = 'class';
-let activeClass          = 'c1';
-let activeAssignment     = 'a1';
-let activeStudent        = 's1';
+let activeClass          = 'overview';
+let activeAssignment     = 'overview';
+let activeStudent        = 'overview';
 let studentSearch        = '';
+let studentFilter        = 'all';
 let expandedInAssignment = null;
 let expandedInClass      = null;
 let expandedInStudent    = null;
@@ -913,20 +1026,26 @@ let expandedInStudent    = null;
 // ── Sidebar renders ───────────────────────────────────────────────────────────
 
 function renderClassSidebar() {
-  return CLASSES.map(c => {
+  const items = CLASSES.map(c => {
     const students = c.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
     const hasFlags = students.some(s => hasAnyFlag(s.id));
-    const parts    = c.name.split('—').map(s => s.trim());
     const active   = c.id === activeClass;
     return `<div class="sidebar-item ${active ? 'active' : ''}" onclick="selectClass('${c.id}')">
       <div style="flex:1;min-width:0">
-        <div class="sidebar-item-name">${parts[0]}</div>
-        ${parts[1] ? `<div class="sidebar-item-sub">${parts[1]}</div>` : ''}
+        <div class="sidebar-item-name">${c.name}</div>
         <div class="sidebar-item-sub">${students.length} student${students.length !== 1 ? 's' : ''}</div>
       </div>
       ${hasFlags ? '<span class="flag-dot">⚑</span>' : ''}
     </div>`;
   }).join('');
+  return `<div class="sidebar-item ${activeClass === 'overview' ? 'active' : ''}" onclick="selectClass('overview')" style="margin-bottom:4px">
+    <div style="flex:1;min-width:0">
+      <div class="sidebar-item-name">Overview</div>
+      <div class="sidebar-item-sub">All classes at a glance</div>
+    </div>
+  </div>
+  <div style="height:1px;background:var(--border);margin:4px 0 8px"></div>
+  ${items}`;
 }
 
 function renderAssignmentSidebar() {
@@ -947,43 +1066,80 @@ function renderAssignmentSidebar() {
   }
   const open   = ASSIGNMENTS.filter(a => a.status === 'open');
   const closed = ASSIGNMENTS.filter(a => a.status === 'closed');
-  let html = '';
-  if (open.length)   html += `<div class="sidebar-section">Open</div>${open.map(item).join('')}`;
-  if (closed.length) html += `<div class="sidebar-section" style="margin-top:${open.length ? 4 : 0}px">Closed</div>${closed.map(item).join('')}`;
-  return html;
+  let items = '';
+  if (open.length)   items += `<div class="sidebar-section">Open</div>${open.map(item).join('')}`;
+  if (closed.length) items += `<div class="sidebar-section" style="margin-top:${open.length ? 4 : 0}px">Closed</div>${closed.map(item).join('')}`;
+  return `<div class="sidebar-item ${activeAssignment === 'overview' ? 'active' : ''}" onclick="selectAssignment('overview')" style="margin-bottom:4px">
+    <div style="flex:1;min-width:0">
+      <div class="sidebar-item-name">Overview</div>
+      <div class="sidebar-item-sub">All assignments at a glance</div>
+    </div>
+  </div>
+  <div style="height:1px;background:var(--border);margin:4px 0 8px"></div>
+  ${items}`;
+}
+
+function signalPill(sig) {
+  if (sig.status === 'review')    return `<span class="signal-pill-review">⚑ Review</span>`;
+  if (sig.status === 'attention') return `<span class="signal-pill-attention">● Attention</span>`;
+  return '';
+}
+
+function studentSidebarItem(s) {
+  const active = s.id === activeStudent;
+  const sig    = getStudentSignal(s.id);
+  return `<div class="sidebar-item ${active ? 'active' : ''}" onclick="selectStudent('${s.id}')">
+    <div style="flex:1;min-width:0">
+      <div class="sidebar-item-name">${s.name}</div>
+      ${sig.reason ? `<div class="signal-reason">${sig.reason}</div>` : ''}
+    </div>
+    ${signalPill(sig)}
+  </div>`;
 }
 
 function renderStudentList() {
-  const q = studentSearch;
-  if (q) {
-    const filtered = STUDENTS.filter(s => s.name.toLowerCase().includes(q));
-    if (!filtered.length) return `<div style="padding:10px 16px;font-size:12px;color:var(--text-muted)">No students found</div>`;
-    return filtered.map(s => {
-      const active = s.id === activeStudent;
-      return `<div class="sidebar-item ${active ? 'active' : ''}" onclick="selectStudent('${s.id}')">
-        <div class="sidebar-item-name" style="flex:1">${s.name}</div>
-        ${hasAnyFlag(s.id) ? '<span class="flag-dot">⚑</span>' : ''}
-      </div>`;
-    }).join('');
+  const q = studentSearch.toLowerCase().trim();
+
+  let candidates = CLASSES.flatMap(cls =>
+    cls.studentIds.map(sid => ({ student: STUDENTS.find(s => s.id === sid), cls }))
+  ).filter(({ student }) => student);
+
+  if (q) candidates = candidates.filter(({ student }) => student.name.toLowerCase().includes(q));
+
+  if (studentFilter !== 'all') {
+    candidates = candidates.filter(({ student }) => getStudentSignal(student.id).status === studentFilter);
   }
+
+  if (!candidates.length) return `<div style="padding:10px 16px;font-size:12px;color:var(--text-muted)">No students match this filter</div>`;
+
+  if (q) {
+    return candidates.map(({ student }) => studentSidebarItem(student)).join('');
+  }
+
   return CLASSES.map(cls => {
-    const classStudents = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
-    const parts = cls.name.split('—').map(s => s.trim());
-    return `<div class="sidebar-section">${parts[0]}${parts[1] ? ' · ' + parts[1] : ''}</div>`
-      + classStudents.map(s => {
-          const active = s.id === activeStudent;
-          return `<div class="sidebar-item ${active ? 'active' : ''}" onclick="selectStudent('${s.id}')">
-            <div class="sidebar-item-name" style="flex:1">${s.name}</div>
-            ${hasAnyFlag(s.id) ? '<span class="flag-dot">⚑</span>' : ''}
-          </div>`;
-        }).join('');
+    const classStudents = candidates.filter(c => c.cls.id === cls.id).map(c => c.student);
+    if (!classStudents.length) return '';
+    return `<div class="sidebar-section">${cls.name}</div>`
+      + classStudents.map(s => studentSidebarItem(s)).join('');
   }).join('');
 }
 
 function renderStudentSidebar() {
-  return `<div class="sidebar-search">
+  return `<div class="sidebar-item ${activeStudent === 'overview' ? 'active' : ''}" onclick="selectStudent('overview')" style="margin-bottom:4px">
+      <div style="flex:1;min-width:0">
+        <div class="sidebar-item-name">Overview</div>
+        <div class="sidebar-item-sub">All students by priority</div>
+      </div>
+    </div>
+    <div style="height:1px;background:var(--border);margin:4px 0 8px"></div>
+    <div class="sidebar-search">
       <input type="text" id="student-search-input" placeholder="Search students…"
              oninput="filterStudents(this.value)" value="${studentSearch}">
+    </div>
+    <div class="filter-chips">
+      <button class="filter-chip ${studentFilter === 'all'       ? 'active-all'       : ''}" data-filter="all"       onclick="setStudentFilter('all')">All</button>
+      <button class="filter-chip ${studentFilter === 'review'    ? 'active-review'    : ''}" data-filter="review"    onclick="setStudentFilter('review')">⚑ Review</button>
+      <button class="filter-chip ${studentFilter === 'attention' ? 'active-attention' : ''}" data-filter="attention" onclick="setStudentFilter('attention')">● Attention</button>
     </div>
     <div id="student-list">${renderStudentList()}</div>`;
 }
@@ -1007,23 +1163,28 @@ function renderClassDrillPanel(a, students) {
   const ordered = [...noSubs, ...hasSubs];
 
   const rows = ordered.map(s => {
-    const subs     = getSubs(s.id, a.id);
-    const lat      = latestSub(subs);
-    const t        = lat ? total(lat) : null;
-    const st       = submissionStatus(subs, a);
-    const hasFlags = checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
+    const subs      = getSubs(s.id, a.id);
+    const lat       = latestSub(subs);
+    const t         = lat ? total(lat) : null;
+    const st        = submissionStatus(subs, a);
+    const sig       = getStudentSignal(s.id, a.id);
     const isMissing = isClosed && !subs.length;
 
     return `<div class="class-student-row ${isMissing ? 'missing' : ''}"
                  onclick="gotoStudentFromClass('${s.id}');event.stopPropagation()">
       <div class="avatar" style="width:24px;height:24px;font-size:10px;flex-shrink:0">${s.initials}</div>
-      <span style="font-size:13px;font-weight:500;flex:1">${s.name}</span>
-      <span class="chip ${st.cls}" style="font-size:10px">${st.label}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px">
+          ${s.name}
+          ${signalPill(sig)}
+        </div>
+        ${sig.status === 'attention' && sig.reason ? `<div class="signal-reason">${sig.reason}</div>` : ''}
+      </div>
+      <span class="chip ${st.cls}" style="font-size:10px;flex-shrink:0">${st.label}</span>
       ${t !== null
-        ? `<span style="font-weight:700;font-size:13px;min-width:36px;text-align:right">${t}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span></span>
-           <span class="samr-badge ${samr(t).cls}" style="font-size:10px;min-width:90px;text-align:center">${samr(t).label}</span>`
+        ? `<span style="font-weight:700;font-size:13px;min-width:36px;text-align:right;flex-shrink:0">${t}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span></span>
+           <span class="samr-badge ${samr(t).cls}" style="font-size:10px;min-width:90px;text-align:center;flex-shrink:0">${samr(t).label}</span>`
         : `<span style="min-width:36px"></span><span style="min-width:90px"></span>`}
-      ${hasFlags ? `<span class="flag-dot" style="margin-left:2px">⚑</span>` : `<span style="width:14px"></span>`}
     </div>`;
   }).join('');
 
@@ -1039,9 +1200,130 @@ function renderClassDrillPanel(a, students) {
 
 // ── Content renders ───────────────────────────────────────────────────────────
 
+function renderClassOverview() {
+  const totalFlags = STUDENTS.filter(s => hasAnyFlag(s.id)).length;
+  const totalStudents = STUDENTS.length;
+
+  const cards = CLASSES.map(cls => {
+    const students = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
+    const flagged  = students.filter(s => hasAnyFlag(s.id));
+    const allSubs  = ASSIGNMENTS.flatMap(a => students.map(s => getSubs(s.id, a.id))).flat();
+    const openAssignments = ASSIGNMENTS.filter(a => a.status === 'open');
+    const submissionStats = openAssignments.map(a => {
+      const submitted = students.filter(s => getSubs(s.id, a.id).length > 0).length;
+      return { name: a.name, submitted, total: students.length };
+    });
+
+    const flagLines = flagged.map(s => {
+      const sig = getStudentSignal(s.id);
+      return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid var(--border)">
+        <div class="avatar" style="width:22px;height:22px;font-size:9px;flex-shrink:0">${s.initials}</div>
+        <span style="font-size:12px;font-weight:500;flex:1">${s.name}</span>
+        ${signalPill(sig)}
+      </div>`;
+    }).join('');
+
+    const submissionLines = submissionStats.map(({ name, submitted, total }) =>
+      `<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-muted);padding:3px 0;border-top:1px solid var(--border)">
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>
+        <span style="flex-shrink:0;font-weight:600;color:${submitted < total ? 'var(--terra)' : 'var(--text)'}">${submitted}/${total}</span>
+      </div>`
+    ).join('');
+
+    return `<div class="overview-card" onclick="selectClass('${cls.id}')">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div>
+          <div style="font-weight:600;font-size:14px">${cls.name}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${students.length} student${students.length !== 1 ? 's' : ''} · ${ASSIGNMENTS.length} assignment${ASSIGNMENTS.length !== 1 ? 's' : ''}</div>
+        </div>
+        ${flagged.length ? `<span class="flag-badge" style="flex-shrink:0">⚑ ${flagged.length}</span>` : ''}
+      </div>
+      ${submissionLines ? `<div style="margin-top:8px">${submissionLines}</div>` : ''}
+      ${flagLines ? `<div style="margin-top:4px">${flagLines}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="content-header">
+      <div class="content-title">Classes</div>
+      <div class="content-meta">${CLASSES.length} class${CLASSES.length !== 1 ? 'es' : ''} · ${totalStudents} students${totalFlags ? ` · <span style="color:var(--terra)">⚑ ${totalFlags} flagged</span>` : ''}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">${cards}</div>
+  `;
+}
+
+function renderAssignmentOverview() {
+  const allStudents = CLASSES.flatMap(cls =>
+    cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean)
+  );
+  const n = allStudents.length;
+
+  function assignmentCard(a) {
+    const dueStr    = a.due.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const submitted = allStudents.filter(s => getSubs(s.id, a.id).length > 0).length;
+    const missing   = a.status === 'closed' ? n - submitted : 0;
+    const flagged   = allStudents.filter(s => {
+      const subs = getSubs(s.id, a.id);
+      return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
+    });
+    const bar = distributionBar(allStudents.map(s => s.id), a.id, 160);
+
+    const flagLines = flagged.map(s => {
+      const sig = getStudentSignal(s.id, a.id);
+      return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid var(--border)">
+        <div class="avatar" style="width:22px;height:22px;font-size:9px;flex-shrink:0">${s.initials}</div>
+        <span style="font-size:12px;font-weight:500;flex:1">${s.name}</span>
+        ${signalPill(sig)}
+      </div>`;
+    }).join('');
+
+    return `<div class="overview-card" onclick="selectAssignment('${a.id}')">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-weight:600;font-size:13px">${a.name}</span>
+            <span class="chip ${a.status === 'open' ? 'chip-amber' : 'chip-grey'}" style="font-size:10px">${a.status === 'open' ? 'Open' : 'Closed'}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Due ${dueStr}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:12px;font-weight:600;color:${missing ? 'var(--terra)' : 'var(--text)'}">${submitted}<span style="font-weight:400;color:var(--text-muted)">/${n} submitted</span></div>
+          ${missing ? `<div style="font-size:11px;color:var(--terra)">${missing} missing</div>` : ''}
+        </div>
+      </div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:10px">
+        ${bar}
+        ${flagged.length ? `<span class="flag-badge">⚑ ${flagged.length}</span>` : ''}
+      </div>
+      ${flagLines ? `<div style="margin-top:4px">${flagLines}</div>` : ''}
+    </div>`;
+  }
+
+  const open   = ASSIGNMENTS.filter(a => a.status === 'open').sort((a, b) => a.due - b.due);
+  const closed = ASSIGNMENTS.filter(a => a.status === 'closed').sort((a, b) => b.due - a.due);
+
+  const totalFlagged = ASSIGNMENTS.reduce((sum, a) => sum + allStudents.filter(s => {
+    const subs = getSubs(s.id, a.id);
+    return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
+  }).length, 0);
+
+  let html = '';
+  if (open.length)   html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:8px">Open</div><div style="display:flex;flex-direction:column;gap:6px">${open.map(assignmentCard).join('')}</div>`;
+  if (closed.length) html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-top:20px;margin-bottom:8px">Closed</div><div style="display:flex;flex-direction:column;gap:6px">${closed.map(assignmentCard).join('')}</div>`;
+
+  return `
+    <div class="content-header">
+      <div class="content-title">Assignments</div>
+      <div class="content-meta">${ASSIGNMENTS.length} assignments · ${open.length} open${totalFlagged ? ` · <span style="color:var(--terra)">⚑ ${totalFlagged} flagged</span>` : ''}</div>
+    </div>
+    ${html}
+  `;
+}
+
 function renderClassContent() {
+  if (activeClass === 'overview') return renderClassOverview();
   const cls = CLASSES.find(x => x.id === activeClass);
-  if (!cls) return '';
+  if (!cls) return renderClassOverview();
   const students   = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
   const n          = students.length;
   const openCount  = ASSIGNMENTS.filter(a => a.status === 'open').length;
@@ -1137,8 +1419,9 @@ function renderClassContent() {
 }
 
 function renderAssignmentContent() {
+  if (activeAssignment === 'overview') return renderAssignmentOverview();
   const a = ASSIGNMENTS.find(x => x.id === activeAssignment);
-  if (!a) return '';
+  if (!a) return renderAssignmentOverview();
   const closed = a.status === 'closed';
   const dueStr = a.due.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -1148,41 +1431,43 @@ function renderAssignmentContent() {
     if (!classStudents.length) return;
 
     rows.push(`<tr style="pointer-events:none">
-      <td colspan="6" style="padding:10px 14px 4px;background:var(--bg);border-bottom:none">
+      <td colspan="5" style="padding:10px 14px 4px;background:var(--bg);border-bottom:none">
         <span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px">${cls.name}</span>
       </td>
     </tr>`);
 
     classStudents.forEach(s => {
       const subs     = getSubs(s.id, a.id);
-      const flags    = checkFlag(subs);
       const lat      = latestSub(subs);
       const t        = lat ? total(lat) : null;
       const st       = submissionStatus(subs, a);
-      const iFlags   = getIntegrityFlags(subs);
+      const sig      = getStudentSignal(s.id, a.id);
       const expanded = expandedInAssignment === s.id;
-      const hasFlags = flags.length > 0 || iFlags.length > 0;
-
-      const flagsCell = hasFlags
-        ? `<span class="flag-badge" title="Expand to see flag details">⚑ Flagged</span>`
-        : `<span style="color:var(--text-muted)">—</span>`;
 
       rows.push(`<tr class="${expanded ? 'expanded-row' : ''}" onclick="toggleAssignmentDrill('${s.id}')">
         <td>
           <div style="display:flex;align-items:center;gap:8px">
             <div class="avatar" style="width:26px;height:26px;font-size:10px">${s.initials}</div>
-            <span style="font-weight:500;font-size:13px">${s.name}</span>
+            <div>
+              <div style="font-weight:500;font-size:13px;display:flex;align-items:center;gap:6px">
+                ${s.name}
+                ${signalPill(sig)}
+              </div>
+              ${sig.status === 'attention' && sig.reason && !expanded ? `<div class="signal-reason">${sig.reason}</div>` : ''}
+            </div>
           </div>
         </td>
         <td style="font-size:12px;color:var(--text-mid)">${subs.length || '<span style="color:var(--text-muted)">—</span>'}</td>
         <td>${t !== null ? `<span class="tau-total" style="font-size:14px">${t}</span><span class="tau-denom">/20</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
         <td>${t !== null ? `<span class="samr-badge ${samr(t).cls}">${samr(t).label}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
         <td>${`<span class="chip ${st.cls}">${st.label}</span>`}</td>
-        <td>${flagsCell}</td>
       </tr>`);
 
       if (expanded) {
-        rows.push(`<tr class="drill-row"><td colspan="6" style="padding:0">${renderDrillPanel(subs, s.name)}</td></tr>`);
+        const signalBanner = sig.status === 'attention' && sig.reason
+          ? `<div style="padding:8px 14px;font-size:12px;color:var(--amber);background:var(--amber-tint);border-bottom:1px solid rgba(176,112,48,0.25)"><strong>● Attention</strong> — ${sig.reason}</div>`
+          : '';
+        rows.push(`<tr class="drill-row"><td colspan="5" style="padding:0">${signalBanner}${renderDrillPanel(subs, s.name)}</td></tr>`);
       }
     });
   });
@@ -1210,7 +1495,6 @@ function renderAssignmentContent() {
         <col style="width:100px">
         <col style="width:140px">
         <col style="width:120px">
-        <col style="width:120px">
       </colgroup>
       <thead><tr>
         <th>Student</th>
@@ -1218,7 +1502,6 @@ function renderAssignmentContent() {
         <th>Latest TAU</th>
         <th>SAMR</th>
         <th>Status</th>
-        <th>Flags</th>
       </tr></thead>
       <tbody>${rows.join('')}</tbody>
     </table>
@@ -1226,11 +1509,72 @@ function renderAssignmentContent() {
   `;
 }
 
+function renderStudentOverview() {
+  const allStudents = CLASSES.flatMap(cls =>
+    cls.studentIds.map(sid => ({ student: STUDENTS.find(x => x.id === sid), cls }))
+  ).filter(({ student }) => student);
+
+  const review    = allStudents.filter(({ student }) => getStudentSignal(student.id).status === 'review');
+  const attention = allStudents.filter(({ student }) => getStudentSignal(student.id).status === 'attention');
+  const onTrack   = allStudents.filter(({ student }) => getStudentSignal(student.id).status === 'on-track');
+
+  function card({ student, cls }) {
+    const sig = getStudentSignal(student.id);
+    const flaggedAssignments = ASSIGNMENTS.filter(a => {
+      const subs = getSubs(student.id, a.id);
+      return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
+    });
+    const latestSubs = ASSIGNMENTS.map(a => latestSub(getSubs(student.id, a.id))).filter(Boolean);
+    const best = latestSubs.length ? latestSubs.reduce((a, b) => b.ts > a.ts ? b : a) : null;
+    const t = best ? total(best) : null;
+
+    return `<div class="overview-card" onclick="selectStudent('${student.id}')">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="avatar" style="width:32px;height:32px;font-size:12px;flex-shrink:0">${student.initials}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+            <span style="font-weight:600;font-size:13px">${student.name}</span>
+            ${signalPill(sig)}
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:1px">${cls.name}</div>
+        </div>
+        ${t !== null ? `<div style="text-align:right;flex-shrink:0"><span style="font-weight:700;font-size:13px">${t}</span><span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span><div style="margin-top:2px">${`<span class="samr-badge ${samr(t).cls}" style="font-size:10px">${samr(t).label}</span>`}</div></div>` : ''}
+      </div>
+      ${sig.status === 'review' && flaggedAssignments.length ? `<div style="margin-top:7px;padding-top:7px;border-top:1px solid var(--terra-light);font-size:11px;color:var(--terra)">⚑ Flagged: ${flaggedAssignments.map(a => a.name).join(', ')}</div>` : ''}
+      ${sig.status === 'attention' && sig.reason ? `<div style="margin-top:7px;padding-top:7px;border-top:1px solid rgba(176,112,48,0.2);font-size:11px;color:var(--amber)">● ${sig.reason}</div>` : ''}
+    </div>`;
+  }
+
+  function section(items, label, color) {
+    if (!items.length) return '';
+    return `<div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:${color};margin-bottom:8px">${label} <span style="font-weight:400;color:var(--text-muted);text-transform:none;letter-spacing:0">${items.length}</span></div>
+      <div style="display:flex;flex-direction:column;gap:6px">${items.map(card).join('')}</div>
+    </div>`;
+  }
+
+  const flagCount = review.length + attention.length;
+  const sections = [
+    section(review,    '⚑ Needs review', 'var(--terra)'),
+    section(attention, '● Attention',     'var(--amber)'),
+    section(onTrack,   'On track',        'var(--text-muted)'),
+  ].filter(Boolean).join('<div style="height:20px"></div>');
+
+  return `
+    <div class="content-header">
+      <div class="content-title">Students</div>
+      <div class="content-meta">${allStudents.length} students · ${flagCount ? `${flagCount} need${flagCount === 1 ? 's' : ''} attention` : 'all on track'}</div>
+    </div>
+    ${sections}
+  `;
+}
+
 function renderStudentContent() {
+  if (activeStudent === 'overview') return renderStudentOverview();
   const s = STUDENTS.find(x => x.id === activeStudent);
-  if (!s) return '<div style="padding:20px;color:var(--text-muted);font-size:13px">Select a student from the sidebar.</div>';
-  const cls     = CLASSES.find(c => c.studentIds.includes(s.id));
-  const flagged = hasAnyFlag(s.id);
+  if (!s) return renderStudentOverview();
+  const cls = CLASSES.find(c => c.studentIds.includes(s.id));
+  const sig = getStudentSignal(s.id);
 
   const sorted = [...ASSIGNMENTS].sort((a, b) => (a.status === b.status ? 0 : a.status === 'open' ? -1 : 1));
   let lastGroup = null;
@@ -1239,9 +1583,6 @@ function renderStudentContent() {
     const st       = submissionStatus(subs, a);
     const lat      = latestSub(subs);
     const t        = lat ? total(lat) : null;
-    const flags    = checkFlag(subs);
-    const iFlags   = getIntegrityFlags(subs);
-    const hasFlags = flags.length > 0 || iFlags.length > 0;
     const expanded = expandedInStudent === a.id;
 
     let groupLabel = '';
@@ -1251,19 +1592,23 @@ function renderStudentContent() {
       groupLabel = `<div class="sidebar-section" style="padding:0;margin-bottom:6px${isFirst ? '' : ';margin-top:16px'}">${a.status === 'open' ? 'Open' : 'Closed'}</div>`;
     }
 
+    const asig = getStudentSignal(s.id, a.id);
+    const signalBanner = (expanded && asig.status === 'attention' && asig.reason)
+      ? `<div style="padding:8px 14px;font-size:12px;color:var(--amber);background:var(--amber-tint);border-bottom:1px solid rgba(176,112,48,0.25)"><strong>● Attention</strong> — ${asig.reason}</div>`
+      : '';
     const drillPanel = expanded
-      ? `<div class="assignment-drill">${renderDrillPanel(subs, a.name)}</div>`
+      ? `<div class="assignment-drill">${signalBanner}${renderDrillPanel(subs, a.name)}</div>`
       : '';
 
     return `${groupLabel}<div style="margin-bottom:${expanded ? 16 : 8}px">
       <div class="assignment-summary-row ${expanded ? 'expanded' : ''}" onclick="toggleStudentDrill('${a.id}')">
         <span class="chevron">${expanded ? '▾' : '▸'}</span>
         <span style="font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}</span>
-        ${t !== null ? `<span style="font-weight:700;font-size:13px;flex-shrink:0">${t}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span></span>` : '<span style="font-size:12px;color:var(--text-muted);flex-shrink:0">—</span>'}
-        ${t !== null ? `<span class="samr-badge ${samr(t).cls}" style="font-size:10px;flex-shrink:0">${samr(t).label}</span>` : ''}
-        ${hasFlags ? `<span class="flag-badge" style="flex-shrink:0">⚑ Flagged</span>` : ''}
-        <span class="chip ${st.cls}" style="font-size:10px;flex-shrink:0">${st.label}</span>
-        <span style="font-size:11px;color:var(--text-muted);flex-shrink:0">${subs.length} sub${subs.length !== 1 ? 's' : ''}</span>
+        <span style="width:48px;text-align:right;flex-shrink:0;font-weight:700;font-size:13px">${t !== null ? `${t}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span>` : '<span style="font-size:12px;color:var(--text-muted)">—</span>'}</span>
+        <span style="width:110px;text-align:center;flex-shrink:0">${t !== null ? `<span class="samr-badge ${samr(t).cls}" style="font-size:10px">${samr(t).label}</span>` : ''}</span>
+        <span style="width:80px;text-align:center;flex-shrink:0">${signalPill(getStudentSignal(s.id, a.id))}</span>
+        <span style="width:88px;text-align:center;flex-shrink:0"><span class="chip ${st.cls}" style="font-size:10px">${st.label}</span></span>
+        <span style="width:44px;text-align:right;flex-shrink:0;font-size:11px;color:var(--text-muted)">${subs.length} sub${subs.length !== 1 ? 's' : ''}</span>
       </div>
       ${drillPanel}
     </div>`;
@@ -1274,10 +1619,12 @@ function renderStudentContent() {
       <div style="display:flex;align-items:center;gap:12px">
         <div class="avatar" style="width:40px;height:40px;font-size:14px">${s.initials}</div>
         <div>
-          <div class="content-title">${s.name}</div>
-          <div class="content-meta">${cls ? cls.name : ''}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="content-title">${s.name}</div>
+            ${signalPill(sig)}
+          </div>
+          <div class="content-meta">${cls ? cls.name : ''}${sig.reason ? ` · ${sig.reason}` : ''}</div>
         </div>
-        ${flagged ? `<span class="flag-badge" style="margin-left:8px">⚑ Flagged</span>` : ''}
       </div>
     </div>
     ${sections}
@@ -1331,6 +1678,15 @@ function gotoStudentFromClass(sid) {
 
 function filterStudents(q) {
   studentSearch = q.toLowerCase().trim();
+  const listEl = document.getElementById('student-list');
+  if (listEl) listEl.innerHTML = renderStudentList();
+}
+
+function setStudentFilter(f) {
+  studentFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(btn => {
+    btn.className = 'filter-chip' + (btn.dataset.filter === f ? ` active-${f}` : '');
+  });
   const listEl = document.getElementById('student-list');
   if (listEl) listEl.innerHTML = renderStudentList();
 }
