@@ -15,7 +15,7 @@
       --accent-fill: #4F52C8;
       --accent-green: #10B981;
 
-      /* green = positive/high-agency, blue = neutral, red/amber = passive/negative */
+      /* blue = building (agency 1-2), green = challenge/questioning (3-4), red/amber = passive */
       /* positive */
       --label-challenge:        #dcfce7; --label-challenge-text:        #166534;
       --label-rejection:        #dcfce7; --label-rejection-text:        #166534;
@@ -139,24 +139,49 @@
 
     /* ── Summary ──────────────────────────────────────── */
     .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      align-items: start;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
     .summary-card {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 0 16px;
+      align-items: start;
       background: var(--surface); border: 1px solid var(--border);
       border-radius: 10px; padding: 14px 16px;
     }
-    .summary-card .dim-name {
-      font-size: 11px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.05em; color: var(--muted); margin-bottom: 4px;
+    .summary-card .dim-score-col {
+      display: flex;
+      flex-direction: row;
+      align-items: baseline;
+      gap: 2px;
+      padding-top: 2px;
     }
     .summary-card .dim-score {
       font-size: 36px; font-weight: 800; line-height: 1;
     }
-    .summary-card .dim-detail {
-      font-size: 12px; color: var(--muted); margin-top: 4px;
+    .summary-card .dim-score-denom {
+      font-size: 16px; font-weight: 400; color: var(--muted); line-height: 1;
+    }
+    .summary-card .dim-body {}
+    .summary-card .dim-name {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--muted); margin-bottom: 3px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .summary-card .dim-explanation {
+      font-size: 13px; color: var(--text); line-height: 1.55; margin-bottom: 0;
+    }
+    .summary-card .dim-nudge {
+      font-size: 12px; border-radius: 6px; padding: 5px 8px; margin-top: 7px;
+      line-height: 1.5;
+    }
+    .summary-card .dim-nudge.nudge-reinforce {
+      color: #14532d; background: #dcfce7;
+    }
+    .summary-card .dim-nudge.nudge-coach {
+      color: #0c447c; background: #e0f0ff;
     }
     .score-5 { color: #10B981; }
     .score-4 { color: #10B981; }
@@ -341,6 +366,12 @@
     .tab-btn:hover:not(.active) { color: var(--text); }
     .tab-pane { display: none; }
     .tab-pane.active { display: block; }
+    .tab-intro {
+      font-size: 13px; color: #1e3a5f; line-height: 1.65;
+      margin: 0 0 16px; max-width: 680px;
+      background: #e8f1fb; border: 1px solid #bfdbfe;
+      border-radius: 8px; padding: 10px 14px;
+    }
     #tabChart.active { display: flex; flex-direction: column; align-items: center; }
 
     /* ── My Session tab ──────────────────────────────────── */
@@ -884,6 +915,7 @@
       cursor: pointer; transition: border-color 0.15s, color 0.15s;
     }
     .dt-tooltip-learn-more:hover { border-color: #3B3EA8; color: #3B3EA8; }
+    #dt-tooltip.dt-tooltip--turn { pointer-events: none; }
     #dt-modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.25);
       display: none; align-items: center; justify-content: center; z-index: 500;
@@ -925,6 +957,61 @@
     .dt-sidebar-exchange-divider { border: none; border-top: 1px solid #ebebea; margin: 14px 0; }
     #dt-chart { display: block; }
     #agencyChart { display: block; }
+    .dt-pat-btn-block {
+      padding: 14px 20px; display: flex; align-items: center; justify-content: center;
+      border-left: 1px solid #e5e5e2; flex-shrink: 0;
+    }
+    #dt-all-patterns-btn {
+      padding: 5px 14px; border-radius: 6px; border: 1px solid #d0d0cc;
+      background: #fff; font-family: "Helvetica Neue", sans-serif; font-size: 11px;
+      font-weight: 600; color: #555; cursor: pointer; white-space: nowrap;
+      transition: border-color 0.12s, color 0.12s;
+    }
+    #dt-all-patterns-btn:hover { border-color: #3B3EA8; color: #3B3EA8; }
+    .dt-cat-section-label {
+      font-family: "Helvetica Neue", sans-serif; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px;
+    }
+    .dt-cat-card { margin-bottom: 18px; }
+    .dt-cat-card-name {
+      display: inline-block; padding: 2px 9px; border-radius: 99px;
+      font-family: "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 600;
+      letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 8px;
+    }
+    .dt-cat-card-name--high { background: #f0f1f8; color: #3B3EA8; }
+    .dt-cat-card-name--low  { background: #fdf0ea; color: #b85c38; }
+    .dt-cat-card-desc { font-family: "Georgia", serif; font-size: 13px; line-height: 1.65; color: #444; margin: 0; }
+    .dt-cat-divider { border: none; border-top: 1px solid #f0f0ee; margin: 16px 0; }
+    .dt-cat-seq-details { margin-top: 10px; }
+    .dt-cat-seq-toggle {
+      font-family: "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 600;
+      color: #bbb; cursor: pointer; list-style: none; user-select: none;
+      transition: color 0.12s;
+    }
+    .dt-cat-seq-toggle::-webkit-details-marker { display: none; }
+    .dt-cat-seq-toggle::before { content: "▸  "; }
+    details[open] .dt-cat-seq-toggle::before { content: "▾  "; }
+    .dt-cat-seq-toggle:hover { color: #777; }
+    .dt-cat-seq {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 5px;
+      margin-top: 8px; padding: 10px 12px; background: #f7f7f5; border-radius: 6px;
+    }
+    .dt-cat-seq-chip--s {
+      padding: 2px 8px; border-radius: 99px; background: #f0f1f8; color: #3B3EA8;
+      font-family: "Helvetica Neue", sans-serif; font-size: 10px; font-weight: 600;
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .dt-cat-seq-chip--a {
+      padding: 2px 8px; border-radius: 99px; background: #f0f0ee; color: #666;
+      border: 1px solid #d8d8d4; font-family: "Helvetica Neue", sans-serif;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .dt-cat-seq-arrow { font-size: 11px; color: #ccc; }
+    .dt-cat-seq-cont  { font-size: 11px; color: #ccc; font-weight: 700; letter-spacing: 0.05em; }
+    .dt-cat-seq-legend {
+      display: flex; align-items: center; gap: 6px; margin-top: 7px;
+      font-family: "Helvetica Neue", sans-serif; font-size: 10px; color: #bbb;
+    }
 
     /* ── Two-screen layout ───────────────────────────────────────── */
     #inputScreen  { display: block; }
@@ -1102,10 +1189,10 @@ When done, save the result as a markdown file named chat_log.md so I can downloa
     <div class="panel" id="summaryPanel">
       <div class="section-header" style="margin-bottom:12px">TAU Score</div>
       <div class="summary-grid" id="summaryGrid"></div>
-      <div id="feedbackPanel"></div>
     </div>
 
     <div class="panel" id="tabsPanel">
+      <div class="section-header" style="margin-bottom:12px">Your session breakdown</div>
       <div class="tab-bar">
         <button class="tab-btn active" data-tab="chart">Agency Chart</button>
         <button class="tab-btn" data-tab="reflect">My Session</button>
@@ -1114,6 +1201,7 @@ When done, save the result as a markdown file named chat_log.md so I can downloa
 
 
       <div class="tab-pane active" id="tabChart">
+        <p class="tab-intro">Each row is one of your turns. The higher it sits, the more you were driving the conversation — asking questions, making claims, pushing back. Low turns are passive: extracting content, seeking validation, or getting stuck. Brackets on the sides mark sequences the tool recognised as named patterns.</p>
         <div id="chartSummaryEl" style="width:796px;max-width:100%;"></div>
         <div id="chartLegendEl" style="width:796px;max-width:100%;"></div>
         <svg id="agencyChart"></svg>
@@ -1141,6 +1229,7 @@ When done, save the result as a markdown file named chat_log.md so I can downloa
       </div>
 
       <div class="tab-pane" id="tabReflect">
+        <p class="tab-intro">Every turn you made, in order. Each one is labelled by what you were doing — making a claim, extracting content, pushing back, and so on. Where the tool detected a recurring sequence, turns are grouped and named. Green groups are high-agency patterns; blue are neutral; yellow are passive or low-agency.</p>
         <div id="parseNote" class="parse-note" style="display:none;margin-bottom:8px;"></div>
         <div id="reflectContent"></div>
       </div>
@@ -1305,11 +1394,17 @@ function copyFormatPrompt() {
 
 function renderEssayFile(name) {
   const list = document.getElementById("essayFilesList");
-  if (!name) { list.innerHTML = ""; return; }
+  const lbl  = document.getElementById('step3FileLabel');
+  if (!name) {
+    list.innerHTML = "";
+    if (lbl) { lbl.style.display = 'none'; }
+    return;
+  }
   list.innerHTML = `<div class="uploaded-file-row">
     <span class="uploaded-file-name">${name}</span>
     <button class="uploaded-file-remove" onclick="clearEssayFile()" title="Remove">&times;</button>
   </div>`;
+  if (lbl) { lbl.textContent = name; lbl.style.display = ''; }
 }
 
 function clearEssayFile() {
@@ -1424,15 +1519,6 @@ function renderUploadedFiles() {
       : `${uploadedChatFiles.length} files`;
     markStep2Complete(name);
   }
-}
-
-// Intercept essay file to update step 3 label
-const _origRenderEssayFile = renderEssayFile;
-function renderEssayFile(name) {
-  _origRenderEssayFile(name);
-  const lbl = document.getElementById('step3FileLabel');
-  if (name) { lbl.textContent = name; lbl.style.display = ''; }
-  else { lbl.style.display = 'none'; }
 }
 
 // ─── Dev dropdown ─────────────────────────────────────────────────────────────
@@ -1855,85 +1941,19 @@ function scoreTAU(classified, provenanceData) {
   else if (totalScore >= 9)  SAMR = "Augmentation";
   else                        SAMR = "Substitution";
 
-  return { PQ, SU, CS, OC, totalScore, SAMR, counts, total, responsiveCount, challengeCount, extractionEvents, highFollowups };
+  let provenanceCounts = null;
+  if (provenanceData && provenanceData.length > 0) {
+    provenanceCounts = {
+      studentBorn: provenanceData.filter(p => p.origin === "student-born" || p.origin === "prior").length,
+      synthesized: provenanceData.filter(p => p.origin === "synthesized").length,
+      aiBorn:      provenanceData.filter(p => p.origin === "ai-born").length,
+      total:       provenanceData.length,
+    };
+  }
+
+  return { PQ, SU, CS, OC, totalScore, SAMR, counts, total, responsiveCount, challengeCount, extractionEvents, highFollowups, lowFollowups, provenanceCounts };
 }
 
-// ─── Strengths & Feedback ─────────────────────────────────────────────────────
-
-function generateFeedback(scores) {
-  const { PQ, SU, CS, OC, counts, total, responsiveCount, challengeCount, extractionEvents } = scores;
-  const strengths = [];
-  const feedback  = [];
-
-  // PQ — Prompting Quality: always generate both unless score is at an extreme
-  if (PQ >= 4) {
-    strengths.push("You asked thoughtful, responsive questions — that's how you get the most from AI collaboration.");
-    if (challengeCount === 0) feedback.push("To go even further, try directly challenging the AI's claims — 'how do you know that?' or 'what's the counter-argument?'");
-  } else if (PQ === 3) {
-    strengths.push("You responded to some of the AI's ideas rather than just issuing instructions — good foundation.");
-    feedback.push("Push further with follow-up questions. 'Why is that true?' or 'How would this apply to my argument?' deepens your engagement.");
-  } else {
-    feedback.push("Try asking more follow-up questions next time. Questions like 'why is that true?' or 'how would you approach this differently?' push your thinking further.");
-  }
-
-  // SU — Selective Use
-  if (extractionEvents === 0 && SU >= 4) {
-    strengths.push("You stayed in high-agency mode throughout — claiming ideas and challenging the AI rather than just extracting content.");
-    feedback.push("Next step: try intentionally asking the AI to generate something, then critically evaluate and rewrite it in your own voice.");
-  } else if (extractionEvents > 0 && SU >= 4) {
-    strengths.push("When you asked the AI to generate content, you followed it with your own ideas — that's exactly the right pattern.");
-  } else if (extractionEvents > 0 && SU === 3) {
-    strengths.push("You mixed extraction with some independent thinking — better than passive copying.");
-    feedback.push(`You extracted content ${extractionEvents} time${extractionEvents > 1 ? "s" : ""}. After each one, ask yourself: 'what do I actually think about this?' and write that next.`);
-  } else if (extractionEvents > 0) {
-    feedback.push(`You asked the AI to generate content ${extractionEvents} time${extractionEvents > 1 ? "s" : ""} and kept extracting rather than building on it. Try following each extraction with your own claim or challenge.`);
-  } else if (total < 3) {
-    feedback.push("Only a short conversation detected. A deeper back-and-forth helps you process ideas — aim for 5+ turns.");
-  }
-
-  // CS — Calibrated Skepticism
-  if (CS >= 4) {
-    strengths.push("You pushed back and refined the AI's output — that's genuine critical thinking in action.");
-  } else if (counts.rejection > 0 || counts.refinement > 0) {
-    strengths.push(`You questioned or redirected the AI ${counts.rejection + counts.refinement} time${counts.rejection + counts.refinement > 1 ? "s" : ""} — that skepticism is a real strength.`);
-    if (CS < 4) feedback.push("Keep building that skepticism. When the AI says something, ask yourself whether you actually agree before accepting it.");
-  } else {
-    feedback.push("No pushback or refinement detected. Next time, try disagreeing with one thing the AI says, or steering it toward your own angle rather than accepting its framing.");
-  }
-
-  // OC — Original Contribution
-  if (OC >= 4) {
-    strengths.push("Your essay shows strong original contribution — the ideas are clearly yours, with AI as a supporting tool.");
-  } else if (OC === 3) {
-    strengths.push("Your essay contains a mix of your own ideas and AI-generated content — you're on the right track.");
-    feedback.push("To strengthen originality, find the AI-generated passages and rewrite them: what would you say if you hadn't seen the AI's version?");
-  } else {
-    feedback.push("The essay leans heavily on AI-generated content. Focus on rewriting key ideas in your own voice and adding your own analysis before the final draft.");
-  }
-
-  return { strengths, feedback };
-}
-
-function renderFeedback({ strengths, feedback }) {
-  if (!strengths.length && !feedback.length) return "";
-
-  const sl = strengths.length
-    ? strengths.map(s => `<li style="margin-bottom:8px;">${esc(s)}</li>`).join("")
-    : `<li style="color:#6b7280;font-style:italic;">Strengths will appear as your engagement deepens.</li>`;
-
-  const fl = feedback.map(f => `<li style="margin-bottom:8px;">${esc(f)}</li>`).join("");
-
-  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
-    <div style="background:#dcfce7;border:1px solid #86efac;border-radius:10px;padding:14px;font-size:13px;color:#166534;">
-      <div style="font-weight:700;margin-bottom:10px;">✨ Strengths</div>
-      <ul style="margin:0;padding-left:18px;line-height:1.6;">${sl}</ul>
-    </div>
-    ${feedback.length ? `<div style="background:#dbeafe;border:1px solid #7dd3fc;border-radius:10px;padding:14px;font-size:13px;color:#164e63;">
-      <div style="font-weight:700;margin-bottom:10px;">💡 Feedback</div>
-      <ul style="margin:0;padding-left:18px;line-height:1.6;">${fl}</ul>
-    </div>` : ""}
-  </div>`;
-}
 
 // ─── Groq API ─────────────────────────────────────────────────────────────────
 
@@ -2225,6 +2245,49 @@ const PAT_DESCRIPTIONS = {
   "missed-argument":    "The AI was making arguments but your responses stayed passive. These are missed opportunities to evaluate, challenge, or build on what the AI was presenting.",
 };
 
+// s = student chip, a = ai chip; strings are rendered as separators/annotations
+const PATTERN_SEQUENCES = {
+  "challenge-arc": [
+    {t:"a",l:"argument / claim"}, "→", {t:"s",l:"challenge"},
+    "→", {t:"a",l:"responds"}, "→", {t:"s",l:"challenge"}, "→", "···",
+  ],
+  "argument-engaged": [
+    {t:"a",l:"argument"}, "→", {t:"s",l:"challenge / rejection / refinement"},
+  ],
+  "rejection-redirect": [
+    {t:"a",l:"content / instruction"}, "→", {t:"s",l:"rejection"},
+    "→", {t:"a",l:"responds"}, "→", {t:"s",l:"refinement"},
+  ],
+  "claim-support": [
+    {t:"s",l:"claim"}, "→", {t:"a",l:"responds"}, "→", {t:"s",l:"conceptual"},
+    "→", {t:"a",l:"explains"}, "→", {t:"s",l:"extraction"}, "→", {t:"s",l:"claim"},
+  ],
+  "extraction-landing": [
+    {t:"a",l:"content"}, "→", {t:"s",l:"extraction"},
+    "→", {t:"a",l:"responds"}, "→", {t:"s",l:"claim / challenge / refinement"},
+  ],
+  "extraction-loop": [
+    {t:"a",l:"content"}, "→", {t:"s",l:"extraction"},
+    "→", {t:"a",l:"content"}, "→", {t:"s",l:"extraction"}, "→", "···",
+  ],
+  "validation-spiral": [
+    {t:"a",l:"content"}, "→", {t:"s",l:"extraction"},
+    "→", {t:"a",l:"content"}, "→", {t:"s",l:"validation"}, "→", "···", "×4+",
+  ],
+  "helplessness-loop": [
+    {t:"a",l:"content / instruction"}, "→", {t:"s",l:"stuck"},
+    "→", {t:"a",l:"rescues"}, "→", {t:"s",l:"extraction"}, "→", "···",
+  ],
+  "missed-argument": [
+    {t:"a",l:"argument"}, "→", {t:"s",l:"extraction / validation"},
+    "→", {t:"a",l:"argument"}, "→", {t:"s",l:"extraction / validation"}, "→", "···", "×3+",
+  ],
+  "flitting": [
+    {t:"a",l:"content"}, "→", {t:"s",l:"pivot"},
+    "→", {t:"a",l:"follows topic"}, "→", {t:"s",l:"pivot"}, "→", "···", "×3+",
+  ],
+};
+
 // ── Divergence value scale ──────────────────────────────────────────────────
 const TURN_VALUE = {
   challenge:  4, rejection:  4,
@@ -2451,6 +2514,75 @@ function detectPatterns(classified) {
   return patterns;
 }
 
+function openPatternCatalogue() {
+  document.getElementById("dt-sidebar-title").textContent = "Detectable patterns";
+  const HIGH = [
+    { id: "challenge-arc",      label: "Challenge Arc" },
+    { id: "argument-engaged",   label: "Argument Engaged" },
+    { id: "rejection-redirect", label: "Rejection → Redirect" },
+    { id: "claim-support",      label: "Claim-Support Cycle" },
+    { id: "extraction-landing", label: "Extraction → Insight" },
+  ];
+  const PASSIVE = [
+    { id: "extraction-loop",   label: "Extraction Loop" },
+    { id: "validation-spiral", label: "Validation Spiral" },
+    { id: "helplessness-loop", label: "Helplessness Loop" },
+    { id: "missed-argument",   label: "Missed Argument" },
+    { id: "flitting",          label: "Flitting" },
+  ];
+  function renderSeq(id) {
+    const seq = PATTERN_SEQUENCES[id];
+    if (!seq) return "";
+    const chips = seq.map(item => {
+      if (typeof item === "string") {
+        const cls = (item === "→" || item === "↓") ? "dt-cat-seq-arrow" : "dt-cat-seq-cont";
+        return `<span class="${cls}">${esc(item)}</span>`;
+      }
+      return `<span class="dt-cat-seq-chip--${item.t}">${esc(item.l)}</span>`;
+    }).join("");
+    return `<details class="dt-cat-seq-details">
+      <summary class="dt-cat-seq-toggle">See pattern</summary>
+      <div class="dt-cat-seq">${chips}</div>
+      <div class="dt-cat-seq-legend"><span class="dt-cat-seq-chip--a">AI</span> <span class="dt-cat-seq-chip--s">student</span></div>
+    </details>`;
+  }
+  function cardGroup(patterns, cls) {
+    return patterns.map((p, i) =>
+      `<div class="dt-cat-card">
+        <span class="dt-cat-card-name ${cls}">${esc(p.label)}</span>
+        <p class="dt-cat-card-desc">${esc(PAT_DESCRIPTIONS[p.id] || "")}</p>
+        ${renderSeq(p.id)}
+      </div>${i < patterns.length - 1 ? '<hr class="dt-cat-divider">' : ""}`
+    ).join("");
+  }
+  document.getElementById("dt-sidebar-body").innerHTML = `
+    <div class="dt-cat-section-label" style="color:#3B3EA8;">High-agency patterns</div>
+    ${cardGroup(HIGH, "dt-cat-card-name--high")}
+    <div class="dt-cat-section-label" style="color:#b85c38;margin-top:28px;">Passive patterns</div>
+    ${cardGroup(PASSIVE, "dt-cat-card-name--low")}`;
+  document.getElementById("dt-sidebar").classList.add("open");
+}
+
+function showTurnTooltip(event, d) {
+  const tooltip = document.getElementById("dt-tooltip");
+  const preview = (d.text || "").length > 130 ? d.text.slice(0, 130) + "…" : (d.text || "");
+  tooltip.querySelector(".dt-tooltip-title").textContent = `Turn ${d.id}`;
+  tooltip.querySelector(".dt-tooltip-body").innerHTML =
+    `<span style="display:inline-block;padding:1px 7px;border-radius:99px;background:#f0f1f8;color:#3B3EA8;font-size:10px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;">${esc(d.classifier)}</span><br>${esc(preview)}`;
+  document.getElementById("dt-tooltip-learn-more").style.display = "none";
+  tooltip.classList.add("dt-tooltip--turn");
+  tooltip.style.display = "block";
+  const pad = 12, tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+  tooltip.style.left = (event.clientX + pad + tw > window.innerWidth  ? event.clientX - tw - pad : event.clientX + pad) + "px";
+  tooltip.style.top  = (event.clientY + pad + th > window.innerHeight ? event.clientY - th - pad : event.clientY + pad) + "px";
+}
+
+function hideTurnTooltip() {
+  const tooltip = document.getElementById("dt-tooltip");
+  tooltip.style.display = "none";
+  tooltip.classList.remove("dt-tooltip--turn");
+}
+
 function renderAgencyChart(classified) {
   if (typeof d3 === "undefined") return;
   const student = classified.filter(t => t.role === "student");
@@ -2520,7 +2652,11 @@ function renderAgencyChart(classified) {
       <span class="dt-stat-label">High-agency turns</span>
       <span class="dt-stat-value">${highCount} of ${total}</span>
       <span class="dt-stat-sub">${Math.round(highCount / total * 100)}% of session</span>
+    </div>
+    <div class="dt-pat-btn-block">
+      <button id="agency-all-patterns-btn">Patterns guide</button>
     </div>`;
+  document.getElementById("agency-all-patterns-btn").addEventListener("click", () => openPatternCatalogue());
   document.getElementById("agency-verdict-info-btn").addEventListener("click", e => {
     e.stopPropagation();
     const tooltip = document.getElementById("dt-tooltip");
@@ -2534,13 +2670,14 @@ function renderAgencyChart(classified) {
   });
 
   // ── Legend ────────────────────────────────────────────────────────────────
-  const posScaleL = d3.scaleSequential().domain([1, 4]).interpolator(d3.interpolateRgb("#9b9de0", "#4F52C8"));
-  const negScaleL = d3.scaleSequential().domain([-1, -2]).interpolator(d3.interpolateRgb("#e8ae94", "#b85c38"));
-  const fillL = v => v === 0 ? "#b0b0b0" : v > 0 ? posScaleL(v) : negScaleL(v);
+  const bluScaleL  = d3.scaleSequential().domain([1, 2]).interpolator(d3.interpolateRgb("#93c5fd", "#1d4ed8"));
+  const grnScaleL  = d3.scaleSequential().domain([3, 4]).interpolator(d3.interpolateRgb("#6ee7b7", "#059669"));
+  const negScaleL  = d3.scaleSequential().domain([-1, -2]).interpolator(d3.interpolateRgb("#e8ae94", "#b85c38"));
+  const fillL = v => v === 0 ? "#b0b0b0" : v >= 3 ? grnScaleL(v) : v > 0 ? bluScaleL(v) : negScaleL(v);
   const legendItems = [
     { value: -2, label: "stuck" }, { value: -1, label: "validation" }, null,
     { value:  0, label: "extraction" }, null,
-    { value:  1, label: "feedback / narrative" }, { value:  2, label: "refinement" },
+    { value:  1, label: "feedback / narrative" }, { value:  2, label: "refinement" }, null,
     { value:  3, label: "claim / conceptual / pivot" }, { value:  4, label: "challenge / rejection" },
   ];
   const legendEl = document.getElementById("chartLegendEl");
@@ -2551,23 +2688,23 @@ function renderAgencyChart(classified) {
     const sw   = document.createElement("div"); sw.className = "dt-legend-swatch"; sw.style.background = fillL(item.value);
     if (item.value === 0) sw.style.border = "1px solid #ccc";
     const txt = document.createElement("span");
-    txt.textContent = (item.value > 0 ? `+${item.value}` : String(item.value)) + "  " + item.label;
+    txt.textContent = item.label;
     wrap.appendChild(sw); wrap.appendChild(txt); legendEl.appendChild(wrap);
   });
 
   // ── Chart (exact copy of dtRender) ────────────────────────────────────────
-  const posScale = d3.scaleSequential().domain([1, 4]).interpolator(d3.interpolateRgb("#9b9de0", "#4F52C8"));
+  const bluScale = d3.scaleSequential().domain([1, 2]).interpolator(d3.interpolateRgb("#93c5fd", "#1d4ed8"));
+  const grnScale = d3.scaleSequential().domain([3, 4]).interpolator(d3.interpolateRgb("#6ee7b7", "#059669"));
   const negScale = d3.scaleSequential().domain([-1, -2]).interpolator(d3.interpolateRgb("#e8ae94", "#b85c38"));
-  function barFill(v) { return v === 0 ? "#b0b0b0" : v > 0 ? posScale(v) : negScale(v); }
+  function barFill(v) { return v === 0 ? "#b0b0b0" : v >= 3 ? grnScale(v) : v > 0 ? bluScale(v) : negScale(v); }
   const data = turns.map(d => ({ ...d, label: String(d.id) }));
-  const dtMargin = { top: 36, right: 80, bottom: 52, left: 130 };
+  const dtMargin = { top: 36, right: 80, bottom: 24, left: 130 };
   const dtTicks  = [-3, -2, -1, 0, 1, 2, 3, 4, 5];
   const dtSvgW   = 796;
   const dtInnerW = dtSvgW - dtMargin.left - dtMargin.right;
   const dtRowH   = 28;
   const dtXScale = d3.scaleLinear().domain([-3, 5]).range([0, dtInnerW]);
   const dtZeroX  = dtXScale(0);
-  const dtBtnW = 62, dtBtnH = 20, dtBtnR = 4;
   const innerH = data.length * dtRowH;
   const svgH   = innerH + dtMargin.top + dtMargin.bottom;
   const agSvg  = d3.select("#agencyChart").attr("width", dtSvgW).attr("height", svgH);
@@ -2590,28 +2727,32 @@ function renderAgencyChart(classified) {
     const tops = p.rows.map(r => yScale(r)), bots = p.rows.map(r => yScale(r) + yScale.bandwidth());
     const pTop = Math.min(...tops), pBot = Math.max(...bots), pH = pBot - pTop;
     const isRight = p.side === "right", pad = 5;
+    const color = isRight ? "#3B3EA8" : "#b85c38";
     const pg = g.append("g").style("cursor","pointer")
       .on("click", e => { e.stopPropagation(); openPatternSidebar(p._orig, student, classified); });
     pg.append("rect")
       .attr("x", isRight ? dtZeroX : dtXScale(-2) - pad).attr("y", pTop - pad)
       .attr("width", isRight ? dtXScale(4) - dtZeroX + pad : dtZeroX - dtXScale(-2) + pad)
-      .attr("height", pH + pad * 2).attr("rx", 3).attr("fill","none")
-      .attr("stroke", isRight ? "#3B3EA8" : "#b85c38").attr("stroke-width",1.5).attr("opacity",0.5);
-    const bx = isRight ? dtXScale(4) + 6 : dtXScale(-2) - 6 - dtBtnW;
-    const by = pTop + pH / 2 - dtBtnH / 2;
-    pg.append("rect").attr("x",bx).attr("y",by).attr("width",dtBtnW).attr("height",dtBtnH).attr("rx",dtBtnR)
-      .attr("fill", isRight ? "#f0f1f8" : "#fdf0ea").attr("stroke", isRight ? "#3B3EA8" : "#b85c38").attr("stroke-width",1);
-    pg.append("text").attr("x",bx+dtBtnW/2).attr("y",by+dtBtnH/2).attr("dy","0.35em").attr("text-anchor","middle")
-      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("font-weight","600")
-      .attr("fill", isRight ? "#3B3EA8" : "#b85c38").text("Pattern");
+      .attr("height", pH + pad * 2).attr("rx", 3)
+      .attr("fill", isRight ? "rgba(59,62,168,0.04)" : "rgba(184,92,56,0.04)")
+      .attr("stroke", color).attr("stroke-width", 1.5).attr("opacity", 0.7);
+    pg.append("text")
+      .attr("x", isRight ? dtXScale(4) + 10 : dtXScale(-2) - 10)
+      .attr("y", pTop + pH / 2).attr("dy", "0.35em")
+      .attr("text-anchor", isRight ? "start" : "end")
+      .attr("font-family", "Helvetica Neue, sans-serif").attr("font-size", "11px").attr("font-weight", "600")
+      .attr("fill", color).text(p.title);
   });
   g.selectAll(".dt-bar").data(data).join("rect").attr("class","dt-bar")
     .attr("x", d => d.value === 0 ? dtZeroX - 5 : d.value > 0 ? dtZeroX : dtXScale(d.value))
     .attr("y", d => yScale(d.label))
     .attr("width", d => d.value === 0 ? 10 : Math.abs(dtXScale(d.value) - dtZeroX))
     .attr("height", yScale.bandwidth()).attr("fill", d => barFill(d.value)).style("cursor","pointer")
+    .on("mouseover", (event, d) => { showTurnTooltip(event, d); })
+    .on("mouseout",  ()          => { hideTurnTooltip(); })
     .on("click", (event, d) => {
       event.stopPropagation();
+      hideTurnTooltip();
       document.getElementById("dt-modal-turn").textContent = `Student Turn ${d.id}`;
       document.getElementById("dt-modal-classifier").textContent = d.classifier;
       document.getElementById("dt-modal-text").textContent = d.text;
@@ -2621,22 +2762,23 @@ function renderAgencyChart(classified) {
     .attr("x",-10).attr("y",d=>yScale(d.label)+yScale.bandwidth()/2).attr("dy","0.35em").attr("text-anchor","end")
     .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","13px").attr("fill","#555")
     .text(d => d.id % 5 === 0 ? d.label : "");
-  g.selectAll(".dt-axis-bot").data(dtTicks).join("text").attr("class","dt-axis-bot")
-    .attr("x",d=>dtXScale(d)).attr("y",innerH+20).attr("text-anchor","middle")
-    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999")
-    .text(d => d === 0 ? "0" : d > 0 ? `+${d}` : d);
-  g.selectAll(".dt-axis-top").data(dtTicks).join("text").attr("class","dt-axis-top")
-    .attr("x",d=>dtXScale(d)).attr("y",-16).attr("text-anchor","middle")
-    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999")
-    .text(d => d === 0 ? "0" : d > 0 ? `+${d}` : d);
+  [
+    { label: "← PASSIVE",    cx: dtXScale(-1.25), fill: "#c07050" },
+    { label: "NEUTRAL",       cx: dtXScale(0),     fill: "#aaa"    },
+    { label: "BUILDING",      cx: dtXScale(1.5),   fill: "#1d4ed8" },
+    { label: "QUESTIONING →", cx: dtXScale(3.25),  fill: "#059669" },
+  ].forEach(z => {
+    g.append("text").attr("x", z.cx).attr("y", -14).attr("text-anchor", "middle")
+      .attr("font-family", "Helvetica Neue, sans-serif").attr("font-size", "10px")
+      .attr("font-weight", "700").attr("letter-spacing", "0.07em").attr("fill", z.fill)
+      .text(z.label);
+  });
   agSvg.append("text").attr("transform","rotate(-90)")
     .attr("x",-(dtMargin.top+innerH/2)).attr("y",80).attr("text-anchor","middle")
     .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999")
     .text("Student Turns");
   g.append("line").attr("x1",0).attr("x2",dtInnerW).attr("y1",innerH).attr("y2",innerH).attr("stroke","#ccc").attr("stroke-width",1);
   g.append("line").attr("x1",0).attr("x2",dtInnerW).attr("y1",0).attr("y2",0).attr("stroke","#ccc").attr("stroke-width",1);
-  g.append("text").attr("x",dtInnerW/2).attr("y",innerH+38).attr("text-anchor","middle")
-    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999").text("Student Agency");
 }
 
 function openPatternSidebar(p, student, classified) {
@@ -3002,28 +3144,164 @@ function renderSAMRCircle(scores) {
     </div>`;
 }
 
-function renderSummary(scores, usingGroq) {
+function dimExplanation(key, scores) {
+  const { PQ, SU, CS, OC, counts, total, responsiveCount, challengeCount, extractionEvents, highFollowups, lowFollowups, provenanceCounts } = scores;
+  const t = n => `${n} turn${n !== 1 ? "s" : ""}`;
+
+  if (key === "PQ") {
+    if (total < 3) {
+      return {
+        explain: `Only ${t(total)} detected — too short to measure prompting quality reliably.`,
+        nudge: "A deeper back-and-forth helps you process ideas. Aim for 5+ turns.",
+        nudgeType: "coach",
+      };
+    }
+    const parts = [];
+    if (responsiveCount > 0) parts.push(`${t(responsiveCount)} responded to what the AI said`);
+    if (challengeCount > 0)  parts.push(`${t(challengeCount)} directly challenged a claim`);
+    if (parts.length === 0)  parts.push(`none of your ${t(total)} followed up on the AI's response`);
+    let nudge = null, nudgeType = null;
+    if (PQ >= 4 && challengeCount > 0) {
+      nudge = "Challenging the AI's claims keeps you thinking critically rather than just receiving information — it's what separates active learning from passive consumption.";
+      nudgeType = "reinforce";
+    } else if (PQ >= 4) {
+      nudge = "Responding to the AI's ideas rather than just issuing instructions means you're in a real dialogue — that's how conversations help you develop your own thinking.";
+      nudgeType = "reinforce";
+    } else if (challengeCount === 0) {
+      nudge = "Try directly challenging the AI next time — 'how do you know that?' or 'what's the counter-argument?'";
+      nudgeType = "coach";
+    } else {
+      nudge = "Push further with follow-up questions. 'Why is that true?' or 'How would this apply to my argument?' deepens your engagement.";
+      nudgeType = "coach";
+    }
+    return { explain: `${parts.join("; ")} (out of ${total} total).`, nudge, nudgeType };
+  }
+
+  if (key === "SU") {
+    if (extractionEvents === 0) {
+      const highTotal = counts.claim + counts.conceptual + counts.challenge + counts.rejection + counts.refinement;
+      let nudge = null, nudgeType = null;
+      if (SU >= 4) {
+        nudge = "Staying in high-agency mode means you were generating and testing ideas rather than collecting them — the AI was a thinking partner, not a source.";
+        nudgeType = "reinforce";
+      } else {
+        nudge = "Try intentionally asking the AI to generate something, then critically evaluate and rewrite it in your own voice.";
+        nudgeType = "coach";
+      }
+      return {
+        explain: `No content extraction detected. ${t(highTotal)} were high-agency (claims, challenges, refinements) out of ${total} total.`,
+        nudge, nudgeType,
+      };
+    }
+    const untracked = extractionEvents - highFollowups - (lowFollowups || 0);
+    const parts = [];
+    if (highFollowups > 0)       parts.push(`${highFollowups} followed by your own idea or challenge`);
+    if ((lowFollowups || 0) > 0) parts.push(`${lowFollowups} followed by more extraction or passive acceptance`);
+    if (untracked > 0)           parts.push(`${untracked} at the end of the conversation`);
+    let nudge = null, nudgeType = null;
+    if (SU >= 4) {
+      nudge = "Following extraction with your own ideas means you're using the AI's output as raw material, not a finished product — that's the right relationship.";
+      nudgeType = "reinforce";
+    } else {
+      nudge = "After each extraction, ask yourself: 'what do I actually think about this?' and write that next.";
+      nudgeType = "coach";
+    }
+    return { explain: `You extracted content ${t(extractionEvents)}: ${parts.join("; ")}.`, nudge, nudgeType };
+  }
+
+  if (key === "CS") {
+    const skepticEvents = counts.rejection + counts.refinement;
+    if (skepticEvents === 0) {
+      return {
+        explain: `No pushback or refinement detected across ${t(total)}.`,
+        nudge: "Try disagreeing with one thing the AI says, or steering it toward your own angle rather than accepting its framing.",
+        nudgeType: "coach",
+      };
+    }
+    const parts = [];
+    if (counts.rejection > 0)  parts.push(`${t(counts.rejection)} rejected a claim outright`);
+    if (counts.refinement > 0) parts.push(`${t(counts.refinement)} steered or refined the AI's output`);
+    let nudge = null, nudgeType = null;
+    if (CS >= 4) {
+      nudge = "Pushing back on AI outputs is how you catch errors and make ideas yours. Skepticism isn't just a safety check — it's how you learn to form and defend your own positions.";
+      nudgeType = "reinforce";
+    } else {
+      nudge = "Keep building that skepticism. When the AI says something, ask yourself whether you actually agree before accepting it.";
+      nudgeType = "coach";
+    }
+    return { explain: `You pushed back ${t(skepticEvents)}: ${parts.join("; ")}.`, nudge, nudgeType };
+  }
+
+  if (key === "OC") {
+    if (provenanceCounts) {
+      const { studentBorn, synthesized, aiBorn, total: pt } = provenanceCounts;
+      const parts = [];
+      if (studentBorn > 0) parts.push(`${studentBorn} were yours`);
+      if (synthesized > 0) parts.push(`${synthesized} developed together`);
+      if (aiBorn > 0)      parts.push(`${aiBorn} originated from the AI`);
+      let nudge = null, nudgeType = null;
+      if (OC >= 4) {
+        nudge = "When the ideas are genuinely yours, the AI becomes a tool for testing and refining your thinking rather than a replacement for it — that's what good AI collaboration looks like.";
+        nudgeType = "reinforce";
+      } else if (aiBorn > 0) {
+        nudge = "Find the AI-originated passages and rewrite them in your own voice before the final draft.";
+        nudgeType = "coach";
+      } else {
+        nudge = "Focus on adding your own analysis — claims, judgements, and conclusions the AI didn't give you.";
+        nudgeType = "coach";
+      }
+      return { explain: `Of ${pt} essay concept${pt !== 1 ? "s" : ""} traced: ${parts.join("; ")}.`, nudge, nudgeType };
+    }
+    // Fallback path
+    const claimLike = counts.claim + counts.narrative;
+    let nudge = null, nudgeType = null;
+    if (OC >= 4) {
+      nudge = "When the ideas are genuinely yours, the AI becomes a tool for testing and refining your thinking rather than a replacement for it.";
+      nudgeType = "reinforce";
+    } else {
+      nudge = "Focus on rewriting AI-generated passages in your own voice and adding your own analysis.";
+      nudgeType = "coach";
+    }
+    return {
+      explain: `${t(claimLike)} contained original claims or context out of ${total} total (provenance estimated without Groq).`,
+      nudge, nudgeType,
+    };
+  }
+
+  return { explain: "", nudge: null, nudgeType: null };
+}
+
+function renderSummary(scores) {
   const dims = [
-    { key: "PQ", name: "Prompt Quality",         detail: "Responsive + challenge turns" },
-    { key: "SU", name: "Selective Use",           detail: "Agency after extraction events" },
-    { key: "CS", name: "Calibrated Skepticism",  detail: "Rejection + refinement events" },
-    { key: "OC", name: "Original Contribution",  detail: usingGroq ? "Provenance trace (Groq)" : "Claim + narrative ratio (fallback)" },
+    { key: "PQ", name: "Prompt Quality" },
+    { key: "SU", name: "Selective Use" },
+    { key: "CS", name: "Calibrated Skepticism" },
+    { key: "OC", name: "Original Contribution" },
   ];
-  return dims.map(d => `
+  return dims.map(d => {
+    const { explain, nudge, nudgeType } = dimExplanation(d.key, scores);
+    return `
     <div class="summary-card">
-      <div class="dim-name">
-        <span class="dim-name-wrap">
-          ${d.name}
-          <button class="dim-info-btn" tabindex="0" aria-label="About ${d.name}">i</button>
-          <div class="dim-tooltip">
-            ${DIM_TOOLTIPS[d.key]}
-            <br><span class="tt-learn" data-learn="${d.key}">Learn more &rarr;</span>
-          </div>
-        </span>
+      <div class="dim-score-col">
+        <div class="dim-score ${scoreClass(scores[d.key])}">${scores[d.key]}</div>
+        <div class="dim-score-denom">/5</div>
       </div>
-      <div class="dim-score ${scoreClass(scores[d.key])}">${scores[d.key]}<span style="font-size:16px;font-weight:400;color:var(--muted)">/5</span></div>
-      <div class="dim-detail">${d.detail}</div>
-    </div>`).join("");
+      <div class="dim-body">
+        <div class="dim-name">
+          <span class="dim-name-wrap">
+            ${d.name}
+            <button class="dim-info-btn" tabindex="0" aria-label="About ${d.name}">i</button>
+            <div class="dim-tooltip">
+              ${DIM_TOOLTIPS[d.key]}
+              <br><span class="tt-learn" data-learn="${d.key}">Learn more &rarr;</span>
+            </div>
+          </span>
+        </div>
+        <div class="dim-explanation">${esc(explain)}</div>
+        ${nudge ? `<div class="dim-nudge nudge-${nudgeType}">${esc(nudge)}</div>` : ""}
+      </div>
+    </div>`;
+  }).join("");
 }
 
 function renderTurns(classified) {
@@ -3071,13 +3349,13 @@ function sessionBucket(label) {
   return "following";
 }
 
-function renderReflect(classified, provenanceData) {
+function renderReflect(classified, provenanceData, essayRaw) {
   const studentTurns = classified
     .map((t, i) => ({ ...t, globalIndex: i }))
     .filter(t => t.role === "student");
 
   const essayMatches = matchConceptsToTurns(classified, provenanceData);
-  const hasEssay = provenanceData && provenanceData.length > 0;
+  const hasEssay = !!(essayRaw && essayRaw.trim());
 
   // Build index: student turn position → pattern
   const patterns = detectPatterns(classified);
@@ -3424,10 +3702,9 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
     // ── Render results ──────────────────────────────────────────────────────
 
     document.getElementById("samrHero").innerHTML    = renderSAMRCircle(scores);
-    document.getElementById("summaryGrid").innerHTML = renderSummary(scores, usingGroq && !groqErrors.includes("provenance"));
-    document.getElementById("feedbackPanel").innerHTML = renderFeedback(generateFeedback(scores));
+    document.getElementById("summaryGrid").innerHTML = renderSummary(scores);
 
-    document.getElementById("reflectContent").innerHTML = renderReflect(classified, provenanceData);
+    document.getElementById("reflectContent").innerHTML = renderReflect(classified, provenanceData, essayRaw);
     renderAgencyChart(classified);
 
     const noteEl = document.getElementById("parseNote");
@@ -3486,6 +3763,7 @@ document.getElementById("backBtn").addEventListener("click", () => {
 function updateApiKeyStatus() {
   const statusEl = document.getElementById("apiKeyStatus");
   const inputEl  = document.getElementById("apiKeyInput");
+  if (!statusEl || !inputEl) return;
   if (groq.apiKey) {
     statusEl.textContent = "✓ Key saved";
     statusEl.style.color = "#16a34a";
@@ -3550,7 +3828,10 @@ document.querySelectorAll(".sample-btn").forEach(btn => {
     stepState[2] = 'active';
     document.getElementById('stepCard2').classList.remove('locked');
     markStep2Complete('sample-chat.txt');
-    if (sample.essay) _origRenderEssayFile('sample-essay.txt');
+    if (sample.essay) {
+      renderEssayFile('sample-essay.txt');
+      document.getElementById('stepCard3').classList.add('collapsed');
+    }
 
     document.querySelectorAll(".sample-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
@@ -3885,11 +4166,13 @@ const DIM_DETAILS = {
 (function () {
   if (typeof d3 === "undefined") return;
 
-  const posScale = d3.scaleSequential().domain([1, 4]).interpolator(d3.interpolateRgb("#9b9de0", "#4F52C8"));
+  const bluScale = d3.scaleSequential().domain([1, 2]).interpolator(d3.interpolateRgb("#93c5fd", "#1d4ed8"));
+  const grnScale = d3.scaleSequential().domain([3, 4]).interpolator(d3.interpolateRgb("#6ee7b7", "#059669"));
   const negScale = d3.scaleSequential().domain([-1, -2]).interpolator(d3.interpolateRgb("#e8ae94", "#b85c38"));
   function barFill(v) {
     if (v === 0) return "#b0b0b0";
-    return v > 0 ? posScale(v) : negScale(v);
+    if (v >= 3) return grnScale(v);
+    return v > 0 ? bluScale(v) : negScale(v);
   }
 
   const dtSamples = [
@@ -4096,22 +4379,20 @@ const DIM_DETAILS = {
     }
   ];
 
-  const dtMargin  = { top: 36, right: 80, bottom: 52, left: 130 };
+  const dtMargin  = { top: 36, right: 80, bottom: 24, left: 130 };
   const dtTicks   = [-3, -2, -1, 0, 1, 2, 3, 4, 5];
   const dtSvgW    = 796;
   const dtInnerW  = dtSvgW - dtMargin.left - dtMargin.right;
   const dtRowH    = 28;
   const dtXScale  = d3.scaleLinear().domain([-3, 5]).range([0, dtInnerW]);
   const dtZeroX   = dtXScale(0);
-  const dtBtnW = 62, dtBtnH = 20, dtBtnR = 4;
-
   const dtSvg = d3.select("#dt-chart").attr("width", dtSvgW);
 
   // Legend
   const dtLegendItems = [
     { value: -2, label: "stuck" }, { value: -1, label: "validation" }, null,
     { value:  0, label: "extraction" }, null,
-    { value:  1, label: "feedback / narrative" }, { value:  2, label: "refinement" },
+    { value:  1, label: "feedback / narrative" }, { value:  2, label: "refinement" }, null,
     { value:  3, label: "claim / conceptual / pivot" }, { value:  4, label: "challenge / rejection" },
   ];
   const dtLegendEl = document.getElementById("dt-legend");
@@ -4123,7 +4404,7 @@ const DIM_DETAILS = {
     const sw = document.createElement("div"); sw.className = "dt-legend-swatch"; sw.style.background = barFill(item.value);
     if (item.value === 0) sw.style.border = "1px solid #ccc";
     const txt = document.createElement("span");
-    txt.textContent = (item.value > 0 ? `+${item.value}` : String(item.value)) + "  " + item.label;
+    txt.textContent = item.label;
     wrap.appendChild(sw); wrap.appendChild(txt); dtLegendEl.appendChild(wrap);
   });
 
@@ -4175,8 +4456,12 @@ const DIM_DETAILS = {
         <span class="dt-stat-label">High-agency turns</span>
         <span class="dt-stat-value">${s.highCount} of ${s.total}</span>
         <span class="dt-stat-sub">${Math.round(s.highCount / s.total * 100)}% of session</span>
+      </div>
+      <div class="dt-pat-btn-block">
+        <button id="dt-all-patterns-btn">Patterns guide</button>
       </div>`;
     document.getElementById("dt-verdict-info-btn").addEventListener("click", e => dtShowTooltip(e, s.verdict, s.verdictDesc));
+    document.getElementById("dt-all-patterns-btn").addEventListener("click", () => openPatternCatalogue());
   }
 
   function dtRender(sample) {
@@ -4203,28 +4488,32 @@ const DIM_DETAILS = {
       const tops = p.rows.map(r => yScale(r)), bots = p.rows.map(r => yScale(r) + yScale.bandwidth());
       const pTop = Math.min(...tops), pBot = Math.max(...bots), pH = pBot - pTop;
       const isRight = p.side === "right", pad = 5;
-      g.append("rect")
-        .attr("x",      isRight ? dtZeroX : dtXScale(-2) - pad)
-        .attr("y",      pTop - pad)
-        .attr("width",  isRight ? dtXScale(4) - dtZeroX + pad : dtZeroX - dtXScale(-2) + pad)
-        .attr("height", pH + pad * 2).attr("rx", 3).attr("fill","none")
-        .attr("stroke", isRight ? "#3B3EA8" : "#b85c38").attr("stroke-width",1.5).attr("opacity",0.5);
-      const bx = isRight ? dtXScale(4) + 6 : dtXScale(-2) - 6 - dtBtnW;
-      const by = pTop + pH / 2 - dtBtnH / 2;
-      const btnG = g.append("g").style("cursor","pointer").on("click", e => dtShowTooltip(e, p));
-      btnG.append("rect").attr("x",bx).attr("y",by).attr("width",dtBtnW).attr("height",dtBtnH).attr("rx",dtBtnR)
-        .attr("fill", isRight ? "#f0f1f8" : "#fdf0ea").attr("stroke", isRight ? "#3B3EA8" : "#b85c38").attr("stroke-width",1);
-      btnG.append("text").attr("x",bx+dtBtnW/2).attr("y",by+dtBtnH/2).attr("dy","0.35em").attr("text-anchor","middle")
-        .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("font-weight","600")
-        .attr("fill", isRight ? "#3B3EA8" : "#b85c38").text("Pattern");
+      const color = isRight ? "#3B3EA8" : "#b85c38";
+      const pg = g.append("g").style("cursor","pointer").on("click", e => dtShowTooltip(e, p));
+      pg.append("rect")
+        .attr("x", isRight ? dtZeroX : dtXScale(-2) - pad)
+        .attr("y", pTop - pad)
+        .attr("width", isRight ? dtXScale(4) - dtZeroX + pad : dtZeroX - dtXScale(-2) + pad)
+        .attr("height", pH + pad * 2).attr("rx", 3)
+        .attr("fill", isRight ? "rgba(59,62,168,0.04)" : "rgba(184,92,56,0.04)")
+        .attr("stroke", color).attr("stroke-width", 1.5).attr("opacity", 0.7);
+      pg.append("text")
+        .attr("x", isRight ? dtXScale(4) + 10 : dtXScale(-2) - 10)
+        .attr("y", pTop + pH / 2).attr("dy", "0.35em")
+        .attr("text-anchor", isRight ? "start" : "end")
+        .attr("font-family", "Helvetica Neue, sans-serif").attr("font-size", "11px").attr("font-weight", "600")
+        .attr("fill", color).text(p.title);
     });
     g.selectAll(".dt-bar").data(data).join("rect").attr("class","dt-bar")
       .attr("x",      d => d.value === 0 ? dtZeroX - 5 : d.value > 0 ? dtZeroX : dtXScale(d.value))
       .attr("y",      d => yScale(d.label))
       .attr("width",  d => d.value === 0 ? 10 : Math.abs(dtXScale(d.value) - dtZeroX))
       .attr("height", yScale.bandwidth()).attr("fill", d => barFill(d.value)).style("cursor","pointer")
+      .on("mouseover", (event, d) => { showTurnTooltip(event, d); })
+      .on("mouseout",  ()          => { hideTurnTooltip(); })
       .on("click", (event, d) => {
         event.stopPropagation();
+        hideTurnTooltip();
         document.getElementById("dt-modal-turn").textContent = `Student Turn ${d.id}`;
         document.getElementById("dt-modal-classifier").textContent = d.classifier;
         document.getElementById("dt-modal-text").textContent = d.text;
@@ -4234,22 +4523,23 @@ const DIM_DETAILS = {
       .attr("x",-10).attr("y",d=>yScale(d.label)+yScale.bandwidth()/2).attr("dy","0.35em").attr("text-anchor","end")
       .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","13px").attr("fill","#555")
       .text(d => d.id % 5 === 0 ? d.label : "");
-    g.selectAll(".dt-axis-bot").data(dtTicks).join("text").attr("class","dt-axis-bot")
-      .attr("x",d=>dtXScale(d)).attr("y",innerH+20).attr("text-anchor","middle")
-      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999")
-      .text(d => d === 0 ? "0" : d > 0 ? `+${d}` : d);
-    g.selectAll(".dt-axis-top").data(dtTicks).join("text").attr("class","dt-axis-top")
-      .attr("x",d=>dtXScale(d)).attr("y",-16).attr("text-anchor","middle")
-      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999")
-      .text(d => d === 0 ? "0" : d > 0 ? `+${d}` : d);
+    [
+      { label: "← PASSIVE",    cx: dtXScale(-1.25), fill: "#c07050" },
+      { label: "NEUTRAL",       cx: dtXScale(0),     fill: "#aaa"    },
+      { label: "BUILDING",      cx: dtXScale(1.5),   fill: "#1d4ed8" },
+      { label: "QUESTIONING →", cx: dtXScale(3.25),  fill: "#059669" },
+    ].forEach(z => {
+      g.append("text").attr("x", z.cx).attr("y", -14).attr("text-anchor", "middle")
+        .attr("font-family", "Helvetica Neue, sans-serif").attr("font-size", "10px")
+        .attr("font-weight", "700").attr("letter-spacing", "0.07em").attr("fill", z.fill)
+        .text(z.label);
+    });
     dtSvg.append("text").attr("transform","rotate(-90)")
       .attr("x",-(dtMargin.top+innerH/2)).attr("y",80).attr("text-anchor","middle")
       .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999")
       .text("Student Turns");
     g.append("line").attr("x1",0).attr("x2",dtInnerW).attr("y1",innerH).attr("y2",innerH).attr("stroke","#ccc").attr("stroke-width",1);
     g.append("line").attr("x1",0).attr("x2",dtInnerW).attr("y1",0).attr("y2",0).attr("stroke","#ccc").attr("stroke-width",1);
-    g.append("text").attr("x",dtInnerW/2).attr("y",innerH+38).attr("text-anchor","middle")
-      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999").text("Student Agency");
   }
 
   // Tooltip
