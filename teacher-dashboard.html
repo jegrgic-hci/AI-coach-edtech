@@ -1563,10 +1563,13 @@ function renderClassOverview() {
 
     const flagLines = flagged.map(s => {
       const sig = getStudentSignal(s.id);
-      return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid var(--border)">
+      return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid var(--border);cursor:pointer;border-radius:4px"
+                   onmouseover="this.style.background='var(--terra-tint)'" onmouseout="this.style.background=''"
+                   onclick="event.stopPropagation();gotoStudentFromClass('${s.id}')">
         <div class="avatar" style="width:22px;height:22px;font-size:9px;flex-shrink:0">${s.initials}</div>
         <span style="font-size:12px;font-weight:500;flex:1">${s.name}</span>
         ${signalPill(sig)}
+        <span style="font-size:11px;color:var(--blue);font-weight:600;flex-shrink:0">View →</span>
       </div>`;
     }).join('');
 

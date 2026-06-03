@@ -367,14 +367,55 @@
     .tab-pane { display: none; }
     .tab-pane.active { display: block; }
     .tab-intro {
-      font-size: 13px; color: #1e3a5f; line-height: 1.65;
-      margin: 0 0 16px; max-width: 680px;
-      background: #e8f1fb; border: 1px solid #bfdbfe;
-      border-radius: 8px; padding: 10px 14px;
+      font-size: 13px; color: var(--muted); line-height: 1.65;
+      margin: 12px 0 0; max-width: 796px; width: 796px;
+      background: #fff; border: 1px solid #e5e5e2;
+      border-radius: 8px; padding: 12px 16px;
     }
     #tabChart.active { display: flex; flex-direction: column; align-items: center; }
 
     /* ── My Session tab ──────────────────────────────────── */
+    .session-dashboard {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
+    }
+    .session-dash-card {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 10px 14px; background: var(--surface); border-radius: 10px;
+      min-width: 72px; cursor: pointer;
+      border: 1px solid var(--border);
+      transition: border-color 0.12s, box-shadow 0.12s;
+    }
+    .session-dash-card:hover {
+      border-color: #94a3b8;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    .session-dash-card.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+    }
+    .session-dash-card.patterns-card { border-style: dashed; }
+    .session-dash-card.patterns-card.active { border-style: solid; }
+    .session-dash-count {
+      font-size: 28px; font-weight: 800; line-height: 1; color: var(--text);
+    }
+    .session-dash-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--muted);
+    }
+    .session-desc-panel {
+      margin-bottom: 16px; padding: 14px 16px;
+      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px;
+    }
+    .session-desc-panel h4 {
+      margin: 0 0 6px; font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em; color: #1e40af;
+    }
+    .session-desc-panel p {
+      margin: 0; font-size: 13px; line-height: 1.6; color: #1e3a6e;
+    }
+    .session-turn.filtered-out { display: none; }
+    .pattern-group.filtered-out { display: none; }
+    .session-turn-list { min-height: 400px; }
     .session-strip {
       display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 20px;
       padding: 14px 16px; background: var(--surface2); border-radius: 8px;
@@ -405,6 +446,10 @@
       min-width: 24px; padding-top: 2px;
     }
     .session-turn-body { flex: 1; min-width: 0; }
+    .session-turn-pattern-note {
+      margin-top: 6px; font-size: 11px; color: var(--muted);
+      font-style: italic;
+    }
     .session-turn-text {
       font-size: 13px; line-height: 1.6; color: var(--text);
       white-space: pre-wrap; word-break: break-word;
@@ -895,8 +940,8 @@
     }
     .dt-verdict-info-btn:hover { border-color: #888; color: #333; }
     #dt-legend, #chartLegendEl {
-      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-      margin-bottom: 14px; font-family: "Helvetica Neue", sans-serif; max-width: 796px;
+      display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap;
+      margin-top: 10px; margin-bottom: 14px; font-family: "Helvetica Neue", sans-serif; max-width: 796px;
     }
     .dt-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #555; }
     .dt-legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
@@ -1196,15 +1241,16 @@ When done, save the result as a markdown file named chat_log.md so I can downloa
       <div class="tab-bar">
         <button class="tab-btn active" data-tab="chart">Agency Chart</button>
         <button class="tab-btn" data-tab="reflect">My Session</button>
-        <button class="tab-btn" data-tab="divergence">Chart Examples</button>
+        <button class="tab-btn" data-tab="divergence">POC Chart Examples</button>
+        <button class="tab-btn" data-tab="patternguide">POC Pattern Guide</button>
       </div>
 
 
       <div class="tab-pane active" id="tabChart">
-        <p class="tab-intro">Each row is one of your turns. The higher it sits, the more you were driving the conversation — asking questions, making claims, pushing back. Low turns are passive: extracting content, seeking validation, or getting stuck. Brackets on the sides mark sequences the tool recognised as named patterns.</p>
         <div id="chartSummaryEl" style="width:796px;max-width:100%;"></div>
-        <div id="chartLegendEl" style="width:796px;max-width:100%;"></div>
         <svg id="agencyChart"></svg>
+        <div id="chartLegendEl" style="width:796px;max-width:100%;"></div>
+        <p class="tab-intro">Each row is one of your turns. The higher it sits, the more you were driving the conversation — asking questions, making claims, pushing back. Low turns are passive: extracting content, seeking validation, or getting stuck. Brackets on the sides mark sequences the tool recognised as named patterns.</p>
       </div>
 
       <div class="tab-pane" id="tabProvenance" style="display:none!important">
@@ -1229,7 +1275,6 @@ When done, save the result as a markdown file named chat_log.md so I can downloa
       </div>
 
       <div class="tab-pane" id="tabReflect">
-        <p class="tab-intro">Every turn you made, in order. Each one is labelled by what you were doing — making a claim, extracting content, pushing back, and so on. Where the tool detected a recurring sequence, turns are grouped and named. Green groups are high-agency patterns; blue are neutral; yellow are passive or low-agency.</p>
         <div id="parseNote" class="parse-note" style="display:none;margin-bottom:8px;"></div>
         <div id="reflectContent"></div>
       </div>
@@ -1244,6 +1289,10 @@ When done, save the result as a markdown file named chat_log.md so I can downloa
         <div id="dt-summary-strip"></div>
         <div id="dt-legend"></div>
         <svg id="dt-chart"></svg>
+      </div>
+
+      <div class="tab-pane" id="tabPatternGuide">
+        <div id="patternGuideContent"></div>
       </div>
     </div>
 
@@ -1341,6 +1390,16 @@ function renderUploadedFiles() {
   document.getElementById("logInput").value = uploadedChatFiles
     .map(f => f.text)
     .join("\n\n<<<SESSION BREAK>>>\n\n");
+  if (uploadedChatFiles.length > 0 && stepState[2] !== 'complete') {
+    markStep2Complete(uploadedChatFiles[0].name);
+  } else if (uploadedChatFiles.length === 0 && stepState[2] === 'complete') {
+    stepState[2] = 'active';
+    const num = document.getElementById('stepNum2');
+    num.textContent = '2'; num.classList.remove('done');
+    document.getElementById('step2FileLabel').style.display = 'none';
+    document.getElementById('stepCard2').classList.remove('collapsed');
+    document.getElementById('analyzeBtn').disabled = true;
+  }
 }
 
 function removeChatFile(index) {
@@ -1507,18 +1566,6 @@ function resetStepper() {
   document.getElementById('step2FileLabel').style.display = 'none';
   document.getElementById('step3FileLabel').style.display = 'none';
   document.getElementById('analyzeBtn').disabled = true;
-}
-
-// Intercept chat file uploads to advance stepper
-const _origRenderUploadedFiles = renderUploadedFiles;
-function renderUploadedFiles() {
-  _origRenderUploadedFiles();
-  if (uploadedChatFiles.length > 0 && stepState[2] !== 'complete') {
-    const name = uploadedChatFiles.length === 1
-      ? uploadedChatFiles[0].name
-      : `${uploadedChatFiles.length} files`;
-    markStep2Complete(name);
-  }
 }
 
 // ─── Dev dropdown ─────────────────────────────────────────────────────────────
@@ -1973,7 +2020,9 @@ async function loadGroqKey() {
   } catch (_) {}
 }
 
-async function groqClassifyTurns(studentTurns) {
+const CLASSIFY_CHUNK_SIZE = 20;
+
+async function groqClassifyChunk(studentTurns, globalOffset) {
   const prompt = `Classify each student turn from an AI-assisted writing session.
 
 Labels and what they mean:
@@ -1990,7 +2039,7 @@ Labels and what they mean:
 - pivot: student explicitly shifts to a new topic
 
 Turns to classify:
-${studentTurns.map((t, i) => `[${i}] ${t.text}`).join("\n\n")}
+${studentTurns.map((t, i) => `[${globalOffset + i}] ${t.text}`).join("\n\n")}
 
 Return ONLY a JSON array: [{"turnIndex": 0, "label": "challenge", "confidence": 0.9}, ...]`;
 
@@ -2001,7 +2050,7 @@ Return ONLY a JSON array: [{"turnIndex": 0, "label": "challenge", "confidence": 
       model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.1,
-      max_tokens: 2000,
+      max_tokens: 100 + studentTurns.length * 30,
     }),
   });
   if (!res.ok) throw new Error(`Groq classify error: ${res.status}`);
@@ -2009,16 +2058,30 @@ Return ONLY a JSON array: [{"turnIndex": 0, "label": "challenge", "confidence": 
   const raw  = data.choices[0].message.content.trim();
   const match = raw.match(/\[[\s\S]*\]/);
   if (!match) throw new Error("No JSON in classify response");
-  const parsed = JSON.parse(match[0]);
-  // Convert array to lookup by turnIndex
+  return JSON.parse(match[0]);
+}
+
+async function groqClassifyTurns(studentTurns) {
+  const chunks = [];
+  for (let i = 0; i < studentTurns.length; i += CLASSIFY_CHUNK_SIZE) {
+    chunks.push({ turns: studentTurns.slice(i, i + CLASSIFY_CHUNK_SIZE), offset: i });
+  }
+  const results = await Promise.all(chunks.map(c => groqClassifyChunk(c.turns, c.offset)));
   const map = {};
-  for (const item of parsed) map[item.turnIndex] = item;
+  for (const items of results) {
+    for (const item of items) map[item.turnIndex] = item;
+  }
   return map;
 }
 
+const AI_TURN_MAX_CHARS = 400;
+
 async function groqProvenanceTrace(essayText, classified) {
   const chatLog = classified
-    .map(t => `${t.role === "student" ? "Student" : "AI"}: ${t.text}`)
+    .map(t => {
+      const text = t.role === "student" ? t.text : t.text.slice(0, AI_TURN_MAX_CHARS) + (t.text.length > AI_TURN_MAX_CHARS ? "…" : "");
+      return `${t.role === "student" ? "Student" : "AI"}: ${text}`;
+    })
     .join("\n\n");
 
   const prompt = `Trace the intellectual origin of ideas in this AI-assisted essay.
@@ -2563,6 +2626,53 @@ function openPatternCatalogue() {
   document.getElementById("dt-sidebar").classList.add("open");
 }
 
+function renderPatternGuide() {
+  const HIGH = [
+    { id: "challenge-arc",      label: "Challenge Arc" },
+    { id: "argument-engaged",   label: "Argument Engaged" },
+    { id: "rejection-redirect", label: "Rejection → Redirect" },
+    { id: "claim-support",      label: "Claim-Support Cycle" },
+    { id: "extraction-landing", label: "Extraction → Insight" },
+  ];
+  const PASSIVE = [
+    { id: "extraction-loop",   label: "Extraction Loop" },
+    { id: "validation-spiral", label: "Validation Spiral" },
+    { id: "helplessness-loop", label: "Helplessness Loop" },
+    { id: "missed-argument",   label: "Missed Argument" },
+    { id: "flitting",          label: "Flitting" },
+  ];
+  function renderSeq(id) {
+    const seq = PATTERN_SEQUENCES[id];
+    if (!seq) return "";
+    const chips = seq.map(item => {
+      if (typeof item === "string") {
+        const cls = (item === "→" || item === "↓") ? "dt-cat-seq-arrow" : "dt-cat-seq-cont";
+        return `<span class="${cls}">${esc(item)}</span>`;
+      }
+      return `<span class="dt-cat-seq-chip--${item.t}">${esc(item.l)}</span>`;
+    }).join("");
+    return `<details class="dt-cat-seq-details">
+      <summary class="dt-cat-seq-toggle">See pattern</summary>
+      <div class="dt-cat-seq">${chips}</div>
+      <div class="dt-cat-seq-legend"><span class="dt-cat-seq-chip--a">AI</span> <span class="dt-cat-seq-chip--s">student</span></div>
+    </details>`;
+  }
+  function cardGroup(patterns, cls) {
+    return patterns.map((p, i) =>
+      `<div class="dt-cat-card">
+        <span class="dt-cat-card-name ${cls}">${esc(p.label)}</span>
+        <p class="dt-cat-card-desc">${esc(PAT_DESCRIPTIONS[p.id] || "")}</p>
+        ${renderSeq(p.id)}
+      </div>${i < patterns.length - 1 ? '<hr class="dt-cat-divider">' : ""}`
+    ).join("");
+  }
+  document.getElementById("patternGuideContent").innerHTML = `
+    <div class="dt-cat-section-label" style="color:#3B3EA8;">High-agency patterns</div>
+    ${cardGroup(HIGH, "dt-cat-card-name--high")}
+    <div class="dt-cat-section-label" style="color:#b85c38;margin-top:28px;">Passive patterns</div>
+    ${cardGroup(PASSIVE, "dt-cat-card-name--low")}`;
+}
+
 function showTurnTooltip(event, d) {
   const tooltip = document.getElementById("dt-tooltip");
   const preview = (d.text || "").length > 130 ? d.text.slice(0, 130) + "…" : (d.text || "");
@@ -2581,6 +2691,96 @@ function hideTurnTooltip() {
   const tooltip = document.getElementById("dt-tooltip");
   tooltip.style.display = "none";
   tooltip.classList.remove("dt-tooltip--turn");
+}
+
+// ── Shared horizontal chart renderer ─────────────────────────────────────────
+function renderHorizChart(svgSel, data, patterns, onBarClick, onPatternClick) {
+  const hMarg    = { top: 44, right: 24, bottom: 60, left: 24 };
+  const hSvgW    = 796;
+  const hInnerW  = hSvgW - hMarg.left - hMarg.right;
+  const hMaxBarW = 24;
+  const hPosU    = 5, hNegU = 3;
+  const hInnerH  = 320;
+  const hZeroY   = Math.round(hInnerH * hPosU / (hPosU + hNegU));
+  const hYTicks  = [-3,-2,-1,0,1,2,3,4,5];
+  const hYScale  = d3.scaleLinear().domain([-hNegU, hPosU]).range([hInnerH, 0]);
+  const hPosScl  = d3.scaleSequential().domain([1,4]).interpolator(d3.interpolateRgb("#86efac","#14532d"));
+  const hNegScl  = d3.scaleSequential().domain([-1,-2]).interpolator(d3.interpolateRgb("#e8ae94","#b85c38"));
+  const hFill    = v => v===0 ? "#b0b0b0" : v>0 ? hPosScl(v) : hNegScl(v);
+
+  const n = data.length;
+  const probe   = d3.scaleBand().domain(data.map(d=>d.label)).range([0,hInnerW]).paddingInner(0.18).paddingOuter(0.1);
+  const barArea = probe.bandwidth() > hMaxBarW ? (hMaxBarW/(1-0.18))*n : hInnerW;
+  const xScale  = d3.scaleBand().domain(data.map(d=>d.label)).range([0,barArea]).paddingInner(0.18).paddingOuter(0.1);
+
+  svgSel.attr("width",hSvgW).attr("height",hMarg.top+hInnerH+hMarg.bottom).style("overflow","visible").selectAll("*").remove();
+
+  const defs = svgSel.append("defs");
+  defs.append("marker").attr("id","hArrowUp").attr("viewBox","0 -5 10 10").attr("refX",8).attr("refY",0).attr("markerWidth",4).attr("markerHeight",4).attr("orient","auto")
+    .append("path").attr("d","M0,-5L10,0L0,5").attr("fill","#059669");
+  defs.append("marker").attr("id","hArrowDown").attr("viewBox","0 -5 10 10").attr("refX",8).attr("refY",0).attr("markerWidth",4).attr("markerHeight",4).attr("orient","auto")
+    .append("path").attr("d","M0,-5L10,0L0,5").attr("fill","#b85c38");
+
+  const g = svgSel.append("g").attr("transform",`translate(${hMarg.left},${hMarg.top})`);
+
+  const step=xScale.step(), halfGap=step*xScale.paddingInner()/2;
+  const bandData=d3.groups(data,d=>Math.floor((d.id-1)/5)).filter(([i])=>i%2===1);
+  g.selectAll(".col-band").data(bandData).join("rect").attr("class","col-band")
+    .attr("x",([,rows])=>xScale(rows[0].label)-halfGap).attr("y",0)
+    .attr("width",([,rows])=>step*rows.length).attr("height",hInnerH).attr("fill","#f2f2f0");
+
+  g.selectAll(".grid-line").data(hYTicks).join("line").attr("class","grid-line")
+    .attr("x1",0).attr("x2",barArea).attr("y1",d=>hYScale(d)).attr("y2",d=>hYScale(d));
+  g.append("line").attr("class","zero-line").attr("x1",0).attr("x2",barArea).attr("y1",hZeroY).attr("y2",hZeroY);
+  g.append("line").attr("x1",0).attr("x2",barArea).attr("y1",0).attr("y2",0).attr("stroke","#ccc").attr("stroke-width",1);
+  g.append("line").attr("x1",0).attr("x2",barArea).attr("y1",hInnerH).attr("y2",hInnerH).attr("stroke","#ccc").attr("stroke-width",1);
+
+  patterns.forEach(p => {
+    const xs=p.rows.map(r=>xScale(r)).filter(x=>x!==undefined);
+    if (!xs.length) return;
+    const x1=Math.min(...xs), x2=Math.max(...xs)+xScale.bandwidth(), pw=x2-x1;
+    const isPos=p.side==="right", color=isPos?"#3B3EA8":"#b85c38", pad=3;
+    const pg=g.append("g").style("cursor","pointer").on("click",e=>onPatternClick(e,p));
+    pg.append("rect").attr("x",x1-pad).attr("y",isPos?0:hZeroY).attr("width",pw+pad*2)
+      .attr("height",isPos?hZeroY:hInnerH-hZeroY).attr("rx",3).attr("fill",isPos?"#dde3f5":"#fde8de").attr("stroke","none");
+    const lb=pg.append("g").attr("transform",`translate(${x1-pad+10},${isPos?12:hInnerH-12})`);
+    lb.append("circle").attr("cx",0).attr("cy",-3).attr("r",4.5).attr("fill","none").attr("stroke",color).attr("stroke-width",1.5);
+    lb.append("line").attr("x1",-3).attr("y1",1).attr("x2",-3).attr("y2",3).attr("stroke",color).attr("stroke-width",1.5).attr("stroke-linecap","round");
+    lb.append("line").attr("x1", 3).attr("y1",1).attr("x2", 3).attr("y2",3).attr("stroke",color).attr("stroke-width",1.5).attr("stroke-linecap","round");
+    lb.append("line").attr("x1",-3).attr("y1",3).attr("x2", 3).attr("y2",3).attr("stroke",color).attr("stroke-width",1.5).attr("stroke-linecap","round");
+    lb.append("line").attr("x1",-2).attr("y1",5).attr("x2", 2).attr("y2",5).attr("stroke",color).attr("stroke-width",1.5).attr("stroke-linecap","round");
+  });
+
+  g.selectAll(".bar").data(data).join("rect").attr("class","bar")
+    .attr("x",d=>xScale(d.label))
+    .attr("y",d=>{ if(d.value===0) return hZeroY-4; if(d.value>0) return hYScale(d.value); return hZeroY; })
+    .attr("width",xScale.bandwidth())
+    .attr("height",d=>{ if(d.value===0) return 8; return Math.abs(hYScale(d.value)-hZeroY); })
+    .attr("fill",d=>hFill(d.value)).style("cursor","pointer")
+    .on("click",(event,d)=>onBarClick(event,d));
+
+  g.selectAll(".turn-label").data(data).join("text")
+    .attr("x",d=>xScale(d.label)+xScale.bandwidth()/2).attr("y",hInnerH+16)
+    .attr("dy","0.35em").attr("text-anchor","middle")
+    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","13px").attr("fill","#555")
+    .text(d=>d.id%5===0?d.label:"");
+
+  [{label:"PASSIVE",cy:hYScale(-1.5),fill:"#c07050"},{label:"NEUTRAL",cy:hYScale(0),fill:"#aaa"},
+   {label:"BUILDING",cy:hYScale(1.5),fill:"#1d4ed8"},{label:"QUESTIONING",cy:hYScale(3.5),fill:"#059669"}
+  ].forEach(z=>{
+    g.append("text").attr("transform",`translate(-8,${z.cy}) rotate(-90)`)
+      .attr("text-anchor","middle")
+      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","10px").attr("font-weight","700")
+      .attr("letter-spacing","0.07em").attr("fill",z.fill).text(z.label);
+  });
+
+  g.append("line").attr("x1",-3).attr("y1",hZeroY-6).attr("x2",-3).attr("y2",6)
+    .attr("stroke","#059669").attr("stroke-width",1.5).attr("marker-end","url(#hArrowUp)");
+  g.append("line").attr("x1",-3).attr("y1",hZeroY+6).attr("x2",-3).attr("y2",hInnerH-6)
+    .attr("stroke","#b85c38").attr("stroke-width",1.5).attr("marker-end","url(#hArrowDown)");
+
+  g.append("text").attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999")
+    .attr("x",barArea/2).attr("y",hInnerH+42).attr("text-anchor","middle").text("Student turns (chronological →)");
 }
 
 function renderAgencyChart(classified) {
@@ -2653,10 +2853,7 @@ function renderAgencyChart(classified) {
       <span class="dt-stat-value">${highCount} of ${total}</span>
       <span class="dt-stat-sub">${Math.round(highCount / total * 100)}% of session</span>
     </div>
-    <div class="dt-pat-btn-block">
-      <button id="agency-all-patterns-btn">Patterns guide</button>
-    </div>`;
-  document.getElementById("agency-all-patterns-btn").addEventListener("click", () => openPatternCatalogue());
+    `;
   document.getElementById("agency-verdict-info-btn").addEventListener("click", e => {
     e.stopPropagation();
     const tooltip = document.getElementById("dt-tooltip");
@@ -2670,10 +2867,9 @@ function renderAgencyChart(classified) {
   });
 
   // ── Legend ────────────────────────────────────────────────────────────────
-  const bluScaleL  = d3.scaleSequential().domain([1, 2]).interpolator(d3.interpolateRgb("#93c5fd", "#1d4ed8"));
-  const grnScaleL  = d3.scaleSequential().domain([3, 4]).interpolator(d3.interpolateRgb("#6ee7b7", "#059669"));
-  const negScaleL  = d3.scaleSequential().domain([-1, -2]).interpolator(d3.interpolateRgb("#e8ae94", "#b85c38"));
-  const fillL = v => v === 0 ? "#b0b0b0" : v >= 3 ? grnScaleL(v) : v > 0 ? bluScaleL(v) : negScaleL(v);
+  const posScaleL = d3.scaleSequential().domain([1,4]).interpolator(d3.interpolateRgb("#86efac","#14532d"));
+  const negScaleL = d3.scaleSequential().domain([-1,-2]).interpolator(d3.interpolateRgb("#e8ae94","#b85c38"));
+  const fillL = v => v===0 ? "#b0b0b0" : v>0 ? posScaleL(v) : negScaleL(v);
   const legendItems = [
     { value: -2, label: "stuck" }, { value: -1, label: "validation" }, null,
     { value:  0, label: "extraction" }, null,
@@ -2692,93 +2888,24 @@ function renderAgencyChart(classified) {
     wrap.appendChild(sw); wrap.appendChild(txt); legendEl.appendChild(wrap);
   });
 
-  // ── Chart (exact copy of dtRender) ────────────────────────────────────────
-  const bluScale = d3.scaleSequential().domain([1, 2]).interpolator(d3.interpolateRgb("#93c5fd", "#1d4ed8"));
-  const grnScale = d3.scaleSequential().domain([3, 4]).interpolator(d3.interpolateRgb("#6ee7b7", "#059669"));
-  const negScale = d3.scaleSequential().domain([-1, -2]).interpolator(d3.interpolateRgb("#e8ae94", "#b85c38"));
-  function barFill(v) { return v === 0 ? "#b0b0b0" : v >= 3 ? grnScale(v) : v > 0 ? bluScale(v) : negScale(v); }
-  const data = turns.map(d => ({ ...d, label: String(d.id) }));
-  const dtMargin = { top: 36, right: 80, bottom: 24, left: 130 };
-  const dtTicks  = [-3, -2, -1, 0, 1, 2, 3, 4, 5];
-  const dtSvgW   = 796;
-  const dtInnerW = dtSvgW - dtMargin.left - dtMargin.right;
-  const dtRowH   = 28;
-  const dtXScale = d3.scaleLinear().domain([-3, 5]).range([0, dtInnerW]);
-  const dtZeroX  = dtXScale(0);
-  const innerH = data.length * dtRowH;
-  const svgH   = innerH + dtMargin.top + dtMargin.bottom;
-  const agSvg  = d3.select("#agencyChart").attr("width", dtSvgW).attr("height", svgH);
-  agSvg.selectAll("*").remove();
-  const g = agSvg.append("g").attr("transform", `translate(${dtMargin.left},${dtMargin.top})`);
-  const yScale = d3.scaleBand().domain(data.map(d => d.label)).range([0, innerH]).padding(0.25);
-  const step = yScale.step(), halfGap = step * yScale.paddingInner() / 2;
-  const bandData = d3.groups(data, d => Math.floor((d.id - 1) / 5)).filter(([i]) => i % 2 === 1);
-  g.selectAll(".dt-row-band").data(bandData).join("rect")
-    .attr("class","dt-row-band").attr("x",0)
-    .attr("y", ([,rows]) => yScale(rows[0].label) - halfGap)
-    .attr("width", dtInnerW).attr("height", ([,rows]) => step * rows.length)
-    .attr("fill","#f2f2f0");
-  g.selectAll(".dt-grid").data(dtTicks).join("line").attr("class","dt-grid")
-    .attr("x1",d=>dtXScale(d)).attr("x2",d=>dtXScale(d)).attr("y1",0).attr("y2",innerH)
-    .attr("stroke","#e5e5e2").attr("stroke-width",1);
-  g.append("line").attr("x1",dtZeroX).attr("x2",dtZeroX).attr("y1",0).attr("y2",innerH)
-    .attr("stroke","#bbb").attr("stroke-width",1);
-  patterns.forEach(p => {
-    const tops = p.rows.map(r => yScale(r)), bots = p.rows.map(r => yScale(r) + yScale.bandwidth());
-    const pTop = Math.min(...tops), pBot = Math.max(...bots), pH = pBot - pTop;
-    const isRight = p.side === "right", pad = 5;
-    const color = isRight ? "#3B3EA8" : "#b85c38";
-    const pg = g.append("g").style("cursor","pointer")
-      .on("click", e => { e.stopPropagation(); openPatternSidebar(p._orig, student, classified); });
-    pg.append("rect")
-      .attr("x", isRight ? dtZeroX : dtXScale(-2) - pad).attr("y", pTop - pad)
-      .attr("width", isRight ? dtXScale(4) - dtZeroX + pad : dtZeroX - dtXScale(-2) + pad)
-      .attr("height", pH + pad * 2).attr("rx", 3)
-      .attr("fill", isRight ? "rgba(59,62,168,0.04)" : "rgba(184,92,56,0.04)")
-      .attr("stroke", color).attr("stroke-width", 1.5).attr("opacity", 0.7);
-    pg.append("text")
-      .attr("x", isRight ? dtXScale(4) + 10 : dtXScale(-2) - 10)
-      .attr("y", pTop + pH / 2).attr("dy", "0.35em")
-      .attr("text-anchor", isRight ? "start" : "end")
-      .attr("font-family", "Helvetica Neue, sans-serif").attr("font-size", "11px").attr("font-weight", "600")
-      .attr("fill", color).text(p.title);
-  });
-  g.selectAll(".dt-bar").data(data).join("rect").attr("class","dt-bar")
-    .attr("x", d => d.value === 0 ? dtZeroX - 5 : d.value > 0 ? dtZeroX : dtXScale(d.value))
-    .attr("y", d => yScale(d.label))
-    .attr("width", d => d.value === 0 ? 10 : Math.abs(dtXScale(d.value) - dtZeroX))
-    .attr("height", yScale.bandwidth()).attr("fill", d => barFill(d.value)).style("cursor","pointer")
-    .on("mouseover", (event, d) => { showTurnTooltip(event, d); })
-    .on("mouseout",  ()          => { hideTurnTooltip(); })
-    .on("click", (event, d) => {
+  // ── Chart ─────────────────────────────────────────────────────────────────
+  const data   = turns.map(d => ({ ...d, label: String(d.id) }));
+  const agSvg  = d3.select("#agencyChart");
+  renderHorizChart(
+    agSvg, data, patterns,
+    (event, d) => {
       event.stopPropagation();
       hideTurnTooltip();
       document.getElementById("dt-modal-turn").textContent = `Student Turn ${d.id}`;
       document.getElementById("dt-modal-classifier").textContent = d.classifier;
       document.getElementById("dt-modal-text").textContent = d.text;
       document.getElementById("dt-modal-overlay").classList.add("open");
-    });
-  g.selectAll(".dt-label").data(data).join("text").attr("class","dt-label")
-    .attr("x",-10).attr("y",d=>yScale(d.label)+yScale.bandwidth()/2).attr("dy","0.35em").attr("text-anchor","end")
-    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","13px").attr("fill","#555")
-    .text(d => d.id % 5 === 0 ? d.label : "");
-  [
-    { label: "← PASSIVE",    cx: dtXScale(-1.25), fill: "#c07050" },
-    { label: "NEUTRAL",       cx: dtXScale(0),     fill: "#aaa"    },
-    { label: "BUILDING",      cx: dtXScale(1.5),   fill: "#1d4ed8" },
-    { label: "QUESTIONING →", cx: dtXScale(3.25),  fill: "#059669" },
-  ].forEach(z => {
-    g.append("text").attr("x", z.cx).attr("y", -14).attr("text-anchor", "middle")
-      .attr("font-family", "Helvetica Neue, sans-serif").attr("font-size", "10px")
-      .attr("font-weight", "700").attr("letter-spacing", "0.07em").attr("fill", z.fill)
-      .text(z.label);
-  });
-  agSvg.append("text").attr("transform","rotate(-90)")
-    .attr("x",-(dtMargin.top+innerH/2)).attr("y",80).attr("text-anchor","middle")
-    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999")
-    .text("Student Turns");
-  g.append("line").attr("x1",0).attr("x2",dtInnerW).attr("y1",innerH).attr("y2",innerH).attr("stroke","#ccc").attr("stroke-width",1);
-  g.append("line").attr("x1",0).attr("x2",dtInnerW).attr("y1",0).attr("y2",0).attr("stroke","#ccc").attr("stroke-width",1);
+    },
+    (e, p) => { e.stopPropagation(); openPatternSidebar(p._orig, student, classified); }
+  );
+  agSvg.selectAll(".bar")
+    .on("mouseover", (event, d) => showTurnTooltip(event, d))
+    .on("mouseout",  ()          => hideTurnTooltip());
 }
 
 function openPatternSidebar(p, student, classified) {
@@ -3343,6 +3470,25 @@ function matchConceptsToTurns(classified, provenanceData) {
 const DRIVING_LABELS  = new Set(["claim","conceptual","challenge","rejection","refinement","pivot"]);
 const FOLLOWING_LABELS = new Set(["extraction","validation","stuck","feedback","narrative"]);
 
+const LABEL_DESCRIPTIONS = {
+  claim:      { title: "Claim", body: "You stated a position or assertion of your own — something you believe or are arguing, not something the AI generated. These are moments where your own thinking is on the table." },
+  conceptual: { title: "Conceptual", body: "You asked a 'how' or 'why' question to understand something more deeply, rather than just retrieve content. These turns drive comprehension, not collection." },
+  challenge:  { title: "Challenge", body: "You questioned or pushed back on something the AI said — asking for evidence, pointing out a problem, or disputing a claim. This is the core of critical engagement with AI." },
+  rejection:  { title: "Rejection", body: "You explicitly disagreed with or dismissed what the AI produced. A strong signal that you're evaluating output rather than accepting it." },
+  refinement: { title: "Refinement", body: "You redirected or adjusted the AI's output — telling it what to change, what to cut, or how to improve. You're steering, not just receiving." },
+  narrative:  { title: "Narrative", body: "You gave the AI personal context, framing, or background about your situation or task. These turns help the AI understand your purpose but don't directly advance the argument." },
+  pivot:      { title: "Pivot", body: "You shifted to a new topic or direction, opening a new thread in the conversation. Whether this was productive depends on what came next." },
+  feedback:   { title: "Feedback", body: "You gave the AI a reaction to its output — like 'good' or 'that works' — without substantially redirecting it. Low-information turns on their own; significant if followed by a challenge or refinement." },
+  extraction: { title: "Extraction", body: "You asked the AI to produce content, facts, or information. Extraction is neutral — it's what you do immediately after it that determines whether you're building or just collecting." },
+  validation: { title: "Validation", body: "You asked the AI to confirm or check something — often its own previous output. When frequent, this can signal reliance on the AI as judge rather than developing your own evaluative capacity." },
+  stuck:      { title: "Stuck", body: "You signalled difficulty or uncertainty and asked the AI to help you move forward. Occasional stuck turns are normal; repeated ones in sequence suggest the AI is doing the work of getting unstuck." },
+};
+
+const PATTERNS_DESCRIPTION = {
+  title: "Patterns",
+  body: "Patterns are recurring sequences of turns the tool detected — for example, a string of extractions, or a challenge followed by a refinement. They're identified automatically based on the order and type of your turns. The pattern groups below show which turns belong together and what sequence they form.",
+};
+
 function sessionBucket(label) {
   if (DRIVING_LABELS.has(label))  return "driving";
   if (FOLLOWING_LABELS.has(label)) return "following";
@@ -3364,14 +3510,50 @@ function renderReflect(classified, provenanceData, essayRaw) {
     for (let i = p.start; i <= p.end; i++) turnPattern[i] = p;
   }
 
+  // Count per label in the order they appear in the legend
+  const LABEL_ORDER = ["claim","conceptual","challenge","rejection","refinement","narrative","pivot","feedback","extraction","validation","stuck"];
+  const counts = {};
+  for (const t of studentTurns) counts[t.label] = (counts[t.label] || 0) + 1;
+
+  const patternTurnIndices = new Set();
+  for (const p of patterns) {
+    for (let j = p.start; j <= p.end; j++) patternTurnIndices.add(j);
+  }
+
+  const dashCards = LABEL_ORDER
+    .filter(l => counts[l])
+    .map(l => `
+      <div class="session-dash-card" data-filter="label" data-label="${l}">
+        <div class="session-dash-count">${counts[l]}</div>
+        ${labelBadge(l)}
+      </div>`)
+    .join("");
+
+  const patternCard = patterns.length > 0 ? `
+    <div class="session-dash-card patterns-card" data-filter="patterns">
+      <div class="session-dash-count">${patterns.length}</div>
+      <div class="session-dash-label">Patterns</div>
+    </div>` : "";
+
+  const dashboard = `<div class="session-dashboard">${dashCards}${patternCard}</div>
+    <div class="session-desc-panel" id="session-desc-panel" style="display:none">
+      <h4 id="session-desc-title"></h4>
+      <p id="session-desc-body"></p>
+    </div>`;
+
   function renderTurn(t, i) {
     const bucket = sessionBucket(t.label);
     const concepts = essayMatches[t.globalIndex] || [];
     const essayBadge = concepts.length
       ? `<span class="session-essay-badge">in your essay — ${esc(concepts[0])}</span>`
       : "";
+    const inPattern = patternTurnIndices.has(i) ? " data-in-pattern=\"true\"" : "";
+    const pat = turnPattern[i];
+    const patternFootnote = pat
+      ? `<div class="session-turn-pattern-note">Part of a <strong>${esc(pat.label)}</strong> pattern</div>`
+      : "";
     return `
-      <div class="session-turn ${bucket}" id="session-turn-${i}">
+      <div class="session-turn ${bucket}" id="session-turn-${i}" data-label="${t.label}"${inPattern}>
         <div class="session-turn-num">${i + 1}</div>
         <div class="session-turn-body">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
@@ -3379,30 +3561,36 @@ function renderReflect(classified, provenanceData, essayRaw) {
             ${essayBadge}
           </div>
           <div class="session-turn-text">${esc(t.text)}</div>
+          ${patternFootnote}
         </div>
       </div>`;
   }
 
-  // Walk turns, wrapping pattern groups around consecutive turns in the same pattern
-  let html = "";
-  let i = 0;
-  while (i < studentTurns.length) {
-    const p = turnPattern[i];
-    if (p && p.start === i) {
+  // Flat view: all turns with footnotes
+  let flatHtml = "";
+  for (let i = 0; i < studentTurns.length; i++) {
+    flatHtml += renderTurn(studentTurns[i], i);
+  }
+
+  // Grouped view: pattern turns wrapped in group blocks, non-pattern turns hidden
+  let groupedHtml = "";
+  let gi = 0;
+  while (gi < studentTurns.length) {
+    const p = turnPattern[gi];
+    if (p && p.start === gi) {
       const desc = PAT_DESCRIPTIONS[p.id] || "";
-      html += `<div class="pattern-group tier-${p.tier}">
+      groupedHtml += `<div class="pattern-group tier-${p.tier}">
         <div class="pattern-group-header">
           <span class="pattern-group-label">${esc(p.label)}</span>
           <span class="pattern-group-desc">${esc(desc)}</span>
         </div>`;
       for (let j = p.start; j <= p.end; j++) {
-        html += renderTurn(studentTurns[j], j);
+        groupedHtml += renderTurn(studentTurns[j], j);
       }
-      html += `</div>`;
-      i = p.end + 1;
+      groupedHtml += `</div>`;
+      gi = p.end + 1;
     } else {
-      html += renderTurn(studentTurns[i], i);
-      i++;
+      gi++;
     }
   }
 
@@ -3411,8 +3599,68 @@ function renderReflect(classified, provenanceData, essayRaw) {
     : "";
 
   return `
+    ${dashboard}
     ${essayNote}
-    <div class="session-turn-list">${html}</div>`;
+    <div class="session-turn-list" data-flat="${encodeURIComponent(flatHtml)}" data-grouped="${encodeURIComponent(groupedHtml)}">${flatHtml}</div>`;
+}
+
+function initReflectDashboard() {
+  const container = document.getElementById("reflectContent");
+  if (!container) return;
+
+  const descPanel = document.getElementById("session-desc-panel");
+  const descTitle = document.getElementById("session-desc-title");
+  const descBody  = document.getElementById("session-desc-body");
+
+  let activeFilter = null;
+
+  function applyFilter(filter) {
+    const list = container.querySelector(".session-turn-list");
+
+    if (!filter) {
+      if (list) list.innerHTML = decodeURIComponent(list.dataset.flat || "");
+      descPanel.style.display = "none";
+      return;
+    }
+
+    if (filter === "patterns") {
+      if (list) list.innerHTML = decodeURIComponent(list.dataset.grouped || "");
+      descTitle.textContent = PATTERNS_DESCRIPTION.title;
+      descBody.textContent  = PATTERNS_DESCRIPTION.body;
+      descPanel.style.display = "block";
+    } else {
+      if (list) list.innerHTML = decodeURIComponent(list.dataset.flat || "");
+      const turns = list ? list.querySelectorAll(".session-turn") : [];
+      turns.forEach(el => {
+        el.classList.toggle("filtered-out", el.dataset.label !== filter);
+      });
+      const def = LABEL_DESCRIPTIONS[filter];
+      if (def) {
+        descTitle.textContent = def.title;
+        descBody.textContent  = def.body;
+        descPanel.style.display = "block";
+      }
+    }
+  }
+
+  container.addEventListener("click", e => {
+    const card = e.target.closest(".session-dash-card");
+    if (!card) return;
+
+    const filter = card.dataset.filter === "patterns" ? "patterns" : card.dataset.label;
+
+    if (activeFilter === filter) {
+      // deselect — show all
+      activeFilter = null;
+      container.querySelectorAll(".session-dash-card").forEach(c => c.classList.remove("active"));
+      applyFilter(null);
+    } else {
+      activeFilter = filter;
+      container.querySelectorAll(".session-dash-card").forEach(c => c.classList.remove("active"));
+      card.classList.add("active");
+      applyFilter(filter);
+    }
+  });
 }
 
 function renderLegend() {
@@ -3439,19 +3687,23 @@ function renderFlags(flags) {
 
 const SAMPLES = {
   low: {
-    conversation: `You: I'm writing an essay on social media and teen mental health for psychology class. Can you write me an introduction?
+    conversation: `You: I have to write a psychology essay on social media and teen mental health. Can you write me an introduction paragraph?
 
 AI: Here's an introduction for your essay:
 
 Social media has transformed how teenagers communicate, share, and form their identities. Over the past decade, researchers have documented increasing links between heavy social media use and declining mental health outcomes among adolescents — particularly depression, anxiety, and lowered self-esteem. This essay examines the evidence on social media's effects, with attention to platform design, gender differences, and what schools and families can do.
 
-You: Good. Can you write me a paragraph about Instagram's specific effects on self-esteem?
+You: Okay good. Now write me a paragraph about Instagram specifically.
 
 AI: Here's a paragraph on Instagram and self-esteem:
 
 Instagram's visual format makes it a particularly potent driver of social comparison. In 2021, internal Facebook research — leaked to the Wall Street Journal — found that 32% of teenage girls who felt bad about their bodies said Instagram made those feelings worse. The platform's algorithmic feed amplifies aspirational content, creating what researchers call "upward social comparison spirals." Unlike text-based platforms, Instagram offers few natural stopping points, and the like-count mechanism directly quantifies social approval in a way that deepens vulnerability to comparison.
 
-You: Give me some statistics about teen mental health and social media use I can put in the essay.
+You: Does that cover what I need to say about Instagram or should I add more?
+
+AI: That paragraph covers the core mechanisms — social comparison, algorithmic amplification, and quantified social approval. You could add more if your assignment asks for a specific word count or if you want to address a particular angle like gender differences on Instagram or the 2021 whistleblower documents specifically. For a standard psychology essay, that paragraph is a complete treatment of Instagram's core harms.
+
+You: Okay. Can you give me some statistics I can use in the essay?
 
 AI: Here are some statistics you can use:
 - 45% of US teens say they are online "almost constantly" (Pew Research, 2023)
@@ -3460,35 +3712,125 @@ AI: Here are some statistics you can use:
 - The suicide rate among girls aged 10–14 tripled between 2007 and 2015
 - Only 9% of teens believe social media has been mostly negative for people their age
 
-You: Write me a paragraph comparing how boys and girls are affected differently.
+You: Write me a paragraph about the gender differences — like how girls and boys are affected differently.
 
 AI: Here's a paragraph on gender differences:
 
 Research consistently finds stronger associations between social media and mental health problems in girls than boys. Girls are more likely to use platforms like Instagram and TikTok in ways that center social comparison — evaluating appearance, social status, and popularity relative to peers. Boys more typically use social media for gaming, video content, and direct communication, which carry lower comparison risk. However, boys are not unaffected: online harassment, gaming addiction, and exposure to radicalizing content remain significant concerns for male adolescents.
 
-You: Can you draft the recommendations paragraph about what parents and schools should do?
+You: Write a paragraph about TikTok too.
+
+AI: Here's a paragraph on TikTok:
+
+TikTok's recommendation algorithm represents a new frontier in the adolescent mental health debate. Unlike Instagram, where content is shaped partly by social connections, TikTok serves content based almost entirely on inferred interest — meaning teens can be pulled into emotionally activating content loops with little social mediation. Internal research at ByteDance, TikTok's parent company, acknowledged the platform could drive users toward "negative content spirals." For teenagers already vulnerable to depression or disordered eating, the algorithm's responsiveness can accelerate exposure to harmful content in ways that are difficult to interrupt.
+
+You: Is this paragraph good enough or does it need to be longer?
+
+AI: It's sufficient for most essay purposes — it covers the algorithm mechanism, the content spiral risk, and the specific vulnerability for teens with disordered eating. You could expand it if your teacher wants you to compare TikTok to Instagram directly, or if you want to include the 2022 research finding about eating disorder content being served to new users within 30 minutes. Whether to extend depends on your assignment's length requirements and whether TikTok is a major focus or just one platform among several.
+
+You: Okay write a short paragraph about YouTube too.
+
+AI: Here's a short paragraph on YouTube:
+
+YouTube occupies a different space in the teen mental health debate than Instagram or TikTok. Its longer-form format and creator-viewer structure reduce some direct social comparison risks, but YouTube's recommendation algorithm is among the most powerful in shaping what teenagers actually watch. Studies link heavy YouTube viewing to disrupted sleep and sedentary behavior, and the platform's recommendation engine can guide users toward increasingly extreme content. Boys in particular spend more time on YouTube than on any other platform, making it the primary context in which gaming culture, political radicalization, and parasocial celebrity relationships develop among male adolescents.
+
+You: Can you write the counter-arguments paragraph — like reasons people say social media isn't actually the problem?
+
+AI: Here's a paragraph presenting the counter-arguments:
+
+Not all researchers agree that social media is the primary driver of teen mental health declines. Critics of the dominant narrative point out that mental health deterioration doesn't map cleanly onto smartphone adoption rates across countries. Some meta-analyses find the effect size of social media on wellbeing is statistically small — comparable to wearing glasses or eating potatoes, as psychologist Andrew Przybylski has noted. There is also a selection problem: teens who are already struggling may turn to social media more heavily, making it difficult to isolate cause from effect. And many teenagers report genuine benefits from social media — finding community, exploring identity, and maintaining friendships across distance.
+
+You: Write a paragraph about cyberbullying.
+
+AI: Here's a paragraph on cyberbullying:
+
+Cyberbullying represents one of the most direct and measurable pathways between social media use and mental health harm. Unlike traditional bullying, which is bounded by physical proximity and school hours, online harassment follows victims into their homes, operates continuously around the clock, and can involve audiences of hundreds or thousands. Anonymity on some platforms can embolden aggressors and make accountability difficult. Online harassment is also uniquely persistent: screenshots, shared posts, and comment threads can be preserved and recirculated, meaning the damage can outlast the original incident by years. A 2019 review of 36 studies found that cyberbullying victims were more than twice as likely to report suicidal thoughts as non-victims.
+
+You: I'm not sure how to connect the cyberbullying paragraph to the rest of the essay. Can you help?
+
+AI: The easiest connection is a transition sentence that ties cyberbullying back to the broader argument about platform design. For example: "Cyberbullying illustrates how the same design features that drive engagement — anonymity, reach, and permanence — also amplify harm." That sentence bridges the specific (cyberbullying) to the general argument about platform architecture, which connects it to your Instagram and TikTok paragraphs. Alternatively, you could place cyberbullying after the gender differences section, since girls are disproportionately affected by relational aggression online — the sections then reinforce each other thematically.
+
+You: Can you write a paragraph about passive vs active social media use?
+
+AI: Here's a paragraph on passive versus active use:
+
+A growing body of research suggests that the mental health effects of social media depend significantly on how it is used, not just how much. Passive consumption — scrolling without posting or interacting — is more consistently associated with negative outcomes, likely because it triggers social comparison without providing the reciprocal connection that active engagement offers. Active use, including posting, messaging, and commenting, shows more mixed findings: it can provide social support and a sense of community, but it also exposes teenagers to social evaluation through public metrics like likes and view counts. Interventions focused on shifting teens toward more intentional, interactive use may be more effective than blanket screen time restrictions.
+
+You: Now write a paragraph about what schools and parents can do.
 
 AI: Here's a recommendations paragraph:
 
-Addressing social media's effects on teen mental health requires action at multiple levels. Parents can set clear limits around phone use at meals and before bed, and model healthier digital habits themselves. Schools increasingly offer digital literacy programs that help students critically evaluate content and understand how algorithmic feeds work. Some advocates argue for regulatory pressure on platforms themselves — removing infinite scroll, restricting algorithmic recommendations for minors, and mandating independent safety audits. Design changes, not just individual willpower, may be the most effective lever.
+Addressing social media's effects on teen mental health requires coordinated action across homes, schools, and platforms. Parents can establish consistent phone-free zones — particularly at meals and in the hour before sleep — and model the digital habits they want their children to develop. Schools increasingly offer digital literacy programs that teach students to recognize algorithmic design, evaluate content critically, and understand how platforms monetize attention. Some districts have implemented phone-free policies with measurable reductions in bullying and improvements in focus. Advocates argue the most effective lever may be platform design itself: removing infinite scroll, restricting algorithmic recommendations for minors, and building in natural stopping points. Individual willpower is an insufficient response to systems engineered to maximize engagement.
 
-You: Thanks, that's exactly what I needed.
+You: Can you write a short paragraph about government regulation?
 
-AI: You're welcome! Good luck with your essay.`,
-    essay: `Social media has transformed how teenagers communicate, share, and form their identities. Over the past decade, researchers have documented links between heavy social media use and declining mental health outcomes among adolescents, particularly depression, anxiety, and lowered self-esteem.
+AI: Here's a short paragraph on regulation:
 
-Instagram's visual format is a particularly potent driver of social comparison. Internal Facebook research found that 32% of teenage girls who felt bad about their bodies said Instagram made those feelings worse. The platform's algorithmic feed amplifies aspirational content, creating "upward social comparison spirals." The like-count mechanism directly quantifies social approval in a way that deepens vulnerability.
+Regulatory pressure on platforms has grown as evidence of harm has accumulated. Several US states have passed laws requiring parental consent for minors to create social media accounts, though enforcement and constitutional challenges remain unresolved. The UK's Online Safety Act takes a design-centered approach, mandating that platforms serving children provide age-appropriate settings by default. Advocates argue voluntary industry self-regulation has demonstrably failed and draw parallels to tobacco and alcohol regulation — industries where documented harm required collective legal responses. Opponents counter that age verification creates new privacy risks and may drive teenagers to less regulated alternatives.
 
-Research consistently finds stronger associations between social media use and mental health in girls than boys. Girls are more likely to use Instagram and TikTok in ways that center social comparison. Boys more typically use social media for gaming and direct communication, which carry lower comparison risk.
+You: I need a thesis statement. What should mine be?
 
-Rates of major depressive disorder among US teen girls rose 52% between 2005 and 2017. Teens spending five or more hours daily on social media are two to three times more likely to report depressive symptoms.
+AI: Based on the essay you've been building, a clear thesis would be: "Social media platforms have introduced genuine and measurable risks to adolescent mental health — risks that individual screen time limits and parental monitoring cannot adequately address, and that require structural responses at the level of platform design and regulatory policy." Place it at the end of your introduction paragraph. That thesis names both the problem (platform-level design) and the inadequate response (individual willpower), which sets up everything that follows in the essay.
 
-Addressing social media's effects on teen mental health requires action at multiple levels. Parents can set limits around phone use. Schools can offer digital literacy programs. Some advocates argue for regulatory pressure on platforms to remove infinite scroll and restrict algorithmic recommendations for minors. Design changes, not just individual willpower, may be the most effective lever.`
+You: Is that thesis statement okay or is it too long?
+
+AI: It's on the longer side for a single thesis sentence — but the length is justified because it makes a two-part claim: diagnosing the problem and rejecting the inadequate response. For a high school psychology essay, that's a strong move. If your teacher has a preference for shorter thesis statements, you could trim it to: "Social media platforms have created documented mental health risks for teenagers that require structural responses, not just individual willpower." That's the same argument in fewer words.
+
+You: Use the shorter version. Now can you write a conclusion?
+
+AI: Here's a conclusion:
+
+The evidence linking heavy social media use to adolescent mental health decline is substantial enough that dismissing it requires more than noting that correlation is not causation. Platforms are engineered to maximize engagement, and adolescents are a particularly vulnerable target. Individual screen time limits and parental supervision are insufficient responses to systems designed to resist them. A serious response means redesigning the platforms, not just the behavior.
+
+You: Can you give me a list of sources to cite?
+
+AI: Here are credible sources you can look up:
+
+1. Twenge, J.M. & Campbell, W.K. (2018) — research on screen time and depressive symptoms
+2. Haidt, J. & Allen, N. (2020) — "Scrutinizing the effects of digital technology on mental health" (Nature)
+3. Orben, A. & Przybylski, A.K. (2019) — "The association between adolescent well-being and digital technology use" (Nature Human Behaviour)
+4. Pew Research Center (2023) — "Teens and Social Media Use"
+5. Wall Street Journal (2021) — Facebook's internal research on Instagram and teen girls
+6. Valkenburg, P.M. et al. (2022) — "Social Media Use and Adolescents' Self-Esteem"
+7. Kowalski, R.M. et al. (2019) — meta-analysis of cyberbullying and mental health
+
+You: The introduction still feels pretty boring. Can you rewrite it to be more engaging?
+
+AI: Here's a revised, more engaging introduction:
+
+In 2021, a Facebook whistleblower handed journalists a cache of internal research documents. Among the findings: the company's own researchers had concluded that Instagram was making body image issues worse for one in three teenage girls — and that executives had known for years. The documents became front-page news. What they revealed was not a technology gone wrong but one working exactly as designed, optimizing for the engagement that worsens the very comparisons it profits from. This essay examines what the research shows about social media's effects on adolescent mental health, why some of those effects are more serious than industry responses suggest, and what meaningful intervention might actually look like.
+
+You: Perfect, thanks. I think that's everything.
+
+AI: Good luck with the essay. One note: your teacher will likely expect the writing to sound like you, so you may want to rephrase some of the paragraphs in your own words before submitting.`,
+    essay: `In 2021, a Facebook whistleblower handed journalists a cache of internal research documents. Among the findings: the company's own researchers had concluded that Instagram was making body image issues worse for one in three teenage girls — and that executives had known for years. The documents became front-page news. What they revealed was not a technology gone wrong but one working exactly as designed, optimizing for the engagement that worsens the very comparisons it profits from. Social media platforms have created documented mental health risks for teenagers that require structural responses, not just individual willpower.
+
+Instagram's visual format makes it a particularly potent driver of social comparison. The platform's algorithmic feed amplifies aspirational content, creating what researchers call "upward social comparison spirals." The like-count mechanism directly quantifies social approval in a way that deepens vulnerability to comparison.
+
+TikTok's recommendation algorithm represents a new frontier in the adolescent mental health debate. Unlike Instagram, where content is shaped partly by social connections, TikTok serves content based almost entirely on inferred interest — meaning teens can be pulled into emotionally activating content loops with little social mediation. For teenagers already vulnerable to depression or disordered eating, the algorithm's responsiveness can accelerate exposure to harmful content in ways that are difficult to interrupt.
+
+YouTube occupies a different space. Its longer-form format and creator-viewer structure reduce some direct social comparison risks, but its recommendation engine can guide users toward increasingly extreme content. Boys spend significantly more time on YouTube than on any other platform, making it the primary context in which gaming culture, political radicalization, and parasocial celebrity relationships develop.
+
+Research consistently finds stronger associations between social media and mental health problems in girls than boys. Girls are more likely to use platforms like Instagram and TikTok in ways that center social comparison. Boys more typically use social media for gaming and video content, though online harassment and radicalizing content remain significant concerns for male adolescents.
+
+Not all researchers agree that social media is the primary driver of teen mental health declines. Some meta-analyses find the effect size of social media on wellbeing is statistically small. There is also a selection problem: teens who are already struggling may turn to social media more heavily, making it difficult to isolate cause from effect.
+
+Cyberbullying illustrates how the same design features that drive engagement — anonymity, reach, and permanence — also amplify harm. A 2019 review of 36 studies found that cyberbullying victims were more than twice as likely to report suicidal thoughts as non-victims.
+
+A growing body of research suggests that the mental health effects of social media depend on how it is used, not just how much. Passive consumption is more consistently associated with negative outcomes than active use.
+
+Addressing social media's effects on teen mental health requires coordinated action across homes, schools, and platforms. Parents can establish phone-free zones and model healthier digital habits. Schools can teach digital literacy and implement phone-free policies. Advocates argue the most effective lever may be platform design itself — removing infinite scroll and restricting algorithmic recommendations for minors.
+
+The evidence linking heavy social media use to adolescent mental health decline is substantial enough that dismissing it requires more than noting that correlation is not causation. Platforms are engineered to maximize engagement, and adolescents are a particularly vulnerable target. Individual screen time limits and parental supervision are insufficient responses to systems designed to resist them. A serious response means redesigning the platforms, not just the behavior.`
   },
   medium: {
     conversation: `You: I'm writing about Universal Basic Income for economics class. What are the strongest arguments for and against it?
 
 AI: Main arguments for UBI: (1) Eliminates poverty floor — everyone receives a guaranteed minimum regardless of employment status; (2) Handles automation displacement — provides security as jobs disappear to AI and robotics; (3) Simplifies welfare — replaces complex means-tested programs with a single payment; (4) Enables risk-taking — people can pursue education or start businesses without fear of destitution. Arguments against: (1) Cost — a $12,000/year universal payment to all US adults would cost roughly $3 trillion annually before offsets; (2) Work disincentives — unconditional income might reduce motivation to seek employment; (3) Inflation risk — more spending power without more goods could raise prices; (4) Better targeting — means-tested programs may deliver more benefit per dollar to those who need it most.
+
+You: Can you write me a quick overview of the main UBI pilot programs and where they were run?
+
+AI: Finland (2017–2018): 2,000 unemployed adults, €560/month — wellbeing improved, modest employment effects. Stockton SEED, USA (2019–2021): 125 residents, $500/month — employment rose, recipients sought better jobs. Kenya GiveDirectly (2016–ongoing): long-run gains in assets and income. Alaska Permanent Fund (1982–present): annual dividends to all residents, no employment reduction found. Ontario Canada (2017–2018): cancelled early by incoming government before full results. Namibia (2008–2009): small pilot, positive poverty reduction outcomes.
 
 You: But doesn't the cost argument assume we're adding UBI on top of existing programs? Consolidating welfare programs would bring the net cost down significantly.
 
@@ -3498,17 +3840,61 @@ You: I think the automation argument is actually the most compelling case for UB
 
 AI: That's a defensible position. The automation case is distinctive because AI now threatens white-collar work that education was supposed to make automation-proof. Brynjolfsson and McAfee argue cognitive tasks — judgment, communication, pattern recognition — are no longer immune. The counter-argument: every previous wave of automation ultimately created more jobs than it displaced. Whether this wave is different remains genuinely uncertain.
 
+You: Has UBI ever been proposed specifically as a response to automation before? Or is this connection between AI displacement and UBI a new argument?
+
+AI: The connection has roots going back further than most people realize. Milton Friedman's negative income tax proposal in the 1960s was partly motivated by concerns about structural unemployment from automation. The Nixon administration came close to implementing a version of it. Martin Ford's "Rise of the Robots" (2015) and Andrew Yang's 2020 presidential campaign made automation displacement the explicit centerpiece of the UBI case. The novelty in the current moment isn't the argument itself but the empirical claim: AI's cognitive reach is broader than previous automation waves, which is a specific factual assertion that needs defending.
+
+You: What does the history of automation actually show? Has it always created more jobs than it destroyed?
+
+AI: Historically, yes — but with important nuance. Agricultural mechanization in the 19th century displaced farm labor but eventually expanded urban manufacturing employment. The assembly line eliminated craft jobs but created factory work. Computer automation of clerical tasks in the 1980s initially displaced workers but generated new roles in IT, services, and information work. Economists call this the "lump of labor fallacy" — the assumption that there is a fixed amount of work to be done. The counter-case: these transitions involved decades of sustained unemployment and dislocation for real people. Whether AI compresses that timeline matters enormously.
+
+You: That historical argument actually weakens the automation case for UBI slightly. If automation historically creates new jobs, then "automation makes UBI necessary" requires claiming this time is structurally different. What's the strongest evidence for that claim?
+
+AI: The structural difference argument rests on a few claims: (1) AI operates across cognitive domains simultaneously rather than displacing one task at a time — previous automation was sector-specific; (2) The pace of capability development is faster than labor market adjustment typically accommodates; (3) AI-automated tasks don't move offshore and return — the displacement is permanent within the economy; (4) The jobs created in previous waves were still labor-intensive — AI-era productivity gains may not generate equivalent labor demand. Daron Acemoglu has argued that current AI investment is disproportionately in automation rather than in tools that augment worker productivity.
+
+You: Acemoglu's distinction between automation and augmentation is useful. Can you explain that more precisely?
+
+AI: Acemoglu distinguishes automation tasks — where AI replaces labor — from productivity-enhancement tools — where AI makes workers more capable without replacing them. His empirical concern: recent technological investment in the US has been disproportionately in automation. The result is productivity gains that flow mainly to capital owners rather than generating new labor demand. This is a departure from earlier waves where new technology typically created new tasks — jobs that didn't exist before the technology arrived. If new-task creation has slowed relative to automation, the self-correcting mechanism that historically absorbed displaced workers may be weakened.
+
+You: Is Acemoglu's view the mainstream economic consensus, or is it a contested minority position?
+
+AI: Contested, but taken seriously. Acemoglu is among the most cited economists in the world, so his arguments get significant attention. His empirical claims about AI investment patterns have support in the data, but his predictions about labor market effects are debated. Optimists — including Erik Brynjolfsson — argue that augmentation effects will eventually dominate, and that we're in a transitional period before new tasks emerge. Skeptics worry the transition is slower and more painful than historical analogies suggest. There's genuine expert disagreement, not a settled consensus in either direction.
+
 You: What about the evidence from actual pilot programs? I want to look at what real experiments show before building the automation argument further.
 
 AI: Pilot evidence is mixed. The Finland experiment (2017–2018): 2,000 unemployed adults received €560/month for two years — wellbeing improved significantly, but employment effects were minimal. Stockton SEED: 125 residents received $500/month for 24 months — full-time employment rose from 28% to 40% in the treatment group. Kenya GiveDirectly: multi-year unconditional cash transfers showed long-run improvements in assets, income, and community economic activity. Important caveat: small pilots don't capture general equilibrium effects — what happens when everyone gets UBI simultaneously is unknown.
 
 You: Can you give me the exact sample sizes and employment outcome numbers from Finland and Stockton?
 
-AI: Finland: 2,000 participants, all unemployed at enrollment. Employment rose roughly 6 additional days per year compared to control — statistically significant but practically modest. Wellbeing scores improved substantially, and trust in public institutions increased. Stockton SEED: 125 recipients, selected from residents earning at or below the median income. Full-time employment in the treatment group rose from 28% to 40% over 24 months, compared to 25% to 37% in the control group. Notably, recipients reported the income enabled them to seek better jobs rather than taking the first available option.
+AI: Finland: 2,000 participants, all unemployed at enrollment. Employment rose roughly 6 additional days per year compared to control — statistically significant but practically modest. Wellbeing scores improved substantially, and trust in public institutions increased. Stockton SEED: 125 recipients, selected from residents earning at or below the median income. Full-time employment in the treatment group rose from 28% to 40% over 24 months, compared to 25% to 37% in the control group. Recipients reported the income enabled them to seek better jobs rather than taking the first available option.
+
+You: Am I right that Stockton is more useful than Finland because Finland only tested unemployed people?
+
+AI: Correct. Finland's sample was specifically unemployed adults — a population already somewhat detached from the labor force. Stockton drew from residents at or below median income, a much wider cross-section, which makes it more representative of what a universal rollout would look like.
 
 You: I think Stockton's results are actually more useful than Finland's for my argument. Finland only tested unemployed people — Stockton's broader sample is more representative of a general UBI rollout.
 
 AI: Good methodological observation. Finland's sample was specifically selected from unemployed recipients, meaning it tested a population already somewhat detached from the labor force. Stockton's broader income-based sample better represents what a universal rollout would look like — and that's where you see gains in employment quality rather than just quantity.
+
+You: But Stockton only had 125 recipients. That's a tiny sample. How confident can we really be in those results?
+
+AI: The small N is a legitimate concern. 125 recipients is insufficient to detect effects across demographic subgroups or to rule out local labor market conditions as confounders. The treatment group also knew they were in an experiment, which can affect behavior. More robust evidence would require larger samples across diverse geographies. The LIFT pilot in California and newer programs in Canada provide additional data points but still don't approach the scale needed to test general equilibrium effects. The honest answer: the pilot evidence is suggestive and encouraging, but not conclusive at scale.
+
+You: What about the Alaska Permanent Fund? That's been running since 1982 — it's much larger than any pilot. What does it show?
+
+AI: The Alaska Permanent Fund Dividend is the closest thing to a large-scale long-running UBI in the developed world. All Alaska residents receive an annual dividend from oil revenues — typically $1,000–$2,000 per year, so modest by UBI standards. The evidence: Alaska has among the lowest poverty rates in the US, and researchers have found no evidence that the dividend reduced employment. A 2018 study by Jones and Marinescu found a small increase in part-time work but no reduction in full-time employment. The important caveat: the amount is too small to function as a real income floor, and the oil revenue funding mechanism isn't replicable nationally.
+
+You: I'm confused about how Alaska fits into this — the amount is too small to count as real UBI, so can I even use it as evidence?
+
+AI: You can use it, but carefully. Alaska is useful as a large-scale, long-running natural experiment that shows no employment reduction from unconditional transfers — that neutralizes the work-disincentive objection. But you're right that the amount ($1,000–$2,000/year) is too small to function as a real income floor, so it doesn't support claims about poverty elimination or structural security. Use it as evidence against the disincentive argument, not as a model for the policy itself.
+
+You: So if the pilot evidence is limited and the historical automation argument is contested, what's actually the strongest empirical foundation for my thesis?
+
+AI: The honest answer is that UBI's strongest empirical case is modest: it improves wellbeing and reduces economic anxiety even when employment effects are small. The bigger argument may be normative rather than empirical — about what kind of risk distribution a just society should provide. The structural uncertainty argument doesn't require proving that automation will definitely eliminate jobs; it only needs to show that labor market unpredictability has increased enough that systems designed around stable employment relationships are inadequate. That bar is easier to clear than predicting the future of work.
+
+You: Is there a wellbeing argument for UBI that's separate from the employment question? Like does guaranteed income reduce stress in ways that independently matter?
+
+AI: Yes — and it's documented separately from employment effects. GiveDirectly studies and the SEED program both found significant reductions in cortisol levels and improvements in psychological wellbeing independent of employment changes. Mullainathan and Shafir's "scarcity mindset" research argues that economic precarity consumes cognitive bandwidth in ways that impair decision-making across domains — guaranteed income might improve labor market outcomes partly by freeing up that mental bandwidth. This is worth noting, but be careful about introducing it in your essay: it's a separate argument from the structural uncertainty thesis, and mixing the two may dilute your focus. Keep it as a supporting note rather than a load-bearing claim.
 
 You: Different question — I want to understand why UBI hasn't gotten further politically despite decades of discussion. What are the real obstacles?
 
@@ -3518,100 +3904,246 @@ You: Actually I disagree — I think union opposition is more about bargaining p
 
 AI: That's a more nuanced read. The bargaining dynamics cut in multiple directions: guaranteed income could strengthen workers' hand against employers (less desperation), but it could also reduce workers' need for union protection and membership. Traditional labor's concern isn't purely about wage floors — it's about the institutional dependency that makes unions viable. UBI might produce a more individualized labor market rather than a more collectively organized one.
 
+You: Has any union ever publicly supported UBI? I want to know if my characterization of union opposition is too broad.
+
+AI: A few unions have been sympathetic — the SEIU has supported cash transfer pilots, and some Canadian unions backed a basic income guarantee during the 2017 Ontario pilot. The broader US union movement has been skeptical to hostile. The AFL-CIO has not endorsed UBI, and many affiliated unions see it as a Trojan horse for welfare consolidation. So "union opposition" as a general statement holds, but there are exceptions worth noting — particularly in sectors where automation exposure is highest and workers are less protected by traditional collective bargaining.
+
+You: Is there evidence from any country or region that unconditional income actually changed labor organizing patterns?
+
+AI: Direct evidence is sparse — no large-scale UBI has run long enough to observe institutional labor effects. Adjacent evidence: in regions with strong social safety nets, union membership rates are actually higher, not lower. This suggests the relationship between security and collective action isn't straightforwardly negative. That said, Scandinavian safety nets are tied to employment and union membership in ways UBI wouldn't be — so the analogy is imperfect. It remains genuinely unclear whether UBI would weaken or strengthen collective worker power over the long run.
+
+You: What about the inflation concern? I've seen it mentioned as an objection but never properly explained.
+
+AI: The inflation concern works like this: UBI transfers purchasing power to households without a corresponding increase in goods and services production. If recipients spend the transfers on goods in inelastic supply, prices rise. The countervailing argument: UBI is largely a redistribution from higher-income to lower-income households (assuming progressive funding), not new money creation — the net aggregate demand effect may be smaller than the gross figure suggests. Empirical evidence from cash transfer programs generally shows modest or no inflation effects, partly because recipients in lower-income communities tend to spend locally on underutilized goods and services rather than bidding up scarce resources.
+
+You: What's the difference between UBI and a negative income tax? I've heard Milton Friedman supported something like UBI — was that the same thing?
+
+AI: Friedman's negative income tax (NIT) is functionally related but structurally different. Under NIT, people below an income threshold receive a payment that phases out as earnings rise — effectively a guaranteed minimum income administered through the tax system. UBI pays everyone the same amount unconditionally, regardless of other income. The practical differences: NIT is cheaper (only low-income people receive net transfers) but requires income verification, which reintroduces some means-testing complexity. UBI is more universal (no verification, no stigma) but more expensive gross. Both address the poverty floor and structural uncertainty arguments.
+
+You: I don't understand why NIT doesn't solve the structural uncertainty problem just as well as UBI.
+
+AI: The gap is means-testing. NIT requires checking whether your income falls below a threshold — but someone experiencing volatile gig income or intermittent freelance work may fall in and out of eligibility unpredictably. That's exactly the kind of discontinuous, hard-to-categorize situation your structural uncertainty argument is about. UBI removes that check entirely — everyone gets it regardless. NIT can provide a poverty floor; it can't provide the unconditional security that structural uncertainty requires.
+
+You: Would NIT work as well as UBI for the structural uncertainty argument I'm developing? They seem to address the same problem.
+
+AI: NIT is partially compatible with the structural uncertainty framing, but it has a structural weakness: the income verification requirement reintroduces means-testing complexity. If the value of universality is that it doesn't require categorizing who is displaced — because displacement is unpredictable — then NIT's income test is exactly the kind of categorization your argument says is inadequate. Someone experiencing freelance income volatility or gig work may cross the NIT threshold unpredictably, creating administrative burdens and gaps in coverage precisely when income is most needed. The universality of UBI is doing specific work in the structural uncertainty framing that NIT can't replicate.
+
 You: Going back to the automation argument — given the pilot evidence and the political obstacles, I want to reframe my thesis. The strongest case for UBI isn't really about poverty. It's that automation makes labor markets structurally less predictable, and predictability is what existing welfare programs were designed around.
 
 AI: That's a more analytically precise framing than most UBI advocacy uses. Programs like unemployment insurance and disability benefits assume a stable employment relationship that workers temporarily fall out of and return to. Automation disrupts that baseline model not by eliminating all jobs but by making the relationship between work, income, and security increasingly discontinuous. UBI addresses that structural mismatch more directly than programs built for a different labor market.
 
+You: How is this framing different from just saying "we need better social insurance"? I want to make sure I'm making a distinctive argument for UBI specifically.
+
+AI: Good question to stress-test. The "better social insurance" response would be: improve unemployment insurance coverage, extend it to gig workers, add portable benefits. Your argument has to explain why those fixes are insufficient — and the answer is that they all still assume the problem is intermittent detachment from stable employment. They're designed for spells out of work, not for permanent structural precarity. UBI's universality is what makes it appropriate for a risk that doesn't fit the categorical frameworks — you can't design a program around "temporarily displaced" if displacement has become a permanent structural feature for a growing share of the workforce.
+
 You: My argument is that UBI is a structural response to structural uncertainty — not a poverty program. That reframing dissolves both the cost objection and the work-disincentive objection, because neither makes sense once you've changed what the program is for.
 
-AI: That's a coherent and relatively original thesis. It also explains the odd political coalition: people who grasp the structural uncertainty argument (tech workers, economists studying automation, younger progressives) tend to support UBI; people who evaluate it as a poverty program or work incentive policy (traditional labor, means-testing advocates) tend to oppose it. The disagreement is often about what problem is being solved, not just the policy mechanics.`,
+AI: That's a coherent and relatively original thesis. It also explains the odd political coalition: people who grasp the structural uncertainty argument tend to support UBI; people who evaluate it as a poverty program or work incentive policy tend to oppose it. The disagreement is often about what problem is being solved, not just the policy mechanics.
+
+You: Does that framing have any weaknesses I should anticipate before writing the essay?
+
+AI: Two main vulnerabilities: First, if labor markets aren't actually more unpredictable than before — if gig work and automation anxiety are overstated — the structural mismatch premise doesn't hold. You'd need to defend the empirical claim that unpredictability has increased. Second, even granting structural uncertainty, critics could argue that better unemployment insurance, portable benefits, and retraining programs are more targeted responses than a universal payment. Your framing has to explain why universality specifically is the right response, not just that the existing system is inadequate.
+
+You: The targeted programs objection is worth addressing. My response is that targeted programs assume you can identify in advance who will be displaced — but structural uncertainty means displacement is unpredictable by design. Universal coverage is the appropriate response to universal risk.
+
+AI: That's a strong response. The targeted program model depends on categorizing who qualifies — unemployed, disabled, below income threshold — which works when those categories are stable. If displacement is increasingly unpredictable in timing, sector, and form, the categorical net has too many gaps. Universality isn't then wasteful redistribution to people who don't need it — it's appropriate coverage for a risk that is genuinely widespread and difficult to anticipate.
+
+You: What about retraining programs specifically? They seem like the strongest version of the targeted alternative. Is there evidence on how well they actually work?
+
+AI: The evidence on retraining is largely discouraging. Studies of Trade Adjustment Assistance — the main US retraining program for workers displaced by import competition — find modest or negative returns: participants often end up in lower-wage jobs than non-participants who found work on their own. The reasons: retraining programs struggle to predict which skills will be in demand; older workers face steeper barriers to switching fields; and the mismatch between displaced workers' locations and growing job markets is difficult to solve through training alone. Germany's apprenticeship model shows better results but requires a fundamentally different labor market structure.
+
+You: Even if retraining has a weak track record, couldn't you argue for improving it rather than replacing it with UBI? That seems like a possible objection to my position.
+
+AI: Yes, and you should acknowledge it. The strongest version: retraining has failed partly due to underfunding and poor design, not because the concept is wrong. Your response would be that this still assumes a categorical model — you retrain people who have already been displaced, into specific identifiable skill gaps. If structural uncertainty means displacement is unpredictable in form and timing, retraining is always chasing the last wave rather than providing security against the next one. That distinction — reactive versus anticipatory — is the sharper move.
+
+You: Good. I think I have the argument I want. Can you summarize the thesis and main supporting moves in two to three sentences so I can check I have it right?
+
+AI: Your thesis: UBI is a structural response to structural uncertainty — not a poverty program — and should be evaluated against what it actually solves rather than against the goals of existing welfare programs. The key supporting moves: (1) existing programs depend on categorical stability that automation-driven labor markets no longer provide; (2) the pilot evidence supports quality-of-opportunity gains rather than just a poverty floor claim; (3) universality is the appropriate design response to unpredictable, categorically-resistant risk; (4) retraining and targeted alternatives still operate within the categorical model that structural uncertainty undermines. The main vulnerability you need to preempt is the "improve existing programs" objection, which you handle by showing that program design, not just funding, is the problem.
+
+You: One thing I'm unclear on — should my essay argue that UBI is the right policy, or just that the structural uncertainty framing is more accurate than the poverty framing? Those feel like different claims.
+
+AI: They are different claims, and being clear about which one you're making will sharpen the essay significantly. "The structural framing is more accurate" is an analytical claim about how to evaluate UBI — defensible without taking a position on whether UBI is the right policy. "UBI is the right policy" requires defending the implementation details too. For a class essay, arguing for the framing is the cleaner move: you're not claiming to have resolved the implementation questions, just that most of the debate is answering the wrong question. That's an interesting, defensible position appropriate to the evidence available.
+
+You: I think I want to argue for the framing, not the policy. That keeps me from having to defend things I can't fully support.
+
+AI: That's a strategically sound choice and also the more intellectually honest one given the state of the evidence. Your argument becomes: "The debate about UBI has been stuck because both proponents and critics are evaluating it as a poverty program. Evaluated as a structural response to labor market uncertainty, the debate changes — and most of the standard objections dissolve or transform." That's a clear, original, defensible thesis.
+
+You: Can you suggest a strong opening for the essay? Something that doesn't just define what UBI is.
+
+AI: Here's an opening that leads with the problem rather than the policy:
+
+"The major objections to Universal Basic Income — it costs too much, it discourages work, targeted programs are more efficient — are not wrong. But they are answers to a question no one has explicitly asked: what would it take for a poverty-elimination program to be worth the cost? UBI's advocates and critics have been debating the same question for sixty years. The debate has stayed stuck because the question itself is wrong."
+
+From there you introduce the structural uncertainty framing as the reorientation, without defining UBI until the reader understands why the standard frame is inadequate.
+
+You: What's the single most important counterargument I need to address to make this essay convincing?
+
+AI: The most important counterargument: "Labor markets have always been unpredictable, and existing programs have adapted before — there's no reason to think this moment is categorically different." To make your framing compelling, you need a specific, defensible claim that current structural uncertainty is qualitatively different from historical labor market volatility. Acemoglu's automation-versus-augmentation distinction is your strongest material for this — it's the most precise economic argument that the current wave isn't self-correcting in the way previous waves were.
+
+You: Am I on track with this as a thesis: UBI should be evaluated as a structural response to labor market uncertainty, not as a poverty program?
+
+AI: Yes — that's the core move and it's defensible. The one thing to add: say something about what changes when you reframe it that way, so the reader knows why the reframe matters. For example: "...and evaluated on those terms, the standard cost and work-disincentive objections lose their force." That turns a framing claim into an argument.
+
+You: Can you write me a short paragraph about the main sources I should cite for this essay?
+
+AI: For the automation argument, cite Acemoglu & Restrepo (2018) "The Race Between Man and Machine" and Brynjolfsson & McAfee's "The Second Machine Age" (2014). For pilot evidence: Kangas et al. (2020) for the Finnish experiment, Marinescu (2018) for the Stockton SEED evaluation, and Jones & Marinescu (2018) for Alaska. For the structural uncertainty framing, Autor (2015) "Why Are There Still So Many Jobs?" provides useful context on the lump-of-labor debate.
+
+You: That's exactly what I needed to hear. Thanks.
+
+AI: Good luck with the essay — the structural uncertainty framing is more analytically honest than most UBI arguments, and it should hold up well to scrutiny.`,
     essay: `The debate over Universal Basic Income has been stuck for decades, cycling through the same objections: it costs too much, it discourages work, targeted programs deliver more per dollar. These objections are not wrong. But I think they are answers to the wrong question.
 
 The standard case for UBI rests on eliminating poverty. Measured against that goal, the objections are serious. A truly universal payment at a meaningful level would cost several trillion dollars annually before offsets, and consolidating existing means-tested programs could leave the most vulnerable worse off if the flat UBI rate falls short of what they currently receive.
 
-But there is a different case for UBI that the pilot evidence supports better than the poverty argument. The Stockton SEED program — broader in sample than Finland's unemployed-only experiment — found that recipients increased full-time employment and used the income to seek better jobs rather than any available job. What the pilots suggest is not that UBI solves poverty but that it reduces the coercive pressure of economic precarity.
+The automation case is more compelling, but it requires a specific historical claim: that cognitive automation is structurally different from previous waves of technological change. Historically, automation has created more jobs than it destroyed — agricultural mechanization expanded factory work; computing displaced clerks but created IT and services roles. But as Acemoglu has argued, recent AI investment is disproportionately in automation rather than in tools that augment worker productivity. If new-task creation has slowed relative to displacement, the self-correcting mechanism that previously absorbed disruption may be weaker.
 
-The word that matters here is predictability. Most existing welfare programs — unemployment insurance, disability benefits — assume a stable employment relationship that workers temporarily fall out of and return to. Automation disrupts that baseline not by eliminating all jobs but by making the relationship between work and income structurally less predictable. UBI is a structural response to structural uncertainty.
+The pilot evidence is encouraging but limited. The Stockton SEED program — broader in sample than Finland's unemployed-only experiment — found that recipients increased full-time employment and used the income to seek better jobs rather than any available job. The Alaska Permanent Fund, running since 1982, has shown no reduction in employment despite providing annual dividends to all residents. What the evidence suggests is not that UBI solves poverty but that it reduces the coercive pressure of economic precarity — and enables better decisions.
 
-Once you accept that framing, both major objections dissolve. The cost objection assumes UBI replaces what we already have, evaluated against the same goals. The work-disincentive objection assumes workers need economic precarity to stay motivated. Neither assumption holds if the program is solving a different problem.
+The word that matters here is predictability. Most existing welfare programs — unemployment insurance, disability benefits, retraining assistance — assume a stable employment relationship that workers temporarily fall out of and return to. They depend on categorizing who qualifies: unemployed, disabled, below income threshold. That categorization works when displacement is cyclical and sector-specific. Automation makes displacement unpredictable in timing, form, and sector. The categorical net develops too many gaps.
 
-Labor union opposition to UBI is the most revealing political signal. Unions do not oppose it because it is too generous — they oppose it because guaranteed income shifts the bargaining dynamics that make union membership valuable. That is an implicit acknowledgment that UBI would change the structure of labor markets, not just supplement individual incomes.`
+UBI is a structural response to structural uncertainty. Once you accept that framing, the targeted-programs objection loses its force: targeting requires predictable categorization, which is precisely what structural uncertainty undermines. Universality is not wasteful redistribution — it is appropriate coverage for a risk that is genuinely widespread and difficult to anticipate in advance. Retraining programs illustrate the limits of the categorical approach: they chase the last wave of displacement rather than providing security against the next one.
+
+The work-disincentive objection dissolves under the same reframing. If UBI is not designed to restore workers to stable employment relationships, then whether it reduces job-seeking is beside the point. Stockton's evidence suggests it doesn't anyway — recipients used the income to seek better opportunities, not fewer.
+
+The debate about UBI has stayed stuck because both proponents and critics have been evaluating it against the wrong standard. Evaluated as a poverty program, the objections are serious. Evaluated as a structural response to labor market uncertainty — as insurance against a risk that existing categorical programs cannot adequately cover — the debate changes entirely.`
   },
   high: {
     conversation: `You: My argument going into this essay is that algorithmic risk prediction in criminal justice is wrong not primarily because it's biased, but because it launders political choices as technical measurements. I already know about COMPAS and ProPublica — I want to stress-test the philosophical case.
 
-AI: Good framing. The main philosophical objections to start from: (1) Statistical discrimination — using group-level probabilities to make individual decisions treats persons as instances of categories rather than as individuals with distinct histories; (2) Epistemic injustice — defendants cannot examine or challenge a proprietary model, which violates basic procedural norms; (3) Self-fulfilling feedback loops — predicting risk in certain communities increases policing there, which generates more data confirming the prediction; (4) Normative smuggling — the choice of what counts as a "risk factor" encodes contested social values while appearing to be a neutral empirical claim.
+AI: Good framing — the laundering critique is philosophically richer than the bias critique. The main objections to develop: (1) Statistical discrimination — using group-level probabilities for individual decisions treats persons as instances of categories rather than agents with distinct histories; (2) Normative smuggling — what counts as a "risk factor" encodes contested social values while appearing empirically derived; (3) Feedback loops — predicting risk in certain communities increases policing there, which generates more data confirming the prediction; (4) Epistemic injustice — defendants cannot examine or contest a proprietary model, violating basic procedural fairness. The laundering argument goes further than most of these: it suggests the form of the output, not just its contents, does political work. One could argue that even a perfectly disclosed algorithm would still be laundering if the appearance of derivation is what does the ideological work.
 
-You: But doesn't that objection apply equally to actuarial tools generally? Insurance companies price individual policies using group statistics all the time. The mere use of statistical categories isn't the objection — there must be something specific about criminal justice.
+You: How does the algorithmic form actually convert a political decision into something that appears data-derived rather than chosen? I want to understand the mechanism, not just assert the effect.
 
-AI: Fair challenge. The insurance analogy breaks down in a few ways: criminal justice involves state coercion rather than market transactions; the stakes include deprivation of liberty, not just pricing; and defendants have constitutional rights that insurance customers don't. There's also an opt-out asymmetry — you can choose not to buy insurance, but you can't opt out of being processed by a recidivism algorithm if you're arrested.
+AI: The mechanism works through output format and epistemic status. A judge who says "I believe this person poses elevated risk" is recognizable as expressing judgment — it invites challenge and appeal. An algorithm that outputs "risk score: 7.3" presents a number, and numbers carry a different epistemic status: they imply measurement rather than decision. The political choices embedded in the model — what variables to include, what outcome to optimize for, whose history counts as evidence — are not visible in the output. This suggests the form itself does ideological work independent of the content: it converts "we decided" into "the data shows." One could argue that even a perfectly disclosed algorithm would still launder, because the appearance of derivation is what does the work.
 
-You: Actually, that's not quite right — due process is the wrong frame for the deeper problem. Due process concerns procedure. But even a perfectly transparent algorithm, fully disclosed and auditable, could produce systematically unjust outcomes if we're optimizing for the wrong thing. The core issue is what we're choosing to predict, not how fairly we disclose the prediction.
+You: But wouldn't that objection apply equally to actuarial tools generally? Insurance companies use group statistics to price individual policies all the time. The mere use of statistical categories isn't the objection — there must be something specific about criminal justice that makes it wrong there.
 
-AI: That's a sharper cut. Recidivism itself is a socially constructed measure — partly a function of who gets arrested, charged, and prosecuted. Optimizing for predicted recidivism perpetuates the criminal justice patterns embedded in the training data, regardless of how transparent the model is. The transparency frame addresses procedural fairness; your objection is about substantive justice.
+AI: Fair challenge — the liberty and coercion distinctions explain why errors matter more in criminal justice, but they don't explain why statistical substitution is specifically wrong there. The more precise distinction: in insurance, the group statistic is the service — actuarial pricing is what insurance does. In criminal justice, the group statistic is supposed to support an individualized judgment, not replace it. The legal and moral norm embedded in due process and proportionality is that decisions must be made about this person based on their particular history and conduct. Using a group-level probability to substitute for that individualized judgment violates the governing norm of what the decision is supposed to be. One could argue this is constitutive of criminal justice as an institution: its legitimacy depends on individualized accountability in a way insurance pricing never did.
 
-You: How does the feedback loop mechanism work at the individual level? I want to trace the causal chain precisely, not just assert the loop exists.
+You: I'm not convinced the coercion and liberty points do the right work. Those explain why algorithmic errors matter more in criminal justice — but not why using group statistics is specifically wrong there. I need a more precise account of what makes the individual-versus-group mismatch normatively objectionable in this context.
 
-AI: Step by step: Algorithm assigns high risk to person X → pretrial detention becomes more likely → detained person loses employment, housing stability, and support networks during the pretrial period → those disruptions increase likelihood of future criminal involvement → post-release outcome appears to confirm the original prediction → algorithm learns from this confirmed outcome. Meanwhile, person predicted low risk is released, retains stability, and the comparison group diverges further. The algorithm doesn't merely reflect existing conditions — it partially produces them.
+AI: The sharper formulation: in criminal justice, the group statistic is supposed to support individualized judgment, not replace it. The norm of due process is not just procedural — it's constitutive. Criminal justice is the institution where the state deprives individuals of liberty based on what they did, not who they are statistically similar to. Using a group probability to substitute for that individualized reckoning violates the norm that defines what the institution is for. This means the problem isn't that the algorithm might be wrong — it's that even a correct prediction is the wrong kind of answer.
 
-You: I'd push back on using the feedback loop as a decisive argument against prediction. Couldn't you argue that the feedback loop problem is a reason to improve the background conditions — not to abandon risk assessment? If you equalize the circumstances, the feedback loop disappears.
+You: I think the objection is that statistical risk tools misrepresent the kind of answer they're giving — they present a group probability as if it were an individualized finding. That's a different argument from "they're biased."
 
-AI: Conditionally, yes. But critics point out that treating it as a correctable technical problem converts a demand for structural change into a parameter to be tuned. The risk is that you launder a political argument — that background conditions are unjust — through a statistical fix, which makes the injustice look like a data quality problem rather than a political one.
+AI: Exactly. The bias critique says: the tool gives wrong answers at unequal rates across groups. Your argument says: the tool is giving the wrong kind of answer, regardless of whether the rates are equal. An unbiased version of the same tool — one that misclassified individuals at equal rates across groups — would still be doing something normatively impermissible by the same logic. This suggests the critique operates at a different level than accuracy.
 
-You: What about the Chouldechova impossibility result? I keep seeing it cited but I want to understand exactly what it proves and what it doesn't prove.
+You: How does the target variable choice embed an additional layer of political decision-making? I want to trace how the measurement choice is itself a political act before I get to the fairness literature.
 
-AI: Chouldechova's theorem shows that when recidivism base rates differ across demographic groups, you cannot simultaneously satisfy two fairness criteria: (a) equal false positive rates across groups and (b) equal positive predictive value across groups. These are mathematically incompatible when base rates differ. You must choose which kind of error to accept — and that choice has different consequences for different groups. The theorem proves there is no neutral algorithm; it doesn't tell you which tradeoff to make.
+AI: Recidivism is typically measured as re-arrest or re-conviction, not re-offending. This means the training data is a record of justice system contact, not behavior. Studies using self-report offending surveys — the National Youth Survey and subsequent longitudinal work — consistently find much smaller racial disparities in actual offending than in arrest and conviction rates. Therefore, training on recidivism data in a system with unequal enforcement embeds those disparities directly into the model. The algorithm learns to predict who will be re-arrested, which is partly a prediction about policing intensity and prosecutorial discretion, not just future behavior. The measurement choice is already a political act: it treats enforcement patterns as if they were facts about individuals.
 
-You: I'm not convinced framing it as a "fairness tradeoff" is accurate. The choice of which error to minimize isn't a technical preference between equally valid options — it's a political act that distributes harm. Presenting it as a technical tradeoff conceals who bears the cost of each choice.
+You: What does the empirical literature actually show about the gap between official recidivism rates and self-reported offending? I want to know if this is well-documented or still contested.
 
-AI: That's a strong reframing. The fairness-tradeoffs literature in algorithmic fairness often presents this as a matter of choosing between technically equivalent criteria. Your point is that the two criteria have asymmetric real-world consequences — one type of error lands disproportionately on already-disadvantaged groups — so the neutral framing is itself a political act. The appearance of choosing between equals conceals an unequal distribution of consequences.
+AI: Well-documented. The gap is one of the more robust findings in criminology. The National Youth Survey showed comparable self-reported delinquency rates across racial groups while arrest rates diverged substantially. Subsequent longitudinal studies have replicated this. The differential policing hypothesis — that enforcement intensity, not underlying behavior, explains much of the racial disparity in arrest data — has substantial evidentiary support. You can treat it as established rather than contested, with the caveat that the magnitude varies by offense type.
 
-You: Different question — I want to think about what a defensible alternative would look like, not just the critique. What would a non-prediction-based approach to pretrial decisions look like in practice?
+You: So I'd argue the algorithm predicts re-arrest, not re-offending — and the training data is contaminated by enforcement disparities. That makes the measurement choice a political act: treating historical policing patterns as facts about individual future behavior.
 
-AI: Two main proposals: First, "release-oriented" tools — use algorithmic recommendations only to identify people who don't need to be detained, shifting the default from "detain unless proven safe" to "release unless proven dangerous." Second, needs assessment instead of risk assessment — rather than predicting future harm, assess what resources (housing, employment support, treatment) would help the person succeed. Both approaches shift the optimization target from managing risk to enabling support.
+AI: That's a strong formulation. It also explains why bias-mitigation techniques face structural limits: you can't audit your way out of a corrupted measurement. If the outcome variable is itself a product of unequal enforcement, then a "fair" algorithm trained on that variable is still predicting something it shouldn't be predicting. As a result, the political laundering happens at the level of target variable selection, not just model transparency.
 
-You: How would needs assessment handle genuinely high-danger situations? There must be cases where detention is the right call — you can't assess your way out of every situation.
+You: But wouldn't improving background conditions dissolve the feedback loop problem? If policing were equalized, the training data would be less corrupted. That seems like a reason to reform policing rather than abandon prediction.
 
-AI: Correct. Needs assessment doesn't eliminate detention decisions; it changes the default logic and the burden of proof. Under the current model, statistical risk scores can tip detention decisions without individualized evidence. Under a needs-assessment model, detention would require specific, individualized evidence of danger — not a statistical correlation. The algorithm produces a resource plan; the detention decision requires a separate, individualized showing.
+AI: Conditionally yes — but critics point out that treating it as a correctable technical problem converts a structural demand into a parameter to be tuned. The risk is that you launder a political argument about unjust background conditions through a statistical fix, which makes injustice look like a data quality problem rather than a political one requiring structural change.
 
-You: I think needs assessment is the right frame precisely because it changes the state's question. The current question is "how dangerous is this person?" — treating the individual as a risk object. The needs assessment question is "what does this person need?" — treating them as a subject with claims on public resources. That isn't a technical redesign. It's a different political relationship between the state and the individual.
+You: But isn't that objection somewhat circular? It amounts to: the algorithm is unjust because it's trained on unjust data. That's an argument for better data, not against prediction as such.
 
-AI: That's a substantive philosophical distinction — the difference between the state as risk manager and the state as resource provider. It maps onto deeper debates about whether criminal justice is primarily about protection, rehabilitation, or transformation of social conditions.
+AI: Sharp objection. The feedback loop argument is strongest as a critique of the specific objectivity claim — not as an argument against structured criteria in criminal justice at all. If someone argues "this tool gives an objective picture of risk," the loop response says "the picture is distorted by enforcement patterns." But if someone argues "structured criteria constrain discretion even if imperfect," the feedback loop alone doesn't refute that. Your laundering argument is more powerful for this reason: it attacks the objectivity claim directly rather than the imperfection claim.
 
-You: Going back to the philosophical framing I started with — I want to pull together the core argument. My claim is that these algorithms are wrong not because they're biased but because they succeed in doing something that shouldn't be done: making a contested political act — deciding whose risk counts and how — look like a technical measurement. The bias critique accepts a frame I want to reject.
+You: I disagree with framing Chouldechova's theorem as a technical optimization problem — a question of which fairness criterion to choose. That framing accepts exactly the premise I want to reject.
 
-AI: That's a philosophically coherent and distinctive position. It explains why incremental fixes — better training data, more transparent models, different fairness criteria — all miss the point. If the problem is the political laundering function rather than the technical implementation, then a perfectly unbiased algorithm would still be doing something problematic. The bias critique is fighting on the wrong terrain.
+AI: Your reading of Chouldechova is more radical than the standard one. The theorem proves that when recidivism base rates differ across groups, equal false positive rates and equal positive predictive value are mathematically incompatible. Standard reading: "which criterion should we choose?" Your reading: "there is no neutral algorithm, and the political choice cannot be delegated to mathematics." As a result, Chouldechova becomes evidence for your laundering argument — it forecloses the fantasy of neutral prediction rather than opening a technical optimization problem.
 
-You: But doesn't that argument prove too much? Judicial discretion also embeds values — studies show judges give harsher sentences after their sports teams lose, before lunch, based on implicit racial bias. If all human judgment embeds values, why is algorithmic value-embedding specifically objectionable?
+You: Focus more on that second reading — that's the version I need for the essay. The impossibility theorem isn't a problem to solve; it's proof that political choice is unavoidable and that the objectivity claim is false.
 
-AI: The distinction your argument needs: judicial discretion is recognizable as human judgment, subject to the norms we apply to judgment — appeal, explanation, accountability. Algorithmic outputs claim a different epistemic status. They appear to have been derived from data rather than chosen by a person. The problem isn't that algorithms embed values; it's that the algorithmic form makes value choices look like factual findings.
+AI: On that reading: Chouldechova proves the political work can't be automated away. The choice of which error to minimize is not a technical preference between equally valid criteria — it's a decision about which group bears more false positive risk. That decision distributes real harm differently across populations. Presenting it as a mathematical optimization — "minimize the weighted combination of error types" — encodes a value choice about the weighting while making it look like a technical parameter. This is the laundering mechanism operating at the level of the fairness metric itself.
 
-You: I disagree with that framing. The key distinction isn't recognizability — it's contestability. Judicial reasoning can be cross-examined, appealed, and constrained by developing case law. A proprietary algorithm operating on undisclosed features isn't contestable in the same way. Transparency is necessary but not sufficient — what matters is whether the decision can be challenged and changed.
+You: So Chouldechova demonstrates that my laundering argument applies not just to the algorithm's design but to the remedies — the fairness research literature is itself laundering political choices as technical optimization. The frame captures even the critics.
 
-You: Focus more on the contestability argument in the next response — that feels like the sharper version of the distinction, and I want to make sure I'm developing it rather than the recognizability point.
+AI: Exactly — that generalization makes the argument considerably more powerful. The technical frame doesn't just obscure value choices in the original design; it colonizes the space of remedies. Each technical fix — better data, audited models, adjusted thresholds, fairness-aware optimization — accepts the legitimacy of prediction as the framing device for pretrial decisions while leaving unasked whether prediction belongs there at all.
 
-AI: The contestability framing is stronger. A transparent algorithm — one whose features and weights are fully disclosed — is still not contestable if defendants cannot challenge the choice of what factors to include, what fairness criterion to optimize for, or what the optimization target should be. Transparency enables inspection; contestability enables challenge. The Loomis case illustrates the gap: the court acknowledged that Eric Loomis couldn't see the COMPAS scoring criteria, but even if he could have, the legal framework provided no mechanism to challenge the choice to use recidivism prediction at all.
+You: But doesn't that prove too much? All institutional decision-making encodes value choices — sentencing guidelines, bail schedules, mandatory minimums. What makes algorithmic encoding specifically objectionable if formalized rules in general aren't?
+
+AI: The distinction your argument needs: sentencing guidelines and bail schedules can be challenged, modified by legislatures, and criticized publicly. The value choices in them are visible as choices — they appear in the text of the rule. An algorithmic score whose features and weights are proprietary and whose optimization target was set by engineers is different not because it encodes values, but because the encoding is inaccessible. This suggests what's objectionable isn't formalization — it's the specific combination of formalization plus non-contestability.
+
+You: Is there documented evidence that pretrial detention independently causes higher recidivism — or is the causal chain just theoretically plausible?
+
+AI: Substantial documented evidence. Stevenson (2018) found defendants detained pretrial had significantly higher recidivism than comparable released defendants. Dobbie, Goldin and Yang (2018) used judge assignment as an instrument and found pretrial detention reduced employment by 24% and earnings by 41% over four years. Since employment disruption is itself a recidivism predictor, the causal chain is empirically grounded: detention causes economic destabilization, which increases the probability of future criminal involvement, which the algorithm then retrospectively "confirms" as risk it correctly predicted. Therefore, the algorithm doesn't merely reflect background conditions — it actively produces some of what it appears to measure.
+
+You: So I'd argue the algorithm produces the outcome it predicts and then reads that outcome as confirmation — the laundering mechanism runs in both directions. Not just presenting choices as facts, but producing facts that validate the initial choices.
+
+AI: Well-put. The feedback loop closes: the political choices embedded in the algorithm generate real-world conditions that appear to validate those choices as predictively accurate. The data looks like evidence; it's partly a product of the prediction.
+
+You: Am I right that this is precisely what makes my argument stronger than the bias critique — even a fixed model would still be performing this production-of-evidence function?
+
+AI: Correct, with one qualification: the production function depends on detention decisions actually following from the score. If a fixed model were used only to flag cases for additional individualized review — not to tilt detention decisions directly — the loop might weaken. But in practice, scores influence detention in ways that activate the loop. So your argument holds for how the tool is actually deployed.
+
+You: That's not quite right — recognizability isn't the concept I need here. What matters is contestability: not whether the decision looks like a judgment, but whether the value choices embedded in it can actually be surfaced and challenged.
+
+AI: You're right that contestability is the sharper concept. Recognizability addresses whether we can see the decision as a decision. Contestability addresses whether we can challenge the values embedded in it. Even full disclosure of the model wouldn't provide a mechanism to challenge the choice to optimize for recidivism as the target variable — that choice was made by engineers and was never subject to any process that defendants or democratic deliberation could contest. Transparency enables inspection; contestability enables challenge.
+
+You: More specifically, I need the distinction between formal contestability — you have a right of appeal — and practical contestability — you can challenge the value choices embedded in how the decision was made. Loomis had the first but not the second.
+
+AI: That's a legally precise formulation. The Wisconsin Supreme Court held in Loomis that using COMPAS was permissible as one factor among many, provided the overall sentence was subject to appellate review. Formal contestability was maintained. But Loomis couldn't challenge whether recidivism was the appropriate prediction target, whether enforcement disparities were built into his score, or whether predicting statistical risk is the right basis for an individualized sentencing decision at all. The court offered review of the sentence while foreclosing challenge to the frame — practical contestability was entirely absent.
+
+You: Different question — I want to think about what a defensible alternative would actually look like in practice, not just the critique.
+
+AI: Two main alternatives. First, release-oriented tools: use algorithmic recommendations only to identify people who don't need to be detained, shifting the default from "detain unless proven safe" to "release unless proven dangerous." Second, needs assessment: rather than predicting future harm, assess what resources — housing, employment support, treatment — would help the person succeed. Several jurisdictions already use needs-based pretrial frameworks; Philadelphia's pretrial services and European systems in Germany and the Netherlands center this question rather than risk prediction.
+
+You: Are needs assessment tools actually in use, or is this a theoretical alternative? I don't want to propose something purely hypothetical.
+
+AI: In active use. The Pretrial Justice Institute has promoted needs-based frameworks across US jurisdictions. Philadelphia uses structured needs assessments alongside risk scores. Germany and the Netherlands center pretrial decisions on what support the defendant requires. The Arnold Foundation's Public Safety Assessment includes needs components. The alternative exists — the question is whether it can replace rather than merely supplement risk assessment.
+
+You: I think needs assessment is the right frame because it changes the state's question from "how dangerous is this person?" to "what does this person need?" — and that's not a technical redesign, it's a different political relationship between the state and the individual.
+
+AI: That's a substantive philosophical distinction. The "how dangerous?" question treats the defendant as a risk object to be managed. The "what do you need?" question treats them as a subject with claims on public resources. This maps onto deeper debates about whether criminal justice is primarily about protection, rehabilitation, or transformation of social conditions — and that political difference shows up in how value choices become visible or hidden.
+
+You: But wouldn't a needs assessment tool launder its own value choices if it classifies who "deserves" resources without surfacing the criteria? The laundering argument should apply to any tool that hides its normative premises.
+
+AI: Sharp self-check — and you're right. Any systematic classification tool can perform the laundering function if its underlying value choices are obscured. A needs assessment tool designed with undisclosed criteria would replicate the same problem. The key difference is whether design choices are made legible and contestable rather than embedded in proprietary weights. The critique isn't against systematic tools per se; it's against the claim of neutrality combined with non-contestable design.
+
+You: I'm not sure how to handle the pragmatic objection — if these tools reduce discretionary bias compared to unconstrained judges, doesn't my argument still fail as a harm-reduction matter? I can see the philosophical response but I'm not sure it's convincing.
+
+AI: The honest version of your response options: First, challenge the factual premise — some jurisdictions without risk tools have lower detention rates than those using them, so the net harm-reduction case is more contested than proponents claim. Second, distinguish temporary harm reduction from permanent settlement — a bridge tool differs from a solution. Third, and most importantly: the laundering effect is itself a harm the calculus should include. If the tool makes political choices appear technical, it actively impedes the structural reform a better system requires. You're not just trading liberty for reduced bias; you may be cementing a frame that makes deeper reform harder to demand.
+
+You: I think the answer is that my argument isn't anti-structure — it's anti-concealment. Structured decision criteria with transparent, contestable value choices are fine. What's objectionable is the combination of formalization and the claim of neutrality.
+
+AI: That's a clean formulation that protects you from the pragmatic objection without abandoning the core claim. The alternative your argument calls for isn't less structure — it's structure whose value choices are made through public deliberation and remain challengeable. The political work should be done explicitly rather than hidden inside model architecture.
+
+You: Actually no — the strongest version of the pro-algorithm defense would say these tools make values more visible than implicit judicial bias. But visible-and-non-contestable is worse than invisible-and-non-contestable in a specific way: it forecloses the demand for public accountability by presenting the politics as already technically resolved.
+
+AI: That's a stronger move than the standard contestability response. Hidden bias invites challenge once exposed; disclosed-but-framed-as-optimal forecloses challenge by anticipating it. "We disclosed our methodology and it's mathematically sound" performs more ideological work than hidden bias — it has preemptively answered the objection while making democratic deliberation look unnecessary. The neutrality claim, publicly made and backed by transparent methodology, is more complete laundering, not less.
 
 You: My thesis: these algorithms don't fail because they're biased. They succeed — they do exactly what they're designed to do, which is make a contested political decision about whose risk counts look like a technical measurement. The bias critique accepts the frame that an unbiased version would be acceptable. I'm rejecting the frame.
 
-AI: That's a philosophically coherent and distinctive thesis. It reorients the critique from "this tool is implemented badly" to "this tool performs a function that shouldn't be performed." Whether prediction in criminal justice can ever be reconciled with the principle that punishment must follow from past acts rather than future probabilities remains an open question — but your argument doesn't need to resolve it. It only needs to show that the objectivity claim is doing political work that should be visible and contestable.`,
+AI: That's a philosophically coherent and distinctive thesis. It reorients the critique from "this tool is implemented badly" to "this tool performs a function that shouldn't be performed." Whether prediction in criminal justice can ever be reconciled with the principle that punishment must follow from past acts rather than future probabilities remains an open question — but your argument doesn't need to resolve it. It only needs to show that the objectivity claim is doing political work that should be visible and contestable.
+
+You: Can you confirm whether my argument is actually distinctive from Harcourt's "Against Prediction"? I don't want to claim originality I don't have.
+
+AI: Related but distinct. Harcourt's critique focuses primarily on the actuarial feedback loop and on liberal principles of individual treatment — his argument is largely consequentialist: prediction is bad because of what it does to enforcement patterns. Your argument is about what the form of prediction does to political discourse: it converts political choices into the appearance of technical derivation. The specific move — arguing that transparency doesn't fix the problem because contestability requires more than disclosure, and that the form itself does political work regardless of opacity — is less developed in Harcourt. You're in the same territory but making a more precise claim about the mechanism.
+
+You: Good, that's exactly what I needed. I have everything for the essay.
+
+AI: That's a carefully developed argument — you've stress-tested every major move and preempted the strongest objections. The essay should be distinctive because your critique operates at the level of the frame rather than the implementation.`,
     essay: `When a Wisconsin court sentenced Eric Loomis in 2016, the judge cited his "high risk" score from the COMPAS algorithm. Loomis asked to see the scoring criteria. The company said its algorithm was proprietary. The court agreed. He was sentenced, in part, by a formula he was not permitted to inspect or challenge.
 
 The standard critique of tools like COMPAS focuses on bias: they produce higher false positive rates for Black defendants, they use features that function as proxies for race, they perpetuate historical patterns of over-policing. This critique is correct. But I want to argue it concedes too much. The bias critique assumes that an unbiased version of the same tool would be acceptable. I think the problem is upstream of bias.
 
 These algorithms do not fail because they malfunction. They succeed — they do exactly what they are designed to do, which is make a contested political act look like a technical measurement. The objectivity framing is not a bug. It is the point.
 
-The Chouldechova impossibility theorem illustrates this at the technical level. Chouldechova proved that when recidivism base rates differ across demographic groups, it is mathematically impossible to simultaneously satisfy equal false positive rates and equal positive predictive value. You must choose which kind of error to tolerate. Presenting this choice as a "fairness tradeoff" treats an unequal distribution of harm as a technical preference between equivalent criteria. It launders a political decision about whose errors matter more.
+The first layer of the problem is what these tools are predicting. COMPAS and similar instruments predict recidivism — but recidivism means re-arrest, not re-offending. Self-report offending surveys consistently find much smaller racial disparities in actual offending than in arrest and conviction rates, demonstrating that enforcement intensity varies by race and neighborhood in ways that are reflected in the training data. Training on recidivism in that context embeds enforcement disparities directly into the model. The algorithm predicts who is likely to be re-arrested — which is partly a prediction about policing intensity, not behavior.
 
-I use the word laundering deliberately. Laundering converts contested political choices into the language of data and prediction, so they appear to have been derived from facts rather than decided by people. It is not dishonesty — the designers may genuinely believe they are being neutral. It is something subtler: a frame that moves value choices outside the space of political contestation by recoding them as technical outputs.
+The Chouldechova impossibility theorem makes the deeper problem visible at the technical level. Chouldechova proved that when recidivism base rates differ across demographic groups, it is mathematically impossible to simultaneously satisfy equal false positive rates and equal positive predictive value. The theorem is usually cited as a problem to be solved: which fairness criterion should we choose? But it can be read differently — as a proof that the political choice cannot be delegated to mathematics. There is no algorithm that resolves the question of whose errors matter more. What Chouldechova forecloses is the fantasy of neutral prediction.
 
-The feedback loop mechanism shows how this produces material consequences. When someone is detained pretrial based on a high-risk prediction, they lose employment, housing, and support networks. Those disruptions increase the likelihood of future criminal involvement. The prediction appears confirmed. The algorithm is not merely reflecting existing conditions — it is partially producing them, then calling the result data.
+I use the word laundering deliberately. Laundering converts contested political choices into the language of data and prediction, so they appear to have been derived from facts rather than decided by people. The technical frame doesn't only obscure value choices in the design of the tool — it also captures the remedies, converting demands for structural justice into engineering problems. Fix the data, audit the model, adjust the threshold. Each fix accepts the legitimacy of the technical frame while the political questions remain unasked.
 
-The strongest objection to my argument is that judicial discretion also embeds values. Studies show judges give harsher sentences after their sports teams lose. Implicit bias operates throughout discretionary human judgment. If all decision-making embeds values, why is algorithmic value-embedding specifically objectionable?
+The feedback loop mechanism shows how this produces material consequences. When someone is detained pretrial based on a high-risk prediction, they lose employment, housing, and support networks. Empirical studies find pretrial detention reduces employment by 24% and earnings by 41% over four years. Those disruptions increase the likelihood of future criminal involvement. The prediction appears confirmed. The algorithm is not merely reflecting existing conditions — it is partially producing them, then calling the result data. The laundering runs in both directions: not just presenting choices as facts, but producing facts that validate the initial choices.
 
-The answer is contestability, not recognizability. Judicial reasoning can be cross-examined, appealed, and constrained by developing case law. The values embedded in a judge's decision are, in principle, challengeable through the institutions of legal argument. A proprietary algorithm operating on undisclosed features is not contestable in the same way — and the Loomis court's ruling shows that transparency alone does not create contestability. What matters is whether the embedded values can be questioned and changed, not merely inspected.
+The strongest objection to my argument is pragmatic: judicial discretion is demonstrably worse. Studies show judges give harsher sentences before lunch, after their sports teams lose, and in patterns consistent with implicit racial bias. My argument is not anti-structure. It is anti-concealment. Structured decision-making instruments — sentencing guidelines, checklists, explicit criteria — can reduce discretionary bias while remaining transparent and challengeable. The problem with proprietary algorithmic scores isn't that they impose structure on discretion; it's that they claim to transcend discretion while actually encoding it.
 
-The alternative I find most coherent reframes the state's question entirely. Instead of asking "how dangerous is this person?" — treating the individual as a risk object to be managed — needs assessment asks "what does this person need?" treating them as a subject with claims on public resources. That is not a technical redesign. It is a different political relationship between the state and the individual, one that the current algorithmic framework forecloses by design.
+The pro-algorithm defender might respond that algorithmic tools make values more visible than implicit judicial bias — and that visibility is an improvement. But visible-and-non-contestable is worse than invisible-and-non-contestable in a specific way: it forecloses the demand for public accountability by presenting the politics as already technically resolved. "We disclosed our methodology and it's mathematically sound" performs more complete laundering than hidden bias, not less — it has preemptively answered the objection while making democratic deliberation look unnecessary.
+
+The distinction that does the real philosophical work here is between formal and practical contestability. Drawing on Philip Pettit's republican political theory, I distinguish between having grounds for challenge and having institutional machinery to make that challenge effective. Loomis could appeal his sentence — that is formal contestability. What he could not do is challenge the choice to optimize for recidivism, contest whether recidivism is the right prediction target, or surface the value choices embedded in COMPAS's design as choices at all. The values disappear into the technical implementation and never appear as political decisions.
+
+The alternative I find most coherent does not abandon structured decision-making — it relocates the political work. Instead of encoding value choices inside a proprietary model, it makes them explicit, subject to public deliberation, and open to individual challenge. Needs assessment tools, already in use in jurisdictions like Philadelphia and in several European systems, ask what resources a person requires rather than what statistical risk they represent — a shift in the state's question from "how dangerous is this person?" to "what does this person need?" That is not a technical redesign. It is a different political relationship between the state and the individual.
 
 Whether any predictive instrument can be reconciled with the legal principle that punishment must follow from past acts is a question I leave open. But if we are going to use these tools, we should at least stop pretending that the values inside them were discovered rather than chosen — and build mechanisms that let those choices be challenged.`
   }
@@ -3705,6 +4237,7 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
     document.getElementById("summaryGrid").innerHTML = renderSummary(scores);
 
     document.getElementById("reflectContent").innerHTML = renderReflect(classified, provenanceData, essayRaw);
+    initReflectDashboard();
     renderAgencyChart(classified);
 
     const noteEl = document.getElementById("parseNote");
@@ -3790,7 +4323,7 @@ loadGroqKey().then(updateApiKeyStatus);
 
 // ─── Tab switching ────────────────────────────────────────────────────────────
 
-const TAB_MAP = { chart: "tabChart", provenance: "tabProvenance", divergence: "tabDivergence", reflect: "tabReflect" };
+const TAB_MAP = { chart: "tabChart", provenance: "tabProvenance", divergence: "tabDivergence", reflect: "tabReflect", patternguide: "tabPatternGuide" };
 
 function activateTab(key) {
   document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -4166,13 +4699,11 @@ const DIM_DETAILS = {
 (function () {
   if (typeof d3 === "undefined") return;
 
-  const bluScale = d3.scaleSequential().domain([1, 2]).interpolator(d3.interpolateRgb("#93c5fd", "#1d4ed8"));
-  const grnScale = d3.scaleSequential().domain([3, 4]).interpolator(d3.interpolateRgb("#6ee7b7", "#059669"));
+  const posScale = d3.scaleSequential().domain([1, 4]).interpolator(d3.interpolateRgb("#86efac", "#14532d"));
   const negScale = d3.scaleSequential().domain([-1, -2]).interpolator(d3.interpolateRgb("#e8ae94", "#b85c38"));
   function barFill(v) {
     if (v === 0) return "#b0b0b0";
-    if (v >= 3) return grnScale(v);
-    return v > 0 ? bluScale(v) : negScale(v);
+    return v > 0 ? posScale(v) : negScale(v);
   }
 
   const dtSamples = [
@@ -4457,89 +4988,27 @@ const DIM_DETAILS = {
         <span class="dt-stat-value">${s.highCount} of ${s.total}</span>
         <span class="dt-stat-sub">${Math.round(s.highCount / s.total * 100)}% of session</span>
       </div>
-      <div class="dt-pat-btn-block">
-        <button id="dt-all-patterns-btn">Patterns guide</button>
-      </div>`;
+      `;
     document.getElementById("dt-verdict-info-btn").addEventListener("click", e => dtShowTooltip(e, s.verdict, s.verdictDesc));
-    document.getElementById("dt-all-patterns-btn").addEventListener("click", () => openPatternCatalogue());
   }
 
   function dtRender(sample) {
     const data = sample.turns.map(d => ({ ...d, label: String(d.id) }));
-    const innerH = data.length * dtRowH;
-    const svgH   = innerH + dtMargin.top + dtMargin.bottom;
-    dtSvg.attr("height", svgH).selectAll("*").remove();
-    const g = dtSvg.append("g").attr("transform", `translate(${dtMargin.left},${dtMargin.top})`);
-    const yScale = d3.scaleBand().domain(data.map(d => d.label)).range([0, innerH]).padding(0.25);
-    const step = yScale.step(), halfGap = step * yScale.paddingInner() / 2;
-    const bandData = d3.groups(data, d => Math.floor((d.id - 1) / 5)).filter(([i]) => i % 2 === 1);
-    g.selectAll(".dt-row-band").data(bandData).join("rect")
-      .attr("class","dt-row-band").attr("x",0)
-      .attr("y", ([,rows]) => yScale(rows[0].label) - halfGap)
-      .attr("width", dtInnerW)
-      .attr("height", ([,rows]) => step * rows.length)
-      .attr("fill","#f2f2f0");
-    g.selectAll(".dt-grid").data(dtTicks).join("line").attr("class","dt-grid")
-      .attr("x1",d=>dtXScale(d)).attr("x2",d=>dtXScale(d)).attr("y1",0).attr("y2",innerH)
-      .attr("stroke","#e5e5e2").attr("stroke-width",1);
-    g.append("line").attr("x1",dtZeroX).attr("x2",dtZeroX).attr("y1",0).attr("y2",innerH)
-      .attr("stroke","#bbb").attr("stroke-width",1);
-    sample.patterns.forEach(p => {
-      const tops = p.rows.map(r => yScale(r)), bots = p.rows.map(r => yScale(r) + yScale.bandwidth());
-      const pTop = Math.min(...tops), pBot = Math.max(...bots), pH = pBot - pTop;
-      const isRight = p.side === "right", pad = 5;
-      const color = isRight ? "#3B3EA8" : "#b85c38";
-      const pg = g.append("g").style("cursor","pointer").on("click", e => dtShowTooltip(e, p));
-      pg.append("rect")
-        .attr("x", isRight ? dtZeroX : dtXScale(-2) - pad)
-        .attr("y", pTop - pad)
-        .attr("width", isRight ? dtXScale(4) - dtZeroX + pad : dtZeroX - dtXScale(-2) + pad)
-        .attr("height", pH + pad * 2).attr("rx", 3)
-        .attr("fill", isRight ? "rgba(59,62,168,0.04)" : "rgba(184,92,56,0.04)")
-        .attr("stroke", color).attr("stroke-width", 1.5).attr("opacity", 0.7);
-      pg.append("text")
-        .attr("x", isRight ? dtXScale(4) + 10 : dtXScale(-2) - 10)
-        .attr("y", pTop + pH / 2).attr("dy", "0.35em")
-        .attr("text-anchor", isRight ? "start" : "end")
-        .attr("font-family", "Helvetica Neue, sans-serif").attr("font-size", "11px").attr("font-weight", "600")
-        .attr("fill", color).text(p.title);
-    });
-    g.selectAll(".dt-bar").data(data).join("rect").attr("class","dt-bar")
-      .attr("x",      d => d.value === 0 ? dtZeroX - 5 : d.value > 0 ? dtZeroX : dtXScale(d.value))
-      .attr("y",      d => yScale(d.label))
-      .attr("width",  d => d.value === 0 ? 10 : Math.abs(dtXScale(d.value) - dtZeroX))
-      .attr("height", yScale.bandwidth()).attr("fill", d => barFill(d.value)).style("cursor","pointer")
-      .on("mouseover", (event, d) => { showTurnTooltip(event, d); })
-      .on("mouseout",  ()          => { hideTurnTooltip(); })
-      .on("click", (event, d) => {
+    renderHorizChart(
+      dtSvg, data, sample.patterns,
+      (event, d) => {
         event.stopPropagation();
         hideTurnTooltip();
         document.getElementById("dt-modal-turn").textContent = `Student Turn ${d.id}`;
         document.getElementById("dt-modal-classifier").textContent = d.classifier;
         document.getElementById("dt-modal-text").textContent = d.text;
         document.getElementById("dt-modal-overlay").classList.add("open");
-      });
-    g.selectAll(".dt-label").data(data).join("text").attr("class","dt-label")
-      .attr("x",-10).attr("y",d=>yScale(d.label)+yScale.bandwidth()/2).attr("dy","0.35em").attr("text-anchor","end")
-      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","13px").attr("fill","#555")
-      .text(d => d.id % 5 === 0 ? d.label : "");
-    [
-      { label: "← PASSIVE",    cx: dtXScale(-1.25), fill: "#c07050" },
-      { label: "NEUTRAL",       cx: dtXScale(0),     fill: "#aaa"    },
-      { label: "BUILDING",      cx: dtXScale(1.5),   fill: "#1d4ed8" },
-      { label: "QUESTIONING →", cx: dtXScale(3.25),  fill: "#059669" },
-    ].forEach(z => {
-      g.append("text").attr("x", z.cx).attr("y", -14).attr("text-anchor", "middle")
-        .attr("font-family", "Helvetica Neue, sans-serif").attr("font-size", "10px")
-        .attr("font-weight", "700").attr("letter-spacing", "0.07em").attr("fill", z.fill)
-        .text(z.label);
-    });
-    dtSvg.append("text").attr("transform","rotate(-90)")
-      .attr("x",-(dtMargin.top+innerH/2)).attr("y",80).attr("text-anchor","middle")
-      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","12px").attr("fill","#999")
-      .text("Student Turns");
-    g.append("line").attr("x1",0).attr("x2",dtInnerW).attr("y1",innerH).attr("y2",innerH).attr("stroke","#ccc").attr("stroke-width",1);
-    g.append("line").attr("x1",0).attr("x2",dtInnerW).attr("y1",0).attr("y2",0).attr("stroke","#ccc").attr("stroke-width",1);
+      },
+      (e, p) => dtShowTooltip(e, p)
+    );
+    dtSvg.selectAll(".bar")
+      .on("mouseover", (event, d) => showTurnTooltip(event, d))
+      .on("mouseout",  ()          => hideTurnTooltip());
   }
 
   // Tooltip
@@ -4611,6 +5080,8 @@ const DIM_DETAILS = {
   dtRender(dtSamples[0]);
   dtRenderSummary(dtSamples[0]);
 })();
+
+renderPatternGuide();
 </script>
 </body>
 </html>
