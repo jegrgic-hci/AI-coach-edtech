@@ -1232,7 +1232,7 @@ When done, save the result as a markdown file named chat_log.md so I can downloa
     <div id="samrHero"></div>
 
     <div class="panel" id="summaryPanel">
-      <div class="section-header" style="margin-bottom:12px">TAU Score</div>
+      <div class="section-header" style="margin-bottom:12px">Your Score</div>
       <div class="summary-grid" id="summaryGrid"></div>
     </div>
 
@@ -1250,7 +1250,7 @@ When done, save the result as a markdown file named chat_log.md so I can downloa
         <div id="chartSummaryEl" style="width:796px;max-width:100%;"></div>
         <svg id="agencyChart"></svg>
         <div id="chartLegendEl" style="width:796px;max-width:100%;"></div>
-        <p class="tab-intro">Each row is one of your turns. The higher it sits, the more you were driving the conversation — asking questions, making claims, pushing back. Low turns are passive: extracting content, seeking validation, or getting stuck. Brackets on the sides mark sequences the tool recognised as named patterns.</p>
+        <p class="tab-intro">Each row is one of your turns. The higher it sits, the more you were in control — asking questions, making your own points, pushing back on the AI. Lower turns are more passive: asking it to generate content, checking its answers, or getting stuck. Brackets on the side mark groups of turns the tool identified as a recognisable pattern.</p>
       </div>
 
       <div class="tab-pane" id="tabProvenance" style="display:none!important">
@@ -2414,16 +2414,16 @@ function renderChartSummary(s) {
   }
   return `<div class="div-summary-strip">
     <div class="div-verdict-block">
-      <span class="div-strip-label">Session verdict</span>
+      <span class="div-strip-label">Overall</span>
       ${verdictHtml}
     </div>
     <div class="div-stat-block">
-      <span class="div-strip-label">Longest passive run</span>
+      <span class="div-strip-label">Longest passive stretch</span>
       <span class="div-stat-value">${runValue}</span>
       ${runSub ? `<span class="div-stat-sub">${esc(runSub)}</span>` : ""}
     </div>
     <div class="div-stat-block">
-      <span class="div-strip-label">High-agency turns</span>
+      <span class="div-strip-label">Turns where you led</span>
       <span class="div-stat-value">${s.highCount} of ${s.total}</span>
       <span class="div-stat-sub">${Math.round(s.highCount / s.total * 100)}% of session</span>
     </div>
@@ -3209,10 +3209,10 @@ function scoreClass(n) {
 }
 
 const DIM_TOOLTIPS = {
-  PQ: "Measures how actively the student drives the conversation — asking follow-up questions, challenging AI responses, and exploring ideas rather than just extracting content.",
-  SU: "Measures what the student does after pulling content from the AI. Extraction is neutral; what follows it reveals whether the student is processing or just collecting.",
-  CS: "Measures whether the student evaluates AI outputs critically — rejecting incorrect claims and refining imprecise ones rather than accepting everything at face value.",
-  OC: "Measures how much of the essay's conceptual content originates from the student rather than the AI, traced through the conversation history.",
+  PQ: "Did you lead the conversation? This looks at whether you asked follow-up questions, challenged the AI, and explored ideas — or mostly just asked it to generate things for you.",
+  SU: "After the AI gave you content, what did you do next? This looks at whether you thought critically about it and built on it, or just collected more.",
+  CS: "Did you ever disagree with the AI or push it to do better? This tracks how often you questioned or challenged what it gave you.",
+  OC: "How many of the ideas in your essay actually came from you? This traces which concepts you brought in versus which ones the AI introduced first.",
 };
 
 const SAMR_COLORS = {
@@ -3228,10 +3228,10 @@ const SAMR_BG_COLORS = {
   Redefinition: '#f5f3ff',
 };
 const SAMR_DESCRIPTIONS = {
-  Substitution: 'AI is used as a direct replacement for existing tools with no meaningful change to the thinking process. Ideas and content originate primarily from AI output.',
-  Augmentation: 'AI assists with functional enhancement, but the student\'s cognitive engagement is largely unchanged. Some independent thinking, but AI-generated content dominates.',
-  Modification: 'AI significantly transforms the task approach. The student shows meaningful original thinking, challenges AI responses, and builds on ideas with their own perspective.',
-  Redefinition: 'AI enables new kinds of thinking previously inconceivable. The student demonstrates high cognitive agency — questioning, synthesizing, and contributing original ideas throughout.',
+  Substitution: 'Most of the ideas in this session came from the AI, not from you. You used it as a shortcut — getting answers rather than building your own thinking.',
+  Augmentation: 'You used AI to get things done, but your own thinking didn\'t really develop through the process. Some original ideas are there, but AI-generated content did most of the work.',
+  Modification: 'You used AI to push your thinking further. You challenged it, added your own take, and made ideas your own. Real thinking happened in this session.',
+  Redefinition: 'You were in the driver\'s seat throughout — questioning, connecting ideas, and bringing your own perspective. The AI was your tool, not your author.',
 };
 
 function renderSAMRCircle(scores) {
@@ -3264,7 +3264,7 @@ function renderSAMRCircle(scores) {
         </svg>
       </div>
       <div class="samr-hero-content">
-        <div class="samr-hero-eyebrow">Overall SAMR Level</div>
+        <div class="samr-hero-eyebrow">Your AI Use Level</div>
         <div class="samr-hero-level" style="color:${color}">${SAMR}</div>
         <div class="samr-hero-desc">${desc}</div>
       </div>
@@ -3278,8 +3278,8 @@ function dimExplanation(key, scores) {
   if (key === "PQ") {
     if (total < 3) {
       return {
-        explain: `Only ${t(total)} detected — too short to measure prompting quality reliably.`,
-        nudge: "A deeper back-and-forth helps you process ideas. Aim for 5+ turns.",
+        explain: `Only ${t(total)} detected — not enough to get a reliable picture.`,
+        nudge: "A longer back-and-forth helps you actually process ideas. Aim for 5+ turns.",
         nudgeType: "coach",
       };
     }
@@ -3289,16 +3289,16 @@ function dimExplanation(key, scores) {
     if (parts.length === 0)  parts.push(`none of your ${t(total)} followed up on the AI's response`);
     let nudge = null, nudgeType = null;
     if (PQ >= 4 && challengeCount > 0) {
-      nudge = "Challenging the AI's claims keeps you thinking critically rather than just receiving information — it's what separates active learning from passive consumption.";
+      nudge = "Questioning the AI's answers means you're thinking for yourself, not just absorbing what it tells you. Keep that up.";
       nudgeType = "reinforce";
     } else if (PQ >= 4) {
-      nudge = "Responding to the AI's ideas rather than just issuing instructions means you're in a real dialogue — that's how conversations help you develop your own thinking.";
+      nudge = "Responding to what the AI actually says — rather than just giving it instructions — means you're having a real back-and-forth. That's how AI helps you develop your own ideas.";
       nudgeType = "reinforce";
     } else if (challengeCount === 0) {
-      nudge = "Try directly challenging the AI next time — 'how do you know that?' or 'what's the counter-argument?'";
+      nudge = "Try challenging the AI next time — ask 'how do you know that?' or 'what's the counter-argument?' It's a simple way to think more critically.";
       nudgeType = "coach";
     } else {
-      nudge = "Push further with follow-up questions. 'Why is that true?' or 'How would this apply to my argument?' deepens your engagement.";
+      nudge = "Keep asking follow-up questions. 'Why is that true?' or 'How does this connect to my argument?' will push you further.";
       nudgeType = "coach";
     }
     return { explain: `${parts.join("; ")} (out of ${total} total).`, nudge, nudgeType };
@@ -3309,10 +3309,10 @@ function dimExplanation(key, scores) {
       const highTotal = counts.claim + counts.conceptual + counts.challenge + counts.rejection + counts.refinement;
       let nudge = null, nudgeType = null;
       if (SU >= 4) {
-        nudge = "Staying in high-agency mode means you were generating and testing ideas rather than collecting them — the AI was a thinking partner, not a source.";
+        nudge = "You were coming up with and testing your own ideas throughout — the AI was a thinking partner, not just a source to copy from.";
         nudgeType = "reinforce";
       } else {
-        nudge = "Try intentionally asking the AI to generate something, then critically evaluate and rewrite it in your own voice.";
+        nudge = "Try asking the AI to generate something, then take a step back and rewrite it in your own words with your own take.";
         nudgeType = "coach";
       }
       return {
@@ -3327,10 +3327,10 @@ function dimExplanation(key, scores) {
     if (untracked > 0)           parts.push(`${untracked} at the end of the conversation`);
     let nudge = null, nudgeType = null;
     if (SU >= 4) {
-      nudge = "Following extraction with your own ideas means you're using the AI's output as raw material, not a finished product — that's the right relationship.";
+      nudge = "You treated what the AI gave you as a starting point, not a final answer. That's exactly the right approach.";
       nudgeType = "reinforce";
     } else {
-      nudge = "After each extraction, ask yourself: 'what do I actually think about this?' and write that next.";
+      nudge = "After you get content from the AI, pause and ask yourself: 'What do I actually think about this?' Then write that.";
       nudgeType = "coach";
     }
     return { explain: `You extracted content ${t(extractionEvents)}: ${parts.join("; ")}.`, nudge, nudgeType };
@@ -3350,10 +3350,10 @@ function dimExplanation(key, scores) {
     if (counts.refinement > 0) parts.push(`${t(counts.refinement)} steered or refined the AI's output`);
     let nudge = null, nudgeType = null;
     if (CS >= 4) {
-      nudge = "Pushing back on AI outputs is how you catch errors and make ideas yours. Skepticism isn't just a safety check — it's how you learn to form and defend your own positions.";
+      nudge = "Pushing back on the AI is how you catch mistakes and make ideas your own. It also builds the habit of forming and defending your own views.";
       nudgeType = "reinforce";
     } else {
-      nudge = "Keep building that skepticism. When the AI says something, ask yourself whether you actually agree before accepting it.";
+      nudge = "Keep building that habit. When the AI says something, ask yourself whether you actually agree before moving on.";
       nudgeType = "coach";
     }
     return { explain: `You pushed back ${t(skepticEvents)}: ${parts.join("; ")}.`, nudge, nudgeType };
@@ -3368,13 +3368,13 @@ function dimExplanation(key, scores) {
       if (aiBorn > 0)      parts.push(`${aiBorn} originated from the AI`);
       let nudge = null, nudgeType = null;
       if (OC >= 4) {
-        nudge = "When the ideas are genuinely yours, the AI becomes a tool for testing and refining your thinking rather than a replacement for it — that's what good AI collaboration looks like.";
+        nudge = "When the ideas are yours, the AI becomes a tool for testing and sharpening your thinking — not a replacement for it. That's the goal.";
         nudgeType = "reinforce";
       } else if (aiBorn > 0) {
-        nudge = "Find the AI-originated passages and rewrite them in your own voice before the final draft.";
+        nudge = "Find the parts the AI wrote and rewrite them in your own words before your final draft.";
         nudgeType = "coach";
       } else {
-        nudge = "Focus on adding your own analysis — claims, judgements, and conclusions the AI didn't give you.";
+        nudge = "Try adding more of your own analysis — your judgements, your conclusions, things the AI didn't say.";
         nudgeType = "coach";
       }
       return { explain: `Of ${pt} essay concept${pt !== 1 ? "s" : ""} traced: ${parts.join("; ")}.`, nudge, nudgeType };
@@ -3383,14 +3383,14 @@ function dimExplanation(key, scores) {
     const claimLike = counts.claim + counts.narrative;
     let nudge = null, nudgeType = null;
     if (OC >= 4) {
-      nudge = "When the ideas are genuinely yours, the AI becomes a tool for testing and refining your thinking rather than a replacement for it.";
+      nudge = "When the ideas are yours, the AI becomes a tool for testing and sharpening your thinking — not a replacement for it.";
       nudgeType = "reinforce";
     } else {
-      nudge = "Focus on rewriting AI-generated passages in your own voice and adding your own analysis.";
+      nudge = "Try rewriting AI-generated sections in your own words and adding your own analysis.";
       nudgeType = "coach";
     }
     return {
-      explain: `${t(claimLike)} contained original claims or context out of ${total} total (provenance estimated without Groq).`,
+      explain: `${t(claimLike)} contained your own points or context out of ${total} total (estimated — add a Groq key for a more accurate result).`,
       nudge, nudgeType,
     };
   }
@@ -3400,10 +3400,10 @@ function dimExplanation(key, scores) {
 
 function renderSummary(scores) {
   const dims = [
-    { key: "PQ", name: "Prompt Quality" },
-    { key: "SU", name: "Selective Use" },
-    { key: "CS", name: "Calibrated Skepticism" },
-    { key: "OC", name: "Original Contribution" },
+    { key: "PQ", name: "How You Asked" },
+    { key: "SU", name: "What You Did With It" },
+    { key: "CS", name: "Did You Push Back?" },
+    { key: "OC", name: "Your Own Ideas" },
   ];
   return dims.map(d => {
     const { explain, nudge, nudgeType } = dimExplanation(d.key, scores);
@@ -3471,22 +3471,22 @@ const DRIVING_LABELS  = new Set(["claim","conceptual","challenge","rejection","r
 const FOLLOWING_LABELS = new Set(["extraction","validation","stuck","feedback","narrative"]);
 
 const LABEL_DESCRIPTIONS = {
-  claim:      { title: "Claim", body: "You stated a position or assertion of your own — something you believe or are arguing, not something the AI generated. These are moments where your own thinking is on the table." },
-  conceptual: { title: "Conceptual", body: "You asked a 'how' or 'why' question to understand something more deeply, rather than just retrieve content. These turns drive comprehension, not collection." },
-  challenge:  { title: "Challenge", body: "You questioned or pushed back on something the AI said — asking for evidence, pointing out a problem, or disputing a claim. This is the core of critical engagement with AI." },
-  rejection:  { title: "Rejection", body: "You explicitly disagreed with or dismissed what the AI produced. A strong signal that you're evaluating output rather than accepting it." },
-  refinement: { title: "Refinement", body: "You redirected or adjusted the AI's output — telling it what to change, what to cut, or how to improve. You're steering, not just receiving." },
-  narrative:  { title: "Narrative", body: "You gave the AI personal context, framing, or background about your situation or task. These turns help the AI understand your purpose but don't directly advance the argument." },
-  pivot:      { title: "Pivot", body: "You shifted to a new topic or direction, opening a new thread in the conversation. Whether this was productive depends on what came next." },
-  feedback:   { title: "Feedback", body: "You gave the AI a reaction to its output — like 'good' or 'that works' — without substantially redirecting it. Low-information turns on their own; significant if followed by a challenge or refinement." },
-  extraction: { title: "Extraction", body: "You asked the AI to produce content, facts, or information. Extraction is neutral — it's what you do immediately after it that determines whether you're building or just collecting." },
-  validation: { title: "Validation", body: "You asked the AI to confirm or check something — often its own previous output. When frequent, this can signal reliance on the AI as judge rather than developing your own evaluative capacity." },
-  stuck:      { title: "Stuck", body: "You signalled difficulty or uncertainty and asked the AI to help you move forward. Occasional stuck turns are normal; repeated ones in sequence suggest the AI is doing the work of getting unstuck." },
+  claim:      { title: "Claim", body: "You put forward your own point of view — something you believe or are arguing, not something the AI gave you. These are the moments where your own thinking shows up." },
+  conceptual: { title: "Conceptual", body: "You asked a 'how' or 'why' question to actually understand something, not just get content. These turns show you're thinking, not just collecting." },
+  challenge:  { title: "Challenge", body: "You questioned or pushed back on what the AI said — asking for evidence, pointing out a problem, or disagreeing with a claim. This is what critical thinking with AI looks like." },
+  rejection:  { title: "Rejection", body: "You disagreed with or dismissed what the AI gave you. A clear sign you're deciding what's good and what isn't, rather than just accepting everything." },
+  refinement: { title: "Refinement", body: "You told the AI what to change, cut, or do differently. You were steering it — not just reading what it produced." },
+  narrative:  { title: "Narrative", body: "You gave the AI context about your situation, task, or background. These turns help the AI understand what you need, but don't directly develop your argument." },
+  pivot:      { title: "Pivot", body: "You changed topic or direction, starting a new thread in the conversation. Whether that was a good move depends on what came after." },
+  feedback:   { title: "Feedback", body: "You reacted to the AI's output — something like 'good' or 'that works' — without changing direction. Not very significant on its own, but useful if it leads to a challenge or refinement." },
+  extraction: { title: "Extraction", body: "You asked the AI to give you content, facts, or information. Getting content from AI isn't a bad thing — what matters is what you do with it next." },
+  validation: { title: "Validation", body: "You asked the AI to confirm or check something — often its own previous answer. If this happens a lot, it might mean you're relying on the AI to judge things instead of forming your own opinion." },
+  stuck:      { title: "Stuck", body: "You told the AI you were unsure or struggling, and asked it to help you move forward. Getting stuck is normal — but if it happens a lot in a row, it may mean the AI is doing the thinking instead of you." },
 };
 
 const PATTERNS_DESCRIPTION = {
   title: "Patterns",
-  body: "Patterns are recurring sequences of turns the tool detected — for example, a string of extractions, or a challenge followed by a refinement. They're identified automatically based on the order and type of your turns. The pattern groups below show which turns belong together and what sequence they form.",
+  body: "Patterns are sequences of turns that the tool recognised — like a run of content requests, or a challenge followed by a refinement. They're detected automatically based on the order and types of your turns. The groups below show which turns belong together and what pattern they form.",
 };
 
 function sessionBucket(label) {
@@ -3595,7 +3595,7 @@ function renderReflect(classified, provenanceData, essayRaw) {
   }
 
   const essayNote = !hasEssay
-    ? `<div class="no-essay-note">Paste an essay to see which turns made it into your final draft.</div>`
+    ? `<div class="no-essay-note">Paste your essay above to see which of your turns made it into your final draft.</div>`
     : "";
 
   return `
