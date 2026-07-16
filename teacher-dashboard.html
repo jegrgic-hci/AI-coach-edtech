@@ -615,6 +615,76 @@ header .subtitle { font-size: 12px; color: var(--text-muted); }
 }
 .flag-type-integrity { background: var(--terra-tint); color: var(--terra); }
 .flag-type-score    { background: var(--amber-tint); color: var(--amber); }
+
+/* ── Reflection arc ── */
+.reflection-arc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+}
+.arc-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--text-muted); margin-bottom: 8px;
+}
+.arc-entries {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.arc-entry {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--grey-tint); border: 1px solid var(--border);
+  border-radius: 5px; padding: 4px 8px;
+  cursor: pointer; transition: background 0.1s, border-color 0.1s;
+  font-size: 11px;
+}
+.arc-entry:hover { background: var(--blue-tint); border-color: var(--blue-light); }
+.arc-badge {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+  padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
+}
+.arc-full  { background: var(--blue-tint);  color: var(--blue); }
+.arc-delta { background: var(--amber-tint); color: var(--amber); }
+.arc-excerpt { color: var(--text-mid); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arc-score { font-size: 10px; font-weight: 700; color: var(--text-muted); flex-shrink: 0; }
+.arc-arrow { font-size: 11px; color: var(--text-muted); }
+
+/* ── Per-submission reflection ── */
+.reflection-details {
+  margin-top: 7px; padding-top: 7px;
+  border-top: 1px solid var(--border);
+}
+.reflection-summary {
+  display: flex; align-items: center; gap: 7px;
+  cursor: pointer; list-style: none; user-select: none;
+  font-size: 11px;
+}
+.reflection-summary::-webkit-details-marker { display: none; }
+.reflection-summary::before { content: '▸'; font-size: 9px; color: var(--text-muted); flex-shrink: 0; }
+details[open] .reflection-summary::before { content: '▾'; }
+.reflect-type-badge {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+  padding: 1px 6px; border-radius: 3px; flex-shrink: 0;
+  background: var(--blue-tint); color: var(--blue);
+}
+.arc-delta-inline { background: var(--amber-tint); color: var(--amber); }
+.score-delta {
+  font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
+}
+.score-delta.up   { background: var(--green-tint); color: var(--green); }
+.score-delta.down { background: var(--terra-tint);  color: var(--terra); }
+.score-delta.flat { background: var(--grey-tint);   color: var(--text-muted); }
+.reflect-excerpt { color: var(--text-muted); font-style: italic; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reflect-full {
+  margin-top: 8px; padding: 8px 10px;
+  background: var(--grey-tint); border-radius: 5px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.reflect-section { font-size: 11px; color: var(--text-mid); line-height: 1.5; }
+.reflect-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--text-muted); margin-right: 5px;
+}
 </style>
 </head>
 <body>
@@ -774,6 +844,60 @@ function generateMockData(seed = 42) {
     }
   }
 
+  function genReflection(archetype, idx, prevTotal, currTotal) {
+    if (idx === 0) {
+      const connects = {
+        high:        'I had read prior research on this topic and came in with a clear position I wanted to test.',
+        passive:     'I had some basic ideas about the topic from class.',
+        flagged:     'I already knew a lot about this — I had done substantial research beforehand.',
+        improver:    'I knew the general subject but not the specific angle we ended up taking.',
+        inconsistent:'I had some thoughts but they were fairly vague going in.',
+        missing:     'I had a general sense of the topic.',
+      };
+      const extends_ = {
+        high:        'The AI helped me see two counterarguments I hadn\'t considered, which I then pushed back on.',
+        passive:     'The AI gave me new directions I could include.',
+        flagged:     'It opened up some useful angles on the topic.',
+        improver:    'I found a new framing for my argument I wouldn\'t have reached alone.',
+        inconsistent:'It helped me think about the topic from a different angle.',
+        missing:     'It helped clarify some ideas I was unsure about.',
+      };
+      const challenges = {
+        high:        'I disagreed with its first take on the evidence and pushed back — asked it to reconsider with a different framing.',
+        passive:     'I wasn\'t sure about a few things but mostly went with what it suggested.',
+        flagged:     'I pushed back a lot and challenged most of what it said throughout.',
+        improver:    'I questioned one of its claims and asked for more supporting evidence.',
+        inconsistent:'There were moments I wasn\'t convinced but I didn\'t always say so.',
+        missing:     'I had some doubts but didn\'t really challenge anything directly.',
+      };
+      return {
+        reflectionType: 'full',
+        reflection: {
+          connect:   connects[archetype]   || connects.missing,
+          extend:    extends_[archetype]   || extends_.missing,
+          challenge: challenges[archetype] || challenges.missing,
+        },
+      };
+    }
+    const scoreChange = prevTotal !== undefined ? currTotal - prevTotal : 0;
+    const deltas = {
+      high:        'I came in with a sharper question this time and steered the conversation more deliberately.',
+      passive:     'I used it similarly to before — mostly to get ideas I could include in the draft.',
+      flagged:     scoreChange <= 0
+                     ? 'I pushed back much more this time and was more skeptical of what it gave me.'
+                     : 'I tried to approach it with a clearer purpose.',
+      improver:    scoreChange > 0
+                     ? 'I tried to question the AI more and add my own framing instead of just accepting its first answer.'
+                     : 'I wasn\'t sure what to change this time — I approached it pretty much the same way.',
+      inconsistent: 'I approached it a bit differently but I\'m not sure it changed much.',
+      missing:     'I used it about the same as before.',
+    };
+    return {
+      reflectionType: 'delta',
+      reflection: { delta: deltas[archetype] || deltas.missing },
+    };
+  }
+
   function genSubs(student, assignment) {
     const { archetype } = student;
 
@@ -826,7 +950,9 @@ function generateMockData(seed = 42) {
         ts = new Date(startMs + offset);
       }
 
-      const sub = { ts, pq, su, cs, oc };
+      const prevTotal = subs.length > 0 ? total(subs[subs.length - 1]) : undefined;
+      const ref = genReflection(archetype, i, prevTotal, pq + su + cs + oc);
+      const sub = { ts, pq, su, cs, oc, ...ref };
       if (isFlagged) {
         sub.integrityFlags = shuffle(ALL_FLAGS).slice(0, ri(1, 2));
       }
@@ -924,6 +1050,28 @@ const FLAG_META = {
       'Compare the two submissions side by side using the scores and timestamps above.',
       'Ask the student what changed between the two versions and why they resubmitted so quickly.',
       'A spike on a single dimension is less concerning than a broad jump across all four.',
+    ],
+  },
+  'reflection-score-mismatch': {
+    short: 'Reflection–Score Gap',
+    desc: "Student described pushback or prior knowledge the scores don't show",
+    what: "The student's reflection described challenging or disagreeing with the AI, or claimed strong prior knowledge — but their scores tell a different story. Their Calibrated Skepticism or Original Contribution score was low, suggesting little actual pushback or independent contribution occurred in the session.",
+    why: "The reflection contained language associated with critical engagement (\"pushed back\", \"challenged\", \"disagreed\", \"already knew\") while the corresponding score was below 2.5. This mismatch may mean the student overestimated their own engagement, or they understand what good process looks like without yet having the habit of acting on it.",
+    steps: [
+      "Read the student's reflection challenge response alongside their actual session log.",
+      "Ask the student to point to a specific moment in the chat where they disagreed with the AI — if they can\'t, that\'s informative.",
+      "This is often a teaching opportunity: the student may have the right instincts but not yet the habit of acting on them in real time.",
+    ],
+  },
+  'reflection-delta-mismatch': {
+    short: 'Delta–Score Mismatch',
+    desc: "Student described improvement in their follow-up reflection but scores didn't change",
+    what: "The student's \"What shifted?\" reflection described becoming more critical, skeptical, or independent in how they used the AI — but their TAU scores did not increase between submissions.",
+    why: "The delta reflection contained improvement language (\"more skeptical\", \"pushed back more\", \"more critical\") while the total score stayed the same or decreased. This suggests the student may be describing the behavior they intended rather than the behavior they demonstrated.",
+    steps: [
+      "Look at the specific dimension scores the student implicitly claimed to improve — CS if they mentioned skepticism, OC if they mentioned more independent thinking.",
+      "Ask the student what specific change they made to their process, and whether they can point to it in the chat log.",
+      "Consider whether the student is reflecting on intent rather than action — this is common and addressable with a brief one-on-one conversation.",
     ],
   },
 };
@@ -1063,6 +1211,28 @@ function getStudentSignal(studentId, assignmentId = null) {
   if (avgCS < 2.5)            return { status: 'attention', reason: 'Rarely challenges or refines AI suggestions' };
   if (avgOC < 2.5)            return { status: 'attention', reason: 'Most ideas appear AI-initiated' };
 
+  const PUSHBACK_KW    = ['disagreed', 'pushed back', 'challenged', 'wrong', "didn't think", 'questioned', 'asked it to reconsider'];
+  const IMPROVEMENT_KW = ['more skeptical', 'pushed back more', 'more critical', 'less reliant', 'questioned more', 'challenged more'];
+
+  for (const a of assignments) {
+    const subs = getSubs(studentId, a.id);
+    for (let i = 0; i < subs.length; i++) {
+      const sub = subs[i];
+      if (sub.reflectionType === 'full' && sub.reflection) {
+        const challenge = (sub.reflection.challenge || '').toLowerCase();
+        if (sub.cs < 2.5 && PUSHBACK_KW.some(kw => challenge.includes(kw))) {
+          return { status: 'attention', reason: 'Reflection claims pushback the scores don\'t show', learnMoreKey: 'reflection-score-mismatch' };
+        }
+      }
+      if (i > 0 && sub.reflectionType === 'delta' && sub.reflection) {
+        const delta = (sub.reflection.delta || '').toLowerCase();
+        if (total(sub) <= total(subs[i - 1]) && IMPROVEMENT_KW.some(kw => delta.includes(kw))) {
+          return { status: 'attention', reason: 'Student described improvement but scores didn\'t change', learnMoreKey: 'reflection-delta-mismatch' };
+        }
+      }
+    }
+  }
+
   return { status: 'on-track', reason: '' };
 }
 
@@ -1116,6 +1286,67 @@ function distributionBar(studentIds, assignmentId, w = 120, h = 10) {
 
 // ── Drill panel ───────────────────────────────────────────────────────────────
 
+function reflectionArc(subs) {
+  if (!subs.some(s => s.reflection)) return '';
+  const entries = subs.map((sub, i) => {
+    const t = total(sub);
+    const isFull = sub.reflectionType === 'full';
+    const text = isFull
+      ? (sub.reflection?.connect || '')
+      : (sub.reflection?.delta || '');
+    const words = text.trim().split(/\s+/).slice(0, 5).join(' ');
+    const excerpt = words + (text.trim().split(/\s+/).length > 5 ? '…' : '');
+    const badge = isFull ? 'CEC' : 'Δ';
+    const badgeCls = isFull ? 'arc-full' : 'arc-delta';
+    return `<div class="arc-entry" onclick="this.closest('.sub-history').children[${subs.length - 1 - i}].scrollIntoView({behavior:'smooth',block:'nearest'})">
+      <span class="arc-badge ${badgeCls}">${badge}</span>
+      <span class="arc-excerpt">${excerpt}</span>
+      <span class="arc-score">${t}/20</span>
+    </div>`;
+  });
+  return `<div class="reflection-arc">
+    <div class="arc-label">Reflection arc</div>
+    <div class="arc-entries">${entries.join('<span class="arc-arrow">→</span>')}</div>
+  </div>`;
+}
+
+function renderReflectionSection(sub, prevSub) {
+  if (!sub.reflection) return '';
+  const isFull = sub.reflectionType === 'full';
+  let badgeLabel, scoreDelta = '', fullContent;
+
+  if (isFull) {
+    badgeLabel = 'Connect · Extend · Challenge';
+    fullContent = `
+      <div class="reflect-section"><span class="reflect-label">Connect</span>${sub.reflection.connect || ''}</div>
+      <div class="reflect-section"><span class="reflect-label">Extend</span>${sub.reflection.extend || ''}</div>
+      <div class="reflect-section"><span class="reflect-label">Challenge</span>${sub.reflection.challenge || ''}</div>`;
+  } else {
+    badgeLabel = 'What shifted?';
+    if (prevSub) {
+      const change = total(sub) - total(prevSub);
+      const cls = change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
+      const sign = change > 0 ? '+' : '';
+      scoreDelta = `<span class="score-delta ${cls}">${sign}${change}</span>`;
+    }
+    fullContent = `<div class="reflect-section">${sub.reflection.delta || ''}</div>`;
+  }
+
+  const excerptSrc = isFull ? (sub.reflection.challenge || sub.reflection.connect || '') : (sub.reflection.delta || '');
+  const excerptWords = excerptSrc.trim().split(/\s+/).slice(0, 10).join(' ');
+  const excerpt = excerptWords + (excerptSrc.trim().split(/\s+/).length > 10 ? '…' : '');
+  const badgeCls = isFull ? '' : 'arc-delta-inline';
+
+  return `<details class="reflection-details">
+    <summary class="reflection-summary">
+      <span class="reflect-type-badge ${badgeCls}">${badgeLabel}</span>
+      ${scoreDelta}
+      <span class="reflect-excerpt">${excerpt}</span>
+    </summary>
+    <div class="reflect-full">${fullContent}</div>
+  </details>`;
+}
+
 function renderDrillPanel(subs, label, sig) {
   if (!subs.length) return `<div class="drill-panel"><em style="color:var(--text-muted);font-size:13px">No submissions for this assignment.</em></div>`;
   const flags   = checkFlag(subs);
@@ -1127,6 +1358,7 @@ function renderDrillPanel(subs, label, sig) {
     const flagInfo = flagIdx.has(i) ? flags.find(f => f.submissionIndex === i) : null;
     const iFlags   = sub.integrityFlags || [];
     const isLast   = i === subs.length - 1;
+    const prevSub  = i > 0 ? subs[i - 1] : null;
 
     const flagLines = [];
     if (flagInfo) {
@@ -1168,13 +1400,20 @@ function renderDrillPanel(subs, label, sig) {
         <span class="samr-badge ${s.cls}" style="width:100px;text-align:center;flex-shrink:0">${s.label}</span>
       </div>
       ${flagRow}
+      ${renderReflectionSection(sub, prevSub)}
     </div>`;
   }).join('');
-  const engagementNote = sig && sig.status === 'attention' && sig.reason
-    ? `<div style="padding:8px 14px;font-size:11px;color:var(--text-muted);border-top:1px solid var(--border)">${sig.reason}</div>`
+
+  const learnMoreLink = sig && sig.learnMoreKey
+    ? ` <a class="flag-learn-more" onclick="openFlagTray('${sig.learnMoreKey}');event.stopPropagation()">Learn more</a>`
     : '';
+  const engagementNote = sig && sig.status === 'attention' && sig.reason
+    ? `<div style="padding:8px 14px;font-size:11px;color:var(--text-muted);border-top:1px solid var(--border)">${sig.reason}${learnMoreLink}</div>`
+    : '';
+
   return `<div class="drill-panel">
     <div class="drill-panel-header">Submission history — ${label}</div>
+    ${reflectionArc(subs)}
     <div class="sub-history">${rows}</div>
     ${engagementNote}
   </div>`;
@@ -2137,6 +2376,13 @@ function openFlagTray(key, spikeCtx) {
   const meta = FLAG_META[key];
   if (!meta) return;
 
+  const type = FLAG_TYPES[key] || 'integrity';
+  const iconEl = document.querySelector('.tray-flag-icon');
+  if (iconEl) {
+    iconEl.textContent = type === 'reflection' ? '●' : '⚑';
+    iconEl.style.color = type === 'reflection' ? 'var(--amber)' : 'var(--terra)';
+  }
+
   let desc = meta.desc;
   if (key === 'score-spike' && spikeCtx) {
     desc = `Score jumped +${spikeCtx.scoreDiff} points in ${spikeCtx.mins} minute${spikeCtx.mins !== 1 ? 's' : ''}`;
@@ -2173,11 +2419,13 @@ function closeFlagTray() {
 // ── Flag detection modal ───────────────────────────────────────────────────────
 
 const FLAG_TYPES = {
-  'stylistic-inconsistency': 'integrity',
-  'unnatural-fluency':       'integrity',
-  'provenance-mismatch':     'integrity',
-  'shadow-session-pattern':  'integrity',
-  'score-spike':             'score',
+  'stylistic-inconsistency':   'integrity',
+  'unnatural-fluency':         'integrity',
+  'provenance-mismatch':       'integrity',
+  'shadow-session-pattern':    'integrity',
+  'score-spike':               'score',
+  'reflection-score-mismatch': 'reflection',
+  'reflection-delta-mismatch': 'reflection',
 };
 
 function openFlagModal() {
@@ -2186,7 +2434,9 @@ function openFlagModal() {
     const type    = FLAG_TYPES[key] || 'integrity';
     const typeLabel = type === 'integrity'
       ? `<span class="flag-type-label flag-type-integrity">Integrity</span>`
-      : `<span class="flag-type-label flag-type-score">Score analysis</span>`;
+      : type === 'reflection'
+        ? `<span class="flag-type-label flag-type-score">Reflection</span>`
+        : `<span class="flag-type-label flag-type-score">Score analysis</span>`;
     const steps = f.steps?.length
       ? `<div class="flag-card-section">What to do</div>
          <ol class="flag-card-steps">${f.steps.map(s => `<li>${s}</li>`).join('')}</ol>`

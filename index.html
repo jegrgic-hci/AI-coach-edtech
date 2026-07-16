@@ -1089,6 +1089,52 @@
     }
     .samr-hero-level { font-size: 32px; font-weight: 800; line-height: 1.1; margin-bottom: 10px; }
     .samr-hero-desc  { font-size: 14px; color: var(--muted); line-height: 1.65; max-width: 520px; }
+
+    /* ── Reflection step ──────────────────────────────────── */
+    .reflect-prompts { display: flex; flex-direction: column; gap: 16px; }
+    .reflect-prompt  { display: flex; flex-direction: column; gap: 6px; }
+    .reflect-prompt-header { display: flex; align-items: flex-start; gap: 10px; }
+    .reflect-pillar {
+      font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em;
+      padding: 3px 9px; border-radius: 99px; flex-shrink: 0; margin-top: 1px;
+    }
+    .reflect-pillar.connect   { background: #dbeafe; color: #1e40af; }
+    .reflect-pillar.extend    { background: #dcfce7; color: #166534; }
+    .reflect-pillar.challenge { background: #fef9c3; color: #854d0e; }
+    .reflect-pillar.delta     { background: #f3e8ff; color: #6b21a8; }
+    .reflect-prompt-q { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.5; }
+    .reflect-textarea {
+      width: 100%; min-height: 70px; padding: 10px 12px;
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 13px; color: var(--text); font-family: inherit;
+      line-height: 1.55; resize: vertical; transition: border-color 0.12s;
+    }
+    .reflect-textarea:focus { outline: none; border-color: var(--accent); }
+    .reflect-char-count { font-size: 11px; color: var(--muted); text-align: right; }
+    .reflect-draft-badge {
+      align-self: flex-start; font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .07em; padding: 3px 10px; border-radius: 99px;
+      background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff;
+    }
+    .prior-reflect-details {
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    }
+    .prior-reflect-details summary {
+      padding: 9px 14px; font-size: 12px; font-weight: 600; color: var(--muted);
+      cursor: pointer; user-select: none; list-style: none;
+    }
+    .prior-reflect-details summary::-webkit-details-marker { display: none; }
+    .prior-reflect-details summary:hover { background: var(--bg); color: var(--text); }
+    .prior-reflect-body {
+      padding: 12px 14px; font-size: 13px; color: var(--text); line-height: 1.6;
+      border-top: 1px solid var(--border); background: #fafafa;
+    }
+    .prior-reflect-body strong { color: var(--muted); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+    .prior-reflect-section { margin-bottom: 10px; }
+    .prior-reflect-section:last-child { margin-bottom: 0; }
+    .reflect-gate-hint {
+      font-size: 12px; color: var(--muted); font-style: italic;
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
@@ -1133,18 +1179,11 @@
         <div class="step-card-title">Prepare your chat log</div>
       </div>
       <div class="step-card-body" id="stepBody1">
-        <p class="step-helper">Go back to your AI chat and run this prompt — it reformats your conversation into a file you can upload here.</p>
-        <div class="step-mini-list">
-          <div class="step-mini-row">
-            <div class="step-mini-num">1</div>
-            <div class="step-mini-text">Open the same AI chat you used for your work (ChatGPT, Claude, Gemini, etc.)</div>
-          </div>
-          <div class="step-mini-row">
-            <div class="step-mini-num">2</div>
-            <div class="step-mini-text">Copy the prompt below and paste it as your next message, then send it</div>
-          </div>
-        </div>
-        <div class="format-prompt-box" id="formatPromptBox">Reformat our entire conversation from the very beginning using these exact markers:
+        <p class="step-helper">Paste this once at the very start of your AI session — before any work begins. The AI will automatically produce formatted checkpoints as you go.</p>
+
+        <div class="format-prompt-box" id="formatPromptBox">Before we start: every 15 of my messages, automatically output a formatted checkpoint of our full conversation so far, then continue normally. Also, whenever I say "final export", output a final checkpoint of the complete conversation.
+
+Use these exact markers for every checkpoint:
 
 &lt;&lt;&lt;STUDENT&gt;&gt;&gt;
 [student message]
@@ -1157,16 +1196,26 @@ Rules:
 - Every message must have a marker on its own line above it
 - Copy every message in full — do not summarize or shorten anything
 - Use only &lt;&lt;&lt;STUDENT&gt;&gt;&gt; and &lt;&lt;&lt;AI&gt;&gt;&gt; — no other labels or formatting
+- Do not use bold, italic, or any markdown on the markers themselves
 
-When done, save the result as a markdown file named chat_log.md so I can download it. If your platform does not support file downloads, output the full formatted text so I can copy and save it manually.</div>
+This is for a school tool I'm using.</div>
         <button class="copy-prompt-btn" id="copyPromptBtn" onclick="copyFormatPrompt()">Copy prompt</button>
-        <div class="step-mini-list">
+
+        <div class="step-mini-list" style="margin-top:16px;">
+          <div class="step-mini-row">
+            <div class="step-mini-num">1</div>
+            <div class="step-mini-text">Each time a checkpoint appears, copy it and save it as a <code>.txt</code> file (e.g. <code>checkpoint_1.txt</code>, <code>checkpoint_2.txt</code>)</div>
+          </div>
+          <div class="step-mini-row">
+            <div class="step-mini-num">2</div>
+            <div class="step-mini-text">When you're done, send <strong>final export</strong> to capture the last segment</div>
+          </div>
           <div class="step-mini-row">
             <div class="step-mini-num">3</div>
-            <div class="step-mini-text">Download the <code>chat_log.md</code> file your AI creates — or copy the output and save it as a <code>.txt</code> file</div>
+            <div class="step-mini-text">Upload all your saved files in the next step — they will be merged automatically</div>
           </div>
         </div>
-        <button class="step-next-btn" onclick="completeStep1()">I have my file — next →</button>
+        <button class="step-next-btn" onclick="completeStep1()">I have my file(s) — next →</button>
       </div>
     </div>
 
@@ -1213,6 +1262,17 @@ When done, save the result as a markdown file named chat_log.md so I can downloa
         <div id="essayFilesList" class="uploaded-files-list"></div>
         <textarea id="essayInput" style="display:none"></textarea>
         <button class="step-skip-link" onclick="skipEssay()">Skip this step →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Reflect -->
+    <div class="step-card locked" id="stepCard4">
+      <div class="step-card-header" onclick="stepHeaderClick(4)">
+        <div class="step-num" id="stepNum4">4</div>
+        <div class="step-card-title">Reflect on your process</div>
+      </div>
+      <div class="step-card-body" id="stepBody4">
+        <div id="reflectBody"></div>
       </div>
     </div>
 
@@ -1509,7 +1569,7 @@ essayUploadZone.addEventListener("drop", e => {
 
 // ─── Stepper ─────────────────────────────────────────────────────────────────
 
-const stepState = { 1: 'active', 2: 'locked', 3: 'locked' };
+const stepState = { 1: 'active', 2: 'locked', 3: 'locked', 4: 'locked' };
 
 function stepHeaderClick(n) {
   if (stepState[n] === 'locked') return;
@@ -1546,8 +1606,9 @@ function markStep2Complete(filename) {
   const lbl = document.getElementById('step2FileLabel');
   lbl.textContent = filename; lbl.style.display = '';
   document.getElementById('stepCard2').classList.add('collapsed');
-  document.getElementById('analyzeBtn').disabled = false;
   if (stepState[3] === 'locked') unlockStep(3);
+  if (stepState[4] === 'locked') unlockStep(4);
+  initReflectStep();
 }
 
 function skipEssay() {
@@ -1555,17 +1616,190 @@ function skipEssay() {
 }
 
 function resetStepper() {
-  [1, 2, 3].forEach(n => {
+  [1, 2, 3, 4].forEach(n => {
     const card = document.getElementById(`stepCard${n}`);
     const num  = document.getElementById(`stepNum${n}`);
     num.textContent = n; num.classList.remove('done');
     card.classList.remove('collapsed', 'locked');
     if (n > 1) card.classList.add('locked');
   });
-  stepState[1] = 'active'; stepState[2] = 'locked'; stepState[3] = 'locked';
+  stepState[1] = 'active'; stepState[2] = 'locked'; stepState[3] = 'locked'; stepState[4] = 'locked';
   document.getElementById('step2FileLabel').style.display = 'none';
   document.getElementById('step3FileLabel').style.display = 'none';
+  document.getElementById('reflectBody').innerHTML = '';
   document.getElementById('analyzeBtn').disabled = true;
+}
+
+// ─── Submission history & reflection ─────────────────────────────────────────
+
+function djb2Hash(str) {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) { h = ((h << 5) + h) + str.charCodeAt(i); h |= 0; }
+  return (h >>> 0).toString(36);
+}
+
+function normText(s) { return (s || '').trim().replace(/\s+/g, ' ').toLowerCase(); }
+function wordTokens(text) { return ((text || '').toLowerCase().match(/\b[a-z]{3,}\b/g) || []); }
+function jaccardSim(a, b) {
+  const setA = new Set(wordTokens(a));
+  const setB = new Set(wordTokens(b));
+  if (!setA.size && !setB.size) return 1;
+  const inter = [...setA].filter(w => setB.has(w)).length;
+  return inter / new Set([...setA, ...setB]).size;
+}
+
+const SUBMISSIONS_KEY = 'cta_submissions';
+
+function loadSubmissions() {
+  try { return JSON.parse(localStorage.getItem(SUBMISSIONS_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function storeSubmission(record) {
+  const submissions = loadSubmissions();
+  submissions.push(record);
+  try { localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(submissions.slice(-50))); } catch { /* quota */ }
+}
+
+function reflectionText(submission) {
+  const r = submission.reflection || {};
+  if (submission.reflectionType === 'delta') return r.delta || '';
+  return [r.connect, r.extend, r.challenge].filter(Boolean).join(' ');
+}
+
+function checkReflectionDuplicate(reflectionData) {
+  const currentText = reflectionData.type === 'delta'
+    ? (reflectionData.delta || '')
+    : [(reflectionData.connect || ''), (reflectionData.extend || ''), (reflectionData.challenge || '')].join(' ');
+  if (!currentText.trim()) return false;
+  const submissions = loadSubmissions();
+  const fp = djb2Hash(normText(currentText));
+  if (submissions.some(s => djb2Hash(normText(reflectionText(s))) === fp)) return true;
+  return submissions.slice(-8).some(s => jaccardSim(currentText, reflectionText(s)) >= 0.85);
+}
+
+function relativeDate(ts) {
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 2)   return 'just now';
+  if (mins < 60)  return `${mins} minutes ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24)   return hrs === 1 ? '1 hour ago' : `${hrs} hours ago`;
+  const days = Math.floor(hrs / 24);
+  return days === 1 ? 'yesterday' : `${days} days ago`;
+}
+
+// ─── Reflection step rendering ────────────────────────────────────────────────
+
+function renderFullReflectHTML() {
+  return `
+    <p class="step-helper" style="margin-bottom:4px">Three short questions about how you used AI. Your responses are included in your teacher's report — honest answers help show the work was genuinely yours.</p>
+    <p class="reflect-gate-hint">Write at least 20 characters in any field to unlock Analyze.</p>
+    <div class="reflect-prompts">
+      <div class="reflect-prompt">
+        <div class="reflect-prompt-header">
+          <span class="reflect-pillar connect">Connect</span>
+          <span class="reflect-prompt-q">What did you already know about this topic before the conversation started? How did that shape the questions you asked?</span>
+        </div>
+        <textarea class="reflect-textarea" id="reflectConnect" placeholder="Your prior knowledge and how it directed the conversation…"></textarea>
+        <div class="reflect-char-count" id="reflectCharConnect"></div>
+      </div>
+      <div class="reflect-prompt">
+        <div class="reflect-prompt-header">
+          <span class="reflect-pillar extend">Extend</span>
+          <span class="reflect-prompt-q">What did using AI push you to think about that you wouldn't have reached on your own? What new directions emerged?</span>
+        </div>
+        <textarea class="reflect-textarea" id="reflectExtend" placeholder="New ideas or directions that emerged from the conversation…"></textarea>
+        <div class="reflect-char-count" id="reflectCharExtend"></div>
+      </div>
+      <div class="reflect-prompt">
+        <div class="reflect-prompt-header">
+          <span class="reflect-pillar challenge">Challenge</span>
+          <span class="reflect-prompt-q">Where did you disagree with, question, or push back on the AI? What made you skeptical of something it said?</span>
+        </div>
+        <textarea class="reflect-textarea" id="reflectChallenge" placeholder="Moments where you questioned the AI's responses…"></textarea>
+        <div class="reflect-char-count" id="reflectCharChallenge"></div>
+      </div>
+    </div>`;
+}
+
+function renderDeltaReflectHTML(lastSubmission) {
+  const lastDate = relativeDate(lastSubmission.ts);
+  const draftNum = (lastSubmission.draftNumber || 1) + 1;
+  const r = lastSubmission.reflection || {};
+
+  let priorSections = '';
+  if (lastSubmission.reflectionType === 'full') {
+    if (r.connect)   priorSections += `<div class="prior-reflect-section"><strong>Connect</strong><br>${esc(r.connect)}</div>`;
+    if (r.extend)    priorSections += `<div class="prior-reflect-section"><strong>Extend</strong><br>${esc(r.extend)}</div>`;
+    if (r.challenge) priorSections += `<div class="prior-reflect-section"><strong>Challenge</strong><br>${esc(r.challenge)}</div>`;
+  } else if (r.delta) {
+    priorSections = `<div class="prior-reflect-section">${esc(r.delta)}</div>`;
+  }
+
+  return `
+    <span class="reflect-draft-badge">Draft ${draftNum}</span>
+    <p class="step-helper">You've submitted before — tell us what's changed. Write at least 20 characters to unlock Analyze.</p>
+    <div class="reflect-prompts">
+      <div class="reflect-prompt">
+        <div class="reflect-prompt-header">
+          <span class="reflect-pillar delta">What shifted?</span>
+          <span class="reflect-prompt-q">Since your last session, what changed in how you used AI — or in your own thinking about the topic?</span>
+        </div>
+        <textarea class="reflect-textarea" id="reflectDelta" placeholder="What's different from last time…"></textarea>
+        <div class="reflect-char-count" id="reflectCharDelta"></div>
+      </div>
+    </div>
+    ${priorSections ? `
+    <details class="prior-reflect-details">
+      <summary>Your previous reflection (${lastDate}) ↓</summary>
+      <div class="prior-reflect-body">${priorSections}</div>
+    </details>` : ''}`;
+}
+
+function initReflectStep() {
+  const submissions = loadSubmissions();
+  const reflectBody = document.getElementById('reflectBody');
+  if (!reflectBody) return;
+
+  if (submissions.length === 0) {
+    reflectBody.innerHTML = renderFullReflectHTML();
+  } else {
+    reflectBody.innerHTML = renderDeltaReflectHTML(submissions[submissions.length - 1]);
+  }
+
+  reflectBody.querySelectorAll('.reflect-textarea').forEach(el => {
+    el.addEventListener('input', () => {
+      const count = el.value.length;
+      const countEl = document.getElementById(el.id.replace('reflect', 'reflectChar'));
+      if (countEl) countEl.textContent = count > 0 ? `${count} characters` : '';
+      checkReflectGate();
+    });
+  });
+
+  checkReflectGate();
+}
+
+function checkReflectGate() {
+  const reflectBody = document.getElementById('reflectBody');
+  if (!reflectBody) return;
+  const textareas = reflectBody.querySelectorAll('.reflect-textarea');
+  const ready = [...textareas].some(el => el.value.trim().length >= 20);
+  const chatReady = stepState[2] === 'complete';
+  document.getElementById('analyzeBtn').disabled = !(chatReady && ready);
+}
+
+function getReflectionData() {
+  const deltaEl = document.getElementById('reflectDelta');
+  if (deltaEl) {
+    return { type: 'delta', delta: deltaEl.value.trim() };
+  }
+  return {
+    type: 'full',
+    connect:   (document.getElementById('reflectConnect')?.value  || '').trim(),
+    extend:    (document.getElementById('reflectExtend')?.value   || '').trim(),
+    challenge: (document.getElementById('reflectChallenge')?.value || '').trim(),
+  };
 }
 
 // ─── Dev dropdown ─────────────────────────────────────────────────────────────
@@ -3121,7 +3355,7 @@ function renderProvStats(provenanceData) {
 
 // ─── Integrity flags ──────────────────────────────────────────────────────────
 
-function computeIntegrityFlags(classified, provenanceData) {
+function computeIntegrityFlags(classified, provenanceData, reflectionState = {}) {
   const flags = [];
   const student = classified.filter(t => t.role === "student");
 
@@ -3164,6 +3398,15 @@ function computeIntegrityFlags(classified, provenanceData) {
     flags.push({
       type: "shadow-session-pattern",
       detail: `${Math.round(valRate * 100)}% of student turns are passive validation with no pushback. This pattern is consistent with pre-polished inputs.`,
+    });
+  }
+
+  // Reflection duplicate (Harvard Project Zero Connect-Extend-Challenge routine)
+  if (reflectionState.isDuplicate) {
+    const mode = reflectionState.reflectionType === 'delta' ? 'delta (What shifted?)' : 'Connect-Extend-Challenge';
+    flags.push({
+      type: "reflection-duplicate",
+      detail: `This submission's ${mode} reflection is identical or near-identical to a previous submission from this device. This pattern is consistent with rapid resubmission to improve the score.`,
     });
   }
 
@@ -3675,6 +3918,7 @@ function renderFlags(flags) {
     "unnatural-fluency":       "Unnatural Fluency",
     "provenance-mismatch":     "Provenance Mismatch",
     "shadow-session-pattern":  "Shadow Session Pattern",
+    "reflection-duplicate":    "Reflection Resubmitted",
   };
   return flags.map(f => `
     <div class="flag-row">
@@ -4157,6 +4401,13 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
 
   if (!logRaw.trim()) { alert("Paste a chat log first."); return; }
 
+  const reflectionData = getReflectionData();
+  const hasReflection = !!(reflectionData.delta || reflectionData.connect || reflectionData.extend || reflectionData.challenge);
+  const reflectionState = {
+    isDuplicate:    hasReflection && checkReflectionDuplicate(reflectionData),
+    reflectionType: reflectionData.type,
+  };
+
   let { turns, method } = parseLog(logRaw);
 
   const btn = document.getElementById("analyzeBtn");
@@ -4229,7 +4480,19 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
     const scores = scoreTAU(classified, provenanceData);
 
     // Integrity flags
-    const flags = computeIntegrityFlags(classified, provenanceData);
+    const flags = computeIntegrityFlags(classified, provenanceData, reflectionState);
+
+    if (hasReflection) {
+      storeSubmission({
+        ts: Date.now(),
+        draftNumber: loadSubmissions().length + 1,
+        tau: { PQ: scores.PQ, SU: scores.SU, CS: scores.CS, OC: scores.OC, totalScore: scores.totalScore },
+        samr: scores.SAMR,
+        reflectionType: reflectionData.type,
+        reflection: reflectionData,
+        flags: flags.map(f => f.type),
+      });
+    }
 
     // ── Render results ──────────────────────────────────────────────────────
 
@@ -4365,6 +4628,8 @@ document.querySelectorAll(".sample-btn").forEach(btn => {
       renderEssayFile('sample-essay.txt');
       document.getElementById('stepCard3').classList.add('collapsed');
     }
+    document.getElementById('stepCard4').classList.add('collapsed');
+    document.getElementById('analyzeBtn').disabled = false;
 
     document.querySelectorAll(".sample-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");

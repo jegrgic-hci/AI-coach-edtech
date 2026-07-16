@@ -2,13 +2,13 @@
 
 ## Overview
 
-A single-file, client-side web app (`index.html`) that analyzes how a student used AI during a writing or research task. It produces a TAU Score (four dimensions, each 1–5) and a Sankey visualization of idea thread development.
+A single-file, client-side web app (`index.html`) that analyzes how a student used AI during a writing or research task. It produces a TAU Score (four dimensions, each 1–5) and a divergence chart visualization of idea thread development.
 
 **Input:** AI chat log + final essay
-**Output:** TAU Score, SAMR level, Sankey chart, Teacher integrity flags
+**Output:** TAU Score, SAMR level, divergence chart, Teacher integrity flags
 
 Reference documents:
-- `sankeyagency.md` — full measurement design and planning decisions
+- `sankeyagency.md` — full measurement design and planning decisions (historical; divergence chart has replaced the Sankey)
 - `teacher-guide.md` — educator-facing explanation of what and how the tool measures
 
 ---
@@ -22,7 +22,7 @@ Reference documents:
   - Call 3 (embeddings): thread detection — `nomic-embed-text-v1.5`, all student turns batched
 - API key stored in `localStorage` or `config.json` (never committed)
 - Regex/pattern classification is fallback-only (used when Groq unavailable)
-- SVG rendered inline for the Sankey chart
+- SVG rendered inline for the divergence chart
 
 ---
 
@@ -35,15 +35,15 @@ Phase 1: Parse
   → fire Call 1, Call 2, Call 3 in parallel (all inputs available after parse)
     → Call 1 + Call 2 resolve → Phase 3: TAU Scoring
     → Call 1 + Call 3 resolve → Phase 5: Thread Detection
-      → Phase 6: Sankey
+      → Phase 6: Divergence Chart
 ```
 
 ---
 
-### Phase 1 — Parser (copy from cta.html, no changes)
+### Phase 1 — Parser
 `parseLog(raw)` — detects labeled vs alternating format, splits turns by role (student/ai), returns `{ turns, method }`.
 
-No changes needed. Copy as-is.
+Implemented in `index.html`. No changes needed.
 
 ---
 
@@ -155,7 +155,7 @@ total = PQ + SU + CS + OC  (range 4–20)
 
 ### Phase 4 — Groq Provenance Engine (new prompts, reuse API call pattern)
 
-Reuse the Groq API call structure from cta.html. Rewrite the prompt entirely.
+Reuse the Groq API call structure from `index.html`. Rewrite the prompt entirely.
 
 **Purpose:** trace the origin of ideas in the essay back to the chat log.
 
@@ -230,30 +230,11 @@ Thread {
 
 ---
 
-### Phase 6 — Sankey Renderer (rebuild entirely)
+### Phase 6 — Divergence Chart Renderer
 
-SVG rendered inline. No charting library.
+SVG rendered inline. No charting library. Replaced the Sankey design.
 
-**Layout:**
-- X axis = time (conversation turns), left to right
-- Each thread is a horizontal lane
-- Thickness = active engagement (active: full width, dormant: 4px connector line)
-- Vertical position = SAMR level (higher = Redefinition, lower = Substitution)
-- Color = thread origin (student-born: blue, AI-initiated: grey, split: lighter variant)
-- Color shifts along thread as SAMR level changes
-
-**Thread events in SVG:**
-- `open` — thread lane starts, splits from origin point or parent thread
-- `activate` → `dormant` — smooth taper from full width to thin connector
-- `dormant` → `activate` — smooth expand from thin connector to full width
-- `merge` — two lanes converge into a single thicker lane
-- `split` — one lane diverges into two thinner lanes
-- `terminate` — lane ends with outcome marker: filled circle (absorbed/evolved) or fade (dropped)
-
-**Outcome markers at right edge:**
-- Absorbed — small filled circle, thread color
-- Evolved — filled circle with ring, thread color
-- Dropped — faded terminus, no circle
+See the `tabDivergence` tab in `index.html` for the current implementation.
 
 ---
 
@@ -273,7 +254,7 @@ layout (2-col grid)
 
 results (full width, shown after analysis)
   summary-panel      // TAU dimension cards (PQ / SU / CS / OC) + SAMR level badge
-  sankey-panel       // Sankey SVG + engagement arc summary
+  divergence-panel   // Divergence chart SVG + engagement arc summary
   turns-panel        // Student turns list with labels, quality, flags
   provenance-panel   // Essay heatmap (concept origins) + concept inventory list
   flags-panel        // Teacher view only — integrity flags (hidden from student view)
