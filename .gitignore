@@ -4,6 +4,9 @@
 .env.*.local
 config.json
 
+# Path B dev store (student data shape — never commit)
+app/data/
+
 # Node / build
 node_modules/
 dist/

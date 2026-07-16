@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Draft Report</title>
+<link rel="stylesheet" href="report.css">
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<style>
+/* report-page chrome on top of the ported CTA styles */
+.report-topbar { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.report-topbar a { color: var(--muted); text-decoration: none; font-size: 14px; }
+.report-topbar a:hover { color: var(--accent); }
+.report-topbar h1 { font-size: 20px; margin: 0; }
+#pending { text-align: center; color: var(--muted); padding: 90px 0; }
+#pending .spinner {
+  width: 30px; height: 30px; margin: 0 auto 16px;
+  border: 3px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: rspin 0.9s linear infinite;
+}
+@keyframes rspin { to { transform: rotate(360deg); } }
+.snapshot-strength { border-left: 3px solid var(--accent); padding: 6px 14px; margin-bottom: 12px; }
+.snapshot-strength .quote { font-style: italic; }
+.snapshot-strength .note { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.snapshot-growth { padding: 8px 14px; background: #eff6ff; border-radius: 8px; margin-bottom: 8px; font-size: 14px; }
+.snapshot-bridge { font-size: 14px; color: var(--muted); margin-top: 12px; line-height: 1.5; }
+#results { flex-direction: column; gap: 16px; }
+</style>
+</head>
+<body>
+<div class="results-layout">
+  <div class="report-topbar">
+    <a href="/" id="backLink">&larr; Back to assignment</a>
+    <h1 id="pageTitle">Draft report</h1>
+  </div>
+
+  <div id="pending">
+    <div class="spinner"></div>
+    Analyzing your conversations and draft…<br><small>This usually takes under a minute.</small>
+  </div>
+
+  <div id="results">
+    <div id="samrHero"></div>
+
+    <div class="panel" id="summaryPanel">
+      <div class="section-header" style="margin-bottom:12px">Your Score</div>
+      <div class="summary-grid" id="summaryGrid"></div>
+    </div>
+
+    <div class="panel" id="snapshotPanel">
+      <div class="section-header" style="margin-bottom:12px">What stood out</div>
+      <div id="snapshotContent"></div>
+    </div>
+
+    <div class="panel" id="tabsPanel">
+      <div class="section-header" style="margin-bottom:12px">Your session breakdown</div>
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="chart">Agency Chart</button>
+        <button class="tab-btn" data-tab="reflect">My Session</button>
+        <button class="tab-btn" data-tab="provenance">Idea Origins</button>
+        <button class="tab-btn" data-tab="patternguide">Pattern Guide</button>
+      </div>
+
+      <div class="tab-pane active" id="tabChart">
+        <div id="chartSummaryEl" style="width:796px;max-width:100%;"></div>
+        <svg id="agencyChart"></svg>
+        <div id="chartLegendEl" style="width:796px;max-width:100%;"></div>
+        <p class="tab-intro">Each row is one of your turns. The higher it sits, the more you were in control — asking questions, making your own points, pushing back on the AI. Lower turns are more passive: asking it to generate content, checking its answers, or getting stuck. Brackets on the side mark groups of turns the tool identified as a recognisable pattern.</p>
+      </div>
+
+      <div class="tab-pane" id="tabReflect">
+        <div id="reflectContent"></div>
+      </div>
+
+      <div class="tab-pane" id="tabProvenance">
+        <div class="prov-stat-row" id="provStats"></div>
+        <div id="provenanceContent">
+          <div class="provenance-grid">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Essay — Concept Origin</div>
+              <div class="prov-legend">
+                <div class="prov-legend-item"><span class="prov-swatch student-born"></span>Student-Born</div>
+                <div class="prov-legend-item"><span class="prov-swatch ai-born"></span>AI-Born</div>
+                <div class="prov-legend-item"><span class="prov-swatch synthesized"></span>Synthesized</div>
+              </div>
+              <div class="essay-heatmap" id="essayHeatmap"></div>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Concept Inventory</div>
+              <div class="concept-list" id="conceptList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="tabPatternGuide">
+        <div id="patternGuideContent"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="patternTooltip"></div>
+
+<div id="dt-modal-overlay">
+  <div id="dt-modal">
+    <button id="dt-modal-close">&#x2715;</button>
+    <div id="dt-modal-turn"></div>
+    <div id="dt-modal-classifier"></div>
+    <div id="dt-modal-text"></div>
+  </div>
+</div>
+<div id="dt-tooltip">
+  <div class="dt-tooltip-title"></div>
+  <div class="dt-tooltip-body"></div>
+  <button class="dt-tooltip-learn-more" id="dt-tooltip-learn-more">Learn more →</button>
+</div>
+<div id="dt-sidebar">
+  <div id="dt-sidebar-header">
+    <div id="dt-sidebar-title"></div>
+    <button id="dt-sidebar-close">&#x2715;</button>
+  </div>
+  <div id="dt-sidebar-body"></div>
+</div>
+
+<div class="div-pat-sidebar" id="patternSidebar">
+  <div class="div-pat-sidebar-hdr">
+    <div class="div-pat-sidebar-title" id="patternSidebarTitle"></div>
+    <button class="div-pat-sidebar-close" id="patternSidebarClose">&#x2715;</button>
+  </div>
+  <div class="div-pat-sidebar-body" id="patternSidebarBody"></div>
+</div>
+
+<div id="turnModal" onclick="if(event.target===this)closeTurnModal()">
+  <div class="turn-modal-box" id="turnModalBox"></div>
+</div>
+
+<script src="report-render.js"></script>
+<script src="report-boot.js"></script>
+</body>
+</html>

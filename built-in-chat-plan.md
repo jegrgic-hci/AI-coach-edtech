@@ -85,12 +85,12 @@ Cost note: unlimited conversations *reduce* cost — context is resent per turn,
 2. *Agency feedback* — **Evaluate button**: on-demand rough auditor read of the current conversation. Two voices: coach converses; auditor speaks only when summoned, visually distinct. Evaluate exchanges = meta-turns excluded from TAU; Evaluate *events* logged as metacognitive signal. Available at every coaching level
 3. *Formal review* — draft submission (spends a slot, ends session, full analysis)
 
-**Agency snapshot (after each submission — behaviors, not numbers):**
-- 2–3 observed strengths quoted from their conversation; 1–2 growth moves; bridge to next cycle's coaching level (primes the blank-session first turn)
-- Optionally the divergence chart; dimension bands (developing/solid/strong), never 1–5 numbers
-- Never: integrity flags, SAMR labels, raw scores
-- Timing: at the draft marker only, never live (live meters induce performative behavior and break mimicry)
-- One Flash-Lite call (~1¢); teacher sees the same snapshot → shared artifact
+**Post-submission report (REVISED 2026-07-16 — full disclosure at the draft marker):**
+- Full TAU: all four dimension scores + total + SAMR level, with the divergence chart — the score is part of the learning, not a hidden teacher metric
+- Plus the narrative snapshot: 2–3 observed strengths quoted from their conversation; 1–2 growth moves; bridge to next cycle's coaching level (primes the blank-session first turn)
+- Still never shown to students: integrity flags (teacher-only conversation-starters)
+- Timing: at the draft marker only, **never live during a session** (live meters induce performative behavior and break mimicry) — this boundary is what the original "no numbers" decision was actually protecting
+- One Flash-Lite call (~1¢) for the narrative; teacher sees the same report → shared artifact
 
 ---
 
@@ -162,11 +162,13 @@ Lean: teacher note attached to a submission, visible to the student beside their
 
 ## Build Phases (unstarted)
 
-- [ ] **Phase A — Backend skeleton:** Cloud Run proxy (auth-gated, rate-limited, token budgets) + Firebase Auth (Google SSO, domain-restricted)
-- [ ] **Phase B — Data model:** Firestore collections (users/roles, assignments, sessions, conversations, turns, submissions, analyses, events) + security rules
-- [ ] **Phase C — Chat UI:** conversation sidebar, streaming, episode handling, Evaluate button, submit flow with confirmation friction; event logging (copy/regenerate/edit/stop) from day one
+**Build strategy (2026-07-16): local-first.** Phases B+C built now against dev seams in `app/` (fake auth / Groq / JSON store shaped as Firestore); Phases A+D become seam swaps once the GCP project + DPA exist. See `app/README.md`.
+
+- [ ] **Phase A — Backend skeleton:** Cloud Run proxy (auth-gated, rate-limited, token budgets) + Firebase Auth (Google SSO, domain-restricted). *Dev stand-in running: node server + fake-auth seam*
+- [x] **Phase B — Data model:** collections (users/roles, assignments, sessions, conversations, turns, submissions, analyses, events) implemented Firestore-shaped in `app/server/store.js`; append-only turns with `meta.supersedes`. *Remaining: Firestore security rules at swap time*
+- [x] **Phase C — Chat UI:** conversation sidebar, streaming, episode handling, Evaluate button (auditor voice), submit flow with confirmation friction; event logging (copy/regenerate/edit/stop/evaluate/episode) from day one. *Remaining: polish passes as real use reveals gaps*
 - [ ] **Phase D — Vertex migration:** the 3 analysis calls (turn classification, provenance, embeddings) from Groq to Vertex Gemini; coach + auditor system prompts per coaching level
-- [ ] **Phase E — Submission pipeline:** bundle cycle conversations + essay → analysis → agency snapshot generation → storage
+- [x] **Phase E — Submission pipeline:** bundle cycle conversations + essay → analysis (classification, provenance+flags, TAU ported from CTA) → snapshot narrative → storage; student draft report with full TAU disclosure, flags teacher-only. *Remaining: divergence chart embeddings, delta provenance, event-derived scoring signals*
 - [ ] **Phase F — Teacher dashboard integration:** assignment creation (prompt, budget, dial), student conversation view, real data replacing mocks
 - [ ] **Parallel:** district IT gates (Vertex project? DPA?)
 
@@ -186,4 +188,7 @@ Lean: teacher note attached to a submission, visible to the student beside their
 
 ## Session Log
 
+- **2026-07-17 (build session 3)** — CTA results presentation ported whole into the app: new `report.html` page reuses the CTA's CSS + render functions verbatim (agency chart with pattern detection, My Session dashboard, essay heatmap/concept inventory, pattern guide) fed from the report API instead of local parsing; simple hand-rolled report view replaced. AI-turn labels + turn quality computed client-side the CTA way. Added Groq 429 retry/backoff + reanalyze endpoint after free-tier TPM limit broke an analysis run. CTA `index.html` still untouched — code copied out, never modified.
+- **2026-07-16 (build session 2)** — Design revision: **full TAU disclosure to the student at the submission marker** (score is part of the learning); the live-tracker prohibition stands — nothing shown mid-session. Phase E built and verified: `app/server/analysis.js` (classification + provenance/flags + `scoreTAU` ported verbatim from CTA + snapshot narrative), async after submit, report endpoint gates flags to teacher role. Student report view: SAMR hero, TAU dimension cards, provenance breakdown, quoted strengths + growth moves + coaching-level bridge. Test run: 5-turn session scored PQ 4 / SU 5 / CS 2 / OC 4 → Modification; flag gate verified both roles.
+- **2026-07-16 (build session 1)** — Local-first build: `app/` created with zero-dep node server + three prod seams (auth/llm/store). Phases B & C functional end-to-end: streaming coach chat at all three coaching levels, blank-context conversations, auditor Evaluate, submit→lock→next-cycle flow verified (cycle 2 opened at `questions` level), all seven event types logging. Turns append-only (`meta.supersedes` for edit/regenerate). CTA `index.html` untouched.
 - **2026-07-16** — Problem space developed and settled: cost model, architecture, guiding principle, session-per-cycle flow, gen-AI mimicry boundaries, scaffolding fade, three-timescale feedback (Evaluate / snapshot / trajectory), teacher conversation view, unlimited conversations, teacher-lens gap review (2 points rejected and revised: gifted-writer blind spot → library-lineage positioning; rubric integration → teacher enablement). Preservation commit `1b1c36c`.

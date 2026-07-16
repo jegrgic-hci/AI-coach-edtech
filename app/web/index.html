@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Writing Coach</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- View 1: assignment list -->
+<div id="viewAssignments" class="view">
+  <header class="app-header">
+    <h1>Writing Coach</h1>
+    <span class="visibility-cue">Your conversations here are visible to your teacher</span>
+  </header>
+  <main class="assignment-list" id="assignmentList"></main>
+</div>
+
+<!-- View 2: assignment workspace -->
+<div id="viewWorkspace" class="view hidden">
+  <aside class="sidebar">
+    <button class="back-btn" id="btnBack">&larr; Assignments</button>
+    <div class="assignment-info">
+      <h2 id="wsTitle"></h2>
+      <details class="prompt-details">
+        <summary>Assignment prompt</summary>
+        <p id="wsPrompt"></p>
+      </details>
+      <div class="drafts-meter" id="draftsMeter"></div>
+      <div class="drafts-list" id="draftsList"></div>
+      <div class="coach-mode" id="coachMode"></div>
+    </div>
+    <button class="new-conv-btn" id="btnNewConv">+ New conversation</button>
+    <nav class="conv-list" id="convList"></nav>
+    <div class="sidebar-footer">
+      <button id="btnSaveClose">Save &amp; close</button>
+      <button id="btnSubmit" class="submit-btn">Submit draft</button>
+    </div>
+  </aside>
+
+  <section class="chat">
+    <div class="chat-header">
+      <span id="convTitle"></span>
+      <button id="btnRename" title="Rename conversation">&#9998;</button>
+      <span class="visibility-cue">Visible to your teacher</span>
+    </div>
+    <div class="messages" id="messages">
+      <div class="empty-state" id="emptyState">
+        <p>Start a conversation with your writing coach.</p>
+        <p class="empty-sub">The coach knows your assignment prompt — but not your other conversations. Catch it up on anything it needs to know.</p>
+      </div>
+    </div>
+    <div class="composer" id="composer">
+      <div class="composer-actions">
+        <button id="btnEvaluate" title="Ask the auditor how you're using the AI">How am I doing?</button>
+        <button id="btnRegenerate" class="hidden">&#8635; Regenerate</button>
+        <button id="btnStop" class="hidden stop-btn">&#9632; Stop</button>
+      </div>
+      <div class="composer-row">
+        <div class="edit-banner hidden" id="editBanner">Editing your message <button id="btnCancelEdit">cancel</button></div>
+        <textarea id="input" rows="2" placeholder="Message your coach…"></textarea>
+        <button id="btnSend">Send</button>
+      </div>
+    </div>
+    <div class="locked-note hidden" id="lockedNote">This conversation was part of a submitted draft. You can read and copy from it, but it can't continue.</div>
+  </section>
+</div>
+
+<!-- Submit modal -->
+<div class="modal-backdrop hidden" id="submitModal">
+  <div class="modal">
+    <h3>Submit draft</h3>
+    <p class="modal-warning" id="submitWarning"></p>
+    <p>Paste your current essay draft from Google Docs:</p>
+    <textarea id="essayText" rows="12" placeholder="Paste your full draft here…"></textarea>
+    <div class="modal-actions">
+      <button id="btnCancelSubmit">Cancel</button>
+      <button id="btnConfirmSubmit" class="submit-btn">Submit — this ends my session</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
