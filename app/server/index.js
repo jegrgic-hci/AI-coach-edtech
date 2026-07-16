@@ -384,9 +384,129 @@ async function handleApi(req, res, user, route) {
         cycleIndex: submission.cycleIndex,
         submittedAt: submission.submittedAt,
         essayText: submission.essayText,
+        teacherNote: submission.teacherNote || null,
       },
       analysis: report,
     });
+  }
+
+  // ---------- teacher routes ----------
+
+  if (seg1 === 'teacher' || (req.method === 'POST' && seg1 === 'assignments' && !seg2) || (req.method === 'POST' && seg1 === 'submissions' && seg3 === 'note')) {
+    if (user.role !== 'teacher') return json(res, 403, { error: 'teacher only' });
+  }
+
+  // POST /api/assignments — create (teacher)
+  if (req.method === 'POST' && seg1 === 'assignments' && !seg2) {
+    const body = await readBody(req);
+    const title = String(body.title || '').trim();
+    const prompt = String(body.prompt || '').trim();
+    const draftBudget = Math.max(1, Math.min(10, parseInt(body.draftBudget, 10) || 3));
+    const valid = new Set(Object.keys(LEVELS));
+    const coachingLevels = (Array.isArray(body.coachingLevels) ? body.coachingLevels : [])
+      .filter((l) => valid.has(l))
+      .slice(0, draftBudget);
+    if (!title || !prompt) return json(res, 400, { error: 'title and prompt required' });
+    if (coachingLevels.length !== draftBudget) return json(res, 400, { error: 'one coaching level per draft slot required' });
+    const assignment = col('assignments').add({
+      teacherId: user.id,
+      title,
+      prompt,
+      dueDate: body.dueDate || null,
+      draftBudget,
+      coachingLevels,
+      createdAt: now(),
+    });
+    return json(res, 200, assignment);
+  }
+
+  // GET /api/teacher/assignments — all assignments with roster summary
+  if (req.method === 'GET' && seg1 === 'teacher' && seg2 === 'assignments' && !seg3) {
+    const students = col('users').list((u) => u.role === 'student');
+    const assignments = col('assignments').list().map((a) => ({
+      ...a,
+      roster: students.map((s) => {
+        const submissions = col('submissions')
+          .list((sub) => sub.assignmentId === a.id && sub.studentId === s.id)
+          .sort((x, y) => x.cycleIndex - y.cycleIndex);
+        const active = col('sessions').list((se) => se.assignmentId === a.id && se.studentId === s.id && se.status === 'active')[0];
+        return {
+          studentId: s.id,
+          displayName: s.displayName,
+          email: s.email,
+          activeSession: !!active,
+          cycles: submissions.map((sub) => {
+            const analysis = sub.analysisId ? col('analyses').get(sub.analysisId) : null;
+            return {
+              submissionId: sub.id,
+              cycleIndex: sub.cycleIndex,
+              submittedAt: sub.submittedAt,
+              analysisStatus: analysis?.status || null,
+              tau: analysis?.status === 'complete' ? { PQ: analysis.tau.PQ, SU: analysis.tau.SU, CS: analysis.tau.CS, OC: analysis.tau.OC, totalScore: analysis.tau.totalScore, SAMR: analysis.tau.SAMR } : null,
+              coachingLevel: analysis?.coachingLevel || null,
+              flagCount: analysis?.flags?.length || 0,
+              hasNote: !!sub.teacherNote,
+            };
+          }),
+        };
+      }),
+    }));
+    return json(res, 200, assignments);
+  }
+
+  // GET /api/teacher/assignments/:aid/students/:sid — the detail layer:
+  // every cycle's conversations with the FULL turn record (superseded and
+  // meta-turns included, annotated), events, analysis with flags.
+  if (req.method === 'GET' && seg1 === 'teacher' && seg2 === 'assignments' && seg3) {
+    // /api/teacher/assignments/:aid/students/:sid → ['', 'api', 'teacher', 'assignments', aid, 'students', sid]
+    const parts = route.split('/');
+    const aid = parts[4];
+    const sid = parts[6];
+    const assignment = col('assignments').get(aid);
+    const student = col('users').get(sid);
+    if (!assignment || !student) return json(res, 404, { error: 'not found' });
+
+    const sessions = col('sessions')
+      .list((s) => s.assignmentId === aid && s.studentId === sid)
+      .sort((a, b) => a.cycleIndex - b.cycleIndex)
+      .map((session) => {
+        const conversations = col('conversations')
+          .list((c) => c.sessionId === session.id)
+          .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+          .map((conv) => {
+            const turns = conversationTurns(conv.id);
+            const dead = new Set(turns.flatMap((t) => t.meta?.supersedes || []));
+            return {
+              ...conv,
+              turns: turns.map((t) => ({
+                ...t,
+                superseded: dead.has(t.id),
+                metaTurn: !!t.meta?.metaTurn,
+              })),
+            };
+          });
+        const events = col('events')
+          .list((e) => e.sessionId === session.id)
+          .sort((a, b) => a.ts.localeCompare(b.ts));
+        const submission = col('submissions').list((s) => s.sessionId === session.id)[0] || null;
+        const analysis = submission?.analysisId ? col('analyses').get(submission.analysisId) : null;
+        return { session, conversations, events, submission, analysis };
+      });
+
+    return json(res, 200, { assignment, student, sessions });
+  }
+
+  // POST /api/submissions/:id/note — teacher note, shown to the student
+  // beside their snapshot (auditor's read + human read side by side)
+  if (req.method === 'POST' && seg1 === 'submissions' && seg3 === 'note') {
+    const submission = col('submissions').get(seg2);
+    if (!submission) return json(res, 404, { error: 'submission not found' });
+    const body = await readBody(req);
+    col('submissions').update(submission.id, {
+      teacherNote: String(body.text || '').trim().slice(0, 2000),
+      teacherNoteAt: now(),
+    });
+    return json(res, 200, { ok: true });
   }
 
   // POST /api/events — client-observed signals (copy, episode-save/resume)

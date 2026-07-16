@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Writing Coach — Teacher</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.teacher-badge { font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 10px; background: #fef3cd; color: #92400e; }
+.teacher-main { padding: 28px 32px; max-width: 1000px; margin: 0 auto; width: 100%; overflow-y: auto; }
+
+.panel-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.panel-card h3 { margin-bottom: 10px; }
+
+.new-assignment-form { display: none; flex-direction: column; gap: 10px; margin-top: 14px; }
+.new-assignment-form.open { display: flex; }
+.new-assignment-form input, .new-assignment-form textarea, .new-assignment-form select {
+  font: inherit; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px;
+}
+.form-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.form-row label { font-size: 13px; color: var(--muted); }
+.level-selects { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.roster-row { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-top: 1px solid var(--bg); cursor: pointer; }
+.roster-row:hover .student-name { color: var(--accent); }
+.student-name { font-weight: 600; min-width: 140px; }
+.cycle-chip { font-size: 12px; padding: 3px 10px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); }
+.cycle-chip.flagged { background: #fee2e2; color: #b91c1c; }
+.cycle-chip.pending { background: var(--bg); color: var(--muted); }
+.active-dot { font-size: 12px; color: #047857; }
+
+/* student detail */
+.traj-strip { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.traj-card { flex: 1; min-width: 150px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+.traj-card .lvl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.traj-card .samr { font-weight: 700; margin: 4px 0; }
+.traj-card .dims { font-size: 12px; color: var(--muted); }
+.traj-card a { font-size: 12px; }
+
+.moment { border-left: 3px solid var(--accent); padding: 6px 14px; margin-bottom: 10px; }
+.moment .m-kind { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); }
+.moment .m-quote { font-style: italic; margin: 3px 0; }
+.moment .m-why { font-size: 12px; color: var(--muted); }
+.moment.warn { border-color: #d97706; } .moment.warn .m-kind { color: #d97706; }
+
+.transcript { border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-top: 10px; }
+.transcript summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.t-turn { padding: 8px 12px; margin: 8px 0; border-radius: 8px; font-size: 14px; white-space: pre-wrap; }
+.t-student { background: var(--accent-soft); }
+.t-ai { background: var(--bg); }
+.t-auditor { background: #f5f0ff; border: 1px dashed #7c3aed; }
+.t-superseded { opacity: 0.5; text-decoration: line-through; }
+.t-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 3px; display: flex; gap: 8px; }
+.t-label .lb { padding: 0 7px; border-radius: 7px; background: #dcfce7; color: #166534; }
+.t-event { font-size: 12px; color: #92400e; background: #fef3cd; border-radius: 6px; padding: 3px 10px; margin: 6px 0; display: inline-block; }
+.note-box { width: 100%; font: inherit; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; resize: vertical; }
+.note-saved { font-size: 12px; color: #047857; margin-left: 8px; }
+.section-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 14px 0 8px; }
+</style>
+</head>
+<body>
+
+<div id="viewOverview" class="view">
+  <header class="app-header">
+    <h1>Writing Coach</h1>
+    <span class="teacher-badge">Teacher</span>
+    <span class="visibility-cue">Signals are conversation-starters, never verdicts</span>
+  </header>
+  <main class="teacher-main" id="overviewBody"></main>
+</div>
+
+<div id="viewStudent" class="view hidden">
+  <header class="app-header">
+    <button class="back-btn" id="btnBackOverview">&larr; All assignments</button>
+    <h1 id="studentTitle"></h1>
+    <span class="teacher-badge">Teacher</span>
+  </header>
+  <main class="teacher-main" id="studentBody"></main>
+</div>
+
+<script src="teacher.js"></script>
+</body>
+</html>

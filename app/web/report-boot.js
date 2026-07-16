@@ -4,13 +4,16 @@
 (function () {
   const params = new URLSearchParams(location.search);
   const submissionId = params.get('id');
+  const teacherMode = params.get('role') === 'teacher';
   if (!submissionId) {
     document.getElementById('pending').textContent = 'No submission specified.';
     return;
   }
 
   async function load() {
-    const res = await fetch(`/api/submissions/${submissionId}/report`);
+    const res = await fetch(`/api/submissions/${submissionId}/report`, {
+      headers: teacherMode ? { 'X-Dev-Role': 'teacher' } : {},
+    });
     if (!res.ok) {
       document.getElementById('pending').textContent = 'Could not load this report.';
       return;
@@ -67,6 +70,29 @@
       <div class="snapshot-bridge" style="margin-top:6px">Coach was in <strong>${esc(coachingLevel)}</strong> mode this draft.</div>`;
   }
 
+  function renderTeacherNote(note) {
+    if (!note) return;
+    const panel = document.createElement('div');
+    panel.className = 'panel';
+    panel.innerHTML = `
+      <div class="section-header" style="margin-bottom:12px">A note from your teacher</div>
+      <div style="font-size:14px;line-height:1.6;white-space:pre-wrap">${esc(note)}</div>`;
+    document.getElementById('snapshotPanel').after(panel);
+  }
+
+  // Teacher mode only — the API strips flags for students, so this panel
+  // can never render from a student fetch.
+  function renderFlagsPanel(flags) {
+    if (!flags) return;
+    const panel = document.createElement('div');
+    panel.className = 'panel';
+    panel.innerHTML = `
+      <div class="section-header" style="margin-bottom:12px">Integrity signals — teacher view</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Conversation-starters, never verdicts. Some flags have known false-positive profiles (ELL translation workflows, IEP accommodations).</div>
+      ${renderFlags(flags.map((f) => ({ type: f.flag, detail: f.evidence })))}`;
+    document.getElementById('results').appendChild(panel);
+  }
+
   function render(submission, analysis) {
     const scores = analysis.tau;
     const classified = adaptClassified(analysis.classified || []);
@@ -78,6 +104,8 @@
     document.getElementById('samrHero').innerHTML = renderSAMRCircle(scores);
     document.getElementById('summaryGrid').innerHTML = renderSummary(scores);
     renderSnapshot(analysis.snapshot, analysis.coachingLevel);
+    renderTeacherNote(submission.teacherNote);
+    if (teacherMode) renderFlagsPanel(analysis.flags);
 
     renderAgencyChart(classified);
 
