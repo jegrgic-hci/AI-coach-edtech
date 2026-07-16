@@ -1,0 +1,2267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Dashboard — Critical Thinking Auditor</title>
+<style>
+:root {
+  --blue: #3B3EA8;
+  --blue-mid: #6B7DD4;
+  --blue-light: #9B9DE0;
+  --blue-tint: #f0f1f8;
+  --terra: #b85c38;
+  --terra-light: #e8ae94;
+  --terra-tint: #fdf3ee;
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --border: #e5e5e2;
+  --text: #1a1a1a;
+  --text-mid: #555;
+  --text-muted: #999;
+  --green: #2d7a4f;
+  --green-tint: #edf7f1;
+  --amber: #b07030;
+  --amber-tint: #fdf6ec;
+  --grey-tint: #f2f2f0;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ── */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 13px 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+header h1 { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
+header .subtitle { font-size: 12px; color: var(--text-muted); }
+.back-link {
+  margin-left: auto;
+  font-size: 12px; font-weight: 600;
+  color: var(--blue);
+  background: var(--blue-tint);
+  border: 1px solid #c5c7e8;
+  padding: 5px 12px;
+  border-radius: 20px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.back-link:hover { background: #e3e4f4; }
+
+/* ── Global tab nav ── */
+.tab-nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex;
+  flex-shrink: 0;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 16px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+/* ── Layout ── */
+.layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-section {
+  font-size: 10px; font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 14px 16px 5px;
+  flex-shrink: 0;
+}
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: background 0.1s;
+  flex-shrink: 0;
+}
+.sidebar-item:hover { background: var(--grey-tint); }
+.sidebar-item.active { background: var(--blue-tint); border-left-color: var(--blue); }
+.sidebar-item-name {
+  font-size: 13px; font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-item.active .sidebar-item-name { color: var(--blue); font-weight: 600; }
+.sidebar-item-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.flag-dot {
+  font-size: 11px;
+  color: var(--terra);
+  flex-shrink: 0;
+  line-height: 1;
+}
+.sidebar-search {
+  padding: 12px 12px 6px;
+  flex-shrink: 0;
+}
+.sidebar-search input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  font-family: inherit;
+}
+.sidebar-search input:focus { border-color: var(--blue-light); }
+
+/* ── Content ── */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 32px;
+  background: var(--bg);
+}
+.content-header {
+  margin-bottom: 22px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.content-title {
+  font-size: 18px; font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text);
+}
+.content-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ── Chips & badges ── */
+.chip {
+  display: inline-block;
+  font-size: 11px; font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+}
+.chip-blue  { background: var(--blue-tint); color: var(--blue); }
+.chip-terra { background: var(--terra-tint); color: var(--terra); }
+.chip-grey  { background: var(--grey-tint); color: var(--text-mid); border: 1px solid var(--border); }
+.chip-green { background: var(--green-tint); color: var(--green); }
+.chip-amber { background: var(--amber-tint); color: var(--amber); }
+
+.samr-badge {
+  display: inline-block;
+  font-size: 11px; font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+.samr-redef { background: var(--blue);       color: #fff; }
+.samr-mod   { background: var(--blue-mid);   color: #fff; }
+.samr-aug   { background: var(--blue-light); color: #fff; }
+.samr-sub   { background: #ccc; color: #555; }
+
+.flag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--terra);
+  flex-shrink: 0;
+}
+
+.status-final       { background: var(--green-tint); color: var(--green); }
+.status-draft       { background: var(--amber-tint); color: var(--amber); }
+.status-not-started { background: var(--grey-tint);  color: var(--text-muted); border: 1px solid var(--border); }
+.status-missing     { background: var(--terra-tint); color: var(--terra); }
+
+/* ── Avatar ── */
+.avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--blue-tint);
+  color: var(--blue);
+  font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Data table ── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  table-layout: fixed;
+}
+.data-table th {
+  text-align: left;
+  font-size: 11px; font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 10px 12px;
+  background: var(--grey-tint);
+  border-bottom: 1px solid var(--border);
+}
+.data-table th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+.data-table th.sortable:hover { color: var(--text); }
+.data-table th.sortable .sort-arrow { font-size: 10px; margin-left: 3px; opacity: 0.35; font-style: normal; }
+.data-table th.sort-active { color: var(--blue); }
+.data-table th.sort-active .sort-arrow { opacity: 1; color: var(--blue); }
+.data-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  overflow: hidden;
+  text-align: left;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tbody tr { cursor: pointer; transition: background 0.1s; }
+.data-table tbody tr:hover { background: var(--grey-tint); }
+.data-table tbody tr.expanded-row { background: var(--blue-tint); }
+.data-table tbody tr.drill-row { cursor: default; }
+.data-table tbody tr.drill-row:hover { background: transparent; }
+
+/* ── Drill panel ── */
+.drill-panel {
+  background: var(--blue-tint);
+  border-top: 1px solid var(--blue-light);
+  padding: 16px 20px;
+}
+.drill-panel-header {
+  font-size: 11px; font-weight: 600;
+  color: var(--blue);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+.assignment-summary-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+}
+.assignment-summary-row:hover { background: var(--blue-tint); border-color: var(--blue-light); }
+.assignment-summary-row.expanded { background: var(--blue-tint); border-color: var(--blue-light); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.assignment-summary-row .chevron { font-size: 11px; color: var(--text-muted); width: 14px; flex-shrink: 0; }
+.assignment-drill { border: 1px solid var(--blue-light); border-top: none; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+.sub-history { display: flex; flex-direction: column; gap: 4px; }
+.sub-row {
+  display: flex; flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 12px;
+}
+.sub-row.flagged { border-color: var(--terra); background: var(--terra-tint); }
+.sub-row-main { display: flex; align-items: center; gap: 10px; }
+.sub-num  { font-size: 11px; font-weight: 600; color: var(--text-muted); width: 20px; flex-shrink: 0; }
+.sub-date { color: var(--text-mid); width: 140px; flex-shrink: 0; font-size: 11px; }
+.sub-chip { width: 44px; text-align: center; flex-shrink: 0; }
+.sub-total { font-size: 14px; font-weight: 700; width: 40px; text-align: right; flex-shrink: 0; }
+.integrity-flags-row {
+  display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+  margin-top: 7px; padding-top: 7px;
+  border-top: 1px solid rgba(184, 92, 56, 0.15);
+}
+
+/* ── Dim scores ── */
+.dim-scores { display: flex; gap: 5px; }
+.dim-score {
+  font-size: 11px; color: var(--text-muted);
+  background: var(--grey-tint);
+  padding: 2px 5px; border-radius: 3px;
+}
+.dim-score span { font-weight: 700; color: var(--text); }
+
+.tau-total { font-size: 15px; font-weight: 700; }
+.tau-denom { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+
+.overview-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.overview-card:hover { background: var(--blue-tint); border-color: var(--blue-light); }
+.sparkline { display: block; }
+
+/* ── Flag lines ── */
+.flag-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--terra);
+}
+.flag-learn-more {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--blue);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.flag-learn-more:hover { text-decoration: underline; }
+
+/* ── Side tray ── */
+.tray-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.18);
+  z-index: 100;
+}
+.tray-overlay.open { display: block; }
+
+.side-tray {
+  position: fixed;
+  top: 0; right: 0;
+  width: 400px;
+  height: 100%;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: -4px 0 24px rgba(0,0,0,0.10);
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.22s ease;
+  overflow: hidden;
+}
+.side-tray.open { transform: translateX(0); }
+
+.tray-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.tray-flag-icon {
+  font-size: 16px;
+  color: var(--terra);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.tray-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.2px;
+  flex: 1;
+}
+.tray-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+.tray-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.tray-close:hover { background: var(--grey-tint); color: var(--text); }
+
+.tray-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.tray-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+}
+.tray-section-body {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.6;
+}
+.tray-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 0;
+  padding: 0;
+  list-style: none;
+}
+.tray-steps li {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.tray-step-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--blue);
+  background: var(--blue-tint);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ── Class drill student rows ── */
+.class-student-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.class-student-row:hover { background: rgba(255,255,255,0.7); }
+.class-student-row.missing { background: var(--terra-tint); }
+.class-student-row.missing:hover { background: #f5ddd4; }
+
+/* ── Signal indicators ── */
+.signal-pill-review {
+  font-size: 11px;
+  color: var(--terra);
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.signal-pill-attention {
+  font-size: 10px; font-weight: 700;
+  color: var(--blue-mid);
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.signal-reason {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.3;
+  white-space: normal;
+}
+
+/* ── Filter chips ── */
+.filter-chips {
+  display: flex;
+  gap: 5px;
+  padding: 6px 12px 2px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.filter-chip {
+  font-size: 11px; font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.1s;
+  font-family: inherit;
+}
+.filter-chip:hover { color: var(--text); border-color: #bbb; }
+.filter-chip.active-all      { background: var(--blue-tint);  border-color: var(--blue-light);  color: var(--blue); }
+.filter-chip.active-review   { background: var(--terra-tint); border-color: var(--terra-light); color: var(--terra); }
+.filter-chip.active-attention { background: var(--blue-tint);  border-color: var(--blue-light); color: var(--blue); }
+
+/* ── Bar legend ── */
+.bar-legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+.legend-swatch {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  margin-right: 3px;
+  vertical-align: middle;
+}
+/* ── Flag detection modal ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--surface);
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  width: min(680px, 92vw);
+  max-height: 82vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.modal-header {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.modal-title { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; flex: 1; }
+.modal-intro { font-size: 12px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
+.modal-close {
+  background: none; border: none; font-size: 18px;
+  color: var(--text-muted); cursor: pointer;
+  padding: 2px 6px; border-radius: 4px; line-height: 1; flex-shrink: 0;
+}
+.modal-close:hover { background: var(--grey-tint); color: var(--text); }
+.modal-body {
+  flex: 1; overflow-y: auto;
+  padding: 20px 22px;
+  display: flex; flex-direction: column; gap: 0;
+}
+.flag-card {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.flag-card:last-child { border-bottom: none; }
+.flag-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.flag-card-title { font-size: 13px; font-weight: 700; }
+.flag-card-desc { font-size: 12px; color: var(--text-mid); }
+.flag-card-section { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.7px; margin: 10px 0 4px; }
+.flag-card-body { font-size: 12px; color: var(--text-mid); line-height: 1.55; }
+.flag-card-steps { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+.flag-card-steps li { font-size: 12px; color: var(--text-mid); line-height: 1.5; }
+.flag-type-label {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.7px;
+  padding: 2px 7px; border-radius: 20px;
+  flex-shrink: 0;
+}
+.flag-type-integrity { background: var(--terra-tint); color: var(--terra); }
+.flag-type-score    { background: var(--amber-tint); color: var(--amber); }
+
+/* ── Reflection arc ── */
+.reflection-arc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+}
+.arc-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--text-muted); margin-bottom: 8px;
+}
+.arc-entries {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.arc-entry {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--grey-tint); border: 1px solid var(--border);
+  border-radius: 5px; padding: 4px 8px;
+  cursor: pointer; transition: background 0.1s, border-color 0.1s;
+  font-size: 11px;
+}
+.arc-entry:hover { background: var(--blue-tint); border-color: var(--blue-light); }
+.arc-badge {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+  padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
+}
+.arc-full  { background: var(--blue-tint);  color: var(--blue); }
+.arc-delta { background: var(--amber-tint); color: var(--amber); }
+.arc-excerpt { color: var(--text-mid); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arc-score { font-size: 10px; font-weight: 700; color: var(--text-muted); flex-shrink: 0; }
+.arc-arrow { font-size: 11px; color: var(--text-muted); }
+
+/* ── Per-submission reflection ── */
+.reflection-details {
+  margin-top: 7px; padding-top: 7px;
+  border-top: 1px solid var(--border);
+}
+.reflection-summary {
+  display: flex; align-items: center; gap: 7px;
+  cursor: pointer; list-style: none; user-select: none;
+  font-size: 11px;
+}
+.reflection-summary::-webkit-details-marker { display: none; }
+.reflection-summary::before { content: '▸'; font-size: 9px; color: var(--text-muted); flex-shrink: 0; }
+details[open] .reflection-summary::before { content: '▾'; }
+.reflect-type-badge {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+  padding: 1px 6px; border-radius: 3px; flex-shrink: 0;
+  background: var(--blue-tint); color: var(--blue);
+}
+.arc-delta-inline { background: var(--amber-tint); color: var(--amber); }
+.score-delta {
+  font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
+}
+.score-delta.up   { background: var(--green-tint); color: var(--green); }
+.score-delta.down { background: var(--terra-tint);  color: var(--terra); }
+.score-delta.flat { background: var(--grey-tint);   color: var(--text-muted); }
+.reflect-excerpt { color: var(--text-muted); font-style: italic; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reflect-full {
+  margin-top: 8px; padding: 8px 10px;
+  background: var(--grey-tint); border-radius: 5px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.reflect-section { font-size: 11px; color: var(--text-mid); line-height: 1.5; }
+.reflect-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--text-muted); margin-right: 5px;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Critical Thinking Auditor</h1>
+  <span class="subtitle">Teacher Dashboard</span>
+  <button onclick="openFlagModal()" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--terra);background:var(--terra-tint);border:1px solid rgba(184,92,56,0.25);padding:5px 13px;border-radius:20px;cursor:pointer">⚑ Flag detection</button>
+  <a href="teacher.html" class="back-link" style="margin-left:0">+ New assignment</a>
+  <a href="/" class="back-link" style="margin-left:0">← Student app</a>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="overview">Overview</button>
+  <button class="tab-btn"        data-tab="class">Class</button>
+  <button class="tab-btn" data-tab="assignment">Assignment</button>
+  <button class="tab-btn" data-tab="student">Student</button>
+</nav>
+
+<div class="layout">
+  <aside id="sidebar" class="sidebar"></aside>
+  <main id="content" class="content"></main>
+</div>
+
+<div class="modal-overlay" id="flag-modal-overlay" onclick="closeFlagModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div style="flex:1;min-width:0">
+        <div class="modal-title">Flag detection</div>
+        <div class="modal-intro">The tool automatically checks every submission for these signals. Flags are never shown to students — they appear only in the teacher dashboard to support your review.</div>
+      </div>
+      <button class="modal-close" onclick="closeFlagModal()">✕</button>
+    </div>
+    <div class="modal-body" id="flag-modal-body"></div>
+  </div>
+</div>
+
+<div class="tray-overlay" id="tray-overlay" onclick="closeFlagTray()"></div>
+<div class="side-tray" id="side-tray">
+  <div class="tray-header">
+    <span class="tray-flag-icon">⚑</span>
+    <div style="flex:1">
+      <div class="tray-title" id="tray-title"></div>
+      <div class="tray-subtitle" id="tray-subtitle"></div>
+    </div>
+    <button class="tray-close" onclick="closeFlagTray()">✕</button>
+  </div>
+  <div class="tray-body" id="tray-body"></div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+// ── Data — loaded from the CTA app API (replaces the mock generator) ─────────
+// Ported from teacher-dashboard.html; the four globals keep the exact shape
+// the mock generator produced so all render code below is unchanged.
+
+let ASSIGNMENTS = [], STUDENTS = [], CLASSES = [], SUBMISSIONS = {};
+
+async function loadDashboardData() {
+  const res = await fetch('/api/teacher/dashboard', { headers: { 'X-Dev-Role': 'teacher' } });
+  if (!res.ok) throw new Error('dashboard data failed: ' + res.status);
+  const data = await res.json();
+  ASSIGNMENTS = data.assignments.map(a => ({ ...a, due: new Date(a.due) }));
+  STUDENTS    = data.students;
+  CLASSES     = data.classes;
+  SUBMISSIONS = {};
+  for (const [key, subs] of Object.entries(data.submissions)) {
+    SUBMISSIONS[key] = subs.map(s => ({ ...s, ts: new Date(s.ts) }));
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function total(sub) { return sub.pq + sub.su + sub.cs + sub.oc; }
+
+function samr(t) {
+  if (t >= 17) return { label: 'Redefinition', cls: 'samr-redef' };
+  if (t >= 13) return { label: 'Modification',  cls: 'samr-mod'  };
+  if (t >= 9)  return { label: 'Augmentation',  cls: 'samr-aug'  };
+  return            { label: 'Substitution',  cls: 'samr-sub'  };
+}
+
+function submissionStatus(subs, assignment) {
+  if (!subs.length) return assignment.status === 'closed'
+    ? { label: 'Missing',     cls: 'status-missing'     }
+    : { label: 'Not started', cls: 'status-not-started' };
+  return assignment.status === 'closed'
+    ? { label: 'Final', cls: 'status-final' }
+    : { label: 'Draft', cls: 'status-draft' };
+}
+
+const FLAG_META = {
+  'stylistic-inconsistency': {
+    short: 'Stylistic inconsistency',
+    desc: 'Vocabulary and complexity shifts sharply between student turns',
+    what: 'The student\'s writing shows significant jumps in vocabulary, sentence complexity, or tone between turns — beyond what normal drafting usually produces.',
+    why: 'These shifts can indicate that text from an external source was introduced mid-session rather than composed in place. Natural revision tends to evolve gradually; abrupt changes are harder to explain by the conversation alone.',
+    steps: [
+      'Compare the flagged turn directly against surrounding turns and look for abrupt tone or vocabulary shifts.',
+      'Ask the student to explain their reasoning in the flagged section in their own words.',
+      'Consider whether the shift aligns with a new topic or a genuine change in approach — those are expected and fine.',
+    ],
+  },
+  'unnatural-fluency': {
+    short: 'Unnatural fluency',
+    desc: 'Student turns lack the hedging and false starts typical of live composition',
+    what: 'The student\'s turns read as polished and certain throughout — no hedging phrases ("I think", "maybe", "not sure if"), no self-corrections, no colloquial language. This pattern is unusual for in-session writing.',
+    why: 'Live composition typically includes uncertainty markers and self-correction. Uniformly high fluency may suggest the student was submitting pre-composed or AI-generated text as their own prompts rather than thinking out loud in real time.',
+    steps: [
+      'Look at whether the student turns read more like essay prose than conversational thinking-out-loud.',
+      'Ask the student to walk you through how they arrived at a specific turn in their own words.',
+      'A low-stakes verbal check-in is often enough to clarify whether the student genuinely engaged with the material.',
+    ],
+  },
+  'provenance-mismatch': {
+    short: 'Provenance mismatch',
+    desc: 'A concept appears in the essay as student-originated but the AI introduced it first',
+    what: 'The provenance analysis found that an idea credited in the essay to the student\'s own thinking was actually introduced by the AI earlier in the conversation.',
+    why: 'This doesn\'t automatically mean the student acted in bad faith — they may have genuinely absorbed and reframed the idea. But it warrants a closer look when the essay presents the concept as independently derived.',
+    steps: [
+      'Identify the specific concept in the chat log and in the essay.',
+      'Ask the student when and how they first encountered that idea.',
+      'This can be a teaching moment: discuss the difference between internalising a concept and independently originating one.',
+    ],
+  },
+  'shadow-session-pattern': {
+    short: 'Shadow session pattern',
+    desc: 'Student responses are well-calibrated to AI output with very little pushback',
+    what: 'The student\'s turns show very high passive acceptance of AI suggestions and almost no challenge, rejection, or refinement. The interaction pattern resembles a student who arrived with polished inputs rather than composing in real time.',
+    why: 'Genuine AI-assisted writing involves friction — students push back, redirect, and question. An unusually smooth acceptance pattern may indicate the AI session was staged after the actual writing was done elsewhere.',
+    steps: [
+      'Review the ratio of extraction and validation turns against challenge and refinement turns in the TAU breakdown.',
+      'Ask the student to describe a moment where they disagreed with or changed something the AI suggested.',
+      'This flag is more significant when paired with Unnatural Fluency — both together strengthen the concern.',
+    ],
+  },
+  'score-spike': {
+    short: 'Score spike',
+    desc: 'TAU score increased sharply between two submissions in a short window',
+    what: 'Two submissions were made within a short time window, but the TAU score jumped significantly — more than would be expected from a normal revision cycle.',
+    why: 'Rapid score improvement can indicate that the student submitted an initial draft, then quickly replaced it with a substantially different session — possibly one prepared in advance or generated with different inputs.',
+    steps: [
+      'Compare the two submissions side by side using the scores and timestamps above.',
+      'Ask the student what changed between the two versions and why they resubmitted so quickly.',
+      'A spike on a single dimension is less concerning than a broad jump across all four.',
+    ],
+  },
+  'reflection-score-mismatch': {
+    short: 'Reflection–Score Gap',
+    desc: "Student described pushback or prior knowledge the scores don't show",
+    what: "The student's reflection described challenging or disagreeing with the AI, or claimed strong prior knowledge — but their scores tell a different story. Their Calibrated Skepticism or Original Contribution score was low, suggesting little actual pushback or independent contribution occurred in the session.",
+    why: "The reflection contained language associated with critical engagement (\"pushed back\", \"challenged\", \"disagreed\", \"already knew\") while the corresponding score was below 2.5. This mismatch may mean the student overestimated their own engagement, or they understand what good process looks like without yet having the habit of acting on it.",
+    steps: [
+      "Read the student's reflection challenge response alongside their actual session log.",
+      "Ask the student to point to a specific moment in the chat where they disagreed with the AI — if they can\'t, that\'s informative.",
+      "This is often a teaching opportunity: the student may have the right instincts but not yet the habit of acting on them in real time.",
+    ],
+  },
+  'reflection-delta-mismatch': {
+    short: 'Delta–Score Mismatch',
+    desc: "Student described improvement in their follow-up reflection but scores didn't change",
+    what: "The student's \"What shifted?\" reflection described becoming more critical, skeptical, or independent in how they used the AI — but their TAU scores did not increase between submissions.",
+    why: "The delta reflection contained improvement language (\"more skeptical\", \"pushed back more\", \"more critical\") while the total score stayed the same or decreased. This suggests the student may be describing the behavior they intended rather than the behavior they demonstrated.",
+    steps: [
+      "Look at the specific dimension scores the student implicitly claimed to improve — CS if they mentioned skepticism, OC if they mentioned more independent thinking.",
+      "Ask the student what specific change they made to their process, and whether they can point to it in the chat log.",
+      "Consider whether the student is reflecting on intent rather than action — this is common and addressable with a brief one-on-one conversation.",
+    ],
+  },
+};
+
+// ── Behavioral trend definitions ──────────────────────────────────────────────
+
+const TREND_META = {
+  passive: {
+    label: 'Passive AI engagement',
+    shortDesc: 'Accepting AI output without questioning or building on it',
+    what: 'These students are using AI as an answer source rather than a thinking partner. They validate and extract rather than challenge and refine — the AI leads the conversation, not the student. Low scores on both Prompting Quality and Calibrated Skepticism reinforce each other: neither the questions nor the follow-through show critical ownership.',
+    whatToTry: 'Before the next assignment, ask students to write one position they expect to disagree with the AI about, then bring that disagreement to a short class discussion. Even mild pushback reactivates critical ownership and shifts the dynamic from passive receipt to active negotiation.',
+  },
+  'low-skepticism': {
+    label: 'Low critical evaluation',
+    shortDesc: 'Asking questions but rarely challenging or refining the answers received',
+    what: 'These students engage with the AI but tend to accept the framing they receive. They ask questions, but when the AI responds, they move on rather than pushing back or probing further. The AI\'s logic becomes the student\'s logic without much examination.',
+    whatToTry: 'Introduce a "challenge requirement" for the next assignment: each AI session must include at least two logged moments where the student explicitly questions or reframes what the AI said. Making skepticism a visible, trackable part of the task tends to surface it naturally.',
+  },
+  'ai-ideas': {
+    label: 'AI-originated ideas',
+    shortDesc: 'Essay ideas trace back to AI output rather than the student\'s own thinking',
+    what: 'These students are building their essays on ideas the AI suggested, not ideas they developed independently. They may understand the content well, but the intellectual ownership hasn\'t transferred — the argument structure reflects what the AI proposed, not what the student chose.',
+    whatToTry: 'Try a "pre-AI freewrite" protocol: 10 minutes of unstructured notes on the topic before opening the AI tool. Students who arrive with a rough position use AI to develop their thinking; students who arrive blank tend to adopt the AI\'s position. The freewrite is the difference.',
+  },
+  declining: {
+    label: 'Declining engagement',
+    shortDesc: 'Critical thinking scores dropping across recent submissions',
+    what: 'These students started with more active engagement patterns but their scores have fallen across submissions. They may be fatiguing on the task, defaulting to easier extraction habits as the deadline approaches, or losing interest in the topic.',
+    whatToTry: 'A short 1:1 check-in is usually the most efficient intervention — the cause varies widely. Time pressure, topic difficulty, and loss of interest each call for different responses. Early conversation prevents the pattern from becoming a default.',
+  },
+};
+
+const REASON_TO_TREND = {
+  'Passive engagement across all submissions':         'passive',
+  'Tends to accept AI responses without questioning':  'passive',
+  'Rarely challenges or refines AI suggestions':       'low-skepticism',
+  'Most ideas appear AI-initiated':                    'ai-ideas',
+  'Engagement declining across recent submissions':    'declining',
+};
+
+function detectTrends() {
+  const allStudents = CLASSES.flatMap(cls =>
+    cls.studentIds.map(sid => ({ student: STUDENTS.find(x => x.id === sid), cls }))
+  ).filter(({ student }) => student);
+
+  const groups = {};
+  allStudents.forEach(({ student, cls }) => {
+    const sig = getStudentSignal(student.id);
+    if (sig.status !== 'attention') return;
+    const tid = REASON_TO_TREND[sig.reason];
+    if (!tid) return;
+    if (!groups[tid]) groups[tid] = [];
+    groups[tid].push({ student, cls });
+  });
+
+  return Object.entries(groups)
+    .filter(([, arr]) => arr.length >= 2)
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([id, students]) => ({ id, students, meta: TREND_META[id] }))
+    .filter(t => t.meta);
+}
+
+function checkFlag(subs) {
+  const flags = [];
+  for (let i = 1; i < subs.length; i++) {
+    const prev = subs[i-1], curr = subs[i];
+    const mins      = (curr.ts - prev.ts) / 60000;
+    const scoreDiff = total(curr) - total(prev);
+    const maxDim    = Math.max(...['pq','su','cs','oc'].map(d => curr[d] - prev[d]));
+    if (mins <= 10 && (scoreDiff >= 5 || maxDim >= 3)) {
+      flags.push({ submissionIndex: i, mins: Math.round(mins), scoreDiff, maxDim });
+    }
+  }
+  return flags;
+}
+
+function getSubs(sid, aid)      { return SUBMISSIONS[`${sid}_${aid}`] || []; }
+function latestSub(subs)        { return subs.length ? subs[subs.length - 1] : null; }
+function getIntegrityFlags(subs){ return [...new Set(subs.flatMap(s => s.integrityFlags || []))]; }
+
+function hasAnyFlag(sid) {
+  return ASSIGNMENTS.some(a => {
+    const subs = getSubs(sid, a.id);
+    return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
+  });
+}
+
+function getStudentSignal(studentId, assignmentId = null) {
+  const assignments = assignmentId
+    ? [ASSIGNMENTS.find(a => a.id === assignmentId)].filter(Boolean)
+    : ASSIGNMENTS;
+
+  const integrityKeys = [];
+  let hasSpikeFlag = false;
+
+  assignments.forEach(a => {
+    const subs = getSubs(studentId, a.id);
+    getIntegrityFlags(subs).forEach(f => { if (!integrityKeys.includes(f)) integrityKeys.push(f); });
+    if (checkFlag(subs).length) hasSpikeFlag = true;
+  });
+
+  if (integrityKeys.length || hasSpikeFlag) {
+    const has = k => integrityKeys.includes(k);
+    let reason;
+    if (has('shadow-session-pattern') && has('unnatural-fluency')) {
+      reason = 'Multiple integrity signals — consider a conversation';
+    } else if (has('shadow-session-pattern')) {
+      reason = 'Unusually passive acceptance pattern';
+    } else if (has('unnatural-fluency')) {
+      reason = 'Writing style inconsistent with live composition';
+    } else if (has('stylistic-inconsistency')) {
+      reason = 'Vocabulary shifts sharply between turns';
+    } else if (has('provenance-mismatch')) {
+      reason = 'Essay credits ideas the AI introduced first';
+    } else {
+      reason = 'Score jumped sharply between two submissions';
+    }
+    return { status: 'review', reason };
+  }
+
+  const allSubs = assignments.flatMap(a => getSubs(studentId, a.id));
+  if (!allSubs.length) return { status: 'on-track', reason: '' };
+
+  const avg = dim => allSubs.reduce((s, sub) => s + sub[dim], 0) / allSubs.length;
+  const avgPQ    = avg('pq');
+  const avgCS    = avg('cs');
+  const avgOC    = avg('oc');
+  const avgTotal = allSubs.reduce((s, sub) => s + total(sub), 0) / allSubs.length;
+
+  const sorted   = [...allSubs].sort((a, b) => a.ts - b.ts);
+  const declining = sorted.length >= 3 && total(sorted[sorted.length - 1]) < total(sorted[0]) - 2;
+
+  if (declining)              return { status: 'attention', reason: 'Engagement declining across recent submissions' };
+  if (avgTotal < 9)           return { status: 'attention', reason: 'Passive engagement across all submissions' };
+  if (avgCS < 2.5 && avgPQ < 2.5) return { status: 'attention', reason: 'Tends to accept AI responses without questioning' };
+  if (avgCS < 2.5)            return { status: 'attention', reason: 'Rarely challenges or refines AI suggestions' };
+  if (avgOC < 2.5)            return { status: 'attention', reason: 'Most ideas appear AI-initiated' };
+
+  const PUSHBACK_KW    = ['disagreed', 'pushed back', 'challenged', 'wrong', "didn't think", 'questioned', 'asked it to reconsider'];
+  const IMPROVEMENT_KW = ['more skeptical', 'pushed back more', 'more critical', 'less reliant', 'questioned more', 'challenged more'];
+
+  for (const a of assignments) {
+    const subs = getSubs(studentId, a.id);
+    for (let i = 0; i < subs.length; i++) {
+      const sub = subs[i];
+      if (sub.reflectionType === 'full' && sub.reflection) {
+        const challenge = (sub.reflection.challenge || '').toLowerCase();
+        if (sub.cs < 2.5 && PUSHBACK_KW.some(kw => challenge.includes(kw))) {
+          return { status: 'attention', reason: 'Reflection claims pushback the scores don\'t show', learnMoreKey: 'reflection-score-mismatch' };
+        }
+      }
+      if (i > 0 && sub.reflectionType === 'delta' && sub.reflection) {
+        const delta = (sub.reflection.delta || '').toLowerCase();
+        if (total(sub) <= total(subs[i - 1]) && IMPROVEMENT_KW.some(kw => delta.includes(kw))) {
+          return { status: 'attention', reason: 'Student described improvement but scores didn\'t change', learnMoreKey: 'reflection-delta-mismatch' };
+        }
+      }
+    }
+  }
+
+  return { status: 'on-track', reason: '' };
+}
+
+function formatDate(d) {
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function sparklineSVG(subs, w = 72, h = 24) {
+  const flags   = checkFlag(subs);
+  const flagIdx = new Set(flags.map(f => f.submissionIndex));
+  const totals  = subs.map(total);
+  const MIN = 4, MAX = 20;
+  const x = i => subs.length < 2 ? w / 2 : (i / (subs.length - 1)) * (w - 8) + 4;
+  const y = t => h - 4 - ((t - MIN) / (MAX - MIN)) * (h - 8);
+  if (!subs.length) return `<svg class="sparkline" width="${w}" height="${h}"></svg>`;
+  const pts  = totals.map((t, i) => `${x(i)},${y(t)}`).join(' ');
+  const line = subs.length > 1
+    ? `<polyline points="${pts}" fill="none" stroke="var(--blue-light)" stroke-width="1.5"/>`
+    : '';
+  const dots = totals.map((t, i) =>
+    `<circle cx="${x(i)}" cy="${y(t)}" r="2.5" fill="${flagIdx.has(i) ? 'var(--terra)' : 'var(--blue)'}" />`
+  ).join('');
+  return `<svg class="sparkline" width="${w}" height="${h}">${line}${dots}</svg>`;
+}
+
+function distributionBar(studentIds, assignmentId, w = 120, h = 10) {
+  const n = studentIds.length;
+  if (!n) return '';
+  const counts = { Redefinition: 0, Modification: 0, Augmentation: 0, Substitution: 0, None: 0 };
+  studentIds.forEach(sid => {
+    const lat = latestSub(getSubs(sid, assignmentId));
+    if (lat) counts[samr(total(lat)).label]++;
+    else counts.None++;
+  });
+  const colors = { Redefinition: '#3B3EA8', Modification: '#6B7DD4', Augmentation: '#9B9DE0', Substitution: '#cccccc' };
+  const levels = ['Redefinition', 'Modification', 'Augmentation', 'Substitution'];
+  let x = 0;
+  const rects = [];
+  levels.forEach(l => {
+    if (!counts[l]) return;
+    const sw = (counts[l] / n) * w;
+    rects.push(`<rect x="${x.toFixed(1)}" y="0" width="${sw.toFixed(1)}" height="${h}" fill="${colors[l]}"><title>${counts[l]} ${l}</title></rect>`);
+    x += sw;
+  });
+  if (x < w - 0.5) {
+    rects.push(`<rect x="${x.toFixed(1)}" y="0" width="${(w - x).toFixed(1)}" height="${h}" fill="#e5e5e2"><title>${counts.None} not submitted</title></rect>`);
+  }
+  return `<svg width="${w}" height="${h}" style="border-radius:3px;display:block;overflow:hidden">${rects.join('')}</svg>`;
+}
+
+// ── Drill panel ───────────────────────────────────────────────────────────────
+
+function reflectionArc(subs) {
+  if (!subs.some(s => s.reflection)) return '';
+  const entries = subs.map((sub, i) => {
+    const t = total(sub);
+    const isFull = sub.reflectionType === 'full';
+    const text = isFull
+      ? (sub.reflection?.connect || '')
+      : (sub.reflection?.delta || '');
+    const words = text.trim().split(/\s+/).slice(0, 5).join(' ');
+    const excerpt = words + (text.trim().split(/\s+/).length > 5 ? '…' : '');
+    const badge = isFull ? 'CEC' : 'Δ';
+    const badgeCls = isFull ? 'arc-full' : 'arc-delta';
+    return `<div class="arc-entry" onclick="this.closest('.sub-history').children[${subs.length - 1 - i}].scrollIntoView({behavior:'smooth',block:'nearest'})">
+      <span class="arc-badge ${badgeCls}">${badge}</span>
+      <span class="arc-excerpt">${excerpt}</span>
+      <span class="arc-score">${t}/20</span>
+    </div>`;
+  });
+  return `<div class="reflection-arc">
+    <div class="arc-label">Reflection arc</div>
+    <div class="arc-entries">${entries.join('<span class="arc-arrow">→</span>')}</div>
+  </div>`;
+}
+
+function renderReflectionSection(sub, prevSub) {
+  if (!sub.reflection) return '';
+  const isFull = sub.reflectionType === 'full';
+  let badgeLabel, scoreDelta = '', fullContent;
+
+  if (isFull) {
+    badgeLabel = 'Connect · Extend · Challenge';
+    fullContent = `
+      <div class="reflect-section"><span class="reflect-label">Connect</span>${sub.reflection.connect || ''}</div>
+      <div class="reflect-section"><span class="reflect-label">Extend</span>${sub.reflection.extend || ''}</div>
+      <div class="reflect-section"><span class="reflect-label">Challenge</span>${sub.reflection.challenge || ''}</div>`;
+  } else {
+    badgeLabel = 'What shifted?';
+    if (prevSub) {
+      const change = total(sub) - total(prevSub);
+      const cls = change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
+      const sign = change > 0 ? '+' : '';
+      scoreDelta = `<span class="score-delta ${cls}">${sign}${change}</span>`;
+    }
+    fullContent = `<div class="reflect-section">${sub.reflection.delta || ''}</div>`;
+  }
+
+  const excerptSrc = isFull ? (sub.reflection.challenge || sub.reflection.connect || '') : (sub.reflection.delta || '');
+  const excerptWords = excerptSrc.trim().split(/\s+/).slice(0, 10).join(' ');
+  const excerpt = excerptWords + (excerptSrc.trim().split(/\s+/).length > 10 ? '…' : '');
+  const badgeCls = isFull ? '' : 'arc-delta-inline';
+
+  return `<details class="reflection-details">
+    <summary class="reflection-summary">
+      <span class="reflect-type-badge ${badgeCls}">${badgeLabel}</span>
+      ${scoreDelta}
+      <span class="reflect-excerpt">${excerpt}</span>
+    </summary>
+    <div class="reflect-full">${fullContent}</div>
+  </details>`;
+}
+
+function renderDrillPanel(subs, label, sig, ctx) {
+  if (!subs.length) return `<div class="drill-panel"><em style="color:var(--text-muted);font-size:13px">No submissions for this assignment.</em></div>`;
+  const flags   = checkFlag(subs);
+  const flagIdx = new Set(flags.map(f => f.submissionIndex));
+  const rows = [...subs].reverse().map((sub, ri) => {
+    const i = subs.length - 1 - ri;
+    const t        = total(sub);
+    const s        = samr(t);
+    const flagInfo = flagIdx.has(i) ? flags.find(f => f.submissionIndex === i) : null;
+    const iFlags   = sub.integrityFlags || [];
+    const isLast   = i === subs.length - 1;
+    const prevSub  = i > 0 ? subs[i - 1] : null;
+
+    const flagLines = [];
+    if (flagInfo) {
+      flagLines.push(`<div class="flag-line">
+        <span>Score jumped +${flagInfo.scoreDiff} points in ${flagInfo.mins} minutes</span>
+        <a class="flag-learn-more" onclick="openFlagTray('score-spike',{scoreDiff:${flagInfo.scoreDiff},mins:${flagInfo.mins}});event.stopPropagation()">Learn more</a>
+      </div>`);
+    }
+    iFlags.forEach(f => {
+      flagLines.push(`<div class="flag-line">
+        <span>${FLAG_META[f]?.desc || f}</span>
+        <a class="flag-learn-more" onclick="openFlagTray('${f}');event.stopPropagation()">Learn more</a>
+      </div>`);
+    });
+
+    const flagRow = flagLines.length
+      ? `<div class="integrity-flags-row">
+           <span style="font-size:11px;font-weight:600;color:var(--terra);flex-shrink:0;margin-top:1px">⚑</span>
+           <div style="flex:1;display:flex;flex-direction:column;gap:3px">${flagLines.join('')}</div>
+         </div>`
+      : '';
+
+    const statusChip = isLast
+      ? `<span class="sub-chip" style="font-size:10px;font-weight:600;color:var(--green);background:var(--green-tint);padding:2px 7px;border-radius:20px">Final</span>`
+      : `<span class="sub-chip" style="font-size:10px;font-weight:600;color:var(--text-muted);background:var(--grey-tint);border:1px solid var(--border);padding:2px 7px;border-radius:20px">Draft</span>`;
+
+    return `<div class="sub-row ${flagInfo || iFlags.length ? 'flagged' : ''}">
+      <div class="sub-row-main">
+        <span class="sub-num">#${i + 1}</span>
+        ${statusChip}
+        <span class="sub-date">${formatDate(sub.ts)}</span>
+        <span class="sub-total">${t}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span></span>
+        <div class="dim-scores" style="flex:1">
+          <span class="dim-score">PQ <span>${sub.pq}</span></span>
+          <span class="dim-score">SU <span>${sub.su}</span></span>
+          <span class="dim-score">CS <span>${sub.cs}</span></span>
+          <span class="dim-score">OC <span>${sub.oc}</span></span>
+        </div>
+        <span class="samr-badge ${s.cls}" style="width:100px;text-align:center;flex-shrink:0">${s.label}</span>
+        ${sub.id ? `<a href="/report.html?id=${sub.id}&role=teacher" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;flex-shrink:0;color:var(--accent,#3B3EA8)">Report →</a>` : ''}
+      </div>
+      ${flagRow}
+      ${renderReflectionSection(sub, prevSub)}
+    </div>`;
+  }).join('');
+
+  const learnMoreLink = sig && sig.learnMoreKey
+    ? ` <a class="flag-learn-more" onclick="openFlagTray('${sig.learnMoreKey}');event.stopPropagation()">Learn more</a>`
+    : '';
+  const engagementNote = sig && sig.status === 'attention' && sig.reason
+    ? `<div style="padding:8px 14px;font-size:11px;color:var(--text-muted);border-top:1px solid var(--border)">${sig.reason}${learnMoreLink}</div>`
+    : '';
+
+  const convLink = ctx
+    ? `<a href="/teacher.html#student/${ctx.assignmentId}/${ctx.studentId}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;float:right;color:var(--accent,#3B3EA8)">Conversation view →</a>`
+    : '';
+
+  return `<div class="drill-panel">
+    <div class="drill-panel-header">Submission history — ${label}${convLink}</div>
+    ${reflectionArc(subs)}
+    <div class="sub-history">${rows}</div>
+    ${engagementNote}
+  </div>`;
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+let activeTab            = 'overview';
+let activeClass          = 'overview';
+let activeAssignment     = 'overview';
+let activeStudent        = 'overview';
+let studentSearch        = '';
+let studentFilter        = 'all';
+let expandedInAssignment = null;
+let expandedInClass      = null;
+let expandedInStudent    = null;
+let classSort            = { col: null,   dir: 'asc' };
+let assignmentSort       = { col: 'name', dir: 'asc' };
+
+// ── Sidebar renders ───────────────────────────────────────────────────────────
+
+function renderClassSidebar() {
+  const items = CLASSES.map(c => {
+    const students = c.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
+    const hasFlags = students.some(s => hasAnyFlag(s.id));
+    const active   = c.id === activeClass;
+    return `<div class="sidebar-item ${active ? 'active' : ''}" onclick="selectClass('${c.id}')">
+      <div style="flex:1;min-width:0">
+        <div class="sidebar-item-name">${c.name}</div>
+        <div class="sidebar-item-sub">${students.length} student${students.length !== 1 ? 's' : ''}</div>
+      </div>
+      ${hasFlags ? '<span class="flag-dot">⚑</span>' : ''}
+    </div>`;
+  }).join('');
+  return `<div class="sidebar-item ${activeClass === 'overview' ? 'active' : ''}" onclick="selectClass('overview')" style="margin-bottom:4px">
+    <div style="flex:1;min-width:0">
+      <div class="sidebar-item-name">Overview</div>
+      <div class="sidebar-item-sub">All classes at a glance</div>
+    </div>
+  </div>
+  <div style="height:1px;background:var(--border);margin:4px 0 8px"></div>
+  ${items}`;
+}
+
+function renderAssignmentSidebar() {
+  function item(a) {
+    const active   = a.id === activeAssignment;
+    const dueStr   = a.due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const hasFlags = STUDENTS.some(s => {
+      const subs = getSubs(s.id, a.id);
+      return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
+    });
+    return `<div class="sidebar-item ${active ? 'active' : ''}" onclick="selectAssignment('${a.id}')">
+      <div style="flex:1;min-width:0">
+        <div class="sidebar-item-name">${a.name}</div>
+        <div class="sidebar-item-sub">Due ${dueStr}</div>
+      </div>
+      ${hasFlags ? '<span class="flag-dot">⚑</span>' : ''}
+    </div>`;
+  }
+  const open   = ASSIGNMENTS.filter(a => a.status === 'open');
+  const closed = ASSIGNMENTS.filter(a => a.status === 'closed');
+  let items = '';
+  if (open.length)   items += `<div class="sidebar-section">Open</div>${open.map(item).join('')}`;
+  if (closed.length) items += `<div class="sidebar-section" style="margin-top:${open.length ? 4 : 0}px">Closed</div>${closed.map(item).join('')}`;
+  return `<div class="sidebar-item ${activeAssignment === 'overview' ? 'active' : ''}" onclick="selectAssignment('overview')" style="margin-bottom:4px">
+    <div style="flex:1;min-width:0">
+      <div class="sidebar-item-name">Overview</div>
+      <div class="sidebar-item-sub">All assignments at a glance</div>
+    </div>
+  </div>
+  <div style="height:1px;background:var(--border);margin:4px 0 8px"></div>
+  ${items}`;
+}
+
+function signalPill(sig) {
+  if (sig.status === 'review') return `<span class="signal-pill-review">⚑ review</span>`;
+  return '';
+}
+
+function studentSidebarItem(s) {
+  const active = s.id === activeStudent;
+  const sig    = getStudentSignal(s.id);
+  return `<div class="sidebar-item ${active ? 'active' : ''}" onclick="selectStudent('${s.id}')">
+    <div style="flex:1;min-width:0">
+      <div class="sidebar-item-name">${s.name}</div>
+    </div>
+    ${signalPill(sig)}
+  </div>`;
+}
+
+function renderStudentList() {
+  const q = studentSearch.toLowerCase().trim();
+
+  let candidates = CLASSES.flatMap(cls =>
+    cls.studentIds.map(sid => ({ student: STUDENTS.find(s => s.id === sid), cls }))
+  ).filter(({ student }) => student);
+
+  if (q) candidates = candidates.filter(({ student }) => student.name.toLowerCase().includes(q));
+
+  if (studentFilter !== 'all') {
+    candidates = candidates.filter(({ student }) => getStudentSignal(student.id).status === studentFilter);
+  }
+
+  if (!candidates.length) return `<div style="padding:10px 16px;font-size:12px;color:var(--text-muted)">No students match this filter</div>`;
+
+  if (q) {
+    return candidates.map(({ student }) => studentSidebarItem(student)).join('');
+  }
+
+  return CLASSES.map(cls => {
+    const classStudents = candidates.filter(c => c.cls.id === cls.id).map(c => c.student);
+    if (!classStudents.length) return '';
+    return `<div class="sidebar-section">${cls.name}</div>`
+      + classStudents.map(s => studentSidebarItem(s)).join('');
+  }).join('');
+}
+
+function renderStudentSidebar() {
+  return `<div class="sidebar-item ${activeStudent === 'overview' ? 'active' : ''}" onclick="selectStudent('overview')" style="margin-bottom:4px">
+      <div style="flex:1;min-width:0">
+        <div class="sidebar-item-name">Overview</div>
+        <div class="sidebar-item-sub">All students by priority</div>
+      </div>
+    </div>
+    <div style="height:1px;background:var(--border);margin:4px 0 8px"></div>
+    <div class="sidebar-search">
+      <input type="text" id="student-search-input" placeholder="Search students…"
+             oninput="filterStudents(this.value)" value="${studentSearch}">
+    </div>
+    <div class="filter-chips">
+      <button class="filter-chip ${studentFilter === 'all'    ? 'active-all'    : ''}" data-filter="all"    onclick="setStudentFilter('all')">All</button>
+      <button class="filter-chip ${studentFilter === 'review' ? 'active-review' : ''}" data-filter="review" onclick="setStudentFilter('review')">⚑ Review</button>
+    </div>
+    <div id="student-list">${renderStudentList()}</div>`;
+}
+
+function renderSidebar() {
+  const el = document.getElementById('sidebar');
+  if      (activeTab === 'class')      el.innerHTML = renderClassSidebar();
+  else if (activeTab === 'assignment') el.innerHTML = renderAssignmentSidebar();
+  else                                  el.innerHTML = renderStudentSidebar();
+}
+
+// ── Class drill panel ─────────────────────────────────────────────────────────
+
+function renderClassDrillPanel(a, students) {
+  const isClosed = a.status === 'closed';
+
+  const noSubs   = students.filter(s => getSubs(s.id, a.id).length === 0);
+  const hasSubs  = students.filter(s => getSubs(s.id, a.id).length > 0);
+
+  // Unsubmitted always at top; within each group keep original roster order
+  const ordered = [...noSubs, ...hasSubs];
+
+  const rows = ordered.map(s => {
+    const subs      = getSubs(s.id, a.id);
+    const lat       = latestSub(subs);
+    const t         = lat ? total(lat) : null;
+    const st        = submissionStatus(subs, a);
+    const sig       = getStudentSignal(s.id, a.id);
+    const isMissing = isClosed && !subs.length;
+
+    return `<div class="class-student-row ${isMissing ? 'missing' : ''}"
+                 onclick="gotoStudentFromClass('${s.id}');event.stopPropagation()">
+      <div class="avatar" style="width:24px;height:24px;font-size:10px;flex-shrink:0">${s.initials}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px">
+          ${s.name}
+          ${signalPill(sig)}
+        </div>
+      </div>
+      <span class="chip ${st.cls}" style="font-size:10px;flex-shrink:0">${st.label}</span>
+      ${t !== null
+        ? `<span style="font-weight:700;font-size:13px;min-width:36px;text-align:right;flex-shrink:0">${t}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span></span>
+           <span class="samr-badge ${samr(t).cls}" style="font-size:10px;min-width:90px;text-align:center;flex-shrink:0">${samr(t).label}</span>`
+        : `<span style="min-width:36px"></span><span style="min-width:90px"></span>`}
+    </div>`;
+  }).join('');
+
+  return `<div class="drill-panel">
+    <div class="drill-panel-header" style="display:flex;justify-content:space-between;align-items:center">
+      <span>Students — ${a.name}</span>
+      <a style="font-size:11px;font-weight:600;color:var(--blue);cursor:pointer;text-decoration:none"
+         onclick="gotoAssignment('${a.id}');event.stopPropagation()">View full assignment →</a>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px">${rows}</div>
+  </div>`;
+}
+
+// ── Content renders ───────────────────────────────────────────────────────────
+
+function renderOverviewContent() {
+  const allStudents = CLASSES.flatMap(cls =>
+    cls.studentIds.map(sid => ({ student: STUDENTS.find(x => x.id === sid), cls }))
+  ).filter(({ student }) => student);
+
+  const review     = allStudents.filter(({ student }) => getStudentSignal(student.id).status === 'review');
+  const trends     = detectTrends();
+  const openAssign = ASSIGNMENTS.filter(a => a.status === 'open');
+  const totalMissing = openAssign.reduce((sum, a) =>
+    sum + allStudents.filter(({ student }) => !getSubs(student.id, a.id).length).length, 0);
+
+  // ── Stat tiles ──
+  function statTile(value, label, color, tintBg, borderColor, onclickFn) {
+    return `<div style="background:${tintBg};border:1px solid ${borderColor};border-radius:8px;padding:16px 18px;flex:1;min-width:110px;${onclickFn ? 'cursor:pointer' : ''}" ${onclickFn ? `onclick="${onclickFn}"` : ''}>
+      <div style="font-size:28px;font-weight:800;color:${color};line-height:1">${value}</div>
+      <div style="font-size:11px;font-weight:600;color:${color};margin-top:5px;opacity:0.85">${label}</div>
+    </div>`;
+  }
+
+  const tiles = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">
+    ${statTile(
+      review.length,
+      review.length ? 'Need review' : 'No flags',
+      review.length ? 'var(--terra)' : 'var(--green)',
+      review.length ? 'var(--terra-tint)' : 'var(--green-tint)',
+      review.length ? 'var(--terra-light)' : '#a8d5be',
+      review.length ? "gotoStudentFilter('review')" : ''
+    )}
+    ${statTile(trends.length, `Behavioral pattern${trends.length !== 1 ? 's' : ''} detected`, 'var(--blue-mid)', 'var(--blue-tint)', '#c5c7e8', '')}
+    ${totalMissing ? statTile(totalMissing, 'Missing submissions', 'var(--amber)', 'var(--amber-tint)', '#d4a87a', '') : ''}
+    ${statTile(openAssign.length, `Open assignment${openAssign.length !== 1 ? 's' : ''}`, 'var(--text-mid)', 'var(--surface)', 'var(--border)', '')}
+    ${statTile(allStudents.length, 'Students', 'var(--text-mid)', 'var(--surface)', 'var(--border)', '')}
+  </div>`;
+
+  // ── Integrity flags list ──
+  const reviewSection = review.length ? `<div style="margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:13px;font-weight:600;color:var(--text)">Students — <span style="color:var(--terra)">⚑ review</span></span>
+      <span style="font-size:11px;background:var(--terra-tint);color:var(--terra);border:1px solid var(--terra-light);border-radius:20px;padding:1px 7px;font-weight:600">${review.length}</span>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden">
+      ${review.map(({ student, cls }, i) => {
+        const flaggedAssign = ASSIGNMENTS.filter(a => {
+          const subs = getSubs(student.id, a.id);
+          return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
+        });
+        const detail = flaggedAssign.length ? 'Flagged: ' + flaggedAssign.map(a => a.name).join(', ') : '';
+        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;${i > 0 ? 'border-top:1px solid var(--border);' : ''}cursor:pointer"
+                     onmouseover="this.style.background='var(--terra-tint)'" onmouseout="this.style.background=''"
+                     onclick="gotoStudentFromClass('${student.id}')">
+          <div class="avatar" style="width:28px;height:28px;font-size:10px;background:var(--terra-tint);color:var(--terra);flex-shrink:0">${student.initials}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600">${student.name}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cls.name}${detail ? ' · ' + detail : ''}</div>
+          </div>
+          <span style="font-size:11px;color:var(--blue);font-weight:600;flex-shrink:0">View →</span>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>` : '';
+
+  // ── Trend cards ──
+  const trendsSection = trends.length ? `<div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:13px;font-weight:700;color:var(--text)">Behavioral patterns</span>
+      <span style="font-size:11px;color:var(--text-muted)">Patterns detected across your classes based on how students are using AI</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${trends.map(({ id, students, meta }) => {
+        const preview = students.slice(0, 4);
+        const overflow = students.length - preview.length;
+        // Spread across classes for context
+        const classCounts = CLASSES.map(cls => {
+          const n = students.filter(x => x.cls.id === cls.id).length;
+          return n ? `${cls.name} ${n}` : null;
+        }).filter(Boolean).join(' · ');
+        return `<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--blue-mid);border-radius:8px;padding:16px 18px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px">
+            <div>
+              <span style="font-size:14px;font-weight:700;color:var(--text)">${meta.label}</span>
+              <span style="font-size:11px;font-weight:600;background:var(--blue-tint);color:var(--blue);border:1px solid #c5c7e8;border-radius:20px;padding:1px 8px;margin-left:8px">${students.length} student${students.length !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">${classCounts}</div>
+
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-muted);margin-bottom:5px">What this looks like</div>
+          <div style="font-size:13px;color:var(--text-mid);line-height:1.6;margin-bottom:12px">${meta.what}</div>
+
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--blue-mid);margin-bottom:5px">What to try</div>
+          <div style="font-size:13px;color:var(--text-mid);line-height:1.6;margin-bottom:14px;padding:10px 12px;background:var(--blue-tint);border-radius:5px;border-left:2px solid var(--blue-light)">${meta.whatToTry}</div>
+
+        </div>`;
+      }).join('')}
+    </div>
+  </div>` : '';
+
+  const allClear = !review.length && !trends.length
+    ? `<div style="text-align:center;padding:40px 24px;background:var(--surface);border:1px solid var(--border);border-radius:8px">
+        <div style="font-size:22px;margin-bottom:8px">✓</div>
+        <div style="font-weight:600;font-size:14px;color:var(--green)">All students on track</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">No flags or behavioral patterns detected</div>
+      </div>` : '';
+
+  // ── Open assignments ──
+  const assignSection = `<div style="margin-bottom:16px">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--text-muted);margin-bottom:8px">Open assignments</div>
+    ${openAssign.length ? openAssign.map(a => {
+      const submitted  = allStudents.filter(({ student }) => getSubs(student.id, a.id).length > 0).length;
+      const n          = allStudents.length;
+      const missing    = n - submitted;
+      const dueStr     = a.due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const daysLeft   = Math.ceil((a.due - new Date()) / 86400000);
+      const bar        = distributionBar(allStudents.map(({ student }) => student.id), a.id, 200);
+      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px 15px;margin-bottom:8px;cursor:pointer"
+                   onclick="gotoAssignment('${a.id}')">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px">
+          <div>
+            <div style="font-size:13px;font-weight:600">${a.name}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Due ${dueStr} · ${daysLeft >= 0 ? `${daysLeft}d left` : 'Past due'}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <span style="font-weight:700;font-size:13px;color:${missing ? 'var(--amber)' : 'var(--green)'}">${submitted}</span><span style="font-size:11px;color:var(--text-muted)">/${n} submitted</span>
+            ${missing ? `<div style="font-size:11px;color:var(--terra)">${missing} missing</div>` : ''}
+          </div>
+        </div>
+        ${bar}
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+          ${CLASSES.map(cls => {
+            const cs   = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
+            const csub = cs.filter(s => getSubs(s.id, a.id).length > 0).length;
+            return `<span style="font-size:11px;color:var(--text-muted)">${cls.name} <strong style="color:var(--text)">${csub}/${cs.length}</strong></span>`;
+          }).join('<span style="color:var(--border);margin:0 3px">·</span>')}
+        </div>
+      </div>`;
+    }).join('') : `<div style="font-size:13px;color:var(--text-muted);padding:14px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:8px">No open assignments</div>`}
+  </div>`;
+
+  // ── Class health ──
+  const classSection = `<div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--text-muted);margin-bottom:8px">Classes</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${CLASSES.map(cls => {
+        const students   = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
+        const flagCount = students.filter(s => getStudentSignal(s.id).status === 'review').length;
+        return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 14px;display:flex;align-items:center;gap:12px;cursor:pointer"
+                     onclick="gotoClass('${cls.id}')">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600">${cls.name}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:1px">${students.length} students</div>
+          </div>
+          <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
+            ${flagCount ? `<span class="chip chip-terra" style="font-size:10px">⚑ ${flagCount}</span>` : `<span style="font-size:11px;color:var(--green);font-weight:600">✓ On track</span>`}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  const date = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  return `
+    <div class="content-header">
+      <div class="content-title">Overview</div>
+      <div class="content-meta">${date}</div>
+    </div>
+    ${tiles}
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start">
+      <div>
+        ${reviewSection}
+        ${trendsSection}
+        ${allClear}
+      </div>
+      <div>
+        ${assignSection}
+        ${classSection}
+      </div>
+    </div>
+  `;
+}
+
+function renderClassOverview() {
+  const totalFlags = STUDENTS.filter(s => hasAnyFlag(s.id)).length;
+  const totalStudents = STUDENTS.length;
+
+  const cards = CLASSES.map(cls => {
+    const students = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
+    const flagged  = students.filter(s => hasAnyFlag(s.id));
+    const allSubs  = ASSIGNMENTS.flatMap(a => students.map(s => getSubs(s.id, a.id))).flat();
+    const openAssignments = ASSIGNMENTS.filter(a => a.status === 'open');
+    const submissionStats = openAssignments.map(a => {
+      const submitted = students.filter(s => getSubs(s.id, a.id).length > 0).length;
+      return { name: a.name, submitted, total: students.length };
+    });
+
+    const flagLines = flagged.map(s => {
+      const sig = getStudentSignal(s.id);
+      return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid var(--border);cursor:pointer;border-radius:4px"
+                   onmouseover="this.style.background='var(--terra-tint)'" onmouseout="this.style.background=''"
+                   onclick="event.stopPropagation();gotoStudentFromClass('${s.id}')">
+        <div class="avatar" style="width:22px;height:22px;font-size:9px;flex-shrink:0">${s.initials}</div>
+        <span style="font-size:12px;font-weight:500;flex:1">${s.name}</span>
+        ${signalPill(sig)}
+        <span style="font-size:11px;color:var(--blue);font-weight:600;flex-shrink:0">View →</span>
+      </div>`;
+    }).join('');
+
+    const submissionLines = submissionStats.map(({ name, submitted, total }) =>
+      `<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-muted);padding:3px 0;border-top:1px solid var(--border)">
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>
+        <span style="flex-shrink:0;font-weight:600;color:${submitted < total ? 'var(--terra)' : 'var(--text)'}">${submitted}/${total}</span>
+      </div>`
+    ).join('');
+
+    return `<div class="overview-card" onclick="selectClass('${cls.id}')">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div>
+          <div style="font-weight:600;font-size:14px">${cls.name}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${students.length} student${students.length !== 1 ? 's' : ''} · ${ASSIGNMENTS.length} assignment${ASSIGNMENTS.length !== 1 ? 's' : ''}</div>
+        </div>
+        ${flagged.length ? `<span class="flag-badge" style="flex-shrink:0">⚑ review</span>` : ''}
+      </div>
+      ${submissionLines ? `<div style="margin-top:8px">${submissionLines}</div>` : ''}
+      ${flagLines ? `<div style="margin-top:4px">${flagLines}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="content-header">
+      <div class="content-title">Classes</div>
+      <div class="content-meta">${CLASSES.length} class${CLASSES.length !== 1 ? 'es' : ''} · ${totalStudents} students${totalFlags ? ` · <span style="color:var(--terra)">⚑ review</span>` : ''}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">${cards}</div>
+  `;
+}
+
+function renderAssignmentOverview() {
+  const allStudents = CLASSES.flatMap(cls =>
+    cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean)
+  );
+  const n = allStudents.length;
+
+  function assignmentCard(a) {
+    const dueStr    = a.due.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const submitted = allStudents.filter(s => getSubs(s.id, a.id).length > 0).length;
+    const missing   = a.status === 'closed' ? n - submitted : 0;
+    const flagged   = allStudents.filter(s => {
+      const subs = getSubs(s.id, a.id);
+      return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
+    });
+    const bar = distributionBar(allStudents.map(s => s.id), a.id, 160);
+
+    const flagLines = flagged.map(s => {
+      const sig = getStudentSignal(s.id, a.id);
+      return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid var(--border);cursor:pointer;border-radius:4px"
+                   onmouseover="this.style.background='var(--terra-tint)'" onmouseout="this.style.background=''"
+                   onclick="event.stopPropagation();gotoStudentFromClass('${s.id}')">
+        <div class="avatar" style="width:22px;height:22px;font-size:9px;flex-shrink:0">${s.initials}</div>
+        <span style="font-size:12px;font-weight:500;flex:1">${s.name}</span>
+        ${signalPill(sig)}
+        <span style="font-size:11px;color:var(--blue);font-weight:600;flex-shrink:0">View →</span>
+      </div>`;
+    }).join('');
+
+    return `<div class="overview-card" onclick="selectAssignment('${a.id}')">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-weight:600;font-size:13px">${a.name}</span>
+            <span class="chip ${a.status === 'open' ? 'chip-amber' : 'chip-grey'}" style="font-size:10px">${a.status === 'open' ? 'Open' : 'Closed'}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Due ${dueStr}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:12px;font-weight:600;color:${missing ? 'var(--terra)' : 'var(--text)'}">${submitted}<span style="font-weight:400;color:var(--text-muted)">/${n} submitted</span></div>
+          ${missing ? `<div style="font-size:11px;color:var(--terra)">${missing} missing</div>` : ''}
+        </div>
+      </div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:10px">
+        ${bar}
+        ${flagged.length ? `<span class="flag-badge">⚑ review</span>` : ''}
+      </div>
+      ${flagLines ? `<div style="margin-top:4px">${flagLines}</div>` : ''}
+    </div>`;
+  }
+
+  const open   = ASSIGNMENTS.filter(a => a.status === 'open').sort((a, b) => a.due - b.due);
+  const closed = ASSIGNMENTS.filter(a => a.status === 'closed').sort((a, b) => b.due - a.due);
+
+  const totalFlagged = ASSIGNMENTS.reduce((sum, a) => sum + allStudents.filter(s => {
+    const subs = getSubs(s.id, a.id);
+    return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
+  }).length, 0);
+
+  let html = '';
+  if (open.length)   html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:8px">Open</div><div style="display:flex;flex-direction:column;gap:6px">${open.map(assignmentCard).join('')}</div>`;
+  if (closed.length) html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-top:20px;margin-bottom:8px">Closed</div><div style="display:flex;flex-direction:column;gap:6px">${closed.map(assignmentCard).join('')}</div>`;
+
+  return `
+    <div class="content-header">
+      <div class="content-title">Assignments</div>
+      <div class="content-meta">${ASSIGNMENTS.length} assignments · ${open.length} open${totalFlagged ? ` · <span style="color:var(--terra)">⚑ review</span>` : ''}</div>
+    </div>
+    ${html}
+  `;
+}
+
+function renderClassContent() {
+  if (activeClass === 'overview') return renderClassOverview();
+  const cls = CLASSES.find(x => x.id === activeClass);
+  if (!cls) return renderClassOverview();
+  const students   = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
+  const n          = students.length;
+  const openCount  = ASSIGNMENTS.filter(a => a.status === 'open').length;
+  const totalFlags = students.filter(s => hasAnyFlag(s.id)).length;
+
+  const byDueDesc = (a, b) => b.due - a.due;
+  const open   = sortAssignments(ASSIGNMENTS.filter(a => a.status === 'open').sort(byDueDesc));
+  const closed = sortAssignments(ASSIGNMENTS.filter(a => a.status === 'closed').sort(byDueDesc));
+
+  function buildRow(a) {
+    const allSubs   = students.map(s => getSubs(s.id, a.id));
+    const submitted = allSubs.filter(s => s.length > 0).length;
+    const isClosed  = a.status === 'closed';
+    const dueStr    = a.due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const missing   = isClosed && submitted < n ? n - submitted : 0;
+    const flagCount = students.filter(s => {
+      const subs = getSubs(s.id, a.id);
+      return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
+    }).length;
+    const bar      = distributionBar(cls.studentIds, a.id);
+    const expanded = expandedInClass === a.id;
+
+    const mainRow = `<tr class="${expanded ? 'expanded-row' : ''}" onclick="toggleClassDrill('${a.id}')">
+      <td>
+        <div style="font-weight:600;font-size:13px">${a.name}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Due ${dueStr} · ${isClosed ? 'Closed' : 'Open'}</div>
+      </td>
+      <td>
+        <span style="font-weight:600;${isClosed && submitted < n ? 'color:var(--terra)' : ''}">${submitted}</span><span style="color:var(--text-muted)"> / ${n}</span>
+        ${missing ? `<div style="font-size:11px;color:var(--terra);margin-top:2px">${missing} missing</div>` : ''}
+      </td>
+      <td>${bar}</td>
+      <td>${flagCount ? `<span class="flag-badge">⚑ review</span>` : '<span style="color:var(--text-muted);font-size:12px">—</span>'}</td>
+    </tr>`;
+
+    const drillRow = expanded
+      ? `<tr class="drill-row"><td colspan="4" style="padding:0">${renderClassDrillPanel(a, students)}</td></tr>`
+      : '';
+
+    return mainRow + drillRow;
+  }
+
+  function groupHeader(label) {
+    return `<tr style="pointer-events:none">
+      <td colspan="4" style="padding:10px 14px 4px;background:var(--bg);border-bottom:none">
+        <span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px">${label}</span>
+      </td>
+    </tr>`;
+  }
+
+  const rows = [
+    ...(open.length   ? [groupHeader('Open'),   ...open.map(buildRow)]   : []),
+    ...(closed.length ? [groupHeader('Closed'), ...closed.map(buildRow)] : []),
+  ].join('');
+
+  const metaParts = [
+    `${n} student${n !== 1 ? 's' : ''}`,
+    `${ASSIGNMENTS.length} assignment${ASSIGNMENTS.length !== 1 ? 's' : ''}`,
+    openCount ? `${openCount} open` : 'all closed',
+  ];
+  if (totalFlags) metaParts.push(`<span style="color:var(--terra)">⚑ review</span>`);
+
+  return `
+    <div class="content-header">
+      <div class="content-title">${cls.name}</div>
+      <div class="content-meta">${metaParts.join(' · ')}</div>
+    </div>
+    <table class="data-table">
+      <colgroup>
+        <col style="width:auto">
+        <col style="width:100px">
+        <col style="width:140px">
+        <col style="width:80px">
+      </colgroup>
+      <thead><tr>
+        ${sortTh('Assignment',   'name',      classSort)}
+        ${sortTh('Submitted',    'submitted', classSort)}
+        <th>Class spread</th>
+        ${sortTh('Flags',        'flags',     classSort)}
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="bar-legend">
+      <span>Spread:</span>
+      <span><span class="legend-swatch" style="background:#3B3EA8"></span>Redefinition</span>
+      <span><span class="legend-swatch" style="background:#6B7DD4"></span>Modification</span>
+      <span><span class="legend-swatch" style="background:#9B9DE0"></span>Augmentation</span>
+      <span><span class="legend-swatch" style="background:#ccc"></span>Substitution</span>
+      <span><span class="legend-swatch" style="background:#e5e5e2"></span>Not submitted</span>
+    </div>
+    <p style="margin-top:10px;font-size:12px;color:var(--text-muted)">Click an assignment to view student breakdown.</p>
+  `;
+}
+
+function renderAssignmentContent() {
+  if (activeAssignment === 'overview') return renderAssignmentOverview();
+  const a = ASSIGNMENTS.find(x => x.id === activeAssignment);
+  if (!a) return renderAssignmentOverview();
+  const closed = a.status === 'closed';
+  const dueStr = a.due.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  const rows = [];
+  CLASSES.forEach(cls => {
+    const classStudents = sortStudents(
+      cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean),
+      a
+    );
+    if (!classStudents.length) return;
+
+    rows.push(`<tr style="pointer-events:none">
+      <td colspan="5" style="padding:10px 14px 4px;background:var(--bg);border-bottom:none">
+        <span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px">${cls.name}</span>
+      </td>
+    </tr>`);
+
+    classStudents.forEach(s => {
+      const subs     = getSubs(s.id, a.id);
+      const lat      = latestSub(subs);
+      const t        = lat ? total(lat) : null;
+      const st       = submissionStatus(subs, a);
+      const sig      = getStudentSignal(s.id, a.id);
+      const expanded = expandedInAssignment === s.id;
+
+      rows.push(`<tr class="${expanded ? 'expanded-row' : ''}" onclick="toggleAssignmentDrill('${s.id}')">
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="avatar" style="width:26px;height:26px;font-size:10px">${s.initials}</div>
+            <div>
+              <div style="font-weight:500;font-size:13px;display:flex;align-items:center;gap:6px">
+                ${s.name}
+                ${signalPill(sig)}
+              </div>
+            </div>
+          </div>
+        </td>
+        <td style="font-size:12px;color:var(--text-mid)">${subs.length || '<span style="color:var(--text-muted)">—</span>'}</td>
+        <td>${t !== null ? `<span class="tau-total" style="font-size:14px">${t}</span><span class="tau-denom">/20</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+        <td>${t !== null ? `<span class="samr-badge ${samr(t).cls}">${samr(t).label}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+        <td>${`<span class="chip ${st.cls}">${st.label}</span>`}</td>
+      </tr>`);
+
+      if (expanded) {
+        rows.push(`<tr class="drill-row"><td colspan="5" style="padding:0">${renderDrillPanel(subs, s.name, sig, { studentId: s.id, assignmentId: a.id })}</td></tr>`);
+      }
+    });
+  });
+
+  const flagTotal = STUDENTS.filter(s => {
+    const subs = getSubs(s.id, a.id);
+    return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
+  }).length;
+
+  const metaParts = [`Due ${dueStr}`];
+  if (flagTotal) metaParts.push(`<span style="color:var(--terra)">⚑ review</span>`);
+
+  return `
+    <div class="content-header">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="content-title">${a.name}</div>
+        <span class="chip ${closed ? 'chip-grey' : 'chip-amber'}">${closed ? 'Closed' : 'Open'}</span>
+      </div>
+      <div class="content-meta">${metaParts.join(' · ')}</div>
+    </div>
+    <table class="data-table">
+      <colgroup>
+        <col style="width:auto">
+        <col style="width:100px">
+        <col style="width:100px">
+        <col style="width:140px">
+        <col style="width:120px">
+      </colgroup>
+      <thead><tr>
+        ${sortTh('Student',     'name',        assignmentSort)}
+        ${sortTh('Submissions', 'submissions',  assignmentSort)}
+        ${sortTh('Latest TAU', 'tau',           assignmentSort)}
+        ${sortTh('SAMR',        'samr',         assignmentSort)}
+        ${sortTh('Status',      'status',       assignmentSort)}
+      </tr></thead>
+      <tbody>${rows.join('')}</tbody>
+    </table>
+    <p style="margin-top:10px;font-size:12px;color:var(--text-muted)">Click a row to see submission history and flag details.</p>
+  `;
+}
+
+function renderStudentOverview() {
+  const allStudents = CLASSES.flatMap(cls =>
+    cls.studentIds.map(sid => ({ student: STUDENTS.find(x => x.id === sid), cls }))
+  ).filter(({ student }) => student);
+
+  const review    = allStudents.filter(({ student }) => getStudentSignal(student.id).status === 'review');
+  const onTrack   = allStudents.filter(({ student }) => getStudentSignal(student.id).status !== 'review');
+
+  function card({ student, cls }) {
+    const sig = getStudentSignal(student.id);
+    const flaggedAssignments = ASSIGNMENTS.filter(a => {
+      const subs = getSubs(student.id, a.id);
+      return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
+    });
+    const latestSubs = ASSIGNMENTS.map(a => latestSub(getSubs(student.id, a.id))).filter(Boolean);
+    const best = latestSubs.length ? latestSubs.reduce((a, b) => b.ts > a.ts ? b : a) : null;
+    const t = best ? total(best) : null;
+
+    return `<div class="overview-card" onclick="selectStudent('${student.id}')">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="avatar" style="width:32px;height:32px;font-size:12px;flex-shrink:0">${student.initials}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+            <span style="font-weight:600;font-size:13px">${student.name}</span>
+            ${signalPill(sig)}
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:1px">${cls.name}</div>
+        </div>
+        ${t !== null ? `<div style="text-align:right;flex-shrink:0"><span style="font-weight:700;font-size:13px">${t}</span><span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span><div style="margin-top:2px">${`<span class="samr-badge ${samr(t).cls}" style="font-size:10px">${samr(t).label}</span>`}</div></div>` : ''}
+      </div>
+      ${sig.status === 'review' && flaggedAssignments.length ? `<div style="margin-top:7px;padding-top:7px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted)"><span style="color:var(--terra)">⚑ review</span> — ${flaggedAssignments.map(a => a.name).join(', ')}</div>` : ''}
+    </div>`;
+  }
+
+  function section(items, label, color) {
+    if (!items.length) return '';
+    return `<div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:${color};margin-bottom:8px">${label} <span style="font-weight:400;color:var(--text-muted);text-transform:none;letter-spacing:0">${items.length}</span></div>
+      <div style="display:flex;flex-direction:column;gap:6px">${items.map(card).join('')}</div>
+    </div>`;
+  }
+
+  const sections = [
+    section(review,   '⚑ review', 'var(--terra)'),
+    section(onTrack,  'On track',        'var(--text-muted)'),
+  ].filter(Boolean).join('<div style="height:20px"></div>');
+
+  const metaParts = [];
+  if (review.length) metaParts.push(`<span style="color:var(--terra)">⚑ review</span>`);
+  if (!metaParts.length) metaParts.push('all on track');
+
+  return `
+    <div class="content-header">
+      <div class="content-title">Students</div>
+      <div class="content-meta">${allStudents.length} students · ${metaParts.join(' · ')}</div>
+    </div>
+    ${sections}
+  `;
+}
+
+function renderStudentContent() {
+  if (activeStudent === 'overview') return renderStudentOverview();
+  const s = STUDENTS.find(x => x.id === activeStudent);
+  if (!s) return renderStudentOverview();
+  const cls = CLASSES.find(c => c.studentIds.includes(s.id));
+  const sig = getStudentSignal(s.id);
+
+  const sorted = [...ASSIGNMENTS].sort((a, b) => (a.status === b.status ? 0 : a.status === 'open' ? -1 : 1));
+  let lastGroup = null;
+  const sections = sorted.map(a => {
+    const subs     = getSubs(s.id, a.id);
+    const st       = submissionStatus(subs, a);
+    const lat      = latestSub(subs);
+    const t        = lat ? total(lat) : null;
+    const expanded = expandedInStudent === a.id;
+
+    let groupLabel = '';
+    if (a.status !== lastGroup) {
+      lastGroup = a.status;
+      const isFirst = a.status === 'open';
+      groupLabel = `<div class="sidebar-section" style="padding:0;margin-bottom:6px${isFirst ? '' : ';margin-top:16px'}">${a.status === 'open' ? 'Open' : 'Closed'}</div>`;
+    }
+
+    const asig = getStudentSignal(s.id, a.id);
+    const drillPanel = expanded
+      ? `<div class="assignment-drill">${renderDrillPanel(subs, a.name, asig, { studentId: s.id, assignmentId: a.id })}</div>`
+      : '';
+
+    return `${groupLabel}<div style="margin-bottom:${expanded ? 16 : 8}px">
+      <div class="assignment-summary-row ${expanded ? 'expanded' : ''}" onclick="toggleStudentDrill('${a.id}')">
+        <span class="chevron">${expanded ? '▾' : '▸'}</span>
+        <span style="font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}</span>
+        <span style="width:48px;text-align:right;flex-shrink:0;font-weight:700;font-size:13px">${t !== null ? `${t}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span>` : '<span style="font-size:12px;color:var(--text-muted)">—</span>'}</span>
+        <span style="width:110px;text-align:center;flex-shrink:0">${t !== null ? `<span class="samr-badge ${samr(t).cls}" style="font-size:10px">${samr(t).label}</span>` : ''}</span>
+        <span style="width:80px;text-align:center;flex-shrink:0">${signalPill(asig)}</span>
+        <span style="width:88px;text-align:center;flex-shrink:0"><span class="chip ${st.cls}" style="font-size:10px">${st.label}</span></span>
+        <span style="width:44px;text-align:right;flex-shrink:0;font-size:11px;color:var(--text-muted)">${subs.length} sub${subs.length !== 1 ? 's' : ''}</span>
+      </div>
+      ${drillPanel}
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="content-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="avatar" style="width:40px;height:40px;font-size:14px">${s.initials}</div>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="content-title">${s.name}</div>
+            ${signalPill(sig)}
+          </div>
+          <div class="content-meta">${cls ? cls.name : ''}</div>
+        </div>
+      </div>
+    </div>
+    ${sections}
+  `;
+}
+
+// ── Sort helpers ─────────────────────────────────────────────────────────────
+
+function sortTh(label, col, state) {
+  const active = state.col === col;
+  const arrow  = active ? (state.dir === 'asc' ? '↑' : '↓') : '⇅';
+  return `<th class="sortable${active ? ' sort-active' : ''}"
+    onclick="toggleSort('${col}')"
+  >${label}<em class="sort-arrow">${arrow}</em></th>`;
+}
+
+function toggleSort(col) {
+  const isAssignment = activeTab === 'assignment' && activeAssignment !== 'overview';
+  const isClass      = activeTab === 'class'      && activeClass      !== 'overview';
+  if (isAssignment) {
+    if (assignmentSort.col === col) assignmentSort.dir = assignmentSort.dir === 'asc' ? 'desc' : 'asc';
+    else assignmentSort = { col, dir: col === 'name' ? 'asc' : 'desc' };
+  } else if (isClass) {
+    if (classSort.col === col) classSort.dir = classSort.dir === 'asc' ? 'desc' : 'asc';
+    else classSort = { col, dir: col === 'name' ? 'asc' : 'desc' };
+  }
+  renderContent();
+}
+
+const STATUS_ORDER = { 'Missing': 0, 'Not started': 1, 'Draft': 2, 'Final': 3 };
+
+function sortStudents(students, assignment) {
+  const { col, dir } = assignmentSort;
+  if (!col) return students;
+  const m = dir === 'asc' ? 1 : -1;
+  return [...students].sort((a, b) => {
+    if (col === 'name') return m * a.name.localeCompare(b.name);
+    const subsA = getSubs(a.id, assignment.id), subsB = getSubs(b.id, assignment.id);
+    const latA  = latestSub(subsA), latB = latestSub(subsB);
+    if (col === 'submissions') return m * (subsA.length - subsB.length);
+    if (col === 'tau')         return m * ((latA ? total(latA) : -1) - (latB ? total(latB) : -1));
+    if (col === 'samr')        return m * ((latA ? total(latA) : -1) - (latB ? total(latB) : -1));
+    if (col === 'status') {
+      const sa = STATUS_ORDER[submissionStatus(subsA, assignment).label] ?? 0;
+      const sb = STATUS_ORDER[submissionStatus(subsB, assignment).label] ?? 0;
+      return m * (sa - sb);
+    }
+    return 0;
+  });
+}
+
+function sortAssignments(assignments) {
+  const { col, dir } = classSort;
+  if (!col) return assignments;
+  const m = dir === 'asc' ? 1 : -1;
+  const cls = CLASSES.find(c => c.id === activeClass);
+  const students = cls ? cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean) : [];
+  return [...assignments].sort((a, b) => {
+    if (col === 'name') return m * a.name.localeCompare(b.name);
+    if (col === 'submitted') {
+      const sa = students.filter(s => getSubs(s.id, a.id).length > 0).length;
+      const sb = students.filter(s => getSubs(s.id, b.id).length > 0).length;
+      return m * (sa - sb);
+    }
+    if (col === 'flags') {
+      const fa = students.filter(s => { const subs = getSubs(s.id, a.id); return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0; }).length;
+      const fb = students.filter(s => { const subs = getSubs(s.id, b.id); return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0; }).length;
+      return m * (fa - fb);
+    }
+    return 0;
+  });
+}
+
+function renderContent() {
+  const el = document.getElementById('content');
+  if      (activeTab === 'overview')   el.innerHTML = renderOverviewContent();
+  else if (activeTab === 'class')      el.innerHTML = renderClassContent();
+  else if (activeTab === 'assignment') el.innerHTML = renderAssignmentContent();
+  else                                  el.innerHTML = renderStudentContent();
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+
+function setTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  render();
+}
+
+function selectClass(cid)     { activeClass = cid; expandedInClass = null; classSort = { col: null, dir: 'asc' }; render(); }
+function selectAssignment(aid){ activeAssignment = aid; expandedInAssignment = null; assignmentSort = { col: 'name', dir: 'asc' }; render(); }
+function selectStudent(sid)   { activeStudent = sid; expandedInStudent = null; render(); }
+
+function gotoAssignment(aid) {
+  activeAssignment     = aid;
+  expandedInAssignment = null;
+  setTab('assignment');
+}
+
+function gotoClass(cid) {
+  activeClass     = cid;
+  expandedInClass = null;
+  classSort       = { col: null, dir: 'asc' };
+  setTab('class');
+}
+
+function gotoStudentFilter(filter) {
+  studentFilter = filter;
+  setTab('student');
+}
+
+function toggleAssignmentDrill(sid) {
+  expandedInAssignment = expandedInAssignment === sid ? null : sid;
+  renderContent();
+}
+
+function toggleClassDrill(aid) {
+  expandedInClass = expandedInClass === aid ? null : aid;
+  renderContent();
+}
+
+function toggleStudentDrill(aid) {
+  expandedInStudent = expandedInStudent === aid ? null : aid;
+  renderContent();
+}
+
+function gotoStudentFromClass(sid) {
+  activeStudent = sid;
+  setTab('student');
+}
+
+function filterStudents(q) {
+  studentSearch = q.toLowerCase().trim();
+  const listEl = document.getElementById('student-list');
+  if (listEl) listEl.innerHTML = renderStudentList();
+}
+
+function setStudentFilter(f) {
+  studentFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(btn => {
+    btn.className = 'filter-chip' + (btn.dataset.filter === f ? ` active-${f}` : '');
+  });
+  const listEl = document.getElementById('student-list');
+  if (listEl) listEl.innerHTML = renderStudentList();
+}
+
+function render() {
+  const sidebar = document.getElementById('sidebar');
+  if (activeTab === 'overview') {
+    sidebar.style.display = 'none';
+  } else {
+    sidebar.style.display = '';
+    renderSidebar();
+  }
+  renderContent();
+}
+
+// ── Flag tray ─────────────────────────────────────────────────────────────────
+
+function openFlagTray(key, spikeCtx) {
+  const meta = FLAG_META[key];
+  if (!meta) return;
+
+  const type = FLAG_TYPES[key] || 'integrity';
+  const iconEl = document.querySelector('.tray-flag-icon');
+  if (iconEl) {
+    iconEl.textContent = type === 'reflection' ? '●' : '⚑';
+    iconEl.style.color = type === 'reflection' ? 'var(--amber)' : 'var(--terra)';
+  }
+
+  let desc = meta.desc;
+  if (key === 'score-spike' && spikeCtx) {
+    desc = `Score jumped +${spikeCtx.scoreDiff} points in ${spikeCtx.mins} minute${spikeCtx.mins !== 1 ? 's' : ''}`;
+  }
+
+  document.getElementById('tray-title').textContent   = meta.short;
+  document.getElementById('tray-subtitle').textContent = desc;
+  document.getElementById('tray-body').innerHTML = `
+    <div>
+      <div class="tray-section-label">What this means</div>
+      <div class="tray-section-body">${meta.what}</div>
+    </div>
+    <div>
+      <div class="tray-section-label">Why we flagged it</div>
+      <div class="tray-section-body">${meta.why}</div>
+    </div>
+    <div>
+      <div class="tray-section-label">Potential next steps</div>
+      <ul class="tray-steps">
+        ${meta.steps.map((s, i) => `<li><span class="tray-step-num">${i + 1}</span><span>${s}</span></li>`).join('')}
+      </ul>
+    </div>
+  `;
+
+  document.getElementById('tray-overlay').classList.add('open');
+  document.getElementById('side-tray').classList.add('open');
+}
+
+function closeFlagTray() {
+  document.getElementById('tray-overlay').classList.remove('open');
+  document.getElementById('side-tray').classList.remove('open');
+}
+
+// ── Flag detection modal ───────────────────────────────────────────────────────
+
+const FLAG_TYPES = {
+  'stylistic-inconsistency':   'integrity',
+  'unnatural-fluency':         'integrity',
+  'provenance-mismatch':       'integrity',
+  'shadow-session-pattern':    'integrity',
+  'score-spike':               'score',
+  'reflection-score-mismatch': 'reflection',
+  'reflection-delta-mismatch': 'reflection',
+};
+
+function openFlagModal() {
+  const body = document.getElementById('flag-modal-body');
+  body.innerHTML = Object.entries(FLAG_META).map(([key, f]) => {
+    const type    = FLAG_TYPES[key] || 'integrity';
+    const typeLabel = type === 'integrity'
+      ? `<span class="flag-type-label flag-type-integrity">Integrity</span>`
+      : type === 'reflection'
+        ? `<span class="flag-type-label flag-type-score">Reflection</span>`
+        : `<span class="flag-type-label flag-type-score">Score analysis</span>`;
+    const steps = f.steps?.length
+      ? `<div class="flag-card-section">What to do</div>
+         <ol class="flag-card-steps">${f.steps.map(s => `<li>${s}</li>`).join('')}</ol>`
+      : '';
+    return `<div class="flag-card">
+      <div class="flag-card-header">
+        <span style="font-size:14px;color:var(--terra)">⚑</span>
+        <span class="flag-card-title">${f.short}</span>
+        ${typeLabel}
+      </div>
+      <div class="flag-card-desc">${f.desc}</div>
+      <div class="flag-card-section">What the tool detects</div>
+      <div class="flag-card-body">${f.what}</div>
+      <div class="flag-card-section">Why it matters</div>
+      <div class="flag-card-body">${f.why}</div>
+      ${steps}
+    </div>`;
+  }).join('');
+  document.getElementById('flag-modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFlagModal(e) {
+  if (e && e.target !== document.getElementById('flag-modal-overlay')) return;
+  document.getElementById('flag-modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ── Tab nav ───────────────────────────────────────────────────────────────────
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => setTab(btn.dataset.tab));
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+loadDashboardData().then(render).catch((err) => {
+  document.body.insertAdjacentHTML('afterbegin',
+    `<div style="padding:20px;color:#b91c1c;font-family:sans-serif">Could not load dashboard data: ${err.message}</div>`);
+});
+</script>
+</body>
+</html>

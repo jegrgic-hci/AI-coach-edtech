@@ -264,6 +264,13 @@ async function showStudent(assignmentId, studentId) {
   });
 }
 
-$('btnBackOverview').onclick = showOverview;
+$('btnBackOverview').onclick = () => { location.hash = ''; showOverview(); };
 
-showOverview();
+// Deep link from the triage dashboard: teacher.html#student/:assignmentId/:studentId
+function route() {
+  const m = location.hash.match(/^#student\/([^/]+)\/([^/]+)$/);
+  if (m) showStudent(m[1], m[2]);
+  else showOverview();
+}
+window.addEventListener('hashchange', route);
+route();

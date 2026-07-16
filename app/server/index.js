@@ -420,6 +420,57 @@ async function handleApi(req, res, user, route) {
     return json(res, 200, assignment);
   }
 
+  // GET /api/teacher/dashboard — feeds the ported triage dashboard
+  // (dashboard.html) in the exact shape its mock generator produced:
+  // { assignments, students, classes, submissions }
+  if (req.method === 'GET' && seg1 === 'teacher' && seg2 === 'dashboard') {
+    const students = col('users').list((u) => u.role === 'student');
+    const assignments = col('assignments').list().map((a) => ({
+      id: a.id,
+      name: a.title,
+      due: a.dueDate || new Date(new Date(a.createdAt).getTime() + 14 * 86400000).toISOString(),
+      status: a.dueDate && new Date(a.dueDate) < new Date() ? 'closed' : 'open',
+      draftBudget: a.draftBudget,
+    }));
+
+    const submissions = {};
+    for (const s of students) {
+      for (const a of assignments) {
+        submissions[`${s.id}_${a.id}`] = col('submissions')
+          .list((sub) => sub.studentId === s.id && sub.assignmentId === a.id)
+          .sort((x, y) => x.cycleIndex - y.cycleIndex)
+          .map((sub) => {
+            const analysis = sub.analysisId ? col('analyses').get(sub.analysisId) : null;
+            const done = analysis?.status === 'complete';
+            return {
+              id: sub.id,
+              ts: sub.submittedAt,
+              pq: done ? analysis.tau.PQ : 0,
+              su: done ? analysis.tau.SU : 0,
+              cs: done ? analysis.tau.CS : 0,
+              oc: done ? analysis.tau.OC : 0,
+              analysisStatus: analysis?.status || 'missing',
+              coachingLevel: analysis?.coachingLevel || null,
+              ...(done && analysis.flags?.length ? { integrityFlags: analysis.flags.map((f) => f.flag) } : {}),
+            };
+          });
+      }
+    }
+
+    return json(res, 200, {
+      assignments,
+      students: students.map((s) => ({
+        id: s.id,
+        name: s.displayName,
+        initials: s.displayName.split(' ').map((p) => p[0]).join(''),
+      })),
+      // Classes aren't in the data model yet (pilot = one class); synthesize
+      // a single class so the dashboard's class layer works unchanged.
+      classes: [{ id: 'class-1', name: 'My Class', studentIds: students.map((s) => s.id) }],
+      submissions,
+    });
+  }
+
   // GET /api/teacher/assignments — all assignments with roster summary
   if (req.method === 'GET' && seg1 === 'teacher' && seg2 === 'assignments' && !seg3) {
     const students = col('users').list((u) => u.role === 'student');
