@@ -68,20 +68,6 @@ function classifyAITurnFallback(text) {
 }
 // ─── Turn Sequence Chart ──────────────────────────────────────────────────────
 
-const STRIP_TIER = {
-  challenge:  "high",    rejection:  "high",    claim:      "high",
-  refinement: "medhigh", conceptual: "medhigh",
-  feedback:   "medium",  pivot:      "medium",  narrative:  "medium",
-  extraction: "neutral",
-  validation: "low",     stuck:      "verylow",
-};
-
-const PATTERN_STYLE = {
-  high:   { bg: "#f0fdf4", border: "#86efac", text: "#14532d" },
-  medium: { bg: "#eff6ff", border: "#bfdbfe", text: "#1e3a8a" },
-  low:    { bg: "#fefce8", border: "#fde047", text: "#713f12" },
-};
-
 const PAT_DESCRIPTIONS = {
   "challenge-arc":      "Multiple consecutive challenge turns — the student is actively questioning AI responses rather than accepting them. Strong independent thinking signal.",
   "rejection-redirect": "The student rejected an AI response and immediately refined their query. Shows evaluative thinking: the student knows what they want and what doesn't work.",
@@ -158,91 +144,6 @@ function getAILabelBefore(studentIdx, classified) {
     if (classified[i].role === "ai") return classified[i].label || "content";
   }
   return null;
-}
-
-function computeChartSummary(student) {
-  const total        = student.length;
-  const passiveCount = student.filter(d => (TURN_VALUE[d.label] ?? 0) < 0).length;
-  const highCount    = student.filter(d => (TURN_VALUE[d.label] ?? 0) >= 3).length;
-  const passivePct   = passiveCount / total;
-  const highPct      = highCount / total;
-  let longestRun = 0, bestStart = null, cur = 0, curStart = null;
-  student.forEach((d, i) => {
-    if ((TURN_VALUE[d.label] ?? 0) < 0) {
-      if (cur === 0) curStart = i + 1;
-      cur++;
-      if (cur > longestRun) { longestRun = cur; bestStart = curStart; }
-    } else { cur = 0; }
-  });
-  let verdict, verdictClass, verdictDesc;
-  if (passivePct >= 0.35 || longestRun >= 5) {
-    verdict = "Passive concern"; verdictClass = "passive";
-    verdictDesc = "Over a third of turns were passive, or the student had a run of 5 or more consecutive passive turns. Look for highlighted pattern regions in the chart.";
-  } else if (highPct >= 0.35 && passivePct < 0.25) {
-    verdict = "High engagement"; verdictClass = "high";
-    verdictDesc = "More than 35% of turns show high-agency behaviour — challenge, claim, conceptual, or pivot — with low passive activity.";
-  } else {
-    verdict = "Mixed session"; verdictClass = "";
-    verdictDesc = "This session has a roughly even spread of high-agency and passive turns with no dominant pattern.";
-  }
-  return { verdict, verdictClass, verdictDesc, longestRun, bestStart, highCount, total };
-}
-
-function renderChartSummary(s) {
-  const runValue = s.longestRun === 0 ? "None" : `${s.longestRun} consecutive`;
-  const runSub   = s.longestRun > 0 ? `turns ${s.bestStart}–${s.bestStart + s.longestRun - 1}` : "";
-  let verdictHtml;
-  if (s.verdictClass === "passive") {
-    verdictHtml = `<span class="div-verdict-chip div-verdict-passive">${esc(s.verdict)}</span>`;
-  } else if (s.verdictClass === "high") {
-    verdictHtml = `<span class="div-verdict-chip div-verdict-high">${esc(s.verdict)}</span>`;
-  } else {
-    verdictHtml = `<span class="div-verdict-plain">${esc(s.verdict)}</span>`;
-  }
-  return `<div class="div-summary-strip">
-    <div class="div-verdict-block">
-      <span class="div-strip-label">Overall</span>
-      ${verdictHtml}
-    </div>
-    <div class="div-stat-block">
-      <span class="div-strip-label">Longest passive stretch</span>
-      <span class="div-stat-value">${runValue}</span>
-      ${runSub ? `<span class="div-stat-sub">${esc(runSub)}</span>` : ""}
-    </div>
-    <div class="div-stat-block">
-      <span class="div-strip-label">Turns where you led</span>
-      <span class="div-stat-value">${s.highCount} of ${s.total}</span>
-      <span class="div-stat-sub">${Math.round(s.highCount / s.total * 100)}% of session</span>
-    </div>
-  </div>`;
-}
-
-function renderDivLegend() {
-  if (typeof d3 === "undefined") return "";
-  const posS = d3.scaleSequential().domain([1, 4]).interpolator(d3.interpolateRgb("#9b9de0", "#4F52C8"));
-  const negS = d3.scaleSequential().domain([-1, -2]).interpolator(d3.interpolateRgb("#e8ae94", "#b85c38"));
-  const fill = v => v === 0 ? "#b0b0b0" : v > 0 ? posS(v) : negS(v);
-  const items = [
-    { v: -2, label: "stuck" },
-    { v: -1, label: "validation" },
-    null,
-    { v:  0, label: "extraction" },
-    null,
-    { v:  1, label: "feedback / narrative" },
-    { v:  2, label: "refinement" },
-    { v:  3, label: "claim / conceptual / pivot" },
-    { v:  4, label: "challenge / rejection" },
-  ];
-  const parts = items.map(item => {
-    if (!item) return '<div class="div-legend-divider"></div>';
-    const prefix = item.v > 0 ? `+${item.v}` : String(item.v);
-    const style  = `background:${fill(item.v)};${item.v === 0 ? "border:1px solid #ccc;" : ""}`;
-    return `<div class="div-legend-item">
-      <div class="div-legend-swatch" style="${style}"></div>
-      <span>${prefix}&nbsp;&nbsp;${esc(item.label)}</span>
-    </div>`;
-  });
-  return `<div class="div-legend">${parts.join("")}</div>`;
 }
 
 function detectPatterns(classified) {
@@ -364,55 +265,6 @@ function detectPatterns(classified) {
   return patterns;
 }
 
-function openPatternCatalogue() {
-  document.getElementById("dt-sidebar-title").textContent = "Detectable patterns";
-  const HIGH = [
-    { id: "challenge-arc",      label: "Challenge Arc" },
-    { id: "argument-engaged",   label: "Argument Engaged" },
-    { id: "rejection-redirect", label: "Rejection → Redirect" },
-    { id: "claim-support",      label: "Claim-Support Cycle" },
-    { id: "extraction-landing", label: "Extraction → Insight" },
-  ];
-  const PASSIVE = [
-    { id: "extraction-loop",   label: "Extraction Loop" },
-    { id: "validation-spiral", label: "Validation Spiral" },
-    { id: "helplessness-loop", label: "Helplessness Loop" },
-    { id: "missed-argument",   label: "Missed Argument" },
-    { id: "flitting",          label: "Flitting" },
-  ];
-  function renderSeq(id) {
-    const seq = PATTERN_SEQUENCES[id];
-    if (!seq) return "";
-    const chips = seq.map(item => {
-      if (typeof item === "string") {
-        const cls = (item === "→" || item === "↓") ? "dt-cat-seq-arrow" : "dt-cat-seq-cont";
-        return `<span class="${cls}">${esc(item)}</span>`;
-      }
-      return `<span class="dt-cat-seq-chip--${item.t}">${esc(item.l)}</span>`;
-    }).join("");
-    return `<details class="dt-cat-seq-details">
-      <summary class="dt-cat-seq-toggle">See pattern</summary>
-      <div class="dt-cat-seq">${chips}</div>
-      <div class="dt-cat-seq-legend"><span class="dt-cat-seq-chip--a">AI</span> <span class="dt-cat-seq-chip--s">student</span></div>
-    </details>`;
-  }
-  function cardGroup(patterns, cls) {
-    return patterns.map((p, i) =>
-      `<div class="dt-cat-card">
-        <span class="dt-cat-card-name ${cls}">${esc(p.label)}</span>
-        <p class="dt-cat-card-desc">${esc(PAT_DESCRIPTIONS[p.id] || "")}</p>
-        ${renderSeq(p.id)}
-      </div>${i < patterns.length - 1 ? '<hr class="dt-cat-divider">' : ""}`
-    ).join("");
-  }
-  document.getElementById("dt-sidebar-body").innerHTML = `
-    <div class="dt-cat-section-label" style="color:#3B3EA8;">High-agency patterns</div>
-    ${cardGroup(HIGH, "dt-cat-card-name--high")}
-    <div class="dt-cat-section-label" style="color:#b85c38;margin-top:28px;">Passive patterns</div>
-    ${cardGroup(PASSIVE, "dt-cat-card-name--low")}`;
-  document.getElementById("dt-sidebar").classList.add("open");
-}
-
 function renderPatternGuide() {
   const HIGH = [
     { id: "challenge-arc",      label: "Challenge Arc" },
@@ -454,9 +306,9 @@ function renderPatternGuide() {
     ).join("");
   }
   document.getElementById("patternGuideContent").innerHTML = `
-    <div class="dt-cat-section-label" style="color:#3B3EA8;">High-agency patterns</div>
+    <div class="dt-cat-section-label" style="color:var(--tau-band-4-fg);">High-agency patterns</div>
     ${cardGroup(HIGH, "dt-cat-card-name--high")}
-    <div class="dt-cat-section-label" style="color:#b85c38;margin-top:28px;">Passive patterns</div>
+    <div class="dt-cat-section-label" style="color:var(--tau-band-2-fg);margin-top:28px;">Passive patterns</div>
     ${cardGroup(PASSIVE, "dt-cat-card-name--low")}`;
 }
 
@@ -465,7 +317,7 @@ function showTurnTooltip(event, d) {
   const preview = (d.text || "").length > 130 ? d.text.slice(0, 130) + "…" : (d.text || "");
   tooltip.querySelector(".dt-tooltip-title").textContent = `Turn ${d.id}`;
   tooltip.querySelector(".dt-tooltip-body").innerHTML =
-    `<span style="display:inline-block;padding:1px 7px;border-radius:99px;background:#f0f1f8;color:#3B3EA8;font-size:10px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;">${esc(d.classifier)}</span><br>${esc(preview)}`;
+    `<span style="display:inline-block;padding:1px 7px;border-radius:var(--tau-r-pill);background:var(--tau-origin-you-bg);color:var(--tau-ink);font-size:10px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;">${esc(d.classifier)}</span><br>${esc(preview)}`;
   document.getElementById("dt-tooltip-learn-more").style.display = "none";
   tooltip.classList.add("dt-tooltip--turn");
   tooltip.style.display = "block";
@@ -491,6 +343,13 @@ function renderHorizChart(svgSel, data, patterns, onBarClick, onPatternClick) {
   const hZeroY   = Math.round(hInnerH * hPosU / (hPosU + hNegU));
   const hYTicks  = [-3,-2,-1,0,1,2,3,4,5];
   const hYScale  = d3.scaleLinear().domain([-hNegU, hPosU]).range([hInnerH, 0]);
+  // The per-turn value ramp (green intensity for agentic turns, terra for
+  // passive ones) is literal colour, not tokens — carrying this onto the
+  // token system means deciding whether a continuous fill on a per-turn
+  // value is consistent with "semantic colour never touches a student's own
+  // score", which is a design call this session didn't make. Tracked as
+  // known debt below; everything else in this chart (chrome, borders, the
+  // high/low pattern brackets) is tokenised.
   const hPosScl  = d3.scaleSequential().domain([1,4]).interpolator(d3.interpolateRgb("#86efac","#14532d"));
   const hNegScl  = d3.scaleSequential().domain([-1,-2]).interpolator(d3.interpolateRgb("#e8ae94","#b85c38"));
   const hFill    = v => v===0 ? "#b0b0b0" : v>0 ? hPosScl(v) : hNegScl(v);
@@ -504,9 +363,9 @@ function renderHorizChart(svgSel, data, patterns, onBarClick, onPatternClick) {
 
   const defs = svgSel.append("defs");
   defs.append("marker").attr("id","hArrowUp").attr("viewBox","0 -5 10 10").attr("refX",8).attr("refY",0).attr("markerWidth",4).attr("markerHeight",4).attr("orient","auto")
-    .append("path").attr("d","M0,-5L10,0L0,5").attr("fill","#059669");
+    .append("path").attr("d","M0,-5L10,0L0,5").attr("fill","var(--tau-positive)");
   defs.append("marker").attr("id","hArrowDown").attr("viewBox","0 -5 10 10").attr("refX",8).attr("refY",0).attr("markerWidth",4).attr("markerHeight",4).attr("orient","auto")
-    .append("path").attr("d","M0,-5L10,0L0,5").attr("fill","#b85c38");
+    .append("path").attr("d","M0,-5L10,0L0,5").attr("fill","var(--tau-band-2-fg)");
 
   const g = svgSel.append("g").attr("transform",`translate(${hMarg.left},${hMarg.top})`);
 
@@ -514,22 +373,24 @@ function renderHorizChart(svgSel, data, patterns, onBarClick, onPatternClick) {
   const bandData=d3.groups(data,d=>Math.floor((d.id-1)/5)).filter(([i])=>i%2===1);
   g.selectAll(".col-band").data(bandData).join("rect").attr("class","col-band")
     .attr("x",([,rows])=>xScale(rows[0].label)-halfGap).attr("y",0)
-    .attr("width",([,rows])=>step*rows.length).attr("height",hInnerH).attr("fill","#f2f2f0");
+    .attr("width",([,rows])=>step*rows.length).attr("height",hInnerH).attr("fill","var(--tau-surface-2)");
 
   g.selectAll(".grid-line").data(hYTicks).join("line").attr("class","grid-line")
     .attr("x1",0).attr("x2",barArea).attr("y1",d=>hYScale(d)).attr("y2",d=>hYScale(d));
   g.append("line").attr("class","zero-line").attr("x1",0).attr("x2",barArea).attr("y1",hZeroY).attr("y2",hZeroY);
-  g.append("line").attr("x1",0).attr("x2",barArea).attr("y1",0).attr("y2",0).attr("stroke","#ccc").attr("stroke-width",1);
-  g.append("line").attr("x1",0).attr("x2",barArea).attr("y1",hInnerH).attr("y2",hInnerH).attr("stroke","#ccc").attr("stroke-width",1);
+  g.append("line").attr("x1",0).attr("x2",barArea).attr("y1",0).attr("y2",0).attr("stroke","var(--tau-line)").attr("stroke-width",1);
+  g.append("line").attr("x1",0).attr("x2",barArea).attr("y1",hInnerH).attr("y2",hInnerH).attr("stroke","var(--tau-line)").attr("stroke-width",1);
 
   patterns.forEach(p => {
     const xs=p.rows.map(r=>xScale(r)).filter(x=>x!==undefined);
     if (!xs.length) return;
     const x1=Math.min(...xs), x2=Math.max(...xs)+xScale.bandwidth(), pw=x2-x1;
-    const isPos=p.side==="right", color=isPos?"#3B3EA8":"#b85c38", pad=3;
+    // Same "level, not verdict" band ramp as the pattern-group tiers and the
+    // pattern sidebar title, not a fourth blue/terra pair.
+    const isPos=p.side==="right", color=isPos?"var(--tau-band-4-fg)":"var(--tau-band-2-fg)", pad=3;
     const pg=g.append("g").style("cursor","pointer").on("click",e=>onPatternClick(e,p));
     pg.append("rect").attr("x",x1-pad).attr("y",isPos?0:hZeroY).attr("width",pw+pad*2)
-      .attr("height",isPos?hZeroY:hInnerH-hZeroY).attr("rx",3).attr("fill",isPos?"#dde3f5":"#fde8de").attr("stroke","none");
+      .attr("height",isPos?hZeroY:hInnerH-hZeroY).attr("rx",3).attr("fill",isPos?"var(--tau-band-4-bg)":"var(--tau-band-2-bg)").attr("stroke","none");
     const lb=pg.append("g").attr("transform",`translate(${x1-pad+10},${isPos?12:hInnerH-12})`);
     lb.append("circle").attr("cx",0).attr("cy",-3).attr("r",4.5).attr("fill","none").attr("stroke",color).attr("stroke-width",1.5);
     lb.append("line").attr("x1",-3).attr("y1",1).attr("x2",-3).attr("y2",3).attr("stroke",color).attr("stroke-width",1.5).attr("stroke-linecap","round");
@@ -549,24 +410,29 @@ function renderHorizChart(svgSel, data, patterns, onBarClick, onPatternClick) {
   g.selectAll(".turn-label").data(data).join("text")
     .attr("x",d=>xScale(d.label)+xScale.bandwidth()/2).attr("y",hInnerH+16)
     .attr("dy","0.35em").attr("text-anchor","middle")
-    .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","13px").attr("fill","#555")
+    .attr("font-size","13px").attr("fill","var(--tau-ink-soft)")
     .text(d=>d.id%5===0?d.label:"");
 
+  // Zone labels keep their own four-way colour scheme rather than the band
+  // ramp: they name the axis itself (an editorial scale), not a position on
+  // this student's result, so the "level, not verdict" rule doesn't apply
+  // the same way it does to a per-student value. Still literal hex, so
+  // tracked as debt alongside the value ramp above.
   [{label:"PASSIVE",cy:hYScale(-1.5),fill:"#c07050"},{label:"NEUTRAL",cy:hYScale(0),fill:"#aaa"},
    {label:"BUILDING",cy:hYScale(1.5),fill:"#1d4ed8"},{label:"QUESTIONING",cy:hYScale(3.5),fill:"#059669"}
   ].forEach(z=>{
     g.append("text").attr("transform",`translate(-8,${z.cy}) rotate(-90)`)
       .attr("text-anchor","middle")
-      .attr("font-family","Helvetica Neue, sans-serif").attr("font-size","10px").attr("font-weight","700")
+      .attr("font-size","10px").attr("font-weight","700")
       .attr("letter-spacing","0.07em").attr("fill",z.fill).text(z.label);
   });
 
   g.append("line").attr("x1",-3).attr("y1",hZeroY-6).attr("x2",-3).attr("y2",6)
-    .attr("stroke","#059669").attr("stroke-width",1.5).attr("marker-end","url(#hArrowUp)");
+    .attr("stroke","var(--tau-positive)").attr("stroke-width",1.5).attr("marker-end","url(#hArrowUp)");
   g.append("line").attr("x1",-3).attr("y1",hZeroY+6).attr("x2",-3).attr("y2",hInnerH-6)
-    .attr("stroke","#b85c38").attr("stroke-width",1.5).attr("marker-end","url(#hArrowDown)");
+    .attr("stroke","var(--tau-band-2-fg)").attr("stroke-width",1.5).attr("marker-end","url(#hArrowDown)");
 
-  g.append("text").attr("font-family","Helvetica Neue, sans-serif").attr("font-size","11px").attr("fill","#999")
+  g.append("text").attr("font-size","11px").attr("fill","var(--tau-ink-faint)")
     .attr("x",barArea/2).attr("y",hInnerH+42).attr("text-anchor","middle").text("Student turns (chronological →)");
 }
 
@@ -664,12 +530,13 @@ function renderAgencyChart(classified) {
     { value:  3, label: "claim / conceptual / pivot" }, { value:  4, label: "challenge / rejection" },
   ];
   const legendEl = document.getElementById("chartLegendEl");
+  legendEl.className = "legend";
   legendEl.innerHTML = "";
   legendItems.forEach(item => {
-    if (item === null) { const d = document.createElement("div"); d.className = "dt-legend-divider"; legendEl.appendChild(d); return; }
-    const wrap = document.createElement("div"); wrap.className = "dt-legend-item";
-    const sw   = document.createElement("div"); sw.className = "dt-legend-swatch"; sw.style.background = fillL(item.value);
-    if (item.value === 0) sw.style.border = "1px solid #ccc";
+    if (item === null) { const d = document.createElement("div"); d.className = "legend-divider"; legendEl.appendChild(d); return; }
+    const wrap = document.createElement("div"); wrap.className = "legend-item";
+    const sw   = document.createElement("div"); sw.className = "legend-swatch"; sw.style.background = fillL(item.value);
+    if (item.value === 0) sw.style.border = "1px solid var(--tau-line-strong)";
     const txt = document.createElement("span");
     txt.textContent = item.label;
     wrap.appendChild(sw); wrap.appendChild(txt); legendEl.appendChild(wrap);
@@ -708,8 +575,10 @@ function openPatternSidebar(p, student, classified) {
     "helplessness-loop":  "Helplessness Loop",
     "flitting":           "Flitting",
   };
+  // Same "level, not verdict" band ramp as the pattern-group tiers in My
+  // Session — not a new blue/terra good-bad pair.
   const isRight = p.tier === "high" || p.tier === "medium";
-  const color   = isRight ? "#3B3EA8" : "#b85c38";
+  const color   = isRight ? "var(--tau-band-4-fg)" : "var(--tau-band-2-fg)";
   const title   = PAT_LABEL[p.id] || p.label;
   const desc    = PAT_DESCRIPTIONS[p.id] || "";
   document.getElementById("patternSidebarTitle").innerHTML =
@@ -775,40 +644,6 @@ function showTurnModal(d) {
 function closeTurnModal() {
   document.getElementById("turnModal")?.classList.remove("open");
   document.body.style.overflow = "";
-}
-
-function showPatternTooltip(event, p, label, color) {
-  const tip = document.getElementById("patternTooltip");
-  if (!tip) return;
-  const desc  = PAT_DESCRIPTIONS[p.id] || "";
-  const turns = p.start === p.end ? `Turn ${p.start + 1}` : `Turns ${p.start + 1}–${p.end + 1}`;
-  const tier  = p.tier === "high" ? "High agency" : p.tier === "medium" ? "Moderate agency" : "Low agency";
-  tip.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:9px">
-      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
-        <span style="padding:2px 8px;border-radius:4px;background:${color}40;color:${color};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em">${tier}</span>
-        <span style="font-size:10px;color:#94a3b8">${turns}</span>
-      </div>
-      <button onclick="closePatternTooltip()"
-        style="background:none;border:none;cursor:pointer;color:#64748b;font-size:16px;line-height:1;padding:0;flex-shrink:0">&times;</button>
-    </div>
-    <div style="font-weight:700;font-size:13px;color:#fff;margin-bottom:6px">${label}</div>
-    <div style="font-size:11px;color:#cbd5e1;line-height:1.6">${desc}</div>
-  `;
-  // Position near click, clamped to viewport
-  const W = 264, H = 160;
-  let x = event.clientX + 14;
-  let y = event.clientY - 16;
-  if (x + W > window.innerWidth  - 8) x = event.clientX - W - 14;
-  if (y + H > window.innerHeight - 8) y = window.innerHeight - H - 8;
-  if (y < 8) y = 8;
-  tip.style.left = x + "px";
-  tip.style.top  = y + "px";
-  tip.classList.add("open");
-}
-
-function closePatternTooltip() {
-  document.getElementById("patternTooltip")?.classList.remove("open");
 }
 
 // ─── Provenance helpers ───────────────────────────────────────────────────────
@@ -1272,17 +1107,6 @@ function renderDimDetails(scores) {
         </div>
         <p class="dim-say">${esc(explain)}</p>
         ${nudge ? `<p class="dim-nudge">${esc(nudge)}</p>` : ""}
-      </div>`;
-  }).join("");
-}
-
-function renderTurns(classified) {
-  return classified.filter(t => t.role === "student").map((t, i) => {
-    const preview = t.text.length > 220 ? t.text.slice(0, 220) + "…" : t.text;
-    return `
-      <div class="turn-row" id="student-turn-${i}">
-        ${labelBadge(t.label)}
-        <div class="turn-text">${esc(preview)}</div>
       </div>`;
   }).join("");
 }

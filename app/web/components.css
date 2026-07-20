@@ -332,6 +332,7 @@
 .legend-item { display: inline-flex; align-items: center; gap: var(--tau-s2); }
 .legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
 .legend-item svg { flex: none; }
+.legend-divider { width: 1px; height: 14px; background: var(--tau-line); flex: none; }
 
 /* ---------- 9. trajectory sparkline ---------- */
 

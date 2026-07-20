@@ -146,8 +146,6 @@
   document.getElementById('dt-modal-overlay').addEventListener('click', (e) => {
     if (e.target.id === 'dt-modal-overlay') e.target.classList.remove('open');
   });
-  document.getElementById('dt-sidebar-close').addEventListener('click', () =>
-    document.getElementById('dt-sidebar').classList.remove('open'));
 
   // load() is async, so anything it throws became an unhandled rejection and
   // vanished — which is how a broken renderer could silently blank three tabs

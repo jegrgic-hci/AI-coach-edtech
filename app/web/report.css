@@ -121,20 +121,10 @@
       line-height: var(--tau-leading-snug);
     }
 
-    /* ── Turn list ─────────────────────────────────────── */
-    .turn-row {
-      display: flex;
-      align-items: baseline; gap: 10px;
-      padding: 10px 12px; border-radius: 8px;
-      border: 1px solid var(--border); background: var(--surface);
-      transition: box-shadow 0.2s, border-color 0.2s;
-    }
+    /* ── Turn label ────────────────────────────────────── */
     .label-badge {
-      font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px;
+      font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--tau-r-pill);
       white-space: nowrap; flex-shrink: 0;
-    }
-    .turn-text {
-      font-size: 13px; color: var(--text); line-height: 1.5;
     }
     /* ── Provenance ────────────────────────────────────── */
     .provenance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -188,23 +178,23 @@
     /* ── Shared ────────────────────────────────────────── */
     .spinner {
       width: 16px; height: 16px; border-radius: 50%;
-      border: 2px solid var(--border); border-top-color: var(--accent);
+      border: 2px solid var(--tau-line); border-top-color: var(--tau-forest);
       animation: spin 0.7s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── Tabs ─────────────────────────────────────────────── */
     .tab-bar {
-      display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 16px;
+      display: flex; gap: 0; border-bottom: 1px solid var(--tau-line); margin-bottom: 16px;
     }
     .tab-btn {
       padding: 9px 18px; border: none; background: none; font-size: 13px;
-      font-weight: 600; cursor: pointer; color: var(--muted);
+      font-weight: 600; cursor: pointer; color: var(--tau-ink-soft);
       border-bottom: 2px solid transparent; margin-bottom: -1px;
       transition: color 0.12s;
     }
-    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-    .tab-btn:hover:not(.active) { color: var(--text); }
+    .tab-btn.active { color: var(--tau-forest); border-bottom-color: var(--tau-forest); }
+    .tab-btn:hover:not(.active) { color: var(--tau-ink); }
     .tab-pane { display: none; }
     .tab-pane.active { display: block; }
     /* These two hexes did not flip, so the intro block stayed white in dark
@@ -219,106 +209,124 @@
 
     /* ── My Session tab ──────────────────────────────────── */
     .session-dashboard {
-      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
+      display: flex; flex-wrap: wrap; gap: var(--tau-s2); margin-bottom: var(--tau-s3);
     }
     .session-dash-card {
       display: flex; flex-direction: column; align-items: center; gap: 6px;
-      padding: 10px 14px; background: var(--surface); border-radius: 10px;
-      min-width: 72px; cursor: pointer;
-      border: 1px solid var(--border);
+      padding: var(--tau-s2) var(--tau-s3); background: var(--tau-surface);
+      border-radius: var(--tau-r-md); min-width: 72px; cursor: pointer;
+      border: 1px solid var(--tau-line);
       transition: border-color 0.12s, box-shadow 0.12s;
     }
     .session-dash-card:hover {
-      border-color: #94a3b8;
-      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      border-color: var(--tau-line-strong);
+      box-shadow: var(--tau-shadow);
     }
     .session-dash-card.active {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+      border-color: var(--tau-forest);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--tau-forest) 20%, transparent);
     }
     .session-dash-card.patterns-card { border-style: dashed; }
     .session-dash-card.patterns-card.active { border-style: solid; }
     .session-dash-count {
-      font-size: 28px; font-weight: 800; line-height: 1; color: var(--text);
+      font-size: var(--tau-text-2xl); font-weight: 800; line-height: 1; color: var(--tau-ink);
     }
     .session-dash-label {
       font-size: 11px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .05em; color: var(--muted);
+      letter-spacing: var(--tau-track-label); color: var(--tau-ink-soft);
     }
+    /* Neutral, not info-blue — it's explaining what a click means, not scoring
+       anything, but a tinted panel still reads as a claim the rest of the page
+       doesn't make. */
     .session-desc-panel {
-      margin-bottom: 16px; padding: 14px 16px;
-      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px;
+      margin-bottom: var(--tau-s3); padding: var(--tau-s3) var(--tau-s4);
+      background: var(--tau-surface-2); border: 1px solid var(--tau-line);
+      border-radius: var(--tau-r-md);
     }
     .session-desc-panel h4 {
       margin: 0 0 6px; font-size: 12px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: .05em; color: #1e40af;
+      text-transform: uppercase; letter-spacing: var(--tau-track-label); color: var(--tau-ink);
     }
     .session-desc-panel p {
-      margin: 0; font-size: 13px; line-height: 1.6; color: #1e3a6e;
+      margin: 0; font-size: var(--tau-text-sm); line-height: var(--tau-leading-body); color: var(--tau-ink-soft);
     }
     .session-turn.filtered-out { display: none; }
     .pattern-group.filtered-out { display: none; }
     .session-turn-list { min-height: 400px; }
 
-    .session-turn-list { display: flex; flex-direction: column; gap: 8px; }
+    .session-turn-list { display: flex; flex-direction: column; gap: var(--tau-s2); }
     .session-turn {
-      display: flex; gap: 12px; align-items: flex-start;
-      padding: 12px 14px; border-radius: 8px; background: var(--surface2);
+      display: flex; gap: var(--tau-s3); align-items: flex-start;
+      padding: var(--tau-s3) 14px; border-radius: var(--tau-r-sm); background: var(--tau-surface-2);
       border-left: 4px solid transparent; transition: background 0.12s;
     }
-    .session-turn.driving  { border-left-color: #22c55e; }
-    .session-turn.following { border-left-color: #cbd5e1; }
+    /* Driving vs. following reuses the page's own high/passive verdict pairing
+       (see .dt-verdict-* below) rather than introducing a third green/grey
+       pair — it's the same "level, not verdict" ramp, not a new judgement. */
+    .session-turn.driving   { border-left-color: var(--tau-band-4-fg); }
+    .session-turn.following { border-left-color: var(--tau-line-strong); }
     .session-turn-num {
-      font-size: 11px; font-weight: 700; color: var(--muted);
+      font-size: 11px; font-weight: 700; color: var(--tau-ink-faint);
       min-width: 24px; padding-top: 2px;
     }
     .session-turn-body { flex: 1; min-width: 0; }
     .session-turn-pattern-note {
-      margin-top: 6px; font-size: 11px; color: var(--muted);
+      margin-top: 6px; font-size: 11px; color: var(--tau-ink-faint);
       font-style: italic;
     }
     .session-turn-text {
-      font-size: 13px; line-height: 1.6; color: var(--text);
+      font-size: var(--tau-text-sm); line-height: var(--tau-leading-body); color: var(--tau-ink);
       white-space: pre-wrap; word-break: break-word;
     }
+    /* "Reached the essay" is a fact about the draft, not a score. Attention
+       rendered as a red dot and read as a warning on a positive fact — the
+       exact judge-not-coach mistake the voice rules forbid — so this is a
+       plain highlighter mark instead: sage fill, ink text, no alert colour. */
     .session-essay-badge {
       display: inline-flex; align-items: center; gap: 4px;
       font-size: 10px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .04em; color: #92400e;
-      background: #fef3c7; border-radius: 4px;
+      letter-spacing: .04em; color: var(--tau-ink);
+      background: var(--tau-sage); border-radius: 4px;
       padding: 2px 6px; margin-bottom: 6px;
     }
     .session-essay-badge::before {
       content: ""; display: inline-block; width: 6px; height: 6px;
-      border-radius: 50%; background: #f59e0b;
+      border-radius: 50%; background: var(--tau-ink-soft);
     }
     .no-essay-note {
-      font-size: 12px; color: var(--muted); font-style: italic;
-      margin-bottom: 12px;
+      font-size: 12px; color: var(--tau-ink-faint); font-style: italic;
+      margin-bottom: var(--tau-s3);
     }
 
     /* ── Pattern groups in My Session ────────────────────────── */
+    /* Each group names how agentic a cluster of turns was — that's a level on
+       the student's own session, so it takes the same ordered band ramp as
+       SAMR and the score dimensions, not a red/amber/green quality gradient.
+       Low/medium/high map onto bands 2/3/4, which keeps this ramp inside the
+       one the rest of the report already uses for "position, not verdict." */
     .pattern-group {
-      border-radius: 10px; padding: 10px 10px 6px;
+      border-radius: var(--tau-r-md); padding: 10px 10px 6px;
       margin-bottom: 4px; position: relative;
+      border: 1.5px solid var(--tau-line);
+      background: var(--tau-surface-2);
     }
-    .pattern-group.tier-high   { background: #f0fdf4; border: 1.5px solid #86efac; }
-    .pattern-group.tier-medium { background: #eff6ff; border: 1.5px solid #bfdbfe; }
-    .pattern-group.tier-low    { background: #fefce8; border: 1.5px solid #fde047; }
+    .pattern-group.tier-high   { border-color: var(--tau-band-4-fg); background: var(--tau-band-4-bg); }
+    .pattern-group.tier-medium { border-color: var(--tau-band-3-fg); background: var(--tau-band-3-bg); }
+    .pattern-group.tier-low    { border-color: var(--tau-band-2-fg); background: var(--tau-band-2-bg); }
     .pattern-group-header {
       display: flex; align-items: flex-start; gap: 8px;
       margin-bottom: 8px;
     }
     .pattern-group-label {
       font-size: 11px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .06em; padding: 2px 8px; border-radius: 4px;
+      letter-spacing: .06em; padding: 2px 8px; border-radius: var(--tau-r-sm);
       white-space: nowrap;
     }
-    .tier-high   .pattern-group-label { background: #bbf7d0; color: #14532d; }
-    .tier-medium .pattern-group-label { background: #bfdbfe; color: #1e3a8a; }
-    .tier-low    .pattern-group-label { background: #fde68a; color: #713f12; }
+    .tier-high   .pattern-group-label { background: var(--tau-band-4-bg); color: var(--tau-band-4-fg); }
+    .tier-medium .pattern-group-label { background: var(--tau-band-3-bg); color: var(--tau-band-3-fg); }
+    .tier-low    .pattern-group-label { background: var(--tau-band-2-bg); color: var(--tau-band-2-fg); }
     .pattern-group-desc {
-      font-size: 12px; line-height: 1.5; color: var(--muted);
+      font-size: 12px; line-height: var(--tau-leading-snug); color: var(--tau-ink-soft);
     }
     .pattern-group .session-turn { margin-bottom: 6px; }
 
@@ -357,152 +365,81 @@
     .dim-info:hover .dim-tooltip,
     .dim-info:focus-within .dim-tooltip { opacity: 1; }
 
-    /* ── Divergence chart summary strip ─────────────────────────────── */
-    .div-summary-strip {
-      display: flex; align-items: stretch; gap: 0;
-      margin-bottom: 18px; background: var(--surface);
-      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
-      font-family: "Helvetica Neue", sans-serif;
-      max-width: 860px; margin-left: auto; margin-right: auto;
-    }
-    .div-verdict-block, .div-stat-block {
-      padding: 14px 20px; display: flex; flex-direction: column;
-      justify-content: flex-start; gap: 5px;
-      border-right: 1px solid var(--border); flex: 1;
-    }
-    .div-stat-block:last-child { border-right: none; }
-    .div-strip-label {
-      font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
-      text-transform: uppercase; color: #aaa;
-    }
-    .div-verdict-chip {
-      display: inline-block; padding: 3px 10px; border-radius: 99px;
-      font-size: 12px; font-weight: 600; align-self: flex-start;
-    }
-    .div-verdict-passive { background: #fdf0ea; color: #b85c38; border: 1px solid #e8c4b0; }
-    .div-verdict-high    { background: #f0f1f8; color: #3B3EA8; border: 1px solid #c5c7e8; }
-    .div-verdict-plain   { font-size: 14px; font-weight: 600; color: var(--text); }
-    .div-stat-value { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3; }
-    .div-stat-sub   { font-size: 11px; color: #aaa; }
-
     /* ── Pattern sidebar ─────────────────────────────────────────────── */
+    /* Opens from a bracket on the agency chart with the exchange behind one
+       pattern — distinct from the Pattern Guide tab's static catalogue of
+       all patterns, so it keeps its own id/classes. */
     .div-pat-sidebar {
       position: fixed; top: 0; right: 0; width: 400px; height: 100vh;
-      background: #fff; border-left: 1px solid var(--border);
-      box-shadow: -4px 0 24px rgba(0,0,0,0.08);
+      background: var(--tau-surface); border-left: 1px solid var(--tau-line);
+      box-shadow: var(--tau-shadow-lift);
       transform: translateX(100%); transition: transform 0.25s ease;
       z-index: 302; display: flex; flex-direction: column;
     }
     .div-pat-sidebar.open { transform: translateX(0); }
     .div-pat-sidebar-hdr {
-      padding: 18px 22px 14px; border-bottom: 1px solid var(--border);
+      padding: 18px 22px 14px; border-bottom: 1px solid var(--tau-line);
       display: flex; align-items: flex-start; justify-content: space-between;
       gap: 12px; flex-shrink: 0;
     }
-    .div-pat-sidebar-title { font-family: "Helvetica Neue", sans-serif; font-size: 13px; font-weight: 600; color: var(--text); }
+    .div-pat-sidebar-title { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); }
     .div-pat-sidebar-close {
-      background: none; border: none; font-size: 18px; color: #aaa;
+      background: none; border: none; font-size: 18px; color: var(--tau-ink-faint);
       cursor: pointer; line-height: 1; flex-shrink: 0;
     }
-    .div-pat-sidebar-close:hover { color: #333; }
+    .div-pat-sidebar-close:hover { color: var(--tau-ink); }
     .div-pat-sidebar-body { padding: 18px 22px; overflow-y: auto; flex: 1; }
     .div-pat-insight {
-      font-family: Georgia, serif; font-size: 14px; line-height: 1.75;
-      color: var(--text); margin-bottom: 22px;
+      font-family: var(--tau-font-serif); font-size: var(--tau-text-md); line-height: 1.75;
+      color: var(--tau-ink); margin-bottom: 22px;
     }
     .div-exchange-label {
-      font-family: "Helvetica Neue", sans-serif; font-size: 10px;
-      font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
-      color: #aaa; margin-bottom: 12px;
+      font-size: 10px; font-weight: 600; letter-spacing: var(--tau-track-label);
+      text-transform: uppercase; color: var(--tau-ink-faint); margin-bottom: 12px;
     }
     .div-ai-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
     .div-role-tag {
-      font-family: "Helvetica Neue", sans-serif; font-size: 10px;
-      font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #aaa;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--tau-ink-faint);
     }
+    /* Student/AI chips reuse the origin vocabulary (you / the coach) rather
+       than a bespoke colour pair, so every "who said this" chip in the report
+       teaches the same encoding. */
     .div-ai-chip {
-      padding: 2px 7px; border-radius: 99px; background: #f0f0ee;
-      border: 1px solid #d0d0cc; color: #666; font-family: "Helvetica Neue", sans-serif;
+      padding: 2px 7px; border-radius: var(--tau-r-pill); background: var(--tau-origin-coach-bg);
+      color: var(--tau-ink-soft);
       font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
     }
-    .div-arrow { font-size: 11px; color: #ccc; margin: 2px 0 4px 2px; display: block; }
-    .div-student-row { background: #f7f7f5; border-radius: 6px; padding: 10px 12px; }
+    .div-arrow { font-size: 11px; color: var(--tau-ink-faint); margin: 2px 0 4px 2px; display: block; }
+    .div-student-row { background: var(--tau-surface-2); border-radius: var(--tau-r-sm); padding: 10px 12px; }
     .div-student-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
     .div-turn-num {
-      font-family: "Helvetica Neue", sans-serif; font-size: 10px; font-weight: 600;
-      color: #aaa; letter-spacing: 0.05em; text-transform: uppercase;
+      font-size: 10px; font-weight: 600;
+      color: var(--tau-ink-faint); letter-spacing: 0.05em; text-transform: uppercase;
     }
     .div-student-chip {
-      padding: 2px 7px; border-radius: 99px; background: #f0f1f8; color: #3B3EA8;
-      font-family: "Helvetica Neue", sans-serif; font-size: 10px; font-weight: 600;
-      letter-spacing: 0.04em; text-transform: uppercase;
+      padding: 2px 7px; border-radius: var(--tau-r-pill); background: var(--tau-origin-you-bg); color: var(--tau-ink);
+      font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
     }
-    .div-student-text { font-family: Georgia, serif; font-size: 13px; line-height: 1.6; color: #333; }
-    .div-exchange-divider { border: none; border-top: 1px solid #ebebea; margin: 12px 0; }
-
-    /* ── Divergence chart legend ─────────────────────────────────────── */
-    .div-legend {
-      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-      margin-bottom: 14px; font-family: "Helvetica Neue", sans-serif;
-      max-width: 860px; margin-left: auto; margin-right: auto;
-    }
-    .div-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #555; }
-    .div-legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-    .div-legend-divider { width: 1px; height: 14px; background: #ddd; margin: 0 4px; }
-
-    /* ── Dev dropdown ─────────────────────────────────────── */
-    #devDropdownWrap { position: relative; margin-left: 12px; }
-    #devToggleBtn {
-      font-size: 11px; font-weight: 700; padding: 5px 12px;
-      border-radius: 20px; border: 1px solid var(--border);
-      background: var(--surface); color: var(--muted);
-      cursor: pointer; white-space: nowrap; letter-spacing: .03em;
-    }
-    #devToggleBtn:hover { background: var(--bg); color: var(--text); }
-    #devDropdown {
-      position: absolute; right: 0; top: calc(100% + 8px);
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 10px; padding: 14px 16px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.10);
-      z-index: 500; min-width: 360px;
-      display: flex; flex-direction: column; gap: 12px;
-    }
-    #devDropdown.hidden { display: none; }
-
-    /* ── Stepper ──────────────────────────────────────────── */
-
-    /* ── Instruction tray content ─────────────────────────── */
-
-    /* ── Chat upload zone ─────────────────────────────────── */
-
-    /* ── Detail tray ───────────────────────────────────────── */
-
-    /* ── Pattern tooltip ─────────────────────────────────── */
-    #patternTooltip {
-      position: fixed; z-index: 500;
-      width: 248px; background: #1e2035; color: #e2e8f0;
-      border-radius: 9px; padding: 13px 15px;
-      font-size: 12px; line-height: 1.5;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.35);
-      display: none; pointer-events: all;
-    }
-    #patternTooltip.open { display: block; }
+    .div-student-text { font-family: var(--tau-font-serif); font-size: var(--tau-text-sm); line-height: 1.6; color: var(--tau-ink); }
+    .div-exchange-divider { border: none; border-top: 1px solid var(--tau-line); margin: 12px 0; }
 
     /* ── Turn modal ──────────────────────────────────────── */
     #turnModal {
       display: none; position: fixed; inset: 0; z-index: 500;
-      background: rgba(0,0,0,0.4);
+      background: var(--tau-scrim);
       align-items: center; justify-content: center;
     }
     #turnModal.open { display: flex; }
     .turn-modal-box {
-      background: var(--surface); border-radius: 12px;
+      background: var(--tau-surface); border-radius: var(--tau-r-lg);
       padding: 22px 26px; max-width: 560px; width: 90vw;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.22);
+      box-shadow: var(--tau-shadow-lift);
     }
 
-    /* ── Divergence Test tab ─────────────────────────────────────────── */
-    #dt-summary-strip, #chartSummaryEl {
+    /* ── Agency chart tab (summary strip, legend, tooltip, turn modal,
+       pattern catalogue sidebar) ─────────────────────────────────────── */
+    #chartSummaryEl {
       display: flex; align-items: stretch; gap: 0; margin-bottom: 16px;
       background: var(--tau-surface); border: 1px solid var(--tau-line);
       border-radius: var(--tau-r-sm);
@@ -539,107 +476,95 @@
       flex-shrink: 0; transition: border-color 0.15s, color 0.15s; margin-left: 6px;
     }
     .dt-verdict-info-btn:hover { border-color: var(--tau-forest); color: var(--tau-forest); }
-    #dt-legend, #chartLegendEl {
-      display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap;
-      margin-top: 10px; margin-bottom: 14px; font-family: "Helvetica Neue", sans-serif; max-width: 796px;
+    /* The legend itself is .legend/.legend-item/.legend-swatch from
+       components.css — these two ids only centre and cap the width of that
+       shared component for this one chart. */
+    #chartLegendEl {
+      justify-content: center; margin-top: 10px; margin-bottom: 14px; max-width: 796px;
     }
-    .dt-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #555; }
-    .dt-legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-    .dt-legend-divider { width: 1px; height: 14px; background: #ddd; margin: 0 4px; }
     #dt-tooltip {
-      position: fixed; display: none; max-width: 280px; background: #fff;
-      border: 1px solid #ddd; border-radius: 4px; padding: 12px 14px;
-      font-family: "Helvetica Neue", sans-serif; font-size: 12px; line-height: 1.6;
-      color: #333; box-shadow: 0 4px 16px rgba(0,0,0,0.08); pointer-events: auto; z-index: 400;
+      position: fixed; display: none; max-width: 280px; background: var(--tau-surface);
+      border: 1px solid var(--tau-line); border-radius: var(--tau-r-sm); padding: 12px 14px;
+      font-size: 12px; line-height: 1.6;
+      color: var(--tau-ink); box-shadow: var(--tau-shadow); pointer-events: auto; z-index: 400;
     }
     #dt-tooltip .dt-tooltip-title { font-weight: 600; margin-bottom: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
     .dt-tooltip-learn-more {
-      display: none; margin-top: 10px; padding: 4px 10px; border-radius: 99px;
-      border: 1px solid #d0d0cc; background: #fff; color: #555;
-      font-family: "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 600;
+      display: none; margin-top: 10px; padding: 4px 10px; border-radius: var(--tau-r-pill);
+      border: 1px solid var(--tau-line-strong); background: var(--tau-surface); color: var(--tau-ink-soft);
+      font-size: 11px; font-weight: 600;
       cursor: pointer; transition: border-color 0.15s, color 0.15s;
     }
-    .dt-tooltip-learn-more:hover { border-color: #3B3EA8; color: #3B3EA8; }
+    .dt-tooltip-learn-more:hover { border-color: var(--tau-forest); color: var(--tau-forest); }
     #dt-tooltip.dt-tooltip--turn { pointer-events: none; }
     #dt-modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.25);
+      position: fixed; inset: 0; background: var(--tau-scrim);
       display: none; align-items: center; justify-content: center; z-index: 500;
     }
     #dt-modal-overlay.open { display: flex; }
     #dt-modal {
-      background: #fff; border-radius: 6px; max-width: 480px; width: 90%;
-      padding: 28px 32px; box-shadow: 0 8px 40px rgba(0,0,0,0.12); position: relative;
+      background: var(--tau-surface); border-radius: var(--tau-r-md); max-width: 480px; width: 90%;
+      padding: 28px 32px; box-shadow: var(--tau-shadow-lift); position: relative;
     }
-    #dt-modal-turn { font-family: "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: #999; margin-bottom: 12px; }
-    #dt-modal-classifier { display: inline-block; margin-bottom: 14px; padding: 2px 9px; border-radius: 99px; background: #f0f1f8; color: #3B3EA8; font-family: "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
-    #dt-modal-text { font-family: "Georgia", serif; font-size: 15px; line-height: 1.7; color: #1a1a1a; }
-    #dt-modal-close { position: absolute; top: 14px; right: 18px; background: none; border: none; font-size: 18px; color: #aaa; cursor: pointer; }
-    #dt-modal-close:hover { color: #333; }
-    #dt-sidebar {
-      position: fixed; top: 0; right: 0; width: 400px; height: 100vh;
-      background: #fff; border-left: 1px solid #e5e5e2;
-      box-shadow: -4px 0 24px rgba(0,0,0,0.08);
-      transform: translateX(100%); transition: transform 0.25s ease;
-      z-index: 600; display: flex; flex-direction: column;
-    }
-    #dt-sidebar.open { transform: translateX(0); }
-    #dt-sidebar-header { padding: 20px 24px 16px; border-bottom: 1px solid #e5e5e2; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-shrink: 0; }
-    #dt-sidebar-title { font-family: "Helvetica Neue", sans-serif; font-size: 13px; font-weight: 600; color: #1a1a1a; }
-    #dt-sidebar-close { background: none; border: none; font-size: 18px; color: #aaa; cursor: pointer; flex-shrink: 0; }
-    #dt-sidebar-close:hover { color: #333; }
-    #dt-sidebar-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+    #dt-modal-turn { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--tau-ink-faint); margin-bottom: 12px; }
+    /* Same student/coach vocabulary as the pattern sidebar's turn chips. */
+    #dt-modal-classifier { display: inline-block; margin-bottom: 14px; padding: 2px 9px; border-radius: var(--tau-r-pill); background: var(--tau-origin-you-bg); color: var(--tau-ink); font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+    #dt-modal-text { font-family: var(--tau-font-serif); font-size: 15px; line-height: 1.7; color: var(--tau-ink); }
+    #dt-modal-close { position: absolute; top: 14px; right: 18px; background: none; border: none; font-size: 18px; color: var(--tau-ink-faint); cursor: pointer; }
+    #dt-modal-close:hover { color: var(--tau-ink); }
     #dt-chart { display: block; }
     #agencyChart { display: block; }
-    #dt-all-patterns-btn {
-      padding: 5px 14px; border-radius: 6px; border: 1px solid #d0d0cc;
-      background: #fff; font-family: "Helvetica Neue", sans-serif; font-size: 11px;
-      font-weight: 600; color: #555; cursor: pointer; white-space: nowrap;
-      transition: border-color 0.12s, color 0.12s;
-    }
-    #dt-all-patterns-btn:hover { border-color: #3B3EA8; color: #3B3EA8; }
+    /* Neither class had a rule anywhere — SVG <line> defaults to no stroke,
+       so the horizontal grid and the zero line have been invisible on every
+       render since the port. Found the same way the report's ReferenceError
+       was: rendering it and looking, not reading the code. */
+    .grid-line { stroke: var(--tau-line); stroke-width: 1; }
+    .zero-line { stroke: var(--tau-line-strong); stroke-width: 1.5; }
     .dt-cat-section-label {
-      font-family: "Helvetica Neue", sans-serif; font-size: 10px; font-weight: 700;
+      font-size: 10px; font-weight: 700;
       letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px;
     }
     .dt-cat-card { margin-bottom: 18px; }
     .dt-cat-card-name {
-      display: inline-block; padding: 2px 9px; border-radius: 99px;
-      font-family: "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 600;
+      display: inline-block; padding: 2px 9px; border-radius: var(--tau-r-pill);
+      font-size: 11px; font-weight: 600;
       letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 8px;
     }
-    .dt-cat-card-name--high { background: #f0f1f8; color: #3B3EA8; }
-    .dt-cat-card-name--low  { background: #fdf0ea; color: #b85c38; }
-    .dt-cat-card-desc { font-family: "Georgia", serif; font-size: 13px; line-height: 1.65; color: #444; margin: 0; }
-    .dt-cat-divider { border: none; border-top: 1px solid #f0f0ee; margin: 16px 0; }
+    /* Same "level, not verdict" band ramp as the pattern-group tiers in My
+       Session and the pattern sidebar title — one ramp for "how agentic",
+       not a third blue/terra pair. */
+    .dt-cat-card-name--high { background: var(--tau-band-4-bg); color: var(--tau-band-4-fg); }
+    .dt-cat-card-name--low  { background: var(--tau-band-2-bg); color: var(--tau-band-2-fg); }
+    .dt-cat-card-desc { font-family: var(--tau-font-serif); font-size: 13px; line-height: 1.65; color: var(--tau-ink-soft); margin: 0; }
+    .dt-cat-divider { border: none; border-top: 1px solid var(--tau-line); margin: 16px 0; }
     .dt-cat-seq-details { margin-top: 10px; }
     .dt-cat-seq-toggle {
-      font-family: "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 600;
-      color: #bbb; cursor: pointer; list-style: none; user-select: none;
+      font-size: 11px; font-weight: 600;
+      color: var(--tau-ink-faint); cursor: pointer; list-style: none; user-select: none;
       transition: color 0.12s;
     }
     .dt-cat-seq-toggle::-webkit-details-marker { display: none; }
     .dt-cat-seq-toggle::before { content: "▸  "; }
     details[open] .dt-cat-seq-toggle::before { content: "▾  "; }
-    .dt-cat-seq-toggle:hover { color: #777; }
+    .dt-cat-seq-toggle:hover { color: var(--tau-ink-soft); }
     .dt-cat-seq {
       display: flex; flex-wrap: wrap; align-items: center; gap: 5px;
-      margin-top: 8px; padding: 10px 12px; background: #f7f7f5; border-radius: 6px;
+      margin-top: 8px; padding: 10px 12px; background: var(--tau-surface-2); border-radius: var(--tau-r-sm);
     }
+    /* Same student/coach vocabulary as .div-student-chip / .div-ai-chip. */
     .dt-cat-seq-chip--s {
-      padding: 2px 8px; border-radius: 99px; background: #f0f1f8; color: #3B3EA8;
-      font-family: "Helvetica Neue", sans-serif; font-size: 10px; font-weight: 600;
-      letter-spacing: 0.04em; text-transform: uppercase;
-    }
-    .dt-cat-seq-chip--a {
-      padding: 2px 8px; border-radius: 99px; background: #f0f0ee; color: #666;
-      border: 1px solid #d8d8d4; font-family: "Helvetica Neue", sans-serif;
+      padding: 2px 8px; border-radius: var(--tau-r-pill); background: var(--tau-origin-you-bg); color: var(--tau-ink);
       font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
     }
-    .dt-cat-seq-arrow { font-size: 11px; color: #ccc; }
-    .dt-cat-seq-cont  { font-size: 11px; color: #ccc; font-weight: 700; letter-spacing: 0.05em; }
+    .dt-cat-seq-chip--a {
+      padding: 2px 8px; border-radius: var(--tau-r-pill); background: var(--tau-origin-coach-bg); color: var(--tau-ink-soft);
+      font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .dt-cat-seq-arrow { font-size: 11px; color: var(--tau-ink-faint); }
+    .dt-cat-seq-cont  { font-size: 11px; color: var(--tau-ink-faint); font-weight: 700; letter-spacing: 0.05em; }
     .dt-cat-seq-legend {
       display: flex; align-items: center; gap: 6px; margin-top: 7px;
-      font-family: "Helvetica Neue", sans-serif; font-size: 10px; color: #bbb;
+      font-size: 10px; color: var(--tau-ink-faint);
     }
 
     /* ── Two-screen layout ───────────────────────────────────────── */

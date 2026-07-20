@@ -4,19 +4,21 @@ Living document for the design layer of `app/`. Companion to `built-in-chat-plan
 (which owns product/architecture decisions) and `app/README.md` (implementation).
 **Read this before any design or CSS work in `app/`.**
 
-**Status as of 2026-07-20.** Tokens linked and live on all five pages. `style.css` and
-`teacher.html` are fully migrated onto `--tau-*` — zero hardcoded hexes, zero legacy names.
-Theme toggle ships on every page for both roles, light by default. **The component layer
-exists** — `components.css` is 16 → 60 classes covering all eight duplicated concepts (Step 3c).
-**Step 3e is underway on `report.html`: its top half — hero, dimensions, snapshot, provenance,
-panels — is rebuilt on the layer and all four of the locked rules it broke are fixed.** The four
-tab internals (agency chart, My Session, Pattern Guide, the `dt-*` overlays) are still on the
-old vocabulary and are the next session. `dashboard.html` remains deferred.
+**Status as of 2026-07-20.** Tokens linked and live on all five pages. `style.css`,
+`teacher.html`, and now `report.css` in full are migrated onto `--tau-*` — zero hardcoded hexes
+(outside three intentionally-literal value ramps, see *Known debt*), zero legacy names, every
+`var()` resolves. Theme toggle ships on every page for both roles, light by default. **The
+component layer exists** — `components.css` is 16 → 60+ classes covering all eight duplicated
+concepts (Step 3c). **`report.html` is fully rebuilt on the layer (Step 3e complete)**: top half
+(hero, dimensions, snapshot, provenance, panels — session 4) and now the four tab internals
+(agency chart, My Session, Idea Origins, Pattern Guide — session 5). `dashboard.html` remains
+deferred and is the only page left on the bridge.
 
-**If you read one thing before touching this file, read the 3e session-log entry.** The report
-rebuild found that a `ReferenceError` had been silently killing the entire bottom half of the
-report on every load — and that this doc had already recorded a *wrong* explanation for one of
-its symptoms.
+**If you read one thing before touching this file, read the session 5 log entry.** Roughly a
+third of `report.css` and `report-render.js`'s "debt" turned out to be dead code — two entire
+duplicate rendering paths, a sidebar with no button that opens it, and a chart legend divider
+class with zero CSS rules ever written for it. Retokenising without verifying what's actually
+called would have carried all of it forward under new variable names.
 
 If you are picking this up cold, read *Files and load order* and *Verifying visually* before
 touching anything. The second one is not optional — this migration's two real bugs were both
@@ -232,8 +234,8 @@ expected shape between 3c and 3e, not a stall.
 | Coaching-mode banner | `style.css` | index chat |
 | Draft-budget meter | `style.css` | index chat |
 | "Coach is thinking" state | `style.css` | index chat |
-| Divergence chart | `renderHorizChart()`, `report-render.js` | report · needs restyle + student legend + plain-language labels |
-| Report layout | `report.css` | report · top half restructured (narrative first, number after); four tab internals still to do |
+| Divergence chart | `renderHorizChart()`, `report-render.js` | report · chrome tokenised; value ramps still literal, see *Known debt* |
+| Report layout | `report.css` | report · fully on the layer, top half and all four tabs |
 | Teacher roster | `style.css` | teacher · needs density + band labels + flag framing |
 | Plain-language band labels | **Written** — `BAND_META` in `report-render.js` | report hero |
 | Assignment setup flow | **Missing** | |
@@ -296,7 +298,7 @@ delete.
 | `.quote`, `.dims`/`.dim` | report | **Artifact** — built 3c |
 | `.report-lede`, `.report-band`, `.report-next` | report | **Artifact** — not started. Single-surface *layout*, so these belong to `report.css`, not the layer |
 | `.traj` sparkline, `.confirm`, `.offline-bar`, `.queued` | index + report | **Artifact** — built 3c |
-| `.map-*` (divergence chart) | report | **Artifact** — exists as `.div-*`, needs restyle |
+| `.map-*` (divergence chart) | report | **Artifact** — exists as `.div-*` (pattern exchange sidebar) and `dt-*` (the chart itself); both retokenised session 5 |
 | `.dash*`, `.rail-*` (identity, progress, hero, trend) | index | **Derive** |
 | `.acard*` (16), `.pcard*` (7) | index | **Derive** → merge onto `.card` |
 | `.draft-chip*` (7), `.chip-row` | index | **Derive** → merge onto `.band` where it shows a band |
@@ -305,7 +307,8 @@ delete.
 | `.login-*`, `.google-btn`, `.test-accounts` (16) | login | **Derive** — artifact drew no login |
 | `.concept-*`, `.prov-*`, `.essay-heatmap`, `.flag-*`, `.label-badge` | report | **Derive** — provenance UI is undrawn |
 | `.session-*`, `.tab-*`, `.patterns-*`, `.turn-modal-*` | report | **Derive** |
-| `.dt-*` (~30), `.api-key-bar`, `.groq-status`, `.upload-*`, `.demo-btn`, `.instruction-*` | report | **Dead** — single-file CTA leftovers |
+| `.api-key-bar`, `.groq-status`, `.upload-*`, `.demo-btn`, `.instruction-*` | report | **Dead** — single-file CTA leftovers, confirmed gone by session 5 |
+| `.dt-*` (~30) | report | **Corrected, session 4–5**: this row was wrong. `dt-*` is the live agency chart's own id/class vocabulary (summary strip, legend, tooltip, modal, Pattern Guide cards) — not a CTA leftover. Retokenised in session 5; see the session log for what *was* dead inside it. |
 
 **Dead code removed 2026-07-20:** 110 classes / 166 rules cut from `report.css`, **1092 → 662
 lines (39%)**. Screenshots before and after are byte-identical in both themes, so the cut is
@@ -446,7 +449,7 @@ of a view built from the artifact's roster screen is a live option.
 | 3b | Delete the dead. Strict re-verification first (see the warning in the inventory) | subtraction — **done** (`report.css` 1092 → 662) |
 | 3c | Build `components.css` as the real layer, tokens only, both themes | the rebuild — **done** |
 | 3d | Reduce page sheets to layout only; retire bridge aliases as consumers drop | subtraction |
-| 3e | Rebuild markup page by page onto the layer, screenshot-verified per page | one page per session |
+| 3e | Rebuild markup page by page onto the layer, screenshot-verified per page | one page per session — **`report.html` done, sessions 4–5** |
 
 **3d and 3e are one job per page, not two passes.** They were written as separate steps, but a
 page sheet can only shrink to layout once its markup consumes the layer — the deletion is the
@@ -563,11 +566,23 @@ the same line in the band and origin blocks, and a naive `^\s*--` reports 21 fal
 
 - **d3 loads from a CDN** (`report.html:8`). Under the DPA posture in the plan, that's an
   external request on every report view, and it breaks behind a district firewall. Self-host.
-- **Two CSS vocabularies** (`style.css` and `report.css`) grew separately. `style.css` is now
-  fully on `--tau-*`; `report.css` is not. `components.css` is the third file but not a third
-  vocabulary — it is `--tau-*` only, by rule.
-- **`tokens.css` §4 is scaffolding.** 43 aliases remain, all held up by `report.css` and
-  `dashboard.html`. Six retired so far (`--panel`, `--accent-soft`, `--accent-green`,
+- **The agency chart's value colour is still literal, by deliberate choice, not oversight.**
+  Session 5 tokenised every fixed colour in `report.css`/`report-render.js` except three spots
+  in `renderHorizChart()`: the per-turn green/terra intensity ramps (`hPosScl`/`hNegScl`), the
+  matching legend swatches, and the four-way PASSIVE/NEUTRAL/BUILDING/QUESTIONING axis-zone
+  labels. Swapping these onto tokens means first deciding whether a continuous fill keyed to a
+  turn's value is compatible with *"semantic colour never touches a student's own score"* — that
+  is a design call, not a mechanical retokenisation, and belongs in a session that can also
+  answer *Open question 3* below (what the map looks like when it's honestly empty). Everything
+  else in that function — grid lines, the zero line, column bands, borders, all text, the
+  high/low pattern brackets — is tokenised and reuses the band-2/band-4 "level, not verdict"
+  pairing already established for the session verdict chip.
+- **`report.css` is fully on `--tau-*`** as of session 5 — 0 legacy `var()` names, every
+  remaining hex is inside the three spots above. `components.css` is the third file but not a
+  third vocabulary — it is `--tau-*` only, by rule. `dashboard.html` is the one file left on
+  the bridge.
+- **`tokens.css` §4 is scaffolding.** 43 aliases remain, all held up by `dashboard.html` now
+  that `report.css` is clear. Six retired so far (`--panel`, `--accent-soft`, `--accent-green`,
   `--auditor`, `--auditor-soft`, `--danger`). Delete each when its legacy name hits zero:
 
   ```bash
@@ -778,3 +793,54 @@ trajectory), Priya as teacher (band 2, a **1 of 5** rendering in the same neutra
 Next: the four tab internals — the agency chart's own vocabulary (`dt-*`, `div-*`, hardcoded
 Helvetica Neue, its blue/terra verdict hues and the white SVG bar grounds), My Session, and the
 pattern guide. That is where the last 96 hexes and all 39 remaining bridge references live.
+
+**2026-07-20 (build session 5) — Step 3e, `report.html`'s four tab internals**
+
+Retokenised the last unmigrated surface: My Session, Idea Origins' remaining pieces, Pattern
+Guide, the pattern exchange sidebar, and the agency chart's own `dt-*` chrome. `report.css` is
+now fully on `--tau-*` — 0 legacy `var()` names, every `var()` resolves, and the only hardcoded
+hex left is the three-spot value-ramp debt written up above. `report.css` 657 → 582 lines;
+`report-render.js` 1547 → 1371 lines. `dashboard.html` is now the only file left on the bridge.
+
+**About a third of that shrinkage was dead code, not retokenisation** — and finding it mattered
+more than the colour swap itself:
+
+1. **Two entire rendering paths were duplicates that never ran.** `renderChartSummary()` /
+   `renderDivLegend()` built a `div-summary-strip`/`div-legend` nobody consumed — the live
+   summary strip and legend are built inline in `renderAgencyChart()` using `dt-*` classes.
+   `computeChartSummary()` duplicated that same inline logic a second time, also uncalled.
+   Deleting all three cost nothing and removed ~90 lines that would otherwise have been
+   retokenised for an audience of zero.
+2. **A sidebar existed with no button that opens it.** `openPatternCatalogue()` populated
+   `#dt-sidebar` — a second, near-identical copy of the Pattern Guide tab's card list — but no
+   element in `report.html` or `report-boot.js` ever called it or the `#dt-all-patterns-btn` its
+   CSS was written for. `showPatternTooltip()`/`#patternTooltip` and `renderTurns()`/`.turn-row`
+   were the same shape: fully styled, wired to nothing. All four went with their CSS and the
+   dead `<div>`s in `report.html`. **A CSS rule existing is not evidence its markup does** — the
+   method that catches this is `grep` the function name for callers before touching its colours,
+   not after.
+3. **`.grid-line` and `.zero-line` had zero rules anywhere and had been invisible since the
+   port.** SVG `<line>` defaults to no stroke; nothing had ever set one. Same failure shape as
+   the session 4 `ReferenceError` — a renderer that runs cleanly and draws nothing — found the
+   same way: render it and look, not read the JS and assume the CSS matches.
+4. **The inventory's `.dt-*` row was still wrong.** It called the whole family "single-file CTA
+   leftovers, dead" — corrected in session 4 for the chart itself, but the row text was never
+   updated, so this session re-derived the same conclusion from scratch before checking the doc
+   already half-knew it. Fixed the row and pointed it at this entry, so a future session doesn't
+   do the same rediscovery a third time.
+5. **One design decision surfaced repeatedly enough to name once:** every binary or tiered
+   agency signal on this page — the session verdict chip, the pattern-group tiers in My Session,
+   the pattern sidebar title, the Pattern Guide's high/low card names, the chart's own pattern
+   brackets — had independently invented its own blue/terra or green/blue/yellow pair. All of
+   them now reuse `--tau-band-2-fg`/`--tau-band-4-fg` (or the three-step ramp for tiers), the
+   same ordered, non-good-bad ramp SAMR already uses. One `session-essay-badge` had gone the
+   other way — a red dot on "this idea reached your essay," a positive fact rendered as a
+   warning — caught on screenshot and moved to a plain sage highlight.
+
+Verified with a same-origin `__driveN.html` pattern (iframe + fetch login, per session 3/4's
+method) across Maya (band 4) and Priya (band 2, first draft) — all four tabs, both themes, plus
+the pattern exchange sidebar and turn modal opened programmatically. Console clean on every run;
+all driver files deleted after.
+
+Not done, and deliberately: the value-ramp colours in `renderHorizChart()` (see *Known debt*)
+and `dashboard.html`, which remains the last file on the legacy bridge.
