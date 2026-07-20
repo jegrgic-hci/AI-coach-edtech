@@ -12,9 +12,9 @@
 html, body { height: 100%; }
 
 body {
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
+  font-family: var(--tau-font-ui);
+  background: var(--tau-bg);
+  color: var(--tau-ink);
   font-size: 14px;
   line-height: 1.5;
   display: flex;
@@ -24,34 +24,35 @@ body {
 
 /* ── Header ── */
 header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 13px 24px;
+  background: var(--tau-surface);
+  border-bottom: 1px solid var(--tau-line);
+  padding: 13px var(--tau-s6);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--tau-s3);
   flex-shrink: 0;
 }
-header h1 { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
-header .subtitle { font-size: 12px; color: var(--text-muted); }
+header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.2px; }
+header .subtitle { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
 .back-link {
   margin-left: auto;
-  font-size: 12px; font-weight: 600;
-  color: var(--blue);
-  background: var(--blue-tint);
-  border: 1px solid #c5c7e8;
-  padding: 5px 12px;
-  border-radius: 20px;
+  font-size: var(--tau-text-xs);
+  font-weight: 600;
+  color: var(--tau-forest);
+  background: var(--tau-surface-2);
+  border: 1px solid var(--tau-line);
+  padding: 5px var(--tau-s3);
+  border-radius: var(--tau-r-pill);
   text-decoration: none;
   white-space: nowrap;
 }
-.back-link:hover { background: #e3e4f4; }
+.back-link:hover { background: var(--tau-hover-surface); border-color: var(--tau-line-strong); }
 
 /* ── Global tab nav ── */
 .tab-nav {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 0 24px;
+  background: var(--tau-surface);
+  border-bottom: 1px solid var(--tau-line);
+  padding: 0 var(--tau-s6);
   display: flex;
   flex-shrink: 0;
 }
@@ -59,14 +60,15 @@ header .subtitle { font-size: 12px; color: var(--text-muted); }
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  padding: 10px 16px;
-  font-size: 13px; font-weight: 500;
-  color: var(--text-muted);
+  padding: 10px var(--tau-s4);
+  font-size: var(--tau-text-sm);
+  font-weight: 500;
+  color: var(--tau-ink-soft);
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
 }
-.tab-btn:hover { color: var(--text); }
-.tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+.tab-btn:hover { color: var(--tau-ink); }
+.tab-btn.active { color: var(--tau-forest); border-bottom-color: var(--tau-forest); }
 
 /* ── Layout ── */
 .layout {
@@ -79,264 +81,236 @@ header .subtitle { font-size: 12px; color: var(--text-muted); }
 .sidebar {
   width: 220px;
   flex-shrink: 0;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
+  background: var(--tau-surface);
+  border-right: 1px solid var(--tau-line);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
 .sidebar-section {
-  font-size: 10px; font-weight: 700;
-  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--tau-ink-faint);
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  padding: 14px 16px 5px;
+  padding: var(--tau-s3) var(--tau-s4) 5px;
   flex-shrink: 0;
 }
 .sidebar-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 16px;
+  gap: var(--tau-s2);
+  padding: 9px var(--tau-s4);
   cursor: pointer;
   border-left: 2px solid transparent;
   transition: background 0.1s;
   flex-shrink: 0;
 }
-.sidebar-item:hover { background: var(--grey-tint); }
-.sidebar-item.active { background: var(--blue-tint); border-left-color: var(--blue); }
+.sidebar-item:hover { background: var(--tau-hover-surface); }
+.sidebar-item.active { background: var(--tau-surface-2); border-left-color: var(--tau-forest); }
 .sidebar-item-name {
-  font-size: 13px; font-weight: 500;
-  color: var(--text);
+  font-size: var(--tau-text-sm);
+  font-weight: 500;
+  color: var(--tau-ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.sidebar-item.active .sidebar-item-name { color: var(--blue); font-weight: 600; }
+.sidebar-item.active .sidebar-item-name { color: var(--tau-forest); font-weight: 600; }
 .sidebar-item-sub {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-size: var(--tau-text-xs);
+  color: var(--tau-ink-soft);
   margin-top: 1px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .flag-dot {
-  font-size: 11px;
-  color: var(--terra);
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--tau-caution);
   flex-shrink: 0;
-  line-height: 1;
 }
 .sidebar-search {
-  padding: 12px 12px 6px;
+  padding: var(--tau-s3) var(--tau-s3) 6px;
   flex-shrink: 0;
 }
 .sidebar-search input {
   width: 100%;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
+  padding: 6px var(--tau-s2);
+  border: 1px solid var(--tau-line);
   border-radius: 4px;
-  font-size: 12px;
-  background: var(--bg);
-  color: var(--text);
+  font-size: var(--tau-text-xs);
+  background: var(--tau-bg);
+  color: var(--tau-ink);
   outline: none;
   font-family: inherit;
 }
-.sidebar-search input:focus { border-color: var(--blue-light); }
+.sidebar-search input:focus { border-color: var(--tau-forest); }
 
 /* ── Content ── */
 .content {
   flex: 1;
   overflow-y: auto;
-  padding: 28px 32px;
-  background: var(--bg);
+  padding: var(--tau-s7) var(--tau-s7);
+  background: var(--tau-bg);
 }
 .content-header {
-  margin-bottom: 22px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--tau-s5);
+  padding-bottom: var(--tau-s4);
+  border-bottom: 1px solid var(--tau-line);
 }
 .content-title {
-  font-size: 18px; font-weight: 700;
+  font-size: var(--tau-text-xl);
+  font-weight: 700;
   letter-spacing: -0.3px;
-  color: var(--text);
+  color: var(--tau-ink);
 }
 .content-meta {
-  font-size: 12px;
-  color: var(--text-muted);
+  font-size: var(--tau-text-xs);
+  color: var(--tau-ink-soft);
   margin-top: 4px;
 }
 
-/* ── Chips & badges ── */
+/* ── Chips & badges ──
+   Structural chips (open/closed, submission status) may use the neutral
+   band-3 hue; "worth a chat" signals never do — see *Signal indicators*. */
 .chip {
   display: inline-block;
-  font-size: 11px; font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 20px;
+  font-size: var(--tau-text-xs);
+  font-weight: 600;
+  padding: 2px var(--tau-s2);
+  border-radius: var(--tau-r-pill);
   letter-spacing: 0.3px;
 }
-.chip-blue  { background: var(--blue-tint); color: var(--blue); }
-.chip-terra { background: var(--terra-tint); color: var(--terra); }
-.chip-grey  { background: var(--grey-tint); color: var(--text-mid); border: 1px solid var(--border); }
-.chip-green { background: var(--green-tint); color: var(--green); }
-.chip-amber { background: var(--amber-tint); color: var(--amber); }
+.chip-neutral { background: var(--tau-band-3-bg); color: var(--tau-band-3-fg); }
+.chip-grey    { background: var(--tau-surface-2); color: var(--tau-ink-soft); border: 1px solid var(--tau-line); }
+.chip-positive{ background: var(--tau-positive-bg); color: var(--tau-positive); }
+.chip-caution { background: var(--tau-caution-bg); color: var(--tau-caution); }
+.chip-attention{ background: var(--tau-attention-bg); color: var(--tau-attention); }
 
-.samr-badge {
-  display: inline-block;
-  font-size: 11px; font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 3px;
-}
-.samr-redef { background: var(--blue);       color: #fff; }
-.samr-mod   { background: var(--blue-mid);   color: #fff; }
-.samr-aug   { background: var(--blue-light); color: #fff; }
-.samr-sub   { background: #ccc; color: #555; }
+.status-final       { background: var(--tau-positive-bg); color: var(--tau-positive); }
+.status-draft       { background: var(--tau-caution-bg); color: var(--tau-caution); }
+.status-not-started { background: var(--tau-surface-2); color: var(--tau-ink-soft); border: 1px solid var(--tau-line); }
+.status-missing     { background: var(--tau-attention-bg); color: var(--tau-attention); }
 
-.flag-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 11px;
-  color: var(--terra);
-  flex-shrink: 0;
+/* ── Roster table ──
+   The teacher-facing equivalent of the report's .dims: one row per student
+   or assignment, a plain-language band for "how they're using AI" (never a
+   raw score first), and a quiet "Worth a chat" column instead of a flag. */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--tau-line); border-radius: var(--tau-r-md); background: var(--tau-surface); }
+table.roster { width: 100%; border-collapse: collapse; font-size: var(--tau-text-sm); }
+table.roster th, table.roster td {
+  text-align: left; padding: 10px var(--tau-s4);
+  border-bottom: 1px solid var(--tau-line);
+}
+table.roster th {
+  font-size: var(--tau-text-xs);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--tau-ink-faint); font-weight: 600;
+  background: var(--tau-surface-2);
+  white-space: nowrap;
+}
+table.roster th.sortable { cursor: pointer; user-select: none; }
+table.roster th.sortable:hover { color: var(--tau-ink); }
+table.roster th.sortable .sort-arrow { font-size: 10px; margin-left: 3px; opacity: 0.35; font-style: normal; }
+table.roster th.sort-active { color: var(--tau-forest); }
+table.roster th.sort-active .sort-arrow { opacity: 1; color: var(--tau-forest); }
+table.roster tbody tr:last-child td { border-bottom: none; }
+table.roster tbody tr.row-clickable { cursor: pointer; transition: background 0.1s; }
+table.roster tbody tr.row-clickable:hover { background: var(--tau-hover-surface); }
+table.roster tbody tr.expanded-row { background: var(--tau-surface-2); }
+table.roster tbody tr.drill-row { cursor: default; }
+table.roster tbody tr.drill-row:hover { background: transparent; }
+table.roster td.n { font-variant-numeric: tabular-nums; }
+table.roster .who { display: flex; align-items: center; gap: 9px; }
+table.roster .group-row { pointer-events: none; }
+table.roster .group-row td { padding: var(--tau-s3) var(--tau-s4) 4px; background: var(--tau-bg); border-bottom: none; }
+table.roster .group-label {
+  font-size: var(--tau-text-xs); font-weight: 700; color: var(--tau-ink-faint);
+  text-transform: uppercase; letter-spacing: 0.08em;
 }
 
-.status-final       { background: var(--green-tint); color: var(--green); }
-.status-draft       { background: var(--amber-tint); color: var(--amber); }
-.status-not-started { background: var(--grey-tint);  color: var(--text-muted); border: 1px solid var(--border); }
-.status-missing     { background: var(--terra-tint); color: var(--terra); }
+/* Quiet caution dot, never an alarm glyph — "worth a chat" is a
+   conversation-starter, not a verdict, so it never renders in the same
+   attention hue as a missed deadline. */
+.flagdot {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--tau-text-sm); color: var(--tau-ink-soft);
+}
+.flagdot i { width: 7px; height: 7px; border-radius: 50%; background: var(--tau-caution); flex: none; }
+.no-signal { color: var(--tau-ink-faint); font-size: var(--tau-text-sm); }
 
-/* ── Avatar ── */
-.avatar {
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  background: var(--blue-tint);
-  color: var(--blue);
-  font-size: 12px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
+.talkabout {
+  display: flex; gap: var(--tau-s3); align-items: flex-start;
+  margin: 0; padding: var(--tau-s4) var(--tau-s4);
+  background: var(--tau-surface-2);
+  border-top: 1px solid var(--tau-line);
 }
-
-/* ── Data table ── */
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-  table-layout: fixed;
+.talkabout .mark {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--tau-surface); border: 1px solid var(--tau-line-strong);
+  display: grid; place-items: center; flex: none;
+  font-size: var(--tau-text-sm); color: var(--tau-ink-soft);
 }
-.data-table th {
-  text-align: left;
-  font-size: 11px; font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase; letter-spacing: 0.5px;
-  padding: 10px 12px;
-  background: var(--grey-tint);
-  border-bottom: 1px solid var(--border);
-}
-.data-table th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
-.data-table th.sortable:hover { color: var(--text); }
-.data-table th.sortable .sort-arrow { font-size: 10px; margin-left: 3px; opacity: 0.35; font-style: normal; }
-.data-table th.sort-active { color: var(--blue); }
-.data-table th.sort-active .sort-arrow { opacity: 1; color: var(--blue); }
-.data-table td {
-  padding: 11px 12px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
-  overflow: hidden;
-  text-align: left;
-}
-.data-table tr:last-child td { border-bottom: none; }
-.data-table tbody tr { cursor: pointer; transition: background 0.1s; }
-.data-table tbody tr:hover { background: var(--grey-tint); }
-.data-table tbody tr.expanded-row { background: var(--blue-tint); }
-.data-table tbody tr.drill-row { cursor: default; }
-.data-table tbody tr.drill-row:hover { background: transparent; }
+.talkabout .txt { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+.talkabout .txt b { color: var(--tau-ink); font-weight: 600; }
 
 /* ── Drill panel ── */
 .drill-panel {
-  background: var(--blue-tint);
-  border-top: 1px solid var(--blue-light);
-  padding: 16px 20px;
+  background: var(--tau-surface-2);
+  border-top: 1px solid var(--tau-line);
+  padding: var(--tau-s4) var(--tau-s5);
 }
 .drill-panel-header {
-  font-size: 11px; font-weight: 600;
-  color: var(--blue);
+  font-size: var(--tau-text-xs);
+  font-weight: 600;
+  color: var(--tau-ink-soft);
   text-transform: uppercase; letter-spacing: 0.5px;
-  margin-bottom: 12px;
+  margin-bottom: var(--tau-s3);
 }
 .assignment-summary-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  display: flex; align-items: center; gap: var(--tau-s3);
+  padding: 10px var(--tau-s4);
+  background: var(--tau-surface);
+  border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-sm);
   cursor: pointer;
   user-select: none;
-  font-size: 13px;
+  font-size: var(--tau-text-sm);
 }
-.assignment-summary-row:hover { background: var(--blue-tint); border-color: var(--blue-light); }
-.assignment-summary-row.expanded { background: var(--blue-tint); border-color: var(--blue-light); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-.assignment-summary-row .chevron { font-size: 11px; color: var(--text-muted); width: 14px; flex-shrink: 0; }
-.assignment-drill { border: 1px solid var(--blue-light); border-top: none; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+.assignment-summary-row:hover { background: var(--tau-hover-surface); border-color: var(--tau-line-strong); }
+.assignment-summary-row.expanded { background: var(--tau-surface-2); border-color: var(--tau-line-strong); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.assignment-summary-row .chevron { font-size: 11px; color: var(--tau-ink-soft); width: 14px; flex-shrink: 0; }
+.assignment-drill { border: 1px solid var(--tau-line-strong); border-top: none; border-bottom-left-radius: var(--tau-r-sm); border-bottom-right-radius: var(--tau-r-sm); }
 .sub-history { display: flex; flex-direction: column; gap: 4px; }
 .sub-row {
   display: flex; flex-direction: column;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px 14px;
-  font-size: 12px;
+  background: var(--tau-surface);
+  border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-sm);
+  padding: 10px var(--tau-s4);
+  font-size: var(--tau-text-xs);
 }
-.sub-row.flagged { border-color: var(--terra); background: var(--terra-tint); }
-.sub-row-main { display: flex; align-items: center; gap: 10px; }
-.sub-num  { font-size: 11px; font-weight: 600; color: var(--text-muted); width: 20px; flex-shrink: 0; }
-.sub-date { color: var(--text-mid); width: 140px; flex-shrink: 0; font-size: 11px; }
+.sub-row.flagged { border-color: var(--tau-caution); background: var(--tau-caution-bg); }
+.sub-row-main { display: flex; align-items: center; gap: var(--tau-s3); }
+.sub-num  { font-size: var(--tau-text-xs); font-weight: 600; color: var(--tau-ink-soft); width: 20px; flex-shrink: 0; }
+.sub-date { color: var(--tau-ink-soft); width: 140px; flex-shrink: 0; font-size: var(--tau-text-xs); }
 .sub-chip { width: 44px; text-align: center; flex-shrink: 0; }
-.sub-total { font-size: 14px; font-weight: 700; width: 40px; text-align: right; flex-shrink: 0; }
+.sub-total { font-size: var(--tau-text-md); font-weight: 700; width: 40px; text-align: right; flex-shrink: 0; }
 .integrity-flags-row {
   display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
   margin-top: 7px; padding-top: 7px;
-  border-top: 1px solid rgba(184, 92, 56, 0.15);
+  border-top: 1px solid var(--tau-line);
 }
-
-/* ── Dim scores ── */
-.dim-scores { display: flex; gap: 5px; }
-.dim-score {
-  font-size: 11px; color: var(--text-muted);
-  background: var(--grey-tint);
-  padding: 2px 5px; border-radius: 3px;
-}
-.dim-score span { font-weight: 700; color: var(--text); }
-
-.tau-total { font-size: 15px; font-weight: 700; }
-.tau-denom { font-size: 12px; color: var(--text-muted); font-weight: 400; }
-
-.overview-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 12px 14px;
-  cursor: pointer;
-  transition: background 0.1s, border-color 0.1s;
-}
-.overview-card:hover { background: var(--blue-tint); border-color: var(--blue-light); }
-.sparkline { display: block; }
-
-/* ── Flag lines ── */
 .flag-line {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--terra);
+  display: flex; align-items: baseline; gap: var(--tau-s2);
+  font-size: var(--tau-text-xs);
+  color: var(--tau-ink-soft);
 }
 .flag-learn-more {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--blue);
+  font-size: 10px; font-weight: 600;
+  color: var(--tau-forest);
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
@@ -344,12 +318,34 @@ header .subtitle { font-size: 12px; color: var(--text-muted); }
 }
 .flag-learn-more:hover { text-decoration: underline; }
 
+/* ── Dim scores ── */
+.dim-scores { display: flex; gap: 5px; }
+.dim-score {
+  font-size: var(--tau-text-xs); color: var(--tau-ink-soft);
+  background: var(--tau-surface-2);
+  padding: 2px 5px; border-radius: 3px;
+}
+.dim-score span { font-weight: 700; color: var(--tau-ink); }
+
+.tau-total { font-size: var(--tau-text-lg); font-weight: 700; }
+.tau-denom { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); font-weight: 400; }
+
+.overview-card {
+  background: var(--tau-surface);
+  border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-sm);
+  padding: var(--tau-s3) var(--tau-s4);
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.overview-card:hover { background: var(--tau-hover-surface); border-color: var(--tau-line-strong); }
+
 /* ── Side tray ── */
 .tray-overlay {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.18);
+  background: var(--tau-scrim);
   z-index: 100;
 }
 .tray-overlay.open { display: block; }
@@ -359,9 +355,9 @@ header .subtitle { font-size: 12px; color: var(--text-muted); }
   top: 0; right: 0;
   width: 400px;
   height: 100%;
-  background: var(--surface);
-  border-left: 1px solid var(--border);
-  box-shadow: -4px 0 24px rgba(0,0,0,0.10);
+  background: var(--tau-surface);
+  border-left: 1px solid var(--tau-line);
+  box-shadow: var(--tau-shadow-lift);
   z-index: 101;
   display: flex;
   flex-direction: column;
@@ -374,83 +370,83 @@ header .subtitle { font-size: 12px; color: var(--text-muted); }
 .tray-header {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 20px 20px 16px;
-  border-bottom: 1px solid var(--border);
+  gap: var(--tau-s3);
+  padding: var(--tau-s5) var(--tau-s5) var(--tau-s4);
+  border-bottom: 1px solid var(--tau-line);
   flex-shrink: 0;
 }
 .tray-flag-icon {
-  font-size: 16px;
-  color: var(--terra);
-  margin-top: 2px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--tau-caution);
+  margin-top: 6px;
   flex-shrink: 0;
 }
 .tray-title {
-  font-size: 15px;
+  font-size: var(--tau-text-lg);
   font-weight: 700;
-  color: var(--text);
+  color: var(--tau-ink);
   letter-spacing: -0.2px;
   flex: 1;
 }
 .tray-subtitle {
-  font-size: 12px;
-  color: var(--text-muted);
+  font-size: var(--tau-text-xs);
+  color: var(--tau-ink-soft);
   margin-top: 3px;
 }
 .tray-close {
   background: none;
   border: none;
   font-size: 18px;
-  color: var(--text-muted);
+  color: var(--tau-ink-soft);
   cursor: pointer;
   padding: 2px 6px;
   border-radius: 4px;
   line-height: 1;
   flex-shrink: 0;
 }
-.tray-close:hover { background: var(--grey-tint); color: var(--text); }
+.tray-close:hover { background: var(--tau-hover-surface); color: var(--tau-ink); }
 
 .tray-body {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: var(--tau-s5);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--tau-s5);
 }
 .tray-section-label {
   font-size: 10px;
   font-weight: 700;
-  color: var(--text-muted);
+  color: var(--tau-ink-soft);
   text-transform: uppercase;
   letter-spacing: 0.8px;
   margin-bottom: 6px;
 }
 .tray-section-body {
-  font-size: 13px;
-  color: var(--text);
+  font-size: var(--tau-text-md);
+  color: var(--tau-ink);
   line-height: 1.6;
 }
 .tray-steps {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--tau-s2);
   margin-top: 0;
   padding: 0;
   list-style: none;
 }
 .tray-steps li {
   display: flex;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--text);
+  gap: var(--tau-s3);
+  font-size: var(--tau-text-md);
+  color: var(--tau-ink);
   line-height: 1.5;
 }
 .tray-step-num {
-  font-size: 11px;
+  font-size: var(--tau-text-xs);
   font-weight: 700;
-  color: var(--blue);
-  background: var(--blue-tint);
+  color: var(--tau-forest);
+  background: var(--tau-surface-2);
   width: 20px;
   height: 20px;
   border-radius: 50%;
@@ -465,34 +461,31 @@ header .subtitle { font-size: 12px; color: var(--text-muted); }
 .class-student-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  border-radius: 5px;
+  gap: var(--tau-s3);
+  padding: 9px var(--tau-s3);
+  border-radius: var(--tau-r-sm);
   cursor: pointer;
   transition: background 0.1s;
 }
-.class-student-row:hover { background: rgba(255,255,255,0.7); }
-.class-student-row.missing { background: var(--terra-tint); }
-.class-student-row.missing:hover { background: #f5ddd4; }
+.class-student-row:hover { background: var(--tau-hover-surface); }
+.class-student-row.missing { background: var(--tau-attention-bg); }
+.class-student-row.missing:hover { background: color-mix(in oklab, var(--tau-attention-bg) 70%, var(--tau-ink-faint) 10%); }
 
-/* ── Signal indicators ── */
+/* ── Signal indicators ──
+   "Worth a chat" is a quiet caution dot with words, never an alert glyph —
+   the flag that shows the same signal in a table cell (.flagdot). */
 .signal-pill-review {
-  font-size: 11px;
-  color: var(--terra);
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: var(--tau-text-xs);
+  color: var(--tau-caution);
   white-space: nowrap;
   flex-shrink: 0;
   line-height: 1;
 }
-.signal-pill-attention {
-  font-size: 10px; font-weight: 700;
-  color: var(--blue-mid);
-  white-space: nowrap;
-  flex-shrink: 0;
-  line-height: 1;
-}
+.signal-pill-review::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--tau-caution); flex: none; }
 .signal-reason {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-size: var(--tau-text-xs);
+  color: var(--tau-ink-soft);
   margin-top: 2px;
   line-height: 1.3;
   white-space: normal;
@@ -502,34 +495,34 @@ header .subtitle { font-size: 12px; color: var(--text-muted); }
 .filter-chips {
   display: flex;
   gap: 5px;
-  padding: 6px 12px 2px;
+  padding: 6px var(--tau-s3) 2px;
   flex-shrink: 0;
   flex-wrap: wrap;
 }
 .filter-chip {
-  font-size: 11px; font-weight: 600;
-  padding: 3px 9px;
-  border-radius: 20px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-muted);
+  font-size: var(--tau-text-xs);
+  font-weight: 600;
+  padding: 3px var(--tau-s3);
+  border-radius: var(--tau-r-pill);
+  border: 1px solid var(--tau-line);
+  background: var(--tau-surface);
+  color: var(--tau-ink-soft);
   cursor: pointer;
   transition: all 0.1s;
   font-family: inherit;
 }
-.filter-chip:hover { color: var(--text); border-color: #bbb; }
-.filter-chip.active-all      { background: var(--blue-tint);  border-color: var(--blue-light);  color: var(--blue); }
-.filter-chip.active-review   { background: var(--terra-tint); border-color: var(--terra-light); color: var(--terra); }
-.filter-chip.active-attention { background: var(--blue-tint);  border-color: var(--blue-light); color: var(--blue); }
+.filter-chip:hover { color: var(--tau-ink); border-color: var(--tau-line-strong); }
+.filter-chip.active-all    { background: var(--tau-surface-2); border-color: var(--tau-line-strong); color: var(--tau-forest); }
+.filter-chip.active-review { background: var(--tau-caution-bg); border-color: var(--tau-caution); color: var(--tau-caution); }
 
 /* ── Bar legend ── */
 .bar-legend {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-top: 12px;
-  font-size: 11px;
-  color: var(--text-muted);
+  gap: var(--tau-s4);
+  margin-top: var(--tau-s3);
+  font-size: var(--tau-text-xs);
+  color: var(--tau-ink-soft);
   flex-wrap: wrap;
 }
 .legend-swatch {
@@ -539,10 +532,11 @@ header .subtitle { font-size: 12px; color: var(--text-muted); }
   margin-right: 3px;
   vertical-align: middle;
 }
+
 /* ── Flag detection modal ── */
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.35);
+  background: var(--tau-scrim);
   z-index: 200;
   display: flex; align-items: center; justify-content: center;
   opacity: 0; pointer-events: none;
@@ -550,122 +544,122 @@ header .subtitle { font-size: 12px; color: var(--text-muted); }
 }
 .modal-overlay.open { opacity: 1; pointer-events: all; }
 .modal {
-  background: var(--surface);
-  border-radius: 10px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  background: var(--tau-surface);
+  border-radius: var(--tau-r-md);
+  box-shadow: var(--tau-shadow-lift);
   width: min(680px, 92vw);
   max-height: 82vh;
   display: flex; flex-direction: column;
   overflow: hidden;
 }
 .modal-header {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 20px 22px 16px;
-  border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; gap: var(--tau-s3);
+  padding: var(--tau-s5) var(--tau-s6) var(--tau-s4);
+  border-bottom: 1px solid var(--tau-line);
   flex-shrink: 0;
 }
-.modal-title { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; flex: 1; }
-.modal-intro { font-size: 12px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
+.modal-title { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.2px; flex: 1; }
+.modal-intro { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); margin-top: 3px; line-height: 1.5; }
 .modal-close {
   background: none; border: none; font-size: 18px;
-  color: var(--text-muted); cursor: pointer;
+  color: var(--tau-ink-soft); cursor: pointer;
   padding: 2px 6px; border-radius: 4px; line-height: 1; flex-shrink: 0;
 }
-.modal-close:hover { background: var(--grey-tint); color: var(--text); }
+.modal-close:hover { background: var(--tau-hover-surface); color: var(--tau-ink); }
 .modal-body {
   flex: 1; overflow-y: auto;
-  padding: 20px 22px;
+  padding: var(--tau-s5) var(--tau-s6);
   display: flex; flex-direction: column; gap: 0;
 }
 .flag-card {
-  padding: 16px 0;
-  border-bottom: 1px solid var(--border);
+  padding: var(--tau-s4) 0;
+  border-bottom: 1px solid var(--tau-line);
 }
 .flag-card:last-child { border-bottom: none; }
-.flag-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.flag-card-title { font-size: 13px; font-weight: 700; }
-.flag-card-desc { font-size: 12px; color: var(--text-mid); }
-.flag-card-section { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.7px; margin: 10px 0 4px; }
-.flag-card-body { font-size: 12px; color: var(--text-mid); line-height: 1.55; }
-.flag-card-steps { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
-.flag-card-steps li { font-size: 12px; color: var(--text-mid); line-height: 1.5; }
+.flag-card-header { display: flex; align-items: center; gap: var(--tau-s3); margin-bottom: var(--tau-s2); }
+.flag-card-title { font-size: var(--tau-text-sm); font-weight: 700; }
+.flag-card-desc { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
+.flag-card-section { font-size: 10px; font-weight: 700; color: var(--tau-ink-soft); text-transform: uppercase; letter-spacing: 0.7px; margin: var(--tau-s3) 0 4px; }
+.flag-card-body { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); line-height: 1.55; }
+.flag-card-steps { margin: 0; padding-left: var(--tau-s5); display: flex; flex-direction: column; gap: 3px; }
+.flag-card-steps li { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); line-height: 1.5; }
 .flag-type-label {
   font-size: 10px; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.7px;
-  padding: 2px 7px; border-radius: 20px;
+  padding: 2px 7px; border-radius: var(--tau-r-pill);
   flex-shrink: 0;
 }
-.flag-type-integrity { background: var(--terra-tint); color: var(--terra); }
-.flag-type-score    { background: var(--amber-tint); color: var(--amber); }
+.flag-type-integrity { background: var(--tau-caution-bg); color: var(--tau-caution); }
+.flag-type-score    { background: var(--tau-band-3-bg); color: var(--tau-band-3-fg); }
 
 /* ── Reflection arc ── */
 .reflection-arc {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px 14px;
-  margin-bottom: 10px;
+  background: var(--tau-surface);
+  border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-sm);
+  padding: 10px var(--tau-s4);
+  margin-bottom: var(--tau-s3);
 }
 .arc-label {
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
-  color: var(--text-muted); margin-bottom: 8px;
+  color: var(--tau-ink-soft); margin-bottom: var(--tau-s2);
 }
 .arc-entries {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
 }
 .arc-entry {
   display: flex; align-items: center; gap: 5px;
-  background: var(--grey-tint); border: 1px solid var(--border);
-  border-radius: 5px; padding: 4px 8px;
+  background: var(--tau-surface-2); border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-sm); padding: 4px var(--tau-s2);
   cursor: pointer; transition: background 0.1s, border-color 0.1s;
-  font-size: 11px;
+  font-size: var(--tau-text-xs);
 }
-.arc-entry:hover { background: var(--blue-tint); border-color: var(--blue-light); }
+.arc-entry:hover { background: var(--tau-hover-surface); border-color: var(--tau-line-strong); }
 .arc-badge {
   font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
   padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
 }
-.arc-full  { background: var(--blue-tint);  color: var(--blue); }
-.arc-delta { background: var(--amber-tint); color: var(--amber); }
-.arc-excerpt { color: var(--text-mid); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.arc-score { font-size: 10px; font-weight: 700; color: var(--text-muted); flex-shrink: 0; }
-.arc-arrow { font-size: 11px; color: var(--text-muted); }
+.arc-full  { background: var(--tau-band-3-bg); color: var(--tau-band-3-fg); }
+.arc-delta { background: var(--tau-caution-bg); color: var(--tau-caution); }
+.arc-excerpt { color: var(--tau-ink-soft); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arc-score { font-size: 10px; font-weight: 700; color: var(--tau-ink-soft); flex-shrink: 0; }
+.arc-arrow { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
 
 /* ── Per-submission reflection ── */
 .reflection-details {
   margin-top: 7px; padding-top: 7px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--tau-line);
 }
 .reflection-summary {
   display: flex; align-items: center; gap: 7px;
   cursor: pointer; list-style: none; user-select: none;
-  font-size: 11px;
+  font-size: var(--tau-text-xs);
 }
 .reflection-summary::-webkit-details-marker { display: none; }
-.reflection-summary::before { content: '▸'; font-size: 9px; color: var(--text-muted); flex-shrink: 0; }
+.reflection-summary::before { content: '▸'; font-size: 9px; color: var(--tau-ink-soft); flex-shrink: 0; }
 details[open] .reflection-summary::before { content: '▾'; }
 .reflect-type-badge {
   font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
   padding: 1px 6px; border-radius: 3px; flex-shrink: 0;
-  background: var(--blue-tint); color: var(--blue);
+  background: var(--tau-band-3-bg); color: var(--tau-band-3-fg);
 }
-.arc-delta-inline { background: var(--amber-tint); color: var(--amber); }
+.arc-delta-inline { background: var(--tau-caution-bg); color: var(--tau-caution); }
 .score-delta {
   font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
 }
-.score-delta.up   { background: var(--green-tint); color: var(--green); }
-.score-delta.down { background: var(--terra-tint);  color: var(--terra); }
-.score-delta.flat { background: var(--grey-tint);   color: var(--text-muted); }
-.reflect-excerpt { color: var(--text-muted); font-style: italic; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.score-delta.up   { background: var(--tau-positive-bg); color: var(--tau-positive); }
+.score-delta.down { background: var(--tau-attention-bg); color: var(--tau-attention); }
+.score-delta.flat { background: var(--tau-surface-2); color: var(--tau-ink-soft); }
+.reflect-excerpt { color: var(--tau-ink-soft); font-style: italic; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .reflect-full {
-  margin-top: 8px; padding: 8px 10px;
-  background: var(--grey-tint); border-radius: 5px;
+  margin-top: var(--tau-s2); padding: var(--tau-s2) 10px;
+  background: var(--tau-surface-2); border-radius: var(--tau-r-sm);
   display: flex; flex-direction: column; gap: 6px;
 }
-.reflect-section { font-size: 11px; color: var(--text-mid); line-height: 1.5; }
+.reflect-section { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); line-height: 1.5; }
 .reflect-label {
   font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
-  color: var(--text-muted); margin-right: 5px;
+  color: var(--tau-ink-soft); margin-right: 5px;
 }
 </style>
 </head>
@@ -674,7 +668,7 @@ details[open] .reflection-summary::before { content: '▾'; }
 <header>
   <h1>Critical Thinking Auditor</h1>
   <span class="subtitle">Teacher Dashboard</span>
-  <button onclick="openFlagModal()" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--terra);background:var(--terra-tint);border:1px solid rgba(184,92,56,0.25);padding:5px 13px;border-radius:20px;cursor:pointer">⚑ Flag detection</button>
+  <button onclick="openFlagModal()" class="btn btn-quiet btn-sm" style="margin-left:auto">Worth a chat, explained</button>
   <a href="teacher.html" class="back-link" style="margin-left:0">+ New assignment</a>
   <a href="/" class="back-link" style="margin-left:0">← Student app</a>
   <span class="back-link" id="whoami" style="margin-left:0;border:none;cursor:default"></span>
@@ -698,8 +692,8 @@ details[open] .reflection-summary::before { content: '▾'; }
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div style="flex:1;min-width:0">
-        <div class="modal-title">Flag detection</div>
-        <div class="modal-intro">The tool automatically checks every submission for these signals. Flags are never shown to students — they appear only in the teacher dashboard to support your review.</div>
+        <div class="modal-title">Worth a chat, explained</div>
+        <div class="modal-intro">The tool automatically checks every submission for these signals. They're never shown to students — they surface only here, as conversation-starters, never verdicts.</div>
       </div>
       <button class="modal-close" onclick="closeFlagModal()">✕</button>
     </div>
@@ -710,7 +704,7 @@ details[open] .reflection-summary::before { content: '▾'; }
 <div class="tray-overlay" id="tray-overlay" onclick="closeFlagTray()"></div>
 <div class="side-tray" id="side-tray">
   <div class="tray-header">
-    <span class="tray-flag-icon">⚑</span>
+    <span class="tray-flag-icon"></span>
     <div style="flex:1">
       <div class="tray-title" id="tray-title"></div>
       <div class="tray-subtitle" id="tray-subtitle"></div>
@@ -747,11 +741,26 @@ async function loadDashboardData() {
 
 function total(sub) { return sub.pq + sub.su + sub.cs + sub.oc; }
 
+// Plain language leads, SAMR rides as a subtitle only — never the primary
+// label. Same rule the report follows; wording here is the teacher-facing
+// set from the v8 roster mock (third person, describing a student's pattern
+// rather than coaching them directly).
+const BAND_PLAIN = {
+  1: 'Taking what it gives',
+  2: 'Steering a little',
+  3: 'Reshaping the answer',
+  4: 'Going past the answer',
+};
+const SAMR_NAMES = ['Substitution', 'Augmentation', 'Modification', 'Redefinition'];
+
 function samr(t) {
-  if (t >= 17) return { label: 'Redefinition', cls: 'samr-redef' };
-  if (t >= 13) return { label: 'Modification',  cls: 'samr-mod'  };
-  if (t >= 9)  return { label: 'Augmentation',  cls: 'samr-aug'  };
-  return            { label: 'Substitution',  cls: 'samr-sub'  };
+  const n = t >= 17 ? 4 : t >= 13 ? 3 : t >= 9 ? 2 : 1;
+  return { n, label: SAMR_NAMES[n - 1], plain: BAND_PLAIN[n] };
+}
+
+function bandChip(t, small) {
+  const b = samr(t);
+  return `<span class="band band-${b.n}"${small ? ' style="font-size:10px"' : ''}><i class="band-pip"></i>${b.plain}</span>`;
 }
 
 function submissionStatus(subs, assignment) {
@@ -1008,24 +1017,6 @@ function formatDate(d) {
     + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-function sparklineSVG(subs, w = 72, h = 24) {
-  const flags   = checkFlag(subs);
-  const flagIdx = new Set(flags.map(f => f.submissionIndex));
-  const totals  = subs.map(total);
-  const MIN = 4, MAX = 20;
-  const x = i => subs.length < 2 ? w / 2 : (i / (subs.length - 1)) * (w - 8) + 4;
-  const y = t => h - 4 - ((t - MIN) / (MAX - MIN)) * (h - 8);
-  if (!subs.length) return `<svg class="sparkline" width="${w}" height="${h}"></svg>`;
-  const pts  = totals.map((t, i) => `${x(i)},${y(t)}`).join(' ');
-  const line = subs.length > 1
-    ? `<polyline points="${pts}" fill="none" stroke="var(--blue-light)" stroke-width="1.5"/>`
-    : '';
-  const dots = totals.map((t, i) =>
-    `<circle cx="${x(i)}" cy="${y(t)}" r="2.5" fill="${flagIdx.has(i) ? 'var(--terra)' : 'var(--blue)'}" />`
-  ).join('');
-  return `<svg class="sparkline" width="${w}" height="${h}">${line}${dots}</svg>`;
-}
-
 function distributionBar(studentIds, assignmentId, w = 120, h = 10) {
   const n = studentIds.length;
   if (!n) return '';
@@ -1035,7 +1026,7 @@ function distributionBar(studentIds, assignmentId, w = 120, h = 10) {
     if (lat) counts[samr(total(lat)).label]++;
     else counts.None++;
   });
-  const colors = { Redefinition: '#3B3EA8', Modification: '#6B7DD4', Augmentation: '#9B9DE0', Substitution: '#cccccc' };
+  const colors = { Redefinition: 'var(--tau-band-4-fg)', Modification: 'var(--tau-band-3-fg)', Augmentation: 'var(--tau-band-2-fg)', Substitution: 'var(--tau-band-1-fg)' };
   const levels = ['Redefinition', 'Modification', 'Augmentation', 'Substitution'];
   let x = 0;
   const rects = [];
@@ -1046,7 +1037,7 @@ function distributionBar(studentIds, assignmentId, w = 120, h = 10) {
     x += sw;
   });
   if (x < w - 0.5) {
-    rects.push(`<rect x="${x.toFixed(1)}" y="0" width="${(w - x).toFixed(1)}" height="${h}" fill="#e5e5e2"><title>${counts.None} not submitted</title></rect>`);
+    rects.push(`<rect x="${x.toFixed(1)}" y="0" width="${(w - x).toFixed(1)}" height="${h}" fill="var(--tau-surface-3)"><title>${counts.None} not submitted</title></rect>`);
   }
   return `<svg width="${w}" height="${h}" style="border-radius:3px;display:block;overflow:hidden">${rects.join('')}</svg>`;
 }
@@ -1115,13 +1106,12 @@ function renderReflectionSection(sub, prevSub) {
 }
 
 function renderDrillPanel(subs, label, sig, ctx) {
-  if (!subs.length) return `<div class="drill-panel"><em style="color:var(--text-muted);font-size:13px">No submissions for this assignment.</em></div>`;
+  if (!subs.length) return `<div class="drill-panel"><em style="color:var(--tau-ink-soft);font-size:13px">No submissions for this assignment.</em></div>`;
   const flags   = checkFlag(subs);
   const flagIdx = new Set(flags.map(f => f.submissionIndex));
   const rows = [...subs].reverse().map((sub, ri) => {
     const i = subs.length - 1 - ri;
     const t        = total(sub);
-    const s        = samr(t);
     const flagInfo = flagIdx.has(i) ? flags.find(f => f.submissionIndex === i) : null;
     const iFlags   = sub.integrityFlags || [];
     const isLast   = i === subs.length - 1;
@@ -1143,29 +1133,29 @@ function renderDrillPanel(subs, label, sig, ctx) {
 
     const flagRow = flagLines.length
       ? `<div class="integrity-flags-row">
-           <span style="font-size:11px;font-weight:600;color:var(--terra);flex-shrink:0;margin-top:1px">⚑</span>
+           <span class="flagdot" style="margin-top:3px"><i></i></span>
            <div style="flex:1;display:flex;flex-direction:column;gap:3px">${flagLines.join('')}</div>
          </div>`
       : '';
 
     const statusChip = isLast
-      ? `<span class="sub-chip" style="font-size:10px;font-weight:600;color:var(--green);background:var(--green-tint);padding:2px 7px;border-radius:20px">Final</span>`
-      : `<span class="sub-chip" style="font-size:10px;font-weight:600;color:var(--text-muted);background:var(--grey-tint);border:1px solid var(--border);padding:2px 7px;border-radius:20px">Draft</span>`;
+      ? `<span class="sub-chip" style="font-size:10px;font-weight:600;color:var(--tau-positive);background:var(--tau-positive-bg);padding:2px 7px;border-radius:20px">Final</span>`
+      : `<span class="sub-chip" style="font-size:10px;font-weight:600;color:var(--tau-ink-soft);background:var(--tau-surface-2);border:1px solid var(--tau-line);padding:2px 7px;border-radius:20px">Draft</span>`;
 
     return `<div class="sub-row ${flagInfo || iFlags.length ? 'flagged' : ''}">
       <div class="sub-row-main">
         <span class="sub-num">#${i + 1}</span>
         ${statusChip}
         <span class="sub-date">${formatDate(sub.ts)}</span>
-        <span class="sub-total">${t}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span></span>
+        <span class="sub-total">${t}<span style="font-size:11px;font-weight:400;color:var(--tau-ink-soft)">/20</span></span>
         <div class="dim-scores" style="flex:1">
           <span class="dim-score">PQ <span>${sub.pq}</span></span>
           <span class="dim-score">SU <span>${sub.su}</span></span>
           <span class="dim-score">CS <span>${sub.cs}</span></span>
           <span class="dim-score">OC <span>${sub.oc}</span></span>
         </div>
-        <span class="samr-badge ${s.cls}" style="width:100px;text-align:center;flex-shrink:0">${s.label}</span>
-        ${sub.id ? `<a href="/report.html?id=${sub.id}&role=teacher" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;flex-shrink:0;color:var(--accent,#3B3EA8)">Report →</a>` : ''}
+        <span style="min-width:150px;flex-shrink:0">${bandChip(t, true)}</span>
+        ${sub.id ? `<a href="/report.html?id=${sub.id}&role=teacher" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;flex-shrink:0;color:var(--tau-forest)">Report →</a>` : ''}
       </div>
       ${flagRow}
       ${renderReflectionSection(sub, prevSub)}
@@ -1176,11 +1166,11 @@ function renderDrillPanel(subs, label, sig, ctx) {
     ? ` <a class="flag-learn-more" onclick="openFlagTray('${sig.learnMoreKey}');event.stopPropagation()">Learn more</a>`
     : '';
   const engagementNote = sig && sig.status === 'attention' && sig.reason
-    ? `<div style="padding:8px 14px;font-size:11px;color:var(--text-muted);border-top:1px solid var(--border)">${sig.reason}${learnMoreLink}</div>`
+    ? `<div style="padding:8px 14px;font-size:11px;color:var(--tau-ink-soft);border-top:1px solid var(--tau-line)">${sig.reason}${learnMoreLink}</div>`
     : '';
 
   const convLink = ctx
-    ? `<a href="/teacher.html#student/${ctx.assignmentId}/${ctx.studentId}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;float:right;color:var(--accent,#3B3EA8)">Conversation view →</a>`
+    ? `<a href="/teacher.html#student/${ctx.assignmentId}/${ctx.studentId}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;float:right;color:var(--tau-forest)">Conversation view →</a>`
     : '';
 
   return `<div class="drill-panel">
@@ -1217,7 +1207,7 @@ function renderClassSidebar() {
         <div class="sidebar-item-name">${c.name}</div>
         <div class="sidebar-item-sub">${students.length} student${students.length !== 1 ? 's' : ''}</div>
       </div>
-      ${hasFlags ? '<span class="flag-dot">⚑</span>' : ''}
+      ${hasFlags ? '<span class="flag-dot"></span>' : ''}
     </div>`;
   }).join('');
   return `<div class="sidebar-item ${activeClass === 'overview' ? 'active' : ''}" onclick="selectClass('overview')" style="margin-bottom:4px">
@@ -1226,7 +1216,7 @@ function renderClassSidebar() {
       <div class="sidebar-item-sub">All classes at a glance</div>
     </div>
   </div>
-  <div style="height:1px;background:var(--border);margin:4px 0 8px"></div>
+  <div style="height:1px;background:var(--tau-line);margin:4px 0 8px"></div>
   ${items}`;
 }
 
@@ -1243,7 +1233,7 @@ function renderAssignmentSidebar() {
         <div class="sidebar-item-name">${a.name}</div>
         <div class="sidebar-item-sub">Due ${dueStr}</div>
       </div>
-      ${hasFlags ? '<span class="flag-dot">⚑</span>' : ''}
+      ${hasFlags ? '<span class="flag-dot"></span>' : ''}
     </div>`;
   }
   const open   = ASSIGNMENTS.filter(a => a.status === 'open');
@@ -1257,12 +1247,12 @@ function renderAssignmentSidebar() {
       <div class="sidebar-item-sub">All assignments at a glance</div>
     </div>
   </div>
-  <div style="height:1px;background:var(--border);margin:4px 0 8px"></div>
+  <div style="height:1px;background:var(--tau-line);margin:4px 0 8px"></div>
   ${items}`;
 }
 
 function signalPill(sig) {
-  if (sig.status === 'review') return `<span class="signal-pill-review">⚑ review</span>`;
+  if (sig.status === 'review') return `<span class="signal-pill-review">Worth a chat</span>`;
   return '';
 }
 
@@ -1290,7 +1280,7 @@ function renderStudentList() {
     candidates = candidates.filter(({ student }) => getStudentSignal(student.id).status === studentFilter);
   }
 
-  if (!candidates.length) return `<div style="padding:10px 16px;font-size:12px;color:var(--text-muted)">No students match this filter</div>`;
+  if (!candidates.length) return `<div style="padding:10px 16px;font-size:12px;color:var(--tau-ink-soft)">No students match this filter</div>`;
 
   if (q) {
     return candidates.map(({ student }) => studentSidebarItem(student)).join('');
@@ -1311,14 +1301,14 @@ function renderStudentSidebar() {
         <div class="sidebar-item-sub">All students by priority</div>
       </div>
     </div>
-    <div style="height:1px;background:var(--border);margin:4px 0 8px"></div>
+    <div style="height:1px;background:var(--tau-line);margin:4px 0 8px"></div>
     <div class="sidebar-search">
       <input type="text" id="student-search-input" placeholder="Search students…"
              oninput="filterStudents(this.value)" value="${studentSearch}">
     </div>
     <div class="filter-chips">
       <button class="filter-chip ${studentFilter === 'all'    ? 'active-all'    : ''}" data-filter="all"    onclick="setStudentFilter('all')">All</button>
-      <button class="filter-chip ${studentFilter === 'review' ? 'active-review' : ''}" data-filter="review" onclick="setStudentFilter('review')">⚑ Review</button>
+      <button class="filter-chip ${studentFilter === 'review' ? 'active-review' : ''}" data-filter="review" onclick="setStudentFilter('review')">Worth a chat</button>
     </div>
     <div id="student-list">${renderStudentList()}</div>`;
 }
@@ -1360,16 +1350,16 @@ function renderClassDrillPanel(a, students) {
       </div>
       <span class="chip ${st.cls}" style="font-size:10px;flex-shrink:0">${st.label}</span>
       ${t !== null
-        ? `<span style="font-weight:700;font-size:13px;min-width:36px;text-align:right;flex-shrink:0">${t}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span></span>
-           <span class="samr-badge ${samr(t).cls}" style="font-size:10px;min-width:90px;text-align:center;flex-shrink:0">${samr(t).label}</span>`
-        : `<span style="min-width:36px"></span><span style="min-width:90px"></span>`}
+        ? `<span style="font-weight:700;font-size:13px;min-width:36px;text-align:right;flex-shrink:0">${t}<span style="font-size:11px;font-weight:400;color:var(--tau-ink-soft)">/20</span></span>
+           <span style="min-width:140px;flex-shrink:0">${bandChip(t, true)}</span>`
+        : `<span style="min-width:36px"></span><span style="min-width:140px"></span>`}
     </div>`;
   }).join('');
 
   return `<div class="drill-panel">
     <div class="drill-panel-header" style="display:flex;justify-content:space-between;align-items:center">
       <span>Students — ${a.name}</span>
-      <a style="font-size:11px;font-weight:600;color:var(--blue);cursor:pointer;text-decoration:none"
+      <a style="font-size:11px;font-weight:600;color:var(--tau-forest);cursor:pointer;text-decoration:none"
          onclick="gotoAssignment('${a.id}');event.stopPropagation()">View full assignment →</a>
     </div>
     <div style="display:flex;flex-direction:column;gap:2px">${rows}</div>
@@ -1397,43 +1387,45 @@ function renderOverviewContent() {
     </div>`;
   }
 
+  const softBorder = c => `color-mix(in oklab, ${c} 35%, var(--tau-surface))`;
+
   const tiles = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">
     ${statTile(
       review.length,
-      review.length ? 'Need review' : 'No flags',
-      review.length ? 'var(--terra)' : 'var(--green)',
-      review.length ? 'var(--terra-tint)' : 'var(--green-tint)',
-      review.length ? 'var(--terra-light)' : '#a8d5be',
+      review.length ? 'Worth a chat' : 'No signals',
+      review.length ? 'var(--tau-caution)' : 'var(--tau-positive)',
+      review.length ? 'var(--tau-caution-bg)' : 'var(--tau-positive-bg)',
+      review.length ? softBorder('var(--tau-caution)') : softBorder('var(--tau-positive)'),
       review.length ? "gotoStudentFilter('review')" : ''
     )}
-    ${statTile(trends.length, `Behavioral pattern${trends.length !== 1 ? 's' : ''} detected`, 'var(--blue-mid)', 'var(--blue-tint)', '#c5c7e8', '')}
-    ${totalMissing ? statTile(totalMissing, 'Missing submissions', 'var(--amber)', 'var(--amber-tint)', '#d4a87a', '') : ''}
-    ${statTile(openAssign.length, `Open assignment${openAssign.length !== 1 ? 's' : ''}`, 'var(--text-mid)', 'var(--surface)', 'var(--border)', '')}
-    ${statTile(allStudents.length, 'Students', 'var(--text-mid)', 'var(--surface)', 'var(--border)', '')}
+    ${statTile(trends.length, `Behavioral pattern${trends.length !== 1 ? 's' : ''} detected`, 'var(--tau-band-3-fg)', 'var(--tau-band-3-bg)', softBorder('var(--tau-band-3-fg)'), '')}
+    ${totalMissing ? statTile(totalMissing, 'Missing submissions', 'var(--tau-attention)', 'var(--tau-attention-bg)', softBorder('var(--tau-attention)'), '') : ''}
+    ${statTile(openAssign.length, `Open assignment${openAssign.length !== 1 ? 's' : ''}`, 'var(--tau-ink-soft)', 'var(--tau-surface)', 'var(--tau-line)', '')}
+    ${statTile(allStudents.length, 'Students', 'var(--tau-ink-soft)', 'var(--tau-surface)', 'var(--tau-line)', '')}
   </div>`;
 
-  // ── Integrity flags list ──
+  // ── Worth a chat list ──
   const reviewSection = review.length ? `<div style="margin-bottom:20px">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <span style="font-size:13px;font-weight:600;color:var(--text)">Students — <span style="color:var(--terra)">⚑ review</span></span>
-      <span style="font-size:11px;background:var(--terra-tint);color:var(--terra);border:1px solid var(--terra-light);border-radius:20px;padding:1px 7px;font-weight:600">${review.length}</span>
+      <span style="font-size:13px;font-weight:600;color:var(--tau-ink)">Students — <span class="signal-pill-review">Worth a chat</span></span>
+      <span style="font-size:11px;background:var(--tau-caution-bg);color:var(--tau-caution);border:1px solid ${softBorder('var(--tau-caution)')};border-radius:20px;padding:1px 7px;font-weight:600">${review.length}</span>
     </div>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden">
+    <div style="background:var(--tau-surface);border:1px solid var(--tau-line);border-radius:8px;overflow:hidden">
       ${review.map(({ student, cls }, i) => {
         const flaggedAssign = ASSIGNMENTS.filter(a => {
           const subs = getSubs(student.id, a.id);
           return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
         });
-        const detail = flaggedAssign.length ? 'Flagged: ' + flaggedAssign.map(a => a.name).join(', ') : '';
-        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;${i > 0 ? 'border-top:1px solid var(--border);' : ''}cursor:pointer"
-                     onmouseover="this.style.background='var(--terra-tint)'" onmouseout="this.style.background=''"
+        const detail = flaggedAssign.length ? 'Noted on: ' + flaggedAssign.map(a => a.name).join(', ') : '';
+        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;${i > 0 ? 'border-top:1px solid var(--tau-line);' : ''}cursor:pointer"
+                     onmouseover="this.style.background='var(--tau-hover-surface)'" onmouseout="this.style.background=''"
                      onclick="gotoStudentFromClass('${student.id}')">
-          <div class="avatar" style="width:28px;height:28px;font-size:10px;background:var(--terra-tint);color:var(--terra);flex-shrink:0">${student.initials}</div>
+          <div class="avatar" style="width:28px;height:28px;font-size:10px;flex-shrink:0">${student.initials}</div>
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:600">${student.name}</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cls.name}${detail ? ' · ' + detail : ''}</div>
+            <div style="font-size:11px;color:var(--tau-ink-soft);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cls.name}${detail ? ' · ' + detail : ''}</div>
           </div>
-          <span style="font-size:11px;color:var(--blue);font-weight:600;flex-shrink:0">View →</span>
+          <span style="font-size:11px;color:var(--tau-forest);font-weight:600;flex-shrink:0">View →</span>
         </div>`;
       }).join('')}
     </div>
@@ -1442,8 +1434,8 @@ function renderOverviewContent() {
   // ── Trend cards ──
   const trendsSection = trends.length ? `<div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <span style="font-size:13px;font-weight:700;color:var(--text)">Behavioral patterns</span>
-      <span style="font-size:11px;color:var(--text-muted)">Patterns detected across your classes based on how students are using AI</span>
+      <span style="font-size:13px;font-weight:700;color:var(--tau-ink)">Behavioral patterns</span>
+      <span style="font-size:11px;color:var(--tau-ink-soft)">Patterns detected across your classes based on how students are using AI</span>
     </div>
     <div style="display:flex;flex-direction:column;gap:10px">
       ${trends.map(({ id, students, meta }) => {
@@ -1454,20 +1446,20 @@ function renderOverviewContent() {
           const n = students.filter(x => x.cls.id === cls.id).length;
           return n ? `${cls.name} ${n}` : null;
         }).filter(Boolean).join(' · ');
-        return `<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--blue-mid);border-radius:8px;padding:16px 18px">
+        return `<div style="background:var(--tau-surface);border:1px solid var(--tau-line);border-left:3px solid var(--tau-band-3-fg);border-radius:8px;padding:16px 18px">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px">
             <div>
-              <span style="font-size:14px;font-weight:700;color:var(--text)">${meta.label}</span>
-              <span style="font-size:11px;font-weight:600;background:var(--blue-tint);color:var(--blue);border:1px solid #c5c7e8;border-radius:20px;padding:1px 8px;margin-left:8px">${students.length} student${students.length !== 1 ? 's' : ''}</span>
+              <span style="font-size:14px;font-weight:700;color:var(--tau-ink)">${meta.label}</span>
+              <span style="font-size:11px;font-weight:600;background:var(--tau-band-3-bg);color:var(--tau-band-3-fg);border:1px solid ${softBorder('var(--tau-band-3-fg)')};border-radius:20px;padding:1px 8px;margin-left:8px">${students.length} student${students.length !== 1 ? 's' : ''}</span>
             </div>
           </div>
-          <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">${classCounts}</div>
+          <div style="font-size:12px;color:var(--tau-ink-soft);margin-bottom:12px">${classCounts}</div>
 
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-muted);margin-bottom:5px">What this looks like</div>
-          <div style="font-size:13px;color:var(--text-mid);line-height:1.6;margin-bottom:12px">${meta.what}</div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--tau-ink-soft);margin-bottom:5px">What this looks like</div>
+          <div style="font-size:13px;color:var(--tau-ink-soft);line-height:1.6;margin-bottom:12px">${meta.what}</div>
 
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--blue-mid);margin-bottom:5px">What to try</div>
-          <div style="font-size:13px;color:var(--text-mid);line-height:1.6;margin-bottom:14px;padding:10px 12px;background:var(--blue-tint);border-radius:5px;border-left:2px solid var(--blue-light)">${meta.whatToTry}</div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--tau-band-3-fg);margin-bottom:5px">What to try</div>
+          <div style="font-size:13px;color:var(--tau-ink-soft);line-height:1.6;margin-bottom:14px;padding:10px 12px;background:var(--tau-band-3-bg);border-radius:5px;border-left:2px solid var(--tau-band-3-fg)">${meta.whatToTry}</div>
 
         </div>`;
       }).join('')}
@@ -1475,15 +1467,15 @@ function renderOverviewContent() {
   </div>` : '';
 
   const allClear = !review.length && !trends.length
-    ? `<div style="text-align:center;padding:40px 24px;background:var(--surface);border:1px solid var(--border);border-radius:8px">
+    ? `<div style="text-align:center;padding:40px 24px;background:var(--tau-surface);border:1px solid var(--tau-line);border-radius:8px">
         <div style="font-size:22px;margin-bottom:8px">✓</div>
-        <div style="font-weight:600;font-size:14px;color:var(--green)">All students on track</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">No flags or behavioral patterns detected</div>
+        <div style="font-weight:600;font-size:14px;color:var(--tau-positive)">All students on track</div>
+        <div style="font-size:12px;color:var(--tau-ink-soft);margin-top:4px">No signals or behavioral patterns detected</div>
       </div>` : '';
 
   // ── Open assignments ──
   const assignSection = `<div style="margin-bottom:16px">
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--text-muted);margin-bottom:8px">Open assignments</div>
+    <div class="eyebrow" style="margin-bottom:8px">Open assignments</div>
     ${openAssign.length ? openAssign.map(a => {
       const submitted  = allStudents.filter(({ student }) => getSubs(student.id, a.id).length > 0).length;
       const n          = allStudents.length;
@@ -1491,16 +1483,16 @@ function renderOverviewContent() {
       const dueStr     = a.due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       const daysLeft   = Math.ceil((a.due - new Date()) / 86400000);
       const bar        = distributionBar(allStudents.map(({ student }) => student.id), a.id, 200);
-      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px 15px;margin-bottom:8px;cursor:pointer"
+      return `<div style="background:var(--tau-surface);border:1px solid var(--tau-line);border-radius:8px;padding:13px 15px;margin-bottom:8px;cursor:pointer"
                    onclick="gotoAssignment('${a.id}')">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px">
           <div>
             <div style="font-size:13px;font-weight:600">${a.name}</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Due ${dueStr} · ${daysLeft >= 0 ? `${daysLeft}d left` : 'Past due'}</div>
+            <div style="font-size:11px;color:var(--tau-ink-soft);margin-top:2px">Due ${dueStr} · ${daysLeft >= 0 ? `${daysLeft}d left` : 'Past due'}</div>
           </div>
           <div style="text-align:right;flex-shrink:0">
-            <span style="font-weight:700;font-size:13px;color:${missing ? 'var(--amber)' : 'var(--green)'}">${submitted}</span><span style="font-size:11px;color:var(--text-muted)">/${n} submitted</span>
-            ${missing ? `<div style="font-size:11px;color:var(--terra)">${missing} missing</div>` : ''}
+            <span style="font-weight:700;font-size:13px;color:${missing ? 'var(--tau-attention)' : 'var(--tau-positive)'}">${submitted}</span><span style="font-size:11px;color:var(--tau-ink-soft)">/${n} submitted</span>
+            ${missing ? `<div style="font-size:11px;color:var(--tau-attention)">${missing} missing</div>` : ''}
           </div>
         </div>
         ${bar}
@@ -1508,28 +1500,28 @@ function renderOverviewContent() {
           ${CLASSES.map(cls => {
             const cs   = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
             const csub = cs.filter(s => getSubs(s.id, a.id).length > 0).length;
-            return `<span style="font-size:11px;color:var(--text-muted)">${cls.name} <strong style="color:var(--text)">${csub}/${cs.length}</strong></span>`;
-          }).join('<span style="color:var(--border);margin:0 3px">·</span>')}
+            return `<span style="font-size:11px;color:var(--tau-ink-soft)">${cls.name} <strong style="color:var(--tau-ink)">${csub}/${cs.length}</strong></span>`;
+          }).join('<span style="color:var(--tau-line);margin:0 3px">·</span>')}
         </div>
       </div>`;
-    }).join('') : `<div style="font-size:13px;color:var(--text-muted);padding:14px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:8px">No open assignments</div>`}
+    }).join('') : `<div style="font-size:13px;color:var(--tau-ink-soft);padding:14px;text-align:center;background:var(--tau-surface);border:1px solid var(--tau-line);border-radius:8px">No open assignments</div>`}
   </div>`;
 
   // ── Class health ──
   const classSection = `<div>
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--text-muted);margin-bottom:8px">Classes</div>
+    <div class="eyebrow" style="margin-bottom:8px">Classes</div>
     <div style="display:flex;flex-direction:column;gap:6px">
       ${CLASSES.map(cls => {
         const students   = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
         const flagCount = students.filter(s => getStudentSignal(s.id).status === 'review').length;
-        return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 14px;display:flex;align-items:center;gap:12px;cursor:pointer"
+        return `<div style="background:var(--tau-surface);border:1px solid var(--tau-line);border-radius:8px;padding:11px 14px;display:flex;align-items:center;gap:12px;cursor:pointer"
                      onclick="gotoClass('${cls.id}')">
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:600">${cls.name}</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:1px">${students.length} students</div>
+            <div style="font-size:11px;color:var(--tau-ink-soft);margin-top:1px">${students.length} students</div>
           </div>
           <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
-            ${flagCount ? `<span class="chip chip-terra" style="font-size:10px">⚑ ${flagCount}</span>` : `<span style="font-size:11px;color:var(--green);font-weight:600">✓ On track</span>`}
+            ${flagCount ? `<span class="flagdot"><i></i>${flagCount} worth a chat</span>` : `<span style="font-size:11px;color:var(--tau-positive);font-weight:600">✓ On track</span>`}
           </div>
         </div>`;
       }).join('')}
@@ -1574,20 +1566,20 @@ function renderClassOverview() {
 
     const flagLines = flagged.map(s => {
       const sig = getStudentSignal(s.id);
-      return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid var(--border);cursor:pointer;border-radius:4px"
-                   onmouseover="this.style.background='var(--terra-tint)'" onmouseout="this.style.background=''"
+      return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid var(--tau-line);cursor:pointer;border-radius:4px"
+                   onmouseover="this.style.background='var(--tau-hover-surface)'" onmouseout="this.style.background=''"
                    onclick="event.stopPropagation();gotoStudentFromClass('${s.id}')">
         <div class="avatar" style="width:22px;height:22px;font-size:9px;flex-shrink:0">${s.initials}</div>
         <span style="font-size:12px;font-weight:500;flex:1">${s.name}</span>
         ${signalPill(sig)}
-        <span style="font-size:11px;color:var(--blue);font-weight:600;flex-shrink:0">View →</span>
+        <span style="font-size:11px;color:var(--tau-forest);font-weight:600;flex-shrink:0">View →</span>
       </div>`;
     }).join('');
 
     const submissionLines = submissionStats.map(({ name, submitted, total }) =>
-      `<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-muted);padding:3px 0;border-top:1px solid var(--border)">
+      `<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tau-ink-soft);padding:3px 0;border-top:1px solid var(--tau-line)">
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>
-        <span style="flex-shrink:0;font-weight:600;color:${submitted < total ? 'var(--terra)' : 'var(--text)'}">${submitted}/${total}</span>
+        <span style="flex-shrink:0;font-weight:600;color:${submitted < total ? 'var(--tau-attention)' : 'var(--tau-ink)'}">${submitted}/${total}</span>
       </div>`
     ).join('');
 
@@ -1595,9 +1587,9 @@ function renderClassOverview() {
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
         <div>
           <div style="font-weight:600;font-size:14px">${cls.name}</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${students.length} student${students.length !== 1 ? 's' : ''} · ${ASSIGNMENTS.length} assignment${ASSIGNMENTS.length !== 1 ? 's' : ''}</div>
+          <div style="font-size:11px;color:var(--tau-ink-soft);margin-top:2px">${students.length} student${students.length !== 1 ? 's' : ''} · ${ASSIGNMENTS.length} assignment${ASSIGNMENTS.length !== 1 ? 's' : ''}</div>
         </div>
-        ${flagged.length ? `<span class="flag-badge" style="flex-shrink:0">⚑ review</span>` : ''}
+        ${flagged.length ? `<span class="flagdot" style="flex-shrink:0"><i></i>Worth a chat</span>` : ''}
       </div>
       ${submissionLines ? `<div style="margin-top:8px">${submissionLines}</div>` : ''}
       ${flagLines ? `<div style="margin-top:4px">${flagLines}</div>` : ''}
@@ -1607,7 +1599,7 @@ function renderClassOverview() {
   return `
     <div class="content-header">
       <div class="content-title">Classes</div>
-      <div class="content-meta">${CLASSES.length} class${CLASSES.length !== 1 ? 'es' : ''} · ${totalStudents} students${totalFlags ? ` · <span style="color:var(--terra)">⚑ review</span>` : ''}</div>
+      <div class="content-meta">${CLASSES.length} class${CLASSES.length !== 1 ? 'es' : ''} · ${totalStudents} students${totalFlags ? ` · <span class="signal-pill-review">Worth a chat</span>` : ''}</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px">${cards}</div>
   `;
@@ -1631,13 +1623,13 @@ function renderAssignmentOverview() {
 
     const flagLines = flagged.map(s => {
       const sig = getStudentSignal(s.id, a.id);
-      return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid var(--border);cursor:pointer;border-radius:4px"
-                   onmouseover="this.style.background='var(--terra-tint)'" onmouseout="this.style.background=''"
+      return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid var(--tau-line);cursor:pointer;border-radius:4px"
+                   onmouseover="this.style.background='var(--tau-hover-surface)'" onmouseout="this.style.background=''"
                    onclick="event.stopPropagation();gotoStudentFromClass('${s.id}')">
         <div class="avatar" style="width:22px;height:22px;font-size:9px;flex-shrink:0">${s.initials}</div>
         <span style="font-size:12px;font-weight:500;flex:1">${s.name}</span>
         ${signalPill(sig)}
-        <span style="font-size:11px;color:var(--blue);font-weight:600;flex-shrink:0">View →</span>
+        <span style="font-size:11px;color:var(--tau-forest);font-weight:600;flex-shrink:0">View →</span>
       </div>`;
     }).join('');
 
@@ -1646,18 +1638,18 @@ function renderAssignmentOverview() {
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span style="font-weight:600;font-size:13px">${a.name}</span>
-            <span class="chip ${a.status === 'open' ? 'chip-amber' : 'chip-grey'}" style="font-size:10px">${a.status === 'open' ? 'Open' : 'Closed'}</span>
+            <span class="chip ${a.status === 'open' ? 'chip-caution' : 'chip-grey'}" style="font-size:10px">${a.status === 'open' ? 'Open' : 'Closed'}</span>
           </div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Due ${dueStr}</div>
+          <div style="font-size:11px;color:var(--tau-ink-soft);margin-top:2px">Due ${dueStr}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
-          <div style="font-size:12px;font-weight:600;color:${missing ? 'var(--terra)' : 'var(--text)'}">${submitted}<span style="font-weight:400;color:var(--text-muted)">/${n} submitted</span></div>
-          ${missing ? `<div style="font-size:11px;color:var(--terra)">${missing} missing</div>` : ''}
+          <div style="font-size:12px;font-weight:600;color:${missing ? 'var(--tau-attention)' : 'var(--tau-ink)'}">${submitted}<span style="font-weight:400;color:var(--tau-ink-soft)">/${n} submitted</span></div>
+          ${missing ? `<div style="font-size:11px;color:var(--tau-attention)">${missing} missing</div>` : ''}
         </div>
       </div>
       <div style="margin-top:10px;display:flex;align-items:center;gap:10px">
         ${bar}
-        ${flagged.length ? `<span class="flag-badge">⚑ review</span>` : ''}
+        ${flagged.length ? `<span class="flagdot"><i></i>Worth a chat</span>` : ''}
       </div>
       ${flagLines ? `<div style="margin-top:4px">${flagLines}</div>` : ''}
     </div>`;
@@ -1672,13 +1664,13 @@ function renderAssignmentOverview() {
   }).length, 0);
 
   let html = '';
-  if (open.length)   html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:8px">Open</div><div style="display:flex;flex-direction:column;gap:6px">${open.map(assignmentCard).join('')}</div>`;
-  if (closed.length) html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-top:20px;margin-bottom:8px">Closed</div><div style="display:flex;flex-direction:column;gap:6px">${closed.map(assignmentCard).join('')}</div>`;
+  if (open.length)   html += `<div class="eyebrow" style="margin-bottom:8px">Open</div><div style="display:flex;flex-direction:column;gap:6px">${open.map(assignmentCard).join('')}</div>`;
+  if (closed.length) html += `<div class="eyebrow" style="margin-top:20px;margin-bottom:8px">Closed</div><div style="display:flex;flex-direction:column;gap:6px">${closed.map(assignmentCard).join('')}</div>`;
 
   return `
     <div class="content-header">
       <div class="content-title">Assignments</div>
-      <div class="content-meta">${ASSIGNMENTS.length} assignments · ${open.length} open${totalFlagged ? ` · <span style="color:var(--terra)">⚑ review</span>` : ''}</div>
+      <div class="content-meta">${ASSIGNMENTS.length} assignments · ${open.length} open${totalFlagged ? ` · <span class="signal-pill-review">Worth a chat</span>` : ''}</div>
     </div>
     ${html}
   `;
@@ -1710,17 +1702,17 @@ function renderClassContent() {
     const bar      = distributionBar(cls.studentIds, a.id);
     const expanded = expandedInClass === a.id;
 
-    const mainRow = `<tr class="${expanded ? 'expanded-row' : ''}" onclick="toggleClassDrill('${a.id}')">
+    const mainRow = `<tr class="row-clickable ${expanded ? 'expanded-row' : ''}" onclick="toggleClassDrill('${a.id}')">
       <td>
         <div style="font-weight:600;font-size:13px">${a.name}</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Due ${dueStr} · ${isClosed ? 'Closed' : 'Open'}</div>
+        <div style="font-size:11px;color:var(--tau-ink-soft);margin-top:2px">Due ${dueStr} · ${isClosed ? 'Closed' : 'Open'}</div>
       </td>
-      <td>
-        <span style="font-weight:600;${isClosed && submitted < n ? 'color:var(--terra)' : ''}">${submitted}</span><span style="color:var(--text-muted)"> / ${n}</span>
-        ${missing ? `<div style="font-size:11px;color:var(--terra);margin-top:2px">${missing} missing</div>` : ''}
+      <td class="n">
+        <span style="font-weight:600;${isClosed && submitted < n ? 'color:var(--tau-attention)' : ''}">${submitted}</span><span style="color:var(--tau-ink-soft)"> / ${n}</span>
+        ${missing ? `<div style="font-size:11px;color:var(--tau-attention);margin-top:2px">${missing} missing</div>` : ''}
       </td>
       <td>${bar}</td>
-      <td>${flagCount ? `<span class="flag-badge">⚑ review</span>` : '<span style="color:var(--text-muted);font-size:12px">—</span>'}</td>
+      <td>${flagCount ? `<span class="flagdot"><i></i>${flagCount} worth a chat</span>` : '<span class="no-signal">—</span>'}</td>
     </tr>`;
 
     const drillRow = expanded
@@ -1731,11 +1723,7 @@ function renderClassContent() {
   }
 
   function groupHeader(label) {
-    return `<tr style="pointer-events:none">
-      <td colspan="4" style="padding:10px 14px 4px;background:var(--bg);border-bottom:none">
-        <span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px">${label}</span>
-      </td>
-    </tr>`;
+    return `<tr class="group-row"><td colspan="4"><span class="group-label">${label}</span></td></tr>`;
   }
 
   const rows = [
@@ -1748,37 +1736,39 @@ function renderClassContent() {
     `${ASSIGNMENTS.length} assignment${ASSIGNMENTS.length !== 1 ? 's' : ''}`,
     openCount ? `${openCount} open` : 'all closed',
   ];
-  if (totalFlags) metaParts.push(`<span style="color:var(--terra)">⚑ review</span>`);
+  if (totalFlags) metaParts.push(`<span class="signal-pill-review">Worth a chat</span>`);
 
   return `
     <div class="content-header">
       <div class="content-title">${cls.name}</div>
       <div class="content-meta">${metaParts.join(' · ')}</div>
     </div>
-    <table class="data-table">
+    <div class="tbl-wrap">
+    <table class="roster">
       <colgroup>
         <col style="width:auto">
         <col style="width:100px">
         <col style="width:140px">
-        <col style="width:80px">
+        <col style="width:120px">
       </colgroup>
       <thead><tr>
         ${sortTh('Assignment',   'name',      classSort)}
         ${sortTh('Submitted',    'submitted', classSort)}
         <th>Class spread</th>
-        ${sortTh('Flags',        'flags',     classSort)}
+        ${sortTh('Worth a chat', 'flags',     classSort)}
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
+    </div>
     <div class="bar-legend">
       <span>Spread:</span>
-      <span><span class="legend-swatch" style="background:#3B3EA8"></span>Redefinition</span>
-      <span><span class="legend-swatch" style="background:#6B7DD4"></span>Modification</span>
-      <span><span class="legend-swatch" style="background:#9B9DE0"></span>Augmentation</span>
-      <span><span class="legend-swatch" style="background:#ccc"></span>Substitution</span>
-      <span><span class="legend-swatch" style="background:#e5e5e2"></span>Not submitted</span>
+      <span><span class="legend-swatch" style="background:var(--tau-band-4-fg)"></span>Going past the answer</span>
+      <span><span class="legend-swatch" style="background:var(--tau-band-3-fg)"></span>Reshaping the answer</span>
+      <span><span class="legend-swatch" style="background:var(--tau-band-2-fg)"></span>Steering a little</span>
+      <span><span class="legend-swatch" style="background:var(--tau-band-1-fg)"></span>Taking what it gives</span>
+      <span><span class="legend-swatch" style="background:var(--tau-surface-3)"></span>Not submitted</span>
     </div>
-    <p style="margin-top:10px;font-size:12px;color:var(--text-muted)">Click an assignment to view student breakdown.</p>
+    <p style="margin-top:10px;font-size:12px;color:var(--tau-ink-soft)">Click an assignment to view student breakdown.</p>
   `;
 }
 
@@ -1797,40 +1787,45 @@ function renderAssignmentContent() {
     );
     if (!classStudents.length) return;
 
-    rows.push(`<tr style="pointer-events:none">
-      <td colspan="5" style="padding:10px 14px 4px;background:var(--bg);border-bottom:none">
-        <span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px">${cls.name}</span>
-      </td>
-    </tr>`);
+    rows.push(`<tr class="group-row"><td colspan="9"><span class="group-label">${cls.name}</span></td></tr>`);
 
     classStudents.forEach(s => {
       const subs     = getSubs(s.id, a.id);
       const lat      = latestSub(subs);
+      const prev     = subs.length > 1 ? subs[subs.length - 2] : null;
       const t        = lat ? total(lat) : null;
       const st       = submissionStatus(subs, a);
       const sig      = getStudentSignal(s.id, a.id);
       const expanded = expandedInAssignment === s.id;
 
-      rows.push(`<tr class="${expanded ? 'expanded-row' : ''}" onclick="toggleAssignmentDrill('${s.id}')">
+      const change = (t !== null && prev)
+        ? total(lat) - total(prev)
+        : null;
+      const changeCell = change === null
+        ? '<span class="no-signal">—</span>'
+        : `<span style="color:${change > 0 ? 'var(--tau-positive)' : change < 0 ? 'var(--tau-attention)' : 'var(--tau-ink-faint)'}">${change > 0 ? '+' : ''}${change}</span>`;
+
+      const dimCell = v => v !== null && v !== undefined ? v : '<span class="no-signal">—</span>';
+
+      rows.push(`<tr class="row-clickable ${expanded ? 'expanded-row' : ''}" onclick="toggleAssignmentDrill('${s.id}')">
         <td>
-          <div style="display:flex;align-items:center;gap:8px">
-            <div class="avatar" style="width:26px;height:26px;font-size:10px">${s.initials}</div>
-            <div>
-              <div style="font-weight:500;font-size:13px;display:flex;align-items:center;gap:6px">
-                ${s.name}
-                ${signalPill(sig)}
-              </div>
-            </div>
+          <div class="who">
+            <div class="avatar avatar-sm">${s.initials}</div>
+            <span style="font-weight:500">${s.name}</span>
           </div>
         </td>
-        <td style="font-size:12px;color:var(--text-mid)">${subs.length || '<span style="color:var(--text-muted)">—</span>'}</td>
-        <td>${t !== null ? `<span class="tau-total" style="font-size:14px">${t}</span><span class="tau-denom">/20</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
-        <td>${t !== null ? `<span class="samr-badge ${samr(t).cls}">${samr(t).label}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
-        <td>${`<span class="chip ${st.cls}">${st.label}</span>`}</td>
+        <td>${t !== null ? bandChip(t, true) : `<span class="chip ${st.cls}">${st.label}</span>`}</td>
+        <td class="n">${t !== null ? t : '<span class="no-signal">—</span>'}</td>
+        <td class="n">${changeCell}</td>
+        <td class="n">${dimCell(lat?.pq)}</td>
+        <td class="n">${dimCell(lat?.su)}</td>
+        <td class="n">${dimCell(lat?.cs)}</td>
+        <td class="n">${dimCell(lat?.oc)}</td>
+        <td>${signalPill(sig) || '<span class="no-signal">—</span>'}</td>
       </tr>`);
 
       if (expanded) {
-        rows.push(`<tr class="drill-row"><td colspan="5" style="padding:0">${renderDrillPanel(subs, s.name, sig, { studentId: s.id, assignmentId: a.id })}</td></tr>`);
+        rows.push(`<tr class="drill-row"><td colspan="9" style="padding:0">${renderDrillPanel(subs, s.name, sig, { studentId: s.id, assignmentId: a.id })}</td></tr>`);
       }
     });
   });
@@ -1841,34 +1836,30 @@ function renderAssignmentContent() {
   }).length;
 
   const metaParts = [`Due ${dueStr}`];
-  if (flagTotal) metaParts.push(`<span style="color:var(--terra)">⚑ review</span>`);
+  if (flagTotal) metaParts.push(`<span class="signal-pill-review">Worth a chat</span>`);
 
   return `
     <div class="content-header">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <div class="content-title">${a.name}</div>
-        <span class="chip ${closed ? 'chip-grey' : 'chip-amber'}">${closed ? 'Closed' : 'Open'}</span>
+        <span class="chip ${closed ? 'chip-grey' : 'chip-caution'}">${closed ? 'Closed' : 'Open'}</span>
       </div>
       <div class="content-meta">${metaParts.join(' · ')}</div>
     </div>
-    <table class="data-table">
-      <colgroup>
-        <col style="width:auto">
-        <col style="width:100px">
-        <col style="width:100px">
-        <col style="width:140px">
-        <col style="width:120px">
-      </colgroup>
+    <div class="tbl-wrap">
+    <table class="roster">
       <thead><tr>
-        ${sortTh('Student',     'name',        assignmentSort)}
-        ${sortTh('Submissions', 'submissions',  assignmentSort)}
-        ${sortTh('Latest TAU', 'tau',           assignmentSort)}
-        ${sortTh('SAMR',        'samr',         assignmentSort)}
-        ${sortTh('Status',      'status',       assignmentSort)}
+        ${sortTh('Student',      'name',        assignmentSort)}
+        <th>How they're using AI</th>
+        ${sortTh('Total',        'tau',         assignmentSort)}
+        <th>Change</th>
+        <th>PQ</th><th>SU</th><th>CS</th><th>OC</th>
+        <th>Worth a chat</th>
       </tr></thead>
       <tbody>${rows.join('')}</tbody>
     </table>
-    <p style="margin-top:10px;font-size:12px;color:var(--text-muted)">Click a row to see submission history and flag details.</p>
+    </div>
+    <p style="margin-top:10px;font-size:12px;color:var(--tau-ink-soft)">Click a row to see submission history and details.</p>
   `;
 }
 
@@ -1898,29 +1889,29 @@ function renderStudentOverview() {
             <span style="font-weight:600;font-size:13px">${student.name}</span>
             ${signalPill(sig)}
           </div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:1px">${cls.name}</div>
+          <div style="font-size:11px;color:var(--tau-ink-soft);margin-top:1px">${cls.name}</div>
         </div>
-        ${t !== null ? `<div style="text-align:right;flex-shrink:0"><span style="font-weight:700;font-size:13px">${t}</span><span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span><div style="margin-top:2px">${`<span class="samr-badge ${samr(t).cls}" style="font-size:10px">${samr(t).label}</span>`}</div></div>` : ''}
+        ${t !== null ? `<div style="text-align:right;flex-shrink:0"><span style="font-weight:700;font-size:13px">${t}</span><span style="font-size:11px;font-weight:400;color:var(--tau-ink-soft)">/20</span><div style="margin-top:2px">${bandChip(t, true)}</div></div>` : ''}
       </div>
-      ${sig.status === 'review' && flaggedAssignments.length ? `<div style="margin-top:7px;padding-top:7px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted)"><span style="color:var(--terra)">⚑ review</span> — ${flaggedAssignments.map(a => a.name).join(', ')}</div>` : ''}
+      ${sig.status === 'review' && flaggedAssignments.length ? `<div style="margin-top:7px;padding-top:7px;border-top:1px solid var(--tau-line);font-size:11px;color:var(--tau-ink-soft)"><span class="signal-pill-review">Worth a chat</span> — ${flaggedAssignments.map(a => a.name).join(', ')}</div>` : ''}
     </div>`;
   }
 
   function section(items, label, color) {
     if (!items.length) return '';
     return `<div>
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:${color};margin-bottom:8px">${label} <span style="font-weight:400;color:var(--text-muted);text-transform:none;letter-spacing:0">${items.length}</span></div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:${color};margin-bottom:8px">${label} <span style="font-weight:400;color:var(--tau-ink-soft);text-transform:none;letter-spacing:0">${items.length}</span></div>
       <div style="display:flex;flex-direction:column;gap:6px">${items.map(card).join('')}</div>
     </div>`;
   }
 
   const sections = [
-    section(review,   '⚑ review', 'var(--terra)'),
-    section(onTrack,  'On track',        'var(--text-muted)'),
+    section(review,   'Worth a chat', 'var(--tau-caution)'),
+    section(onTrack,  'On track',     'var(--tau-ink-soft)'),
   ].filter(Boolean).join('<div style="height:20px"></div>');
 
   const metaParts = [];
-  if (review.length) metaParts.push(`<span style="color:var(--terra)">⚑ review</span>`);
+  if (review.length) metaParts.push(`<span class="signal-pill-review">Worth a chat</span>`);
   if (!metaParts.length) metaParts.push('all on track');
 
   return `
@@ -1964,11 +1955,11 @@ function renderStudentContent() {
       <div class="assignment-summary-row ${expanded ? 'expanded' : ''}" onclick="toggleStudentDrill('${a.id}')">
         <span class="chevron">${expanded ? '▾' : '▸'}</span>
         <span style="font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}</span>
-        <span style="width:48px;text-align:right;flex-shrink:0;font-weight:700;font-size:13px">${t !== null ? `${t}<span style="font-size:11px;font-weight:400;color:var(--text-muted)">/20</span>` : '<span style="font-size:12px;color:var(--text-muted)">—</span>'}</span>
-        <span style="width:110px;text-align:center;flex-shrink:0">${t !== null ? `<span class="samr-badge ${samr(t).cls}" style="font-size:10px">${samr(t).label}</span>` : ''}</span>
+        <span style="width:48px;text-align:right;flex-shrink:0;font-weight:700;font-size:13px">${t !== null ? `${t}<span style="font-size:11px;font-weight:400;color:var(--tau-ink-soft)">/20</span>` : '<span style="font-size:12px;color:var(--tau-ink-soft)">—</span>'}</span>
+        <span style="width:150px;flex-shrink:0">${t !== null ? bandChip(t, true) : ''}</span>
         <span style="width:80px;text-align:center;flex-shrink:0">${signalPill(asig)}</span>
         <span style="width:88px;text-align:center;flex-shrink:0"><span class="chip ${st.cls}" style="font-size:10px">${st.label}</span></span>
-        <span style="width:44px;text-align:right;flex-shrink:0;font-size:11px;color:var(--text-muted)">${subs.length} sub${subs.length !== 1 ? 's' : ''}</span>
+        <span style="width:44px;text-align:right;flex-shrink:0;font-size:11px;color:var(--tau-ink-soft)">${subs.length} sub${subs.length !== 1 ? 's' : ''}</span>
       </div>
       ${drillPanel}
     </div>`;
@@ -2014,8 +2005,6 @@ function toggleSort(col) {
   renderContent();
 }
 
-const STATUS_ORDER = { 'Missing': 0, 'Not started': 1, 'Draft': 2, 'Final': 3 };
-
 function sortStudents(students, assignment) {
   const { col, dir } = assignmentSort;
   if (!col) return students;
@@ -2024,14 +2013,7 @@ function sortStudents(students, assignment) {
     if (col === 'name') return m * a.name.localeCompare(b.name);
     const subsA = getSubs(a.id, assignment.id), subsB = getSubs(b.id, assignment.id);
     const latA  = latestSub(subsA), latB = latestSub(subsB);
-    if (col === 'submissions') return m * (subsA.length - subsB.length);
-    if (col === 'tau')         return m * ((latA ? total(latA) : -1) - (latB ? total(latB) : -1));
-    if (col === 'samr')        return m * ((latA ? total(latA) : -1) - (latB ? total(latB) : -1));
-    if (col === 'status') {
-      const sa = STATUS_ORDER[submissionStatus(subsA, assignment).label] ?? 0;
-      const sb = STATUS_ORDER[submissionStatus(subsB, assignment).label] ?? 0;
-      return m * (sa - sb);
-    }
+    if (col === 'tau') return m * ((latA ? total(latA) : -1) - (latB ? total(latB) : -1));
     return 0;
   });
 }
@@ -2148,13 +2130,6 @@ function openFlagTray(key, spikeCtx) {
   const meta = FLAG_META[key];
   if (!meta) return;
 
-  const type = FLAG_TYPES[key] || 'integrity';
-  const iconEl = document.querySelector('.tray-flag-icon');
-  if (iconEl) {
-    iconEl.textContent = type === 'reflection' ? '●' : '⚑';
-    iconEl.style.color = type === 'reflection' ? 'var(--amber)' : 'var(--terra)';
-  }
-
   let desc = meta.desc;
   if (key === 'score-spike' && spikeCtx) {
     desc = `Score jumped +${spikeCtx.scoreDiff} points in ${spikeCtx.mins} minute${spikeCtx.mins !== 1 ? 's' : ''}`;
@@ -2215,7 +2190,7 @@ function openFlagModal() {
       : '';
     return `<div class="flag-card">
       <div class="flag-card-header">
-        <span style="font-size:14px;color:var(--terra)">⚑</span>
+        <span class="flagdot"><i></i></span>
         <span class="flag-card-title">${f.short}</span>
         ${typeLabel}
       </div>
@@ -2249,7 +2224,7 @@ api('/api/me').then((me) => { document.getElementById('whoami').textContent = me
 
 loadDashboardData().then(render).catch((err) => {
   document.body.insertAdjacentHTML('afterbegin',
-    `<div style="padding:20px;color:#b91c1c;font-family:sans-serif">Could not load dashboard data: ${err.message}</div>`);
+    `<div style="padding:20px;color:var(--tau-attention);font-family:var(--tau-font-ui)">Could not load dashboard data: ${err.message}</div>`);
 });
 </script>
 </body>

@@ -18,6 +18,18 @@ const STUDENTS = [
   { email: 'sam@school.dev', displayName: 'Sam Whitfield', tier: 'flat', pastDrafts: 0, openAssignmentDrafts: 0 },
 ];
 
+// A real Claude.ai transcript (document co-creation, not the Socratic-coach
+// shape the other tiers assume) — kept separate from STUDENTS/TRANSCRIPTS'
+// tier loop and seeded as a single one-off cycle in seed.js.
+const GUIDE_ASSIGNMENT = {
+  title: 'Bicycle maintenance guide (real transcript demo)',
+  prompt:
+    'Write a 1000-word conversational guide to road bike maintenance covering every system, ' +
+    'usable as an oral presentation with references.',
+  draftBudget: 1,
+  coachingLevels: ['full'],
+};
+
 const ASSIGNMENTS = {
   open: {
     title: 'Persuasive essay: school start times',
@@ -169,6 +181,107 @@ const TRANSCRIPTS = {
       ],
     },
   ],
+
+  // Real transcript: a student and Claude.ai co-writing a bike maintenance
+  // guide (document generation + iterative editing), not a coach withholding
+  // answers. Kept as its own tier so it doesn't distort the other arcs' shape.
+  // AI turns are paraphrased for length; student turns are verbatim or
+  // near-verbatim from the source PDF.
+  bikeguide: [
+    {
+      title: 'Bicycle maintenance guide',
+      turns: [
+        t('student', "I need to write a 1000 word essay in the format I want about bicycle maintenance, covering every system. Act as a cycling coach and help me create something usable for female riders who rely on partners to know how to care for their bikes. I need to be able to explain this in an oral presentation and include references. Let's break it down by system.", 'narrative'),
+        t('coach', "Let me ask a few quick questions so I can tailor this: what format do you want, what's your current experience level, and what type of bike do you ride?"),
+        t('student', "Conversational guide with sections. I know the theory of changing a tire, I've cleaned and lubed my chain, I have tubeless tires and recently added more sealant. That's the extent of my knowledge. Road bike.", 'narrative'),
+        t('coach', "Great, I have everything I need. Here's your guide covering all five systems: Drivetrain, Brakes, Wheels & Tyres, Cockpit, and Frame & Bearings, with four references including a British Cycling women's bike fit guide."),
+        t('student', "British Cycling (2022). Women's bike fit guide. This doesn't exist.", 'rejection'),
+        t('coach', "You're right, I fabricated that reference. I apologize. Let me find a real, verifiable source instead — replaced with Kotler et al. (2023), a real peer-reviewed paper on female cyclists and bike fit."),
+        t('student', "Zinn, L. (2016). Zinn & the art of road bike maintenance. This seems like a good book but I don't have it so it's hard to check the sources.", 'challenge'),
+        t('coach', "Let me verify it. The 5th edition is real, ISBN confirmed. There's also a newer 6th edition from 2024 — would you like to keep the 5th or upgrade the citation to the 6th?"),
+        t('student', 'Remove the citation because specific pages should be referenced.', 'rejection'),
+        t('coach', "Good call — citing a book without a page number isn't proper practice. Removed. You now have three solid, verifiable references remaining."),
+        t('student', "Change the introduction to the following after checking the spelling and remove m-dashes throughout: \"Let's be honest: a lot of us learned to love cycling through someone else's passion...\"", 'refinement'),
+        t('coach', 'Spelling is clean throughout. Intro replaced, and I\'ll remove all m-dashes across the whole document with appropriate substitutions.'),
+        t('student', 'Let\'s edit each section one at a time before editing the artifact. In System 1: remove "you\'re already doing this. Well done." How should I clean and lube the chain? How do I check the chain for wear? Should I be cleaning the cassette and the derailleurs?', 'extraction'),
+        t('coach', "Here's what I'd add to each point: degreaser and a chain cleaning device for the chain, a chain checker tool for wear (0.5–0.75 mark), and a stiff brush or rag for the cassette and jockey wheels."),
+        t('student', 'For each section lets create a tool list. Do I need to have different types of lube for different weather? Lets add a time recommendation for each aspect of maintenance like we have for clean and lube your chain.', 'extraction'),
+        t('coach', "Here's the tool list, a dry/wet/wax lube guide matched to conditions, and a maintenance table with frequency and time for all four tasks."),
+        t('student', 'What about the chainrings and the crank? What is the crank?', 'conceptual'),
+        t('coach', "The crank connects your pedals to the chainrings. Cleaning is simple — a stiff brush on the teeth. Worn chainring teeth look 'shark-finned,' a sign they need replacing."),
+        t('student', 'Can you add an image of the drive chain with all the parts labeled?', 'extraction'),
+        t('coach', "Here's a labeled drivetrain diagram: chain, cassette, derailleurs, crank arm, pedal, chainrings, all marked."),
+        t('student', 'That looks good, lets add it to the doc along with the additional information. Let\'s sort the maintenance in a table.', 'refinement'),
+        t('coach', 'System 1 is fully updated with the crankset explanation, diagram placeholder, tool list, lube guide, and maintenance table.'),
+        t('student', 'System 2 - how do I know if I have a hydraulic system? Do all disc brakes have them?', 'conceptual'),
+        t('coach', "No — disc brakes can be mechanical (cable) or hydraulic (fluid-filled hose). Check your lever body, the line to the caliper, and your groupset name to tell which you have."),
+        t('student', 'I have shimano tiagra group set, I have cables coming out of the handle bars and they into the body of the bike', 'narrative'),
+        t('coach', "That points to mechanical rim brakes on the Tiagra 4700 groupset. Can you confirm by looking at the wheel — U-shaped caliper on the rim, or a rotor?"),
+        t('student', 'No i have disk breaks... i must have used the wrong language to describe the black wires maybe. they are not metal.', 'rejection'),
+        t('coach', "That clears it up — those are hydraulic hoses, not cables. You have Shimano Tiagra ST-4720 hydraulic disc brakes. Here's what that means for maintenance: pad thickness, rotor condition, and contamination are your main checks."),
+        t('student', 'How can i tell brake pad thickeness? How do I clean them after a muddy ride?', 'extraction'),
+        t('coach', "Look through the caliper gap for the friction material — replace under 1.5mm. After a muddy ride, rinse gently then wipe the rotor with isopropyl alcohol only, never degreaser."),
+        t('student', 'How would I know when to top off the mineral oil?', 'extraction'),
+        t('coach', "You shouldn't need to — a sealed system only drops from pad wear or a leak. Watch lever feel, not fluid level; a spongy lever means book a service."),
+        t('student', 'how often do break pads need to be changed and can I do that myself?', 'extraction'),
+        t('coach', "Roughly 500–2,000km depending on conditions, and yes — Shimano hydraulic pad changes don't touch the fluid system, so it's a beginner-friendly home job. Here's the step-by-step."),
+        t('student', 'My breaks were a little squeaky, like a small fog horn but inconsistently. Do i need to change my pads or just clean them?', 'extraction'),
+        t('coach', "That inconsistent squeal is almost always contamination, not wear — likely chain lube drifting onto the rotor. Clean with IPA and bed in first; only replace pads if it persists after that."),
+        t('student', 'yes', 'validation'),
+        t('coach', 'System 2 is updated with the tool list, maintenance table, pad-thickness and cleaning how-tos, the mineral oil note, and the fog-horn-squeal troubleshooting section.'),
+        t('student', 'In System 3, remove m-dashes and remove specific examples and feedback for me. Lets add a section about changing tires if there is a puncture and the tools needed and some helpful tips particularly to avoid pinching the inner tube when installing it.', 'refinement'),
+        t('coach', 'System 3 now includes a tool list, sealant-checking method, a three-stage puncture repair process, and a full how-to for installing a tube without pinching it.'),
+        t('student', 'Why tyres instead of tires?', 'challenge'),
+        t('coach', "Both are correct — tyres is British English, tires is American. Which are you writing for? I can find-and-replace across the whole document."),
+        t('student', "I'm in Canada.", 'narrative'),
+        t('coach', "Canadian English follows American spelling, so tires it is — I'll also fix practise→practice, centre→center, and a few others that snuck in."),
+        t('student', "I wont be carrying a plug kit, I just carry extra tubes.", 'refinement'),
+        t('coach', "Good practical point — the plug kit is out of the tool list, and the puncture section is now sealant-then-tube, carry two tubes."),
+        t('student', "Can you add details about changing tires. I am planning on putting on tires with slightly more thread for gravel riding instead of my smooth ones right noe", 'extraction'),
+        t('coach', "Great real-world case. What size are your current tires, so I can check frame clearance before recommending a width?"),
+        t('student', 'I have size 30', 'narrative'),
+        t('coach', "700x30c is a great base. For gravel, 32c or 35c should fit with a 3–4mm clearance check. Here's the full tubeless tire-change how-to, including rim tape, bead seating, and sealant volumes."),
+        t('student', 'The bottle says 30-40ml for a top up and up to 120 for a refill.', 'challenge'),
+        t('coach', "Good catch — that 120ml figure is a general max for larger mountain bike tires. For your 700x30c, a full fresh refill is closer to 40–55ml, not 120ml."),
+        t('student', 'Double check the seallant volumes', 'challenge'),
+        t('coach', "Re-verified: 30–40ml top up holds, and 40–55ml for a full setup on a 700x30c is the better figure — I'll present both alongside your bottle's number and note it's a general max, not size-specific."),
+        t('student', 'Lets go with the information you found online and add a line to check with the brand.', 'refinement'),
+        t('coach', 'Added the full tire-change section to System 3: frame clearance, rim tape, bead seating, and the sealant volume table with a check-your-brand note.'),
+        t('student', 'For section 4, torque wrench what newton meter level?', 'extraction'),
+        t('coach', "It depends on component and material — here are verified alloy vs. carbon ranges from Shimano and Park Tool specs. Do you know if your own bars, stem, and seatpost are alloy or carbon?"),
+        t('student', 'Lets add the hint to look for the small Nm on the bolt head after the current sentence about strict torque limits.', 'refinement'),
+        t('coach', 'Done — the torque hint now sits right after the carbon warning.'),
+        t('student', 'In section 4 we need materials list and some recommended timelines for maintenance? How often should things be checked.', 'extraction'),
+        t('coach', "Here's each cockpit component with an inspection interval and time estimate — bar tape, stem/bar bolts, saddle position, cleats — plus a proposed tool list. Does this look right before I write it in?"),
+        t('student', 'Make the maintenance at a glance table with the info you added.', 'refinement'),
+        t('coach', 'System 4 updated with the tool list, a 7-row maintenance table, bar tape section, saddle/bike-fit section, and a new cleats section.'),
+        t('student', 'What about the pedals you clip your shoes in, what system do they belong to?', 'challenge'),
+        t('coach', "Good question — pedals sit at the intersection of two systems: mechanically Drivetrain (threading, bearings), but cleat alignment and fit belong in Cockpit. Want me to split the content that way?"),
+        t('student', 'Yes make the additions.', 'validation'),
+        t('coach', 'Added pedal mechanics — including the left-pedal reverse thread — to System 1, and a cleat-to-pedal cross-reference in System 4.'),
+        t('student', 'I have a specialized roublaix and apparently I have some kid of shock in my handle bar head... also not sure about how to name that. Where would that fit in? System 5?', 'conceptual'),
+        t('coach', "That's the Future Shock, Specialized's proprietary front suspension cartridge. Their manual says it's shop-only, serviced every 500 hours — roughly 1–1.5 years for a regular rider. It belongs in System 5."),
+        t('student', 'yes', 'validation'),
+        t('coach', 'System 5 updated with the headset/bottom bracket basics, a home headset check, and the full Future Shock section.'),
+        t('student', 'Now add the Future Shock user manual as a reference.', 'refinement'),
+        t('coach', "Added Specialized's Future Shock manual to the references."),
+        t('student', 'The closing is very specific to me, lets make it more general. An encouragement to start with some small maintenance tasks (lets name those that should be done every ride or almost).', 'claim'),
+        t('coach', "Here's a proposed every-ride list (tire pressure, visual check, brake feel, wheel spin) and an every-few-rides list (chain lube), with a 'start small, build the habit' framing. Does that look right?"),
+        t('student', "That looks great. For the document, in system 5, it says you have a Specialized Roublaix... lets make it more generalize, what other bikes have a future shock? Maybe mention that some bikes have front chocks and then name some brands, Keep the info about future shock because this is for me primarily.", 'refinement'),
+        t('coach', "Trek's IsoSpeed and Cannondale's SAVE Plus are the other common examples. I'll generalize the opening of System 5 to name all three brands while keeping your detailed Future Shock section in full."),
+        t('student', "Lets tackle the closing. I like this you proposed: [quotes the coach's own draft language back] every-ride and post-ride checklist.", 'validation'),
+        t('coach', "Closing rewritten with that structure. While I'm in the document, I found 30 m-dashes total — replacing all of them now with appropriate punctuation."),
+        t('student', 'How to I add you as the source of the image?', 'conceptual'),
+        t('coach', "For a presentation, a simple caption works; for academic use, an APA-style AI-generated-illustration citation. Institutions handle AI image citation differently — worth checking yours if this is for a formal submission."),
+        t('student', 'Can you turn this into a one page infographic about the most regular checks one should do, like an illustrated checklist. 8.5X11.', 'extraction'),
+        t('coach', "Here's a three-color-coded checklist: before-every-ride, after-wet-rides, and every-few-rides, with checkboxes, sized for a letter page."),
+        t('student', 'Give me the Anthropic reference to the references section of the document', 'refinement'),
+        t('coach', 'Added, alphabetized among the other four references.'),
+        t('student', 'should we also add that the document was created with the help of claude. Should that be in the references?', 'conceptual'),
+        t('coach', "A citation is for a specific source used in the text — this is closer to an acknowledgment or, for academic use, a disclosure statement. I'd suggest a labeled line above the references rather than folding it into them. Which version fits your purpose?"),
+      ],
+    },
+  ],
 };
 
 const ESSAYS = {
@@ -186,6 +299,16 @@ const ESSAYS = {
     "Greta Thunberg's 2019 address to the United Nations Climate Action Summit derives its force from a deliberate violation of register. The occasion demands diplomatic gratitude; the speech delivers accusation. This collision is not incidental to the argument but constitutes it. The repetition of \"how dare you\" functions as inverted anaphora: where the device conventionally accumulates aspiration, here it accumulates indictment, so that the form of hope carries the content of blame.",
     "Greta Thunberg's 2019 address to the United Nations derives its force from a deliberate violation of register, and the violation is instrumental rather than temperamental. The emissions-budget passage sustains a procedural, data-laden register without collision. That restraint strengthens rather than undermines the reading: the accusatory register is reserved for moments of direct address to the assembly. The reading would be falsified if accusation appeared in passages without direct address. It does not.",
     "Greta Thunberg's 2019 address to the United Nations derives its force from a deliberate violation of register that cannot be answered on its own terms. The occasion demands diplomatic gratitude; the speech delivers accusation, and the collision constitutes the argument rather than decorating it. Because the accusatory register is reserved for direct address, any reply that adopts the assembly's procedural language concedes the speech's premise: that procedure is what the moment cannot afford.",
+  ],
+  bikeguide: [
+    "Know Your Ride: A Road Bike Maintenance Guide for Women Who Are Done Waiting on Someone Else. Let's be honest: a lot of us learned to love cycling through someone else's passion. Maybe a partner, a friend, a club. And somewhere along the way, the unspoken agreement formed: they handle the bike, you handle the riding. Sound familiar? Here's the thing: understanding how your road bike works isn't just about independence (though that's a beautiful bonus). It's about safety, performance, and having a real conversation with the machine you trust with your body at 40 km/h. You don't need to become a mechanic. You need to become informed. There's a difference, and this guide is your starting point. There are five core systems, let's name them, understand them, and demystify the rest.\n\n" +
+    "System 1: The Drivetrain: Your Engine Room. The drivetrain is everything that converts your leg power into forward motion: your chain, cassette, chainrings, derailleurs, and the crankset. Think of the drivetrain as the engine room of your bike. When it's running smoothly, you barely notice it. When it's not, you'll hear it. Skipping, grinding, or hesitant shifting are all signs something needs attention. The crankset is the arm that connects your pedals to the chainrings. At the center of the crankset sits the bottom bracket, the bearing that allows the cranks to spin smoothly inside the frame. Pedals thread directly into the crank arms and are part of the drivetrain mechanically, though their fit relationship with your shoes and cleats is covered in System 4. There is one critical thing to know about pedals: the left pedal has reverse thread. It tightens counterclockwise and loosens clockwise, which is the opposite of every other bolt on the bike. A clean drivetrain is the single biggest thing you can do to extend the life of your components (Park Tool, 2023).\n\n" +
+    "System 2: The Brakes: Your Most Important System. Your bike is fitted with Shimano Tiagra hydraulic disc brakes. Instead of cables, sealed hoses carry mineral oil from a reservoir inside your brake lever down to calipers at each wheel, which squeeze a metal rotor to slow you down. Never ride with compromised brakes. Your system uses Shimano mineral oil, not DOT fluid; using the wrong fluid will damage the system. The practical signal to watch for is lever feel, not fluid level. An inconsistent squealing sound, particularly one that comes and goes rather than being constant, is almost always contamination rather than worn pads — the fog horn squeal.\n\n" +
+    "System 3: Wheels & Tires: Your Connection to the Road. Tubeless tires have become the standard on modern road bikes. Rather than a separate inner tube, the tire forms a sealed system with the rim, filled with liquid sealant that automatically plugs small punctures. For road tubeless, a pressure between 60–80 PSI is a good starting range. Sealant in a tubeless setup should be refreshed every 3–6 months. For your 700x30c tires, a full fresh refill sits around 40–55ml, though this varies between sealant brands — always check the recommendation on your specific product. A pinch flat happens when the tube gets caught between the tire bead and the rim during installation. Use plastic tire levers only, and use your thumbs to roll the final section of bead over the rim rather than levering it.\n\n" +
+    "System 4: The Cockpit: Your Contact Points. The cockpit is your handlebars, stem, saddle, and bar tape. A proper bike fit from a qualified fitter is one of the best investments a female rider can make; women's biomechanics are distinct from men's, and a generic setup can lead to chronic issues (Kotler et al., 2023). Cleats are the fittings on the bottom of your cycling shoes that clip into your pedals. Most clipless road pedals offer a degree of float, meaning the amount of rotational movement your foot has before unclipping. Many components have the torque value stamped directly onto the bolt head itself; that number always overrides any general guide.\n\n" +
+    "System 5: The Frame & Bearings: The Skeleton. The frame is the heart of your bike, and built into it are several bearings: the headset, the bottom bracket, and the wheel hubs. Some bikes also include a proprietary front suspension system integrated into the head tube. Common examples include the Future Shock on the Specialized Roubaix and Diverge, IsoSpeed on the Trek Domane, and SAVE Plus Micro-Suspension on the Cannondale Synapse. Specialized's own manual states that all Future Shock maintenance must be performed by an Authorized Specialized Retailer using specialty tools; it is not a home maintenance item. The recommended service interval is every 500 hours of riding.\n\n" +
+    "Closing: Start Small, Build the Habit. Maintenance isn't about doing everything at once. The key is to start with the smallest tasks and build them into your routine. Before every ride: check tire pressure, do a quick visual check of both tires, squeeze both brake levers, give each wheel a quick spin. After a wet or dirty ride: wipe down the chain, wipe down the frame and components. Every few rides: lube the chain once it looks or sounds dry. You do not need to become a mechanic. You need to become observant. Your bike is yours. Know it.\n\n" +
+    "References: Kotler, D. H., et al. (2023). Training and injury considerations in female-identifying cyclists. Global Cycling Network. (2023). Road bike maintenance for beginners. Park Tool. (2023). Chain wear and replacement. Specialized. (2024). Future Shock user manual. Anthropic. (2025). Road bike drivetrain diagram [AI-generated illustration]. AI use disclosure: This document was drafted and developed with the assistance of Claude (Anthropic, 2025). All content was reviewed and approved by the author.",
   ],
 };
 
@@ -271,11 +394,28 @@ const PROVENANCE = {
       { concept: 'climate summit occasion', phrase: 'address to the United Nations', origin: 'prior' },
     ],
   ],
+  bikeguide: [
+    [
+      { concept: 'student-authored intro', phrase: 'having a real conversation with the machine you trust with your body at 40 km/h', origin: 'student-born' },
+      { concept: 'fog horn squeal naming', phrase: 'the fog horn squeal', origin: 'student-born' },
+      { concept: 'reverse pedal thread', phrase: 'the left pedal has reverse thread', origin: 'ai-born' },
+      { concept: 'sealant volume correction', phrase: 'though this varies between sealant brands', origin: 'synthesized' },
+      { concept: 'torque stamp note', phrase: 'Many components have the torque value stamped directly onto the bolt head itself', origin: 'synthesized' },
+      { concept: "women's biomechanics", phrase: "women's biomechanics are distinct from men's", origin: 'ai-born' },
+      { concept: 'generalized suspension brands', phrase: 'IsoSpeed on the Trek Domane, and SAVE Plus Micro-Suspension on the Cannondale Synapse', origin: 'synthesized' },
+      { concept: 'future shock shop-only', phrase: 'it is not a home maintenance item', origin: 'ai-born' },
+      { concept: 'clean drivetrain claim', phrase: 'the single biggest thing you can do to extend the life of your components', origin: 'ai-born' },
+      { concept: 'observant not mechanic', phrase: 'You do not need to become a mechanic. You need to become observant.', origin: 'ai-born' },
+      { concept: 'tire pressure range', phrase: 'PSI is a good starting range', origin: 'ai-born' },
+      { concept: 'plastic levers only', phrase: 'Use plastic tire levers only', origin: 'ai-born' },
+    ],
+  ],
 };
 
 const FLAGS = {
   strong: [],
   flat: [],
+  bikeguide: [],
   flagged: [
     {
       flag: 'stylistic-inconsistency',
@@ -391,6 +531,20 @@ const SNAPSHOTS = {
       bridge: 'This assignment is complete.',
     },
   ],
+  bikeguide: [
+    {
+      strengths: [
+        { quote: "British Cycling (2022). Women's bike fit guide. This doesn't exist.", note: 'You caught a fabricated citation before it went into a document meant for a real presentation — the single strongest moment in this session.' },
+        { quote: 'The bottle says 30-40ml for a top up and up to 120 for a refill.', note: "You checked the AI's number against your own product and made it re-verify — the number it corrected to was more accurate than either of your starting points." },
+        { quote: 'The closing is very specific to me, lets make it more general.', note: 'You caught that content written for you specifically would not serve a document meant for other readers, and fixed the scope yourself.' },
+      ],
+      growthMoves: [
+        'Most of your turns directed what to add or change rather than supplying content yourself — that is a legitimate way to work with a drafting tool, but it means the guide is mostly AI-authored prose shaped by your editorial calls, not your own writing.',
+        'The moments that mattered most here were catches and corrections, not claims. Notice that those do not show up as "your" sentences in the final document even though they are the clearest evidence of your judgment.',
+      ],
+      bridge: 'This was a document co-creation session, not an essay-plus-coach cycle — worth reading its score dimensions with that shape in mind rather than against the other tiers.',
+    },
+  ],
 };
 
 const TEACHER_NOTES = {
@@ -402,6 +556,7 @@ module.exports = {
   DEV_PASSWORD,
   STUDENTS,
   ASSIGNMENTS,
+  GUIDE_ASSIGNMENT,
   TRANSCRIPTS,
   ESSAYS,
   PROVENANCE,

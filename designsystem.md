@@ -5,20 +5,24 @@ Living document for the design layer of `app/`. Companion to `built-in-chat-plan
 **Read this before any design or CSS work in `app/`.**
 
 **Status as of 2026-07-20.** Tokens linked and live on all five pages. `style.css`,
-`teacher.html`, and now `report.css` in full are migrated onto `--tau-*` — zero hardcoded hexes
-(outside three intentionally-literal value ramps, see *Known debt*), zero legacy names, every
-`var()` resolves. Theme toggle ships on every page for both roles, light by default. **The
-component layer exists** — `components.css` is 16 → 60+ classes covering all eight duplicated
-concepts (Step 3c). **`report.html` is fully rebuilt on the layer (Step 3e complete)**: top half
-(hero, dimensions, snapshot, provenance, panels — session 4) and now the four tab internals
-(agency chart, My Session, Idea Origins, Pattern Guide — session 5). `dashboard.html` remains
-deferred and is the only page left on the bridge.
+`teacher.html`, `report.css`, and now **`dashboard.html`** are migrated onto `--tau-*` — zero
+hardcoded hexes (outside three intentionally-literal value ramps, see *Known debt*), zero legacy
+names, every `var()` resolves, on every page. Theme toggle ships on every page for both roles,
+light by default. **The component layer exists** — `components.css` is 16 → 60+ classes covering
+all eight duplicated concepts (Step 3c). **`report.html` is fully rebuilt on the layer (Step 3e
+complete)**: top half (session 4) and the four tab internals (session 5). **`dashboard.html` is
+now off the bridge (session 6)** — its inline `<style>` block is retokenised, the two main tables
+are rebuilt onto a new `table.roster` component modelled on the v8 artifact's teacher roster
+screen, and a real voice-rule violation (flags rendering in attention/red) is fixed. **The bridge
+in `tokens.css` §4 has zero pages left depending on it for ground/ink/border** — what remains is
+the `--label-*`/`--samr-*` alias group, tracked in *Known debt*.
 
 **If you read one thing before touching this file, read the session 5 log entry.** Roughly a
 third of `report.css` and `report-render.js`'s "debt" turned out to be dead code — two entire
 duplicate rendering paths, a sidebar with no button that opens it, and a chart legend divider
 class with zero CSS rules ever written for it. Retokenising without verifying what's actually
-called would have carried all of it forward under new variable names.
+called would have carried all of it forward under new variable names. Session 6 found the same
+shape again in `dashboard.html` (`sparklineSVG()`, zero callers) — see its log entry.
 
 If you are picking this up cold, read *Files and load order* and *Verifying visually* before
 touching anything. The second one is not optional — this migration's two real bugs were both
@@ -53,9 +57,10 @@ theme.js         blocking <head> script, sets data-theme before first paint
 
 **`report.html`'s inline `<style>` block is gone** — deleted in the 3e session, its rules moved
 into `report.css` under *Report chrome*. It is where the dark-mode `.snapshot-growth` bug lived,
-precisely because nobody looks in a second stylesheet hidden in the markup. **One inline block
-remains, in `dashboard.html`**, and any audit that greps `*.css` still misses it. When dashboard
-is rebuilt, delete that one too and this hazard is closed for good.
+precisely because nobody looks in a second stylesheet hidden in the markup. **`dashboard.html`
+keeps its inline block by design** — see the table above — but it is retokenised as of session 6:
+zero legacy names, zero hex, every `var()` resolving. Any audit that greps `*.css` still misses
+it; that is expected for this one page, not a hazard to close.
 
 **The order in `<head>` is load-bearing, not cosmetic:**
 
@@ -443,13 +448,18 @@ lines and ~half the total cost on its own, and it is the teacher deep-dive rathe
 students sit inside. Revisit after the student side is on one vocabulary; retiring it in favour
 of a view built from the artifact's roster screen is a live option.
 
+**Revisited, session 6:** rebuilt in place rather than retired — the product owner's call was
+that the existing IA (Overview/Class/Assignment/Student tabs, drill panels, side tray) is worth
+keeping, but the two main tables should adopt the visual cleanliness of the artifact's roster
+screen. See the session 6 log entry.
+
 | | Step | Nature |
 |---|---|---|
 | 3a | Derive the inventory — every component, tagged artifact / derive / merge / dead | analysis — **done** |
 | 3b | Delete the dead. Strict re-verification first (see the warning in the inventory) | subtraction — **done** (`report.css` 1092 → 662) |
 | 3c | Build `components.css` as the real layer, tokens only, both themes | the rebuild — **done** |
 | 3d | Reduce page sheets to layout only; retire bridge aliases as consumers drop | subtraction |
-| 3e | Rebuild markup page by page onto the layer, screenshot-verified per page | one page per session — **`report.html` done, sessions 4–5** |
+| 3e | Rebuild markup page by page onto the layer, screenshot-verified per page | one page per session — **`report.html` done (sessions 4–5), `dashboard.html` done (session 6) — all pages complete** |
 
 **3d and 3e are one job per page, not two passes.** They were written as separate steps, but a
 page sheet can only shrink to layout once its markup consumes the layer — the deletion is the
@@ -579,11 +589,15 @@ the same line in the band and origin blocks, and a naive `^\s*--` reports 21 fal
   pairing already established for the session verdict chip.
 - **`report.css` is fully on `--tau-*`** as of session 5 — 0 legacy `var()` names, every
   remaining hex is inside the three spots above. `components.css` is the third file but not a
-  third vocabulary — it is `--tau-*` only, by rule. `dashboard.html` is the one file left on
-  the bridge.
-- **`tokens.css` §4 is scaffolding.** 43 aliases remain, all held up by `dashboard.html` now
-  that `report.css` is clear. Six retired so far (`--panel`, `--accent-soft`, `--accent-green`,
-  `--auditor`, `--auditor-soft`, `--danger`). Delete each when its legacy name hits zero:
+  third vocabulary — it is `--tau-*` only, by rule. **`dashboard.html` joined it in session 6** —
+  0 legacy names, 0 hex, every `var()` resolving. No page is left depending on the bridge for
+  ground/ink/border/accent; a handful of `--muted`/`--text` references survive in `teacher.js`
+  and `report-render.js` (script files the doc's per-file audit doesn't cover), plus the
+  `--label-*`/`--samr-*` group below.
+- **`tokens.css` §4 is scaffolding.** Aliases remain, now held up only by the `--label-*` (17
+  pairs) and `--samr-*` (4) groups plus the stray script references above. Six retired earlier
+  (`--panel`, `--accent-soft`, `--accent-green`, `--auditor`, `--auditor-soft`, `--danger`).
+  Delete each when its legacy name hits zero:
 
   ```bash
   cd app/web && for n in bg surface border text muted accent terra blue green amber; do
@@ -844,3 +858,59 @@ all driver files deleted after.
 
 Not done, and deliberately: the value-ramp colours in `renderHorizChart()` (see *Known debt*)
 and `dashboard.html`, which remains the last file on the legacy bridge.
+
+**2026-07-20 (build session 6) — `dashboard.html`, Steps 3d/3e**
+
+Rebuilt the last file on the bridge in place, per the product owner's call: keep the existing IA
+(Overview/Class/Assignment/Student tabs, sidebar, drill panels, side tray, flag modal, sortable
+columns, behavioral-trend detection) rather than replace it, but adopt the visual cleanliness of
+the v8 artifact's teacher roster screen (Screen 6) for the two tables that list students against
+scores. Inline `<style>` block retokenised entirely — 0 legacy names, 0 hex, every `var()`
+resolving, matching `report.css`'s session-5 state. `.samr-badge` (the four-colour blue SAMR ramp)
+and the bespoke `.avatar`/sparkline are gone; the assignment-detail and class-detail tables are
+rebuilt onto a new `table.roster` component (`.tbl-wrap`, `.who`, `td.n`) modelled directly on the
+artifact's markup, with a `bandChip()` helper producing the same plain-language-first, SAMR-
+subtitle-only band chip the report already uses.
+
+**The real finding was a voice-rule violation, not a colour gap.** Every "flag" signal on this
+page — the header button, sidebar dots, table badges, the side tray icon — rendered in
+`var(--terra)` (attention/red) with a `⚑` glyph and the word "review". That is the exact mistake
+*Origin encoding* and the report's flag panel already fixed once: a conversation-starter dressed
+as a verdict. `teacher.html`'s `.cycle-chip.flagged` already uses `--tau-caution`, so the pattern
+existed in the codebase — `dashboard.html` alone hadn't been brought over. Fixed throughout:
+every "flag" surface is now `--tau-caution` (amber, matching how the report treats a low score),
+the `⚑` glyph is gone in favour of a quiet dot (`.flagdot`, `.signal-pill-review`), and the copy
+changed from "review"/"Flag detection" to "Worth a chat" — the exact phrase the locked design
+rules specify for this column and the artifact's own roster mock uses.
+
+Four things worth carrying forward:
+
+1. **A distinction the fix had to preserve:** "missing submission" is a real deadline problem —
+   it stayed `--tau-attention` (red) throughout. Only the behavioral/integrity "worth a chat"
+   signal moved to caution. Conflating the two would have either downgraded a real overdue-work
+   problem or re-escalated a conversation-starter into a verdict.
+2. **`sparklineSVG()` had zero callers** — same shape as session 5's dead `renderChartSummary()`
+   in `report.css`. Found by grepping for its name before touching its colours, not after; deleted
+   rather than retokenised. The `.sparkline` CSS class went with it.
+3. **Three dead sort branches surfaced once the roster table replaced the old five-column
+   layout:** `sortStudents()` still branched on `'submissions'`, `'samr'`, and `'status'` — columns
+   that no longer exist in the new table. Trimmed to the two that do (`name`, `tau`), and deleted
+   the now-unreferenced `STATUS_ORDER` map with them.
+4. **`theme.js` stomps a hand-set `data-theme` attribute unconditionally** — `apply(stored() ||
+   'light')` runs on every load regardless of what markup shipped with. The *Verifying visually*
+   probe trick ("put `data-theme` on the `<html>` tag") only works for a page that doesn't link
+   `theme.js`; for a real page, force the theme by seeding `localStorage.tau-theme` before the
+   page's own script runs instead — the persistence-testing method the doc already documents,
+   just not yet connected to this specific failure mode. Cost one dead-end round of screenshots
+   before the fix was obvious.
+
+Verified with a same-origin driver (`fetch` login, then `document.write` the fetched page into
+the same window — the iframe-cookie trick from sessions 3–5 silently 401'd here because
+`dashboard.html` declares its data with `let` at top level, which never lands on `window` for a
+polling check to read; confirmed the API directly instead) across all four tabs, the drill panel,
+and both themes. Console clean on every run; driver file deleted after.
+
+Not done, and deliberately: the `--label-*`/`--samr-*` alias group in `tokens.css` §4 (now the
+only thing keeping the bridge section non-empty, along with a few stray `--muted`/`--text`
+references in `teacher.js` and `report-render.js`), and the value-ramp colours in
+`renderHorizChart()` (see *Known debt*) — both pre-existing, neither touched by this session.

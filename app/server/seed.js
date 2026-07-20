@@ -13,7 +13,7 @@ const { col } = require('./store');
 const { setPassword } = require('./auth');
 const { enrich, scoreTAU } = require('./analysis');
 const {
-  DEV_PASSWORD, STUDENTS, ASSIGNMENTS, TRANSCRIPTS,
+  DEV_PASSWORD, STUDENTS, ASSIGNMENTS, GUIDE_ASSIGNMENT, TRANSCRIPTS,
   ESSAYS, PROVENANCE, FLAGS, SNAPSHOTS, TEACHER_NOTES,
 } = require('./seed-data');
 
@@ -162,6 +162,15 @@ function seed() {
         daysAgo: 6 - cycle * 3,
       });
     }
+  }
+
+  // One-off real transcript (bicycle maintenance guide, document co-creation
+  // rather than a Socratic coach cycle) — kept outside the tier loop above
+  // since it doesn't fit the open/past assignment shape.
+  const guideAssignment = upsertAssignment(teacher.id, GUIDE_ASSIGNMENT, 5);
+  const guideStudent = upsertUser({ email: 'jamie@school.dev', displayName: 'Jamie Okafor', role: 'student' });
+  if (col('submissions').list((s) => s.studentId === guideStudent.id).length === 0) {
+    seedCycle({ student: guideStudent, assignment: guideAssignment, tier: 'bikeguide', cycleIndex: 0, daysAgo: 3 });
   }
 
   // Users left over from earlier hand-testing predate passwords. Give them the
