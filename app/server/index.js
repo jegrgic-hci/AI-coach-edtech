@@ -6,7 +6,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { col } = require('./store');
-const { authenticate } = require('./auth');
+const { authenticate, login, logout, sessionCookie, clearedCookie, tokenFrom } = require('./auth');
 const { streamChat, MAX_EVAL_TOKENS } = require('./llm');
 const { LEVELS, coachMessages, auditorMessages } = require('./coach');
 const { runAnalysis } = require('./analysis');
@@ -128,14 +128,135 @@ async function streamReply({ res, user, conversation, messages, role, maxTokens,
   }
 }
 
+// ---------- auth routes (the only unauthenticated /api paths) ----------
+
+// Returns true if it handled the request.
+async function handleAuth(req, res, route) {
+  if (req.method === 'POST' && route === '/api/auth/login') {
+    const body = await readBody(req);
+    const result = login(body.email, body.password);
+    // One generic message for both unknown-email and wrong-password: don't
+    // let the login form enumerate who has an account.
+    if (!result) {
+      json(res, 401, { error: 'Email or password is incorrect' });
+      return true;
+    }
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Set-Cookie': sessionCookie(result.token),
+    });
+    res.end(JSON.stringify({ id: result.user.id, displayName: result.user.displayName, role: result.user.role }));
+    return true;
+  }
+
+  if (req.method === 'POST' && route === '/api/auth/logout') {
+    const token = tokenFrom(req);
+    if (token) logout(token);
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Set-Cookie': clearedCookie() });
+    res.end(JSON.stringify({ ok: true }));
+    return true;
+  }
+
+  return false;
+}
+
 // ---------- routes ----------
 
 async function handleApi(req, res, user, route) {
   const [, , seg1, seg2, seg3] = route.split('/'); // /api/<seg1>/<seg2>/<seg3>
 
-  // GET /api/me
+  // GET /api/me — never spread the raw user doc; it carries the password hash
   if (req.method === 'GET' && seg1 === 'me' && !seg2) {
-    return json(res, 200, user);
+    return json(res, 200, {
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      role: user.role,
+    });
+  }
+
+  // GET /api/student/home — everything the student home view needs in one call
+  if (req.method === 'GET' && seg1 === 'student' && seg2 === 'home') {
+    const current = [];
+    const past = [];
+    const trend = [];
+
+    for (const a of col('assignments').list()) {
+      const submissions = col('submissions')
+        .list((s) => s.assignmentId === a.id && s.studentId === user.id)
+        .sort((x, y) => x.cycleIndex - y.cycleIndex);
+
+      const drafts = submissions.map((sub) => {
+        const analysis = sub.analysisId ? col('analyses').get(sub.analysisId) : null;
+        const complete = analysis?.status === 'complete';
+        if (complete) trend.push({ submittedAt: sub.submittedAt, totalScore: analysis.tau.totalScore });
+        return {
+          submissionId: sub.id,
+          cycleIndex: sub.cycleIndex,
+          submittedAt: sub.submittedAt,
+          analysisStatus: analysis?.status || 'missing',
+          // Deliberately not spreading the analysis: flags are teacher-only and
+          // the safest place to enforce that is by never selecting them.
+          tau: complete
+            ? {
+                PQ: analysis.tau.PQ, SU: analysis.tau.SU, CS: analysis.tau.CS,
+                OC: analysis.tau.OC, totalScore: analysis.tau.totalScore, SAMR: analysis.tau.SAMR,
+              }
+            : null,
+          // The one behavior to try next — the home surfaces it so the advice
+          // is reachable without opening the report.
+          growthMove: complete ? analysis.snapshot?.growthMoves?.[0] || null : null,
+          hasTeacherNote: Boolean(sub.teacherNote),
+          teacherNote: sub.teacherNote || null,
+          teacherNoteAt: sub.teacherNoteAt || null,
+          assignmentTitle: a.title,
+        };
+      });
+
+      const done = submissions.length >= a.draftBudget;
+      const active = col('sessions').list(
+        (s) => s.assignmentId === a.id && s.studentId === user.id && s.status === 'active'
+      )[0];
+
+      if (done) {
+        past.push({ id: a.id, title: a.title, dueDate: a.dueDate, draftBudget: a.draftBudget, drafts });
+      } else {
+        const nextCycle = submissions.length;
+        const levels = a.coachingLevels;
+        // Live conversations in the open session — "where you left off" is part
+        // of the card's hierarchy, not something to rediscover by opening it.
+        const openConvs = active
+          ? col('conversations').list((c) => c.sessionId === active.id)
+          : [];
+        const lastActiveAt = openConvs.length
+          ? openConvs.map((c) => c.lastActiveAt || c.createdAt).sort().pop()
+          : null;
+        current.push({
+          id: a.id,
+          title: a.title,
+          prompt: a.prompt,
+          dueDate: a.dueDate,
+          draftBudget: a.draftBudget,
+          draftsUsed: submissions.length,
+          // A submitted draft with no open session still counts as started —
+          // the next session isn't created until the student opens it.
+          status: active || submissions.length > 0 ? 'in-progress' : 'not-started',
+          nextCoachLabel: LEVELS[levels[Math.min(nextCycle, levels.length - 1)]].label,
+          nextCoachNote: LEVELS[levels[Math.min(nextCycle, levels.length - 1)]].modeNote,
+          conversationCount: openConvs.length,
+          lastActiveAt,
+          drafts,
+        });
+      }
+    }
+
+    trend.sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
+    return json(res, 200, {
+      student: { displayName: user.displayName, email: user.email },
+      current,
+      past,
+      trend,
+    });
   }
 
   // GET /api/assignments — list with per-student status
@@ -196,6 +317,7 @@ async function handleApi(req, res, user, route) {
       conversations,
       draftsUsed: submissions.length,
       coachLabel: session ? LEVELS[session.coachingLevel].label : null,
+      modeLead: session ? LEVELS[session.coachingLevel].modeLead : null,
       modeNote: session ? LEVELS[session.coachingLevel].modeNote : null,
     });
   }
@@ -378,6 +500,23 @@ async function handleApi(req, res, user, route) {
       ...analysis,
       ...(isTeacher ? {} : { flags: undefined }),
     };
+
+    // The design system forbids showing a total without the change since the
+    // last draft — a number quoted to a friend has to be a position on a path,
+    // not a mark. So the report needs its own past, not just its own score.
+    // Drafts still analysing are dropped rather than sent as null: a gap in the
+    // line reads as a dip.
+    const history = col('submissions')
+      .list((s) => s.studentId === submission.studentId
+        && s.assignmentId === submission.assignmentId
+        && s.cycleIndex <= submission.cycleIndex)
+      .sort((a, b) => a.cycleIndex - b.cycleIndex)
+      .map((s) => ({
+        cycleIndex: s.cycleIndex,
+        totalScore: (s.analysisId ? col('analyses').get(s.analysisId) : null)?.tau?.totalScore ?? null,
+      }))
+      .filter((h) => h.totalScore !== null);
+
     return json(res, 200, {
       submission: {
         id: submission.id,
@@ -387,6 +526,7 @@ async function handleApi(req, res, user, route) {
         teacherNote: submission.teacherNote || null,
       },
       analysis: report,
+      history,
     });
   }
 
@@ -592,10 +732,21 @@ function serveStatic(req, res, route) {
 seed();
 
 http.createServer(async (req, res) => {
-  const route = new URL(req.url, 'http://x').pathname;
+  // Outside the try this takes the process down: a request for '//' parses as
+  // protocol-relative with an empty host and throws. Crawlers and browsers do
+  // send it, so an unguarded parse here is a one-request denial of service.
+  let route;
+  try {
+    route = new URL(req.url, 'http://x').pathname;
+  } catch {
+    return json(res, 400, { error: 'bad request path' });
+  }
+
   try {
     if (route.startsWith('/api/')) {
+      if (await handleAuth(req, res, route)) return;
       const user = authenticate(req);
+      if (!user) return json(res, 401, { error: 'not signed in' });
       await handleApi(req, res, user, route);
     } else {
       serveStatic(req, res, route);

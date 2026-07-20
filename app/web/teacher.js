@@ -1,14 +1,7 @@
 const $ = (id) => document.getElementById(id);
 
-async function api(path, opts = {}) {
-  const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json', 'X-Dev-Role': 'teacher' },
-    ...opts,
-    body: opts.body ? JSON.stringify(opts.body) : undefined,
-  });
-  if (!res.ok) throw new Error((await res.json()).error || res.statusText);
-  return res.json();
-}
+// api() comes from api.js. Teacher access is decided by the signed-in user's
+// role server-side — there is no client-asserted role header any more.
 
 function esc(s) {
   const d = document.createElement('div');
@@ -23,6 +16,7 @@ const LEVEL_LABEL = { full: 'Full coach', questions: 'Questions only', 'sounding
 async function showOverview() {
   $('viewStudent').classList.add('hidden');
   $('viewOverview').classList.remove('hidden');
+  mountAccountChip($('accountChip')).catch(() => {});
   const assignments = await api('/api/teacher/assignments');
   const body = $('overviewBody');
   body.innerHTML = `
@@ -191,9 +185,9 @@ async function showStudent(assignmentId, studentId) {
         <div class="lvl">Draft ${session.cycleIndex + 1} · ${LEVEL_LABEL[session.coachingLevel]}</div>
         ${done ? `
           <div class="samr">${analysis.tau.SAMR} · ${analysis.tau.totalScore}/20</div>
-          <div class="dims">PQ ${analysis.tau.PQ} · SU ${analysis.tau.SU} · CS ${analysis.tau.CS} · OC ${analysis.tau.OC}</div>
+          <div class="dim-line">PQ ${analysis.tau.PQ} · SU ${analysis.tau.SU} · CS ${analysis.tau.CS} · OC ${analysis.tau.OC}</div>
           <a href="/report.html?id=${submission.id}&role=teacher" target="_blank">Full report →</a>
-        ` : `<div class="dims">analysis: ${analysis?.status || 'missing'}</div>`}
+        ` : `<div class="dim-line">analysis: ${analysis?.status || 'missing'}</div>`}
       </div>`;
     }).join('');
     body.appendChild(strip);

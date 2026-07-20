@@ -376,4 +376,7 @@ async function runAnalysis(submissionId) {
   return analysis.id;
 }
 
-module.exports = { runAnalysis };
+// enrich + scoreTAU are exported for the dev seed, which builds demo analyses
+// from hand-labeled transcripts without LLM calls. Deriving the scores rather
+// than hardcoding them keeps seeded data honest if the formulas change.
+module.exports = { runAnalysis, enrich, scoreTAU };

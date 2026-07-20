@@ -1,20 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Writing Coach</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
 <link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
 </head>
 <body>
 
-<!-- View 1: assignment list -->
+<!-- View 1: student home -->
 <div id="viewAssignments" class="view">
   <header class="app-header">
     <h1>Writing Coach</h1>
     <span class="visibility-cue">Your conversations here are visible to your teacher</span>
+    <div class="account-chip" id="accountChip"></div>
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
   </header>
-  <main class="assignment-list" id="assignmentList"></main>
+
+  <!-- The rail is the dashboard's fixed ground: who you are and where you stand.
+       It does not change as assignments come and go. Content scrolls beside it. -->
+  <div class="dash">
+    <aside class="dash-rail">
+      <div class="rail-identity">
+        <div class="rail-avatar" id="railAvatar"></div>
+        <div class="rail-who">
+          <span class="rail-name" id="railName"></span>
+          <span class="rail-sub" id="railSub"></span>
+        </div>
+      </div>
+      <div class="rail-progress" id="railProgress"></div>
+    </aside>
+
+    <main class="dash-main" id="home">
+      <section class="chunk" id="secCurrent">
+        <div class="chunk-head">
+          <h2>Current assignments</h2>
+          <span class="chunk-count" id="currentCount"></span>
+        </div>
+        <div id="currentList"></div>
+      </section>
+
+      <section class="chunk hidden" id="secPast">
+        <div class="chunk-head">
+          <h2>Past assignments</h2>
+          <span class="chunk-count" id="pastCount"></span>
+        </div>
+        <p class="chunk-note">Closed — open any draft to review its report.</p>
+        <div id="pastList"></div>
+      </section>
+
+      <p class="home-empty hidden" id="homeEmpty">No assignments yet. When your teacher sets one, it will show up here.</p>
+    </main>
+  </div>
 </div>
 
 <!-- View 2: assignment workspace -->
@@ -29,7 +69,6 @@
       </details>
       <div class="drafts-meter" id="draftsMeter"></div>
       <div class="drafts-list" id="draftsList"></div>
-      <div class="coach-mode" id="coachMode"></div>
     </div>
     <button class="new-conv-btn" id="btnNewConv">+ New conversation</button>
     <nav class="conv-list" id="convList"></nav>
@@ -43,8 +82,9 @@
     <div class="chat-header">
       <span id="convTitle"></span>
       <button id="btnRename" title="Rename conversation">&#9998;</button>
-      <span class="visibility-cue">Visible to your teacher</span>
+      <button class="theme-toggle theme-toggle-end" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
     </div>
+    <div class="mode-banner hidden" id="coachMode"></div>
     <div class="messages" id="messages">
       <div class="empty-state" id="emptyState">
         <p>Start a conversation with your writing coach.</p>
@@ -52,15 +92,15 @@
       </div>
     </div>
     <div class="composer" id="composer">
-      <div class="composer-actions">
-        <button id="btnEvaluate" title="Ask the auditor how you're using the AI">How am I doing?</button>
-        <button id="btnRegenerate" class="hidden">&#8635; Regenerate</button>
-        <button id="btnStop" class="hidden stop-btn">&#9632; Stop</button>
-      </div>
+      <div class="edit-banner hidden" id="editBanner">Editing your message <button id="btnCancelEdit">cancel</button></div>
+      <textarea id="input" rows="2" placeholder="Reply to the coach…"></textarea>
       <div class="composer-row">
-        <div class="edit-banner hidden" id="editBanner">Editing your message <button id="btnCancelEdit">cancel</button></div>
-        <textarea id="input" rows="2" placeholder="Message your coach…"></textarea>
-        <button id="btnSend">Send</button>
+        <button id="btnEvaluate" class="btn btn-quiet btn-sm btn-auditor" title="Ask the auditor how you're using the AI">How am I doing?</button>
+        <button id="btnRegenerate" class="btn btn-quiet btn-sm hidden">&#8635; Regenerate</button>
+        <button id="btnStop" class="btn btn-quiet btn-sm stop-btn hidden">&#9632; Stop</button>
+        <span class="spacer"></span>
+        <span class="composer-hint">Your teacher can read this conversation</span>
+        <button id="btnSend" class="btn btn-primary btn-sm">Send</button>
       </div>
     </div>
     <div class="locked-note hidden" id="lockedNote">This conversation was part of a submitted draft. You can read and copy from it, but it can't continue.</div>
@@ -81,6 +121,7 @@
   </div>
 </div>
 
+<script src="api.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

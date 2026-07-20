@@ -838,9 +838,16 @@ function traceProvenance(provenanceItems, classified, essayText) {
   return provenanceItems.map(({ concept, phrase, origin }) => {
     const positions = findConceptPositions(phrase, essayText);
     const traceTurn = classified.find(t => conceptInText(concept, t.text)) || null;
+    // The old fallback asserted "prior knowledge" whenever the concept name
+    // didn't appear verbatim in a turn — which it usually doesn't, since the
+    // name is the analyser's paraphrase. That put "prior knowledge" under
+    // concepts whose own chip said "Together", the chip contradicting the line
+    // beneath it. Only `prior` gets to claim prior knowledge now.
     const traceSnippet = traceTurn
       ? `First in ${traceTurn.role === "student" ? "your" : "AI"} turn (${traceTurn.label}): "${traceTurn.text.slice(0, 80)}${traceTurn.text.length > 80 ? "…" : ""}"`
-      : "Not found in chat log — prior knowledge.";
+      : origin === "prior"
+        ? "You brought this in — it isn’t in the chat at all."
+        : "Traced to your draft; no single turn matched it.";
     return { concept, phrase, origin, positions, traceSnippet };
   }).filter(p => p.positions.length > 0);
 }
@@ -874,36 +881,52 @@ function renderEssayHeatmap(essayText, provenanceData) {
   return html;
 }
 
+// Authorship, not quality. "Student-Born / AI-Born" is filing-cabinet language
+// for a thing the student did; this is the same you → together → coach
+// vocabulary the conversation map uses, so the two visuals teach one encoding.
+const ORIGIN_LABEL = {
+  "student-born": "You",
+  "prior":        "You, before this",
+  "synthesized":  "Together",
+  "ai-born":      "The coach",
+};
+
 function renderConceptList(provenanceData) {
-  const ORIGIN_LABEL = {
-    "student-born": "Student-Born",
-    "ai-born":      "AI-Born",
-    "synthesized":  "Synthesized",
-    "prior":        "Prior Knowledge",
-  };
   return provenanceData.map(p => `
     <div class="concept-row">
-      <span class="concept-origin-badge ${p.origin}">${ORIGIN_LABEL[p.origin] || p.origin}</span>
+      <span class="origin-chip origin-${p.origin}">${ORIGIN_LABEL[p.origin] || p.origin}</span>
       <div>
         <div class="concept-term">${esc(p.concept)}</div>
-        <div class="concept-phrase">"${esc(p.phrase)}"</div>
+        <div class="concept-phrase">“${esc(p.phrase)}”</div>
         <div class="concept-trace">${esc(p.traceSnippet)}</div>
       </div>
     </div>`).join("");
 }
 
+// One proportional bar plus a legend, rather than four chips each carrying its
+// own count and percentage. The bar is the thing that shows a mix at a glance;
+// nothing in it is ordered good-to-bad, so no arrangement of it can accuse.
 function renderProvStats(provenanceData) {
   const counts = { "student-born": 0, "ai-born": 0, "synthesized": 0, "prior": 0 };
   for (const p of provenanceData) { if (counts[p.origin] !== undefined) counts[p.origin]++; }
   const total = provenanceData.length || 1;
-  return [
-    { key: "student-born", label: "Student-Born", n: counts["student-born"] },
-    { key: "ai-born",      label: "AI-Born",      n: counts["ai-born"] },
-    { key: "synthesized",  label: "Synthesized",   n: counts["synthesized"] },
-    { key: "prior",        label: "Prior",         n: counts["prior"] },
-  ].map(({ key, label, n }) =>
-    `<span class="prov-stat ${key}">${n} ${label} (${Math.round(n / total * 100)}%)</span>`
-  ).join("");
+
+  // "Prior" is knowledge the student brought in and the chat never touched, so
+  // it belongs on the same side of the bar as student-born.
+  const segments = [
+    { cls: "prov-you",      n: counts["student-born"] + counts["prior"], label: "Yours" },
+    { cls: "prov-together", n: counts["synthesized"],                    label: "Developed together" },
+    { cls: "prov-coach",    n: counts["ai-born"],                        label: "Came from the coach" },
+  ];
+
+  const bar = segments.filter(s => s.n > 0).map(s =>
+    `<span class="${s.cls}" style="flex:${s.n}"></span>`).join("");
+  const legend = segments.map(s =>
+    `<span class="legend-item">
+       <span class="legend-swatch ${s.cls}"></span>${s.label} — ${s.n} of ${total}
+     </span>`).join("");
+
+  return `<div class="prov-bar">${bar}</div><div class="legend">${legend}</div>`;
 }
 
 // ─── Integrity flags ──────────────────────────────────────────────────────────
@@ -1000,10 +1023,6 @@ function labelBadge(label) {
   return `<span class="label-badge" style="background:${m.bg};color:${m.color}">${m.display}</span>`;
 }
 
-function scoreClass(n) {
-  return `score-${n}`;
-}
-
 const DIM_TOOLTIPS = {
   PQ: "Did you lead the conversation? This looks at whether you asked follow-up questions, challenged the AI, and explored ideas — or mostly just asked it to generate things for you.",
   SU: "After the AI gave you content, what did you do next? This looks at whether you thought critically about it and built on it, or just collected more.",
@@ -1011,18 +1030,17 @@ const DIM_TOOLTIPS = {
   OC: "How many of the ideas in your essay actually came from you? This traces which concepts you brought in versus which ones the AI introduced first.",
 };
 
-const SAMR_COLORS = {
-  Substitution: '#64748b',
-  Augmentation: '#3b82f6',
-  Modification: '#10b981',
-  Redefinition: '#8b5cf6',
+// SAMR is a subtitle, never the primary label — it is PD jargon students don't
+// know and teachers who missed that inservice don't either. These are what the
+// band chip actually says. Ordered, but describing the working relationship
+// rather than grading it: none of the four is a pass or a fail.
+const BAND_META = {
+  Substitution: { n: 1, label: 'Mostly the AI’s thinking' },
+  Augmentation: { n: 2, label: 'The AI led, you steered' },
+  Modification: { n: 3, label: 'You led, the AI helped' },
+  Redefinition: { n: 4, label: 'Your thinking throughout' },
 };
-const SAMR_BG_COLORS = {
-  Substitution: '#f1f5f9',
-  Augmentation: '#eff6ff',
-  Modification: '#f0fdf4',
-  Redefinition: '#f5f3ff',
-};
+
 const SAMR_DESCRIPTIONS = {
   Substitution: 'Most of the ideas in this session came from the AI, not from you. You used it as a shortcut — getting answers rather than building your own thinking.',
   Augmentation: 'You used AI to get things done, but your own thinking didn\'t really develop through the process. Some original ideas are there, but AI-generated content did most of the work.',
@@ -1030,39 +1048,52 @@ const SAMR_DESCRIPTIONS = {
   Redefinition: 'You were in the driver\'s seat throughout — questioning, connecting ideas, and bringing your own perspective. The AI was your tool, not your author.',
 };
 
-function renderSAMRCircle(scores) {
-  const { totalScore, SAMR } = scores;
-  const color   = SAMR_COLORS[SAMR];
-  const bgColor = SAMR_BG_COLORS[SAMR];
-  const desc    = SAMR_DESCRIPTIONS[SAMR];
+// Direction of travel, not standing — which is the one thing semantic colour is
+// allowed to describe here. On a first draft there is no direction yet, and the
+// copy has to say so rather than draw a flat line implying no progress.
+function renderTrajectory(history, totalScore) {
+  const pts = history.map((h) => h.totalScore);
+  if (pts.length < 2) {
+    return '<span class="traj-cap">First draft — a starting point, not a mark.</span>';
+  }
 
-  const pct = Math.max(0, Math.min(1, (totalScore - 4) / 16));
-  const r = 56, cx = 72, cy = 72, sw = 10;
-  const circ = 2 * Math.PI * r;
-  const arc  = pct * circ;
+  const prevCycle = history[history.length - 2].cycleIndex + 1;
+  const delta = totalScore - pts[pts.length - 2];
+  const dir = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+  const word = delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : 'no change';
+
+  const w = 132, h = 34, pad = 4;
+  const x = (i) => pad + (i * (w - pad * 2)) / (pts.length - 1);
+  const y = (v) => h - pad - ((v - 4) / 16) * (h - pad * 2);
+  const path = pts.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+  const dots = pts.map((v, i) =>
+    `<circle class="traj-dot${i === pts.length - 1 ? ' traj-dot-now' : ''}" cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3"/>`).join('');
 
   return `
-    <div class="samr-hero-panel" style="background:${bgColor}">
-      <div class="samr-circle-wrap">
-        <svg width="144" height="144" viewBox="0 0 144 144">
-          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e2e8f0" stroke-width="${sw}"/>
-          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none"
-            stroke="${color}" stroke-width="${sw}"
-            stroke-dasharray="${arc.toFixed(2)} ${circ.toFixed(2)}"
-            stroke-linecap="round"
-            transform="rotate(-90 ${cx} ${cy})"/>
-          <text x="${cx}" y="${cy + 6}" text-anchor="middle"
-            font-size="26" font-weight="800" fill="${color}"
-            font-family="-apple-system,BlinkMacSystemFont,sans-serif">${totalScore}</text>
-          <text x="${cx}" y="${cy + 22}" text-anchor="middle"
-            font-size="11" fill="#94a3b8"
-            font-family="-apple-system,BlinkMacSystemFont,sans-serif">/20</text>
-        </svg>
+    <svg class="traj-svg" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+      <path class="traj-line" d="${path}"/>${dots}
+    </svg>
+    <span class="traj-cap"><span class="traj-delta traj-${dir}">${word}</span> since draft ${prevCycle}</span>`;
+}
+
+// Narrative first, number after. The total carries its band label and its change
+// since last draft in the same block, because both are locked requirements and
+// splitting them is how a number ends up quoted on its own as a grade.
+function renderReportHero(scores, history) {
+  const { totalScore, SAMR } = scores;
+  const band = BAND_META[SAMR];
+
+  return `
+    <div class="card card-lg report-hero">
+      <p class="report-lede">${esc(SAMR_DESCRIPTIONS[SAMR])}</p>
+      <div class="report-band">
+        <span class="band band-${band.n}"><i class="band-pip"></i>${esc(band.label)}</span>
+        <span class="band-sub">${esc(SAMR)} on the SAMR scale</span>
       </div>
-      <div class="samr-hero-content">
-        <div class="samr-hero-eyebrow">Your AI Use Level</div>
-        <div class="samr-hero-level" style="color:${color}">${SAMR}</div>
-        <div class="samr-hero-desc">${desc}</div>
+      <div class="report-total">
+        <span class="report-total-n">${totalScore}</span>
+        <span class="report-total-of">of 20</span>
+        <span class="traj report-traj">${renderTrajectory(history, totalScore)}</span>
       </div>
     </div>`;
 }
@@ -1194,36 +1225,54 @@ function dimExplanation(key, scores) {
   return { explain: "", nudge: null, nudgeType: null };
 }
 
+// The engine's own names. The app had drifted to two other sets — "How You
+// Asked" here, "How you questioned" in app.js — so three vocabularies described
+// four dimensions and none of them matched scoreTAU().
+const DIM_ORDER = ["PQ", "SU", "CS", "OC"];
+const DIM_NAMES = {
+  PQ: "Prompting Quality",
+  SU: "Selective Use",
+  CS: "Calibrated Skepticism",
+  OC: "Original Contribution",
+};
+
+// No value-keyed colour anywhere in here. A 2 used to render in the same red as
+// an error, which makes the report a verdict at the moment it claims to coach.
 function renderSummary(scores) {
-  const dims = [
-    { key: "PQ", name: "How You Asked" },
-    { key: "SU", name: "What You Did With It" },
-    { key: "CS", name: "Did You Push Back?" },
-    { key: "OC", name: "Your Own Ideas" },
-  ];
-  return dims.map(d => {
-    const { explain, nudge, nudgeType } = dimExplanation(d.key, scores);
+  return DIM_ORDER.map((k) => {
+    const n = scores[k];
+    const pips = [1, 2, 3, 4, 5]
+      .map((i) => `<i class="${i <= n ? "on" : ""}"></i>`).join("");
     return `
-    <div class="summary-card">
-      <div class="dim-score-col">
-        <div class="dim-score ${scoreClass(scores[d.key])}">${scores[d.key]}</div>
-        <div class="dim-score-denom">/5</div>
-      </div>
-      <div class="dim-body">
-        <div class="dim-name">
-          <span class="dim-name-wrap">
-            ${d.name}
-            <button class="dim-info-btn" tabindex="0" aria-label="About ${d.name}">i</button>
-            <div class="dim-tooltip">
-              ${DIM_TOOLTIPS[d.key]}
-              <br><span class="tt-learn" data-learn="${d.key}">Learn more &rarr;</span>
-            </div>
+      <div class="dim">
+        <span class="dim-abbr">${k}</span>
+        <span class="dim-name">${DIM_NAMES[k]}</span>
+        <span class="dim-val"><span class="n">${n}</span><span class="of">of 5</span></span>
+        <span class="steps" role="img" aria-label="${n} out of 5">${pips}</span>
+      </div>`;
+  }).join("");
+}
+
+// The strip answers "what are my four numbers"; this answers "why". Splitting
+// them is what lets .dims stay a four-column strip instead of four columns of
+// paragraph, and it puts the reasoning next to the advice that follows from it.
+function renderDimDetails(scores) {
+  return DIM_ORDER.map((k) => {
+    const { explain, nudge } = dimExplanation(k, scores);
+    return `
+      <div class="dim-detail">
+        <div class="dim-detail-head">
+          <span class="dim-abbr">${k}</span>
+          <h4>${DIM_NAMES[k]}</h4>
+          <span class="dim-info">
+            <button class="dim-info-btn" type="button"
+              aria-label="What ${DIM_NAMES[k]} measures">i</button>
+            <span class="dim-tooltip" role="tooltip">${esc(DIM_TOOLTIPS[k])}</span>
           </span>
         </div>
-        <div class="dim-explanation">${esc(explain)}</div>
-        ${nudge ? `<div class="dim-nudge nudge-${nudgeType}">${esc(nudge)}</div>` : ""}
-      </div>
-    </div>`;
+        <p class="dim-say">${esc(explain)}</p>
+        ${nudge ? `<p class="dim-nudge">${esc(nudge)}</p>` : ""}
+      </div>`;
   }).join("");
 }
 
@@ -1473,10 +1522,12 @@ function renderFlags(flags) {
     "shadow-session-pattern":  "Shadow Session Pattern",
     "reflection-duplicate":    "Reflection Resubmitted",
   };
+  // "Learn more →" was dropped: nothing has ever handled data-learn, so it was
+  // a link to nowhere sitting next to the most consequential copy on the page.
   return flags.map(f => `
     <div class="flag-row">
       <span class="flag-type">${TYPE_LABEL[f.type] || f.type}</span>
-      <div class="flag-detail">${esc(f.detail)} <span class="tt-learn" data-learn="${f.type}">Learn more &rarr;</span></div>
+      <div class="flag-detail">${esc(f.detail)}</div>
     </div>`).join("");
 }
 

@@ -1,31 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Teacher Dashboard — Critical Thinking Auditor</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<script src="theme.js"></script>
 <style>
-:root {
-  --blue: #3B3EA8;
-  --blue-mid: #6B7DD4;
-  --blue-light: #9B9DE0;
-  --blue-tint: #f0f1f8;
-  --terra: #b85c38;
-  --terra-light: #e8ae94;
-  --terra-tint: #fdf3ee;
-  --bg: #f7f7f5;
-  --surface: #ffffff;
-  --border: #e5e5e2;
-  --text: #1a1a1a;
-  --text-mid: #555;
-  --text-muted: #999;
-  --green: #2d7a4f;
-  --green-tint: #edf7f1;
-  --amber: #b07030;
-  --amber-tint: #fdf6ec;
-  --grey-tint: #f2f2f0;
-}
-
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
 
@@ -695,6 +677,9 @@ details[open] .reflection-summary::before { content: '▾'; }
   <button onclick="openFlagModal()" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--terra);background:var(--terra-tint);border:1px solid rgba(184,92,56,0.25);padding:5px 13px;border-radius:20px;cursor:pointer">⚑ Flag detection</button>
   <a href="teacher.html" class="back-link" style="margin-left:0">+ New assignment</a>
   <a href="/" class="back-link" style="margin-left:0">← Student app</a>
+  <span class="back-link" id="whoami" style="margin-left:0;border:none;cursor:default"></span>
+  <a href="#" class="back-link" style="margin-left:0" onclick="event.preventDefault();logout()">Sign out</a>
+  <button class="theme-toggle theme-toggle-end" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
 </header>
 
 <nav class="tab-nav">
@@ -735,6 +720,7 @@ details[open] .reflection-summary::before { content: '▾'; }
   <div class="tray-body" id="tray-body"></div>
 </div>
 
+<script src="api.js"></script>
 <script>
 // ── Data ──────────────────────────────────────────────────────────────────────
 // ── Data — loaded from the CTA app API (replaces the mock generator) ─────────
@@ -744,7 +730,8 @@ details[open] .reflection-summary::before { content: '▾'; }
 let ASSIGNMENTS = [], STUDENTS = [], CLASSES = [], SUBMISSIONS = {};
 
 async function loadDashboardData() {
-  const res = await fetch('/api/teacher/dashboard', { headers: { 'X-Dev-Role': 'teacher' } });
+  const res = await fetch('/api/teacher/dashboard');
+  if (res.status === 401) return requireLogin();
   if (!res.ok) throw new Error('dashboard data failed: ' + res.status);
   const data = await res.json();
   ASSIGNMENTS = data.assignments.map(a => ({ ...a, due: new Date(a.due) }));
@@ -2257,6 +2244,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+
+api('/api/me').then((me) => { document.getElementById('whoami').textContent = me.displayName; }).catch(() => {});
 
 loadDashboardData().then(render).catch((err) => {
   document.body.insertAdjacentHTML('afterbegin',

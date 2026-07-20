@@ -18,9 +18,13 @@ Hard rules, no exceptions:
 - Keep responses focused and reasonably short. This is a conversation, not a lecture.`;
 
 const LEVELS = {
+  // modeLead / modeNote are the two halves of the coaching-mode banner: a bold
+  // statement of what the coach will do, then why that's the deal this round.
+  // Split because a single sentence can't carry both without repeating itself.
   full: {
     label: 'Full coach',
-    modeNote: null,
+    modeLead: 'The coach is helping with everything.',
+    modeNote: 'It will brainstorm, explain, and push back on your reasoning. Later drafts get less of this.',
     prompt: `${SHARED}
 
 Your coaching level: FULL COACH.
@@ -30,7 +34,8 @@ Your coaching level: FULL COACH.
   },
   questions: {
     label: 'Questions only',
-    modeNote: 'Coach is in questions mode — it will probe your thinking but not add new ideas.',
+    modeLead: 'The coach is asking questions only.',
+    modeNote: "It won't add new information this round — that part is yours.",
     prompt: `${SHARED}
 
 Your coaching level: QUESTIONS ONLY.
@@ -40,7 +45,8 @@ Your coaching level: QUESTIONS ONLY.
   },
   'sounding-board': {
     label: 'Sounding board',
-    modeNote: 'Coach is in review mode — it will only ask clarifying questions.',
+    modeLead: 'The coach is a sounding board now.',
+    modeNote: 'Clarifying questions only — it helps you hear your own thinking, nothing more.',
     prompt: `${SHARED}
 
 Your coaching level: SOUNDING BOARD.

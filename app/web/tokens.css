@@ -1,0 +1,377 @@
+/* TAU design tokens — v8
+ *
+ * Load this BEFORE style.css and report.css. Section 4 aliases the two
+ * legacy vocabularies onto these tokens, so the existing ~800 var()
+ * references retheme without being touched. Migration order:
+ *
+ *   1. <link> this file first, delete the :root blocks in style.css,
+ *      report.css and dashboard.html. App rethemes, no component edits.
+ *   2. Fix the 9 inline styles and 24 stray hexes that bypass var().
+ *   3. Rewrite components onto --tau-* names, deleting section 4 aliases
+ *      as each legacy name reaches zero references.
+ *
+ * Section 4 is scaffolding. It is finished when it is empty.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* ---------------------------------------------------------------
+   * 1. BRAND
+   * Forest is the only accent. It earns four jobs and no others:
+   * interactive text, primary fills, meter fills, and the rule that
+   * marks a system message. Sage is fill-only — it fails contrast as
+   * text and must never carry any.
+   * --------------------------------------------------------------- */
+  --tau-forest:      #1F4D3A;
+  --tau-forest-lift: #2A6349;
+  --tau-sage:        #3D7A5A;
+  --tau-on-forest:   #FFFFFF;
+
+  /* ---------------------------------------------------------------
+   * 2. GROUND — white, with genuinely neutral greys.
+   * Tinting these toward the brand is what made v7 read as a brand
+   * demo rather than a tool.
+   * --------------------------------------------------------------- */
+  --tau-bg:        #FFFFFF;
+  --tau-surface:   #FFFFFF;
+  --tau-surface-2: #F6F7F8;
+  --tau-surface-3: #ECEEEF;
+
+  --tau-ink:       #16191C;
+  --tau-ink-soft:  #545B63;
+  --tau-ink-faint: #767D85;
+
+  --tau-line:        #E4E6E8;
+  --tau-line-strong: #C9CDD1;
+
+  /* ---------------------------------------------------------------
+   * 3. SAMR BANDS
+   * Foreground lightness steps down monotonically 1 → 4, so the
+   * sequence survives greyscale, colour-blindness and a photocopier.
+   * Do not reorder these or the ramp stops carrying meaning on its own.
+   * Student-facing labels are words, not levels — see --tau-band-N-label
+   * in the product copy, not here.
+   * --------------------------------------------------------------- */
+  --tau-band-1-bg: oklch(0.951 0.018 32);   --tau-band-1-fg: oklch(0.42 0.058 32);
+  --tau-band-2-bg: oklch(0.953 0.022 72);   --tau-band-2-fg: oklch(0.38 0.058 68);
+  --tau-band-3-bg: oklch(0.948 0.018 242);  --tau-band-3-fg: oklch(0.34 0.052 244);
+  --tau-band-4-bg: oklch(0.948 0.022 162);  --tau-band-4-fg: oklch(0.30 0.048 162);
+
+  /* ---------------------------------------------------------------
+   * 4. SEMANTIC
+   * Kept off the accent hue deliberately. Never applied to a student's
+   * own score — a level is a position on a path, not a verdict.
+   * Reserved for direction of travel and teacher-side signals.
+   * --------------------------------------------------------------- */
+  --tau-positive:  oklch(0.50 0.10 158);
+  --tau-caution:   oklch(0.52 0.11 68);
+  --tau-attention: oklch(0.50 0.12 32);
+
+  --tau-positive-bg:  oklch(0.96 0.022 158);
+  --tau-caution-bg:   oklch(0.96 0.024 72);
+  --tau-attention-bg: oklch(0.96 0.022 32);
+
+  /* ---------------------------------------------------------------
+   * 5. AUDITOR — the second voice.
+   * Separated from the coach by hue AND by form (squared corners,
+   * ruled edge, monospace label). Hue alone is not enough: the
+   * distinction has to survive a colour-blind reader.
+   * --------------------------------------------------------------- */
+  --tau-auditor:    oklch(0.42 0.09 300);
+  --tau-auditor-bg: oklch(0.965 0.015 300);
+
+  /* ---------------------------------------------------------------
+   * 5b. ORIGIN — where an idea in the essay came from.
+   * Student-facing, so it inherits the coach-voice rule: this axis
+   * describes authorship, not quality. The previous green/amber/red
+   * ramp made "the coach said it first" read as an error, which is
+   * the exact verdict the tool promises not to deliver.
+   * Same you → together → coach vocabulary as the conversation map,
+   * so the two visuals teach one encoding rather than two.
+   * Always paired with a text label — never colour alone.
+   * --------------------------------------------------------------- */
+  --tau-origin-you:      var(--tau-forest);
+  --tau-origin-together: var(--tau-sage);
+  --tau-origin-coach:    var(--tau-ink-faint);
+
+  /* Chip fills. Text on these stays ink — sage and faint grey both
+     fail contrast as text, so the hue rides the fill and the dot. */
+  --tau-origin-you-bg:      oklch(0.955 0.022 162);
+  --tau-origin-together-bg: oklch(0.962 0.014 162);
+  --tau-origin-coach-bg:    var(--tau-surface-2);
+
+  /* ---------------------------------------------------------------
+   * 6. CONVERSATION MAP
+   * Encoding: lane = one idea, x = turn order, weight = live or set
+   * aside, colour + dash = who opened it, end marker = outcome.
+   * Nothing here encodes quality; a coach-started thread is not worse.
+   * --------------------------------------------------------------- */
+  --tau-map-you:        var(--tau-forest);
+  --tau-map-coach:      var(--tau-ink-faint);
+  --tau-map-coach-dash: 1 4;
+  --tau-map-live:       5px;
+  --tau-map-quiet:      1.5px;
+  --tau-map-grid:       var(--tau-line);
+  --tau-map-kept:       var(--tau-forest);
+  --tau-map-dropped:    var(--tau-ink-faint);
+
+  /* ---------------------------------------------------------------
+   * 7. TYPE
+   * The UI face is a system stack until one is self-hosted. Leading
+   * with Helvetica Neue — as v7 did — degrades to Liberation Sans on
+   * Chromebooks, the dominant device in this market.
+   * --------------------------------------------------------------- */
+  --tau-font-ui:    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --tau-font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --tau-font-mono:  ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  /* The dashboard leads on one figure at 50px. Without a token for it
+     that size gets typed as a literal and drifts per surface. */
+  --tau-text-display: 50px;
+
+  --tau-text-xs:  11.5px;
+  --tau-text-sm:  13px;
+  --tau-text-md:  14.5px;
+  --tau-text-lg:  15.5px;
+  --tau-text-xl:  19px;
+  --tau-text-2xl: 24px;
+  --tau-text-3xl: 30px;
+
+  --tau-leading-tight: 1.25;
+  --tau-leading-snug:  1.45;
+  --tau-leading-body:  1.55;
+  --tau-track-caps:    0.1em;
+  --tau-track-label:   0.06em;
+
+  /* ---------------------------------------------------------------
+   * 8. SPACE / SHAPE
+   * --------------------------------------------------------------- */
+  --tau-s1: 4px;  --tau-s2: 8px;  --tau-s3: 12px; --tau-s4: 16px;
+  --tau-s5: 20px; --tau-s6: 24px; --tau-s7: 32px; --tau-s8: 40px;
+  --tau-s9: 56px; --tau-s10: 72px;
+
+  --tau-r-sm: 6px; --tau-r-md: 10px; --tau-r-lg: 14px; --tau-r-xl: 20px;
+  --tau-r-pill: 999px;
+
+  /* Minimum interactive target. Not advisory — v7 claimed 44px while
+     shipping 20px chips, which is the failure this token prevents. */
+  --tau-target: 44px;
+
+  --tau-shadow:      0 1px 2px #16191C0F, 0 8px 24px -16px #16191C2E;
+  --tau-shadow-lift: 0 2px 4px #16191C14, 0 18px 40px -22px #16191C3D;
+
+  --tau-focus-ring: 2px solid var(--tau-forest);
+  --tau-focus-gap:  2px;
+
+  /* ---------------------------------------------------------------
+   * 9. STATE
+   * Hover on a forest fill is --tau-forest-lift, never filter:
+   * brightness() — brightness lightens in light mode and blows out
+   * the already-light dark-mode forest, so one rule needs two
+   * opposite behaviours. A second token is the only thing that works
+   * in both themes.
+   * --------------------------------------------------------------- */
+  --tau-hover-surface: var(--tau-surface-2);
+  --tau-disabled:      0.55;
+  --tau-scrim:         #16191C66;
+
+  /* The unfilled part of a meter is a lighter step of the same ramp,
+     so state reads across the whole bar. This stays inside forest's
+     "meter fills" job rather than opening a fifth one. */
+  --tau-meter-track: oklch(0.945 0.020 162);
+}
+
+/* ===================================================================
+ * DARK
+ * Charcoal, not forest. A dark theme tinted toward the brand becomes
+ * a green room; the accent stops reading as an accent.
+ * =================================================================== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tau-forest:      #6FBF95;
+    --tau-forest-lift: #8CD1AC;
+    --tau-sage:        #4F9973;
+    --tau-on-forest:   #12211A;
+
+    --tau-bg:        #16181A;
+    --tau-surface:   #1C1F21;
+    --tau-surface-2: #232729;
+    --tau-surface-3: #2D3134;
+
+    --tau-ink:       #E9EBEC;
+    --tau-ink-soft:  #A2A9AE;
+    --tau-ink-faint: #858C92;
+
+    --tau-line:        #2D3134;
+    --tau-line-strong: #3E4448;
+
+    --tau-band-1-bg: oklch(0.26 0.030 32);   --tau-band-1-fg: oklch(0.82 0.070 32);
+    --tau-band-2-bg: oklch(0.26 0.034 72);   --tau-band-2-fg: oklch(0.85 0.075 72);
+    --tau-band-3-bg: oklch(0.26 0.032 242);  --tau-band-3-fg: oklch(0.83 0.065 242);
+    --tau-band-4-bg: oklch(0.26 0.034 162);  --tau-band-4-fg: oklch(0.86 0.070 162);
+
+    --tau-positive:  oklch(0.76 0.11 158);
+    --tau-caution:   oklch(0.79 0.11 72);
+    --tau-attention: oklch(0.75 0.11 32);
+
+    --tau-positive-bg:  oklch(0.26 0.032 158);
+    --tau-caution-bg:   oklch(0.26 0.034 72);
+    --tau-attention-bg: oklch(0.26 0.032 32);
+
+    --tau-auditor:    oklch(0.80 0.09 300);
+    --tau-auditor-bg: oklch(0.25 0.035 300);
+
+    --tau-origin-you-bg:      oklch(0.27 0.035 162);
+    --tau-origin-together-bg: oklch(0.25 0.022 162);
+
+    --tau-meter-track: oklch(0.30 0.030 162);
+    --tau-scrim:       #00000099;
+
+    --tau-shadow:      0 1px 2px #0006, 0 8px 24px -16px #0009;
+    --tau-shadow-lift: 0 2px 4px #0006, 0 18px 40px -22px #000c;
+  }
+}
+
+/* A reader's explicit choice outranks the OS in both directions. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --tau-forest: #6FBF95; --tau-forest-lift: #8CD1AC; --tau-sage: #4F9973; --tau-on-forest: #12211A;
+  --tau-bg: #16181A; --tau-surface: #1C1F21; --tau-surface-2: #232729; --tau-surface-3: #2D3134;
+  --tau-ink: #E9EBEC; --tau-ink-soft: #A2A9AE; --tau-ink-faint: #858C92;
+  --tau-line: #2D3134; --tau-line-strong: #3E4448;
+  --tau-band-1-bg: oklch(0.26 0.030 32);  --tau-band-1-fg: oklch(0.82 0.070 32);
+  --tau-band-2-bg: oklch(0.26 0.034 72);  --tau-band-2-fg: oklch(0.85 0.075 72);
+  --tau-band-3-bg: oklch(0.26 0.032 242); --tau-band-3-fg: oklch(0.83 0.065 242);
+  --tau-band-4-bg: oklch(0.26 0.034 162); --tau-band-4-fg: oklch(0.86 0.070 162);
+  --tau-positive: oklch(0.76 0.11 158); --tau-caution: oklch(0.79 0.11 72); --tau-attention: oklch(0.75 0.11 32);
+  --tau-positive-bg: oklch(0.26 0.032 158); --tau-caution-bg: oklch(0.26 0.034 72); --tau-attention-bg: oklch(0.26 0.032 32);
+  --tau-auditor: oklch(0.80 0.09 300); --tau-auditor-bg: oklch(0.25 0.035 300);
+  --tau-origin-you-bg: oklch(0.27 0.035 162); --tau-origin-together-bg: oklch(0.25 0.022 162);
+  --tau-meter-track: oklch(0.30 0.030 162);
+  --tau-scrim: #00000099;
+  --tau-shadow: 0 1px 2px #0006, 0 8px 24px -16px #0009;
+  --tau-shadow-lift: 0 2px 4px #0006, 0 18px 40px -22px #000c;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --tau-forest: #1F4D3A; --tau-forest-lift: #2A6349; --tau-sage: #3D7A5A; --tau-on-forest: #FFFFFF;
+  --tau-bg: #FFFFFF; --tau-surface: #FFFFFF; --tau-surface-2: #F6F7F8; --tau-surface-3: #ECEEEF;
+  --tau-ink: #16191C; --tau-ink-soft: #545B63; --tau-ink-faint: #767D85;
+  --tau-line: #E4E6E8; --tau-line-strong: #C9CDD1;
+  --tau-band-1-bg: oklch(0.951 0.018 32);  --tau-band-1-fg: oklch(0.42 0.058 32);
+  --tau-band-2-bg: oklch(0.953 0.022 72);  --tau-band-2-fg: oklch(0.38 0.058 68);
+  --tau-band-3-bg: oklch(0.948 0.018 242); --tau-band-3-fg: oklch(0.34 0.052 244);
+  --tau-band-4-bg: oklch(0.948 0.022 162); --tau-band-4-fg: oklch(0.30 0.048 162);
+  --tau-positive: oklch(0.50 0.10 158); --tau-caution: oklch(0.52 0.11 68); --tau-attention: oklch(0.50 0.12 32);
+  --tau-positive-bg: oklch(0.96 0.022 158); --tau-caution-bg: oklch(0.96 0.024 72); --tau-attention-bg: oklch(0.96 0.022 32);
+  --tau-auditor: oklch(0.42 0.09 300); --tau-auditor-bg: oklch(0.965 0.015 300);
+  --tau-origin-you-bg: oklch(0.955 0.022 162); --tau-origin-together-bg: oklch(0.962 0.014 162);
+  --tau-meter-track: oklch(0.945 0.020 162);
+  --tau-scrim: #16191C66;
+  --tau-shadow: 0 1px 2px #16191C0F, 0 8px 24px -16px #16191C2E;
+  --tau-shadow-lift: 0 2px 4px #16191C14, 0 18px 40px -22px #16191C3D;
+}
+
+/* ===================================================================
+ * SECTION 4 — LEGACY BRIDGE  (temporary; delete as it empties)
+ *
+ * style.css and report.css grew separate vocabularies that happen to
+ * agree on meaning: --border is always a hairline, --text always ink,
+ * --muted always secondary. That agreement is what lets one bridge
+ * serve both files.
+ *
+ * Track progress with:
+ *   grep -rc 'var(--border' app/web/
+ * When a legacy name hits zero, delete its line here.
+ * =================================================================== */
+:root {
+  /* --- ground: both files --- */
+  --bg:      var(--tau-bg);
+  --surface: var(--tau-surface);   /* report.css */
+  --surface2:var(--tau-surface-2);
+  --border:  var(--tau-line);
+
+  /* --- ink --- */
+  --text:       var(--tau-ink);
+  --muted:      var(--tau-ink-soft);
+  --text-muted: var(--tau-ink-soft);
+  --text-mid:   var(--tau-ink-soft);
+
+  /* --- accent: was #2563eb / #3B3EA8 blue, now forest --- */
+  --accent:       var(--tau-forest);
+  --accent-fill:  var(--tau-forest-lift);
+
+  /* --- report.css hue set. These named themselves after colours
+         rather than roles, which is why they need interpreting:
+         blue = neutral/structural, green = positive, terra = attention. --- */
+  --blue:       var(--tau-band-3-fg);
+  --blue-mid:   var(--tau-band-3-fg);
+  --blue-light: var(--tau-band-3-bg);
+  --blue-tint:  var(--tau-band-3-bg);
+  --green:      var(--tau-positive);
+  --green-tint: var(--tau-positive-bg);
+  --amber:      var(--tau-caution);
+  --amber-tint: var(--tau-caution-bg);
+  --terra:       var(--tau-attention);
+  --terra-light: var(--tau-attention-bg);
+  --terra-tint:  var(--tau-attention-bg);
+  --grey-tint:   var(--tau-surface-2);
+
+  /* --- SAMR: was slate/blue/green/purple, four unrelated hues on an
+         ordered scale. Now the ordered earth ramp. --- */
+  --samr-substitution: var(--tau-band-1-fg);
+  --samr-augmentation: var(--tau-band-2-fg);
+  --samr-modification: var(--tau-band-3-fg);
+  --samr-redefinition: var(--tau-band-4-fg);
+
+  /* --- turn labels. 17 pairs collapsed onto three semantic families,
+         matching the existing positive / neutral / negative grouping
+         already commented in report.css. --- */
+  --label-challenge:  var(--tau-positive-bg);  --label-challenge-text:  var(--tau-positive);
+  --label-rejection:  var(--tau-positive-bg);  --label-rejection-text:  var(--tau-positive);
+  --label-refinement: var(--tau-positive-bg);  --label-refinement-text: var(--tau-positive);
+  --label-claim:      var(--tau-positive-bg);  --label-claim-text:      var(--tau-positive);
+  --label-conceptual: var(--tau-positive-bg);  --label-conceptual-text: var(--tau-positive);
+  --label-narrative:  var(--tau-positive-bg);  --label-narrative-text:  var(--tau-positive);
+
+  --label-pivot:      var(--tau-band-3-bg);    --label-pivot-text:      var(--tau-band-3-fg);
+  --label-feedback:   var(--tau-band-3-bg);    --label-feedback-text:   var(--tau-band-3-fg);
+  --label-extraction: var(--tau-band-3-bg);    --label-extraction-text: var(--tau-band-3-fg);
+
+  --label-validation: var(--tau-caution-bg);   --label-validation-text: var(--tau-caution);
+  --label-stuck:      var(--tau-caution-bg);   --label-stuck-text:      var(--tau-caution);
+
+  --label-ai-content:     var(--tau-surface-2); --label-ai-content-text:     var(--tau-ink-soft);
+  --label-ai-definition:  var(--tau-surface-2); --label-ai-definition-text:  var(--tau-ink-soft);
+  --label-ai-argument:    var(--tau-surface-2); --label-ai-argument-text:    var(--tau-ink-soft);
+  --label-ai-example:     var(--tau-surface-2); --label-ai-example-text:     var(--tau-ink-soft);
+  --label-ai-instruction: var(--tau-surface-2); --label-ai-instruction-text: var(--tau-ink-soft);
+  --label-ai-correction:  var(--tau-surface-2); --label-ai-correction-text:  var(--tau-ink-soft);
+}
+
+/* ===================================================================
+ * BASELINE
+ * The three accessibility defaults v7 asserted but did not ship.
+ * =================================================================== */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: var(--tau-focus-ring);
+  outline-offset: var(--tau-focus-gap);
+  border-radius: var(--tau-r-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 100vh is wrong on mobile Safari with the keyboard open — the exact
+   condition a student writing on a phone hits. */
+@supports (height: 100dvh) {
+  .view, .full-height { height: 100dvh; }
+}

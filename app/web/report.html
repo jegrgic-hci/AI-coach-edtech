@@ -1,37 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Draft Report</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
 <link rel="stylesheet" href="report.css">
+<script src="theme.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
-<style>
-/* report-page chrome on top of the ported CTA styles */
-.report-topbar { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
-.report-topbar a { color: var(--muted); text-decoration: none; font-size: 14px; }
-.report-topbar a:hover { color: var(--accent); }
-.report-topbar h1 { font-size: 20px; margin: 0; }
-#pending { text-align: center; color: var(--muted); padding: 90px 0; }
-#pending .spinner {
-  width: 30px; height: 30px; margin: 0 auto 16px;
-  border: 3px solid var(--border); border-top-color: var(--accent);
-  border-radius: 50%; animation: rspin 0.9s linear infinite;
-}
-@keyframes rspin { to { transform: rotate(360deg); } }
-.snapshot-strength { border-left: 3px solid var(--accent); padding: 6px 14px; margin-bottom: 12px; }
-.snapshot-strength .quote { font-style: italic; }
-.snapshot-strength .note { font-size: 13px; color: var(--muted); margin-top: 4px; }
-.snapshot-growth { padding: 8px 14px; background: #eff6ff; border-radius: 8px; margin-bottom: 8px; font-size: 14px; }
-.snapshot-bridge { font-size: 14px; color: var(--muted); margin-top: 12px; line-height: 1.5; }
-#results { flex-direction: column; gap: 16px; }
-</style>
 </head>
 <body>
 <div class="results-layout">
   <div class="report-topbar">
     <a href="/" id="backLink">&larr; Back to assignment</a>
     <h1 id="pageTitle">Draft report</h1>
+    <button class="theme-toggle theme-toggle-end" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
   </div>
 
   <div id="pending">
@@ -42,18 +26,19 @@
   <div id="results">
     <div id="samrHero"></div>
 
-    <div class="panel" id="summaryPanel">
-      <div class="section-header" style="margin-bottom:12px">Your Score</div>
-      <div class="summary-grid" id="summaryGrid"></div>
+    <div class="card" id="summaryPanel">
+      <span class="eyebrow">The four things this looks at</span>
+      <div class="dims" id="summaryGrid"></div>
+      <div class="dim-details" id="dimDetails"></div>
     </div>
 
-    <div class="panel" id="snapshotPanel">
-      <div class="section-header" style="margin-bottom:12px">What stood out</div>
+    <div class="card" id="snapshotPanel">
+      <span class="eyebrow">What stood out</span>
       <div id="snapshotContent"></div>
     </div>
 
-    <div class="panel" id="tabsPanel">
-      <div class="section-header" style="margin-bottom:12px">Your session breakdown</div>
+    <div class="card" id="tabsPanel">
+      <span class="eyebrow">Your session breakdown</span>
       <div class="tab-bar">
         <button class="tab-btn active" data-tab="chart">Agency Chart</button>
         <button class="tab-btn" data-tab="reflect">My Session</button>
@@ -77,16 +62,11 @@
         <div id="provenanceContent">
           <div class="provenance-grid">
             <div>
-              <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Essay — Concept Origin</div>
-              <div class="prov-legend">
-                <div class="prov-legend-item"><span class="prov-swatch student-born"></span>Student-Born</div>
-                <div class="prov-legend-item"><span class="prov-swatch ai-born"></span>AI-Born</div>
-                <div class="prov-legend-item"><span class="prov-swatch synthesized"></span>Synthesized</div>
-              </div>
+              <span class="eyebrow">Your draft, by where each idea started</span>
               <div class="essay-heatmap" id="essayHeatmap"></div>
             </div>
             <div>
-              <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Concept Inventory</div>
+              <span class="eyebrow">Every idea we could trace</span>
               <div class="concept-list" id="conceptList"></div>
             </div>
           </div>
@@ -135,6 +115,7 @@
   <div class="turn-modal-box" id="turnModalBox"></div>
 </div>
 
+<script src="api.js"></script>
 <script src="report-render.js"></script>
 <script src="report-boot.js"></script>
 </body>

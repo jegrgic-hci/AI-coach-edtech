@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in — Writing Coach</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+</head>
+<body class="login-body">
+
+<button class="theme-toggle theme-toggle-floating" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
+
+<main class="login-card">
+  <h1>Writing Coach</h1>
+  <p class="login-sub">Sign in to see your assignments and your drafts.</p>
+
+  <!-- The real path after Phase A: domain-restricted Google SSO. Shown now,
+       disabled, so the pilot UI doesn't have to be relearned later. -->
+  <button class="google-btn" disabled>
+    <span class="google-mark" aria-hidden="true">G</span>
+    Sign in with school Google
+    <span class="soon">coming soon</span>
+  </button>
+
+  <div class="login-divider"><span>or use a test account</span></div>
+
+  <form id="loginForm" novalidate>
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" autocomplete="username" required>
+
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required>
+
+    <p class="login-error hidden" id="loginError" role="alert"></p>
+    <button type="submit" class="login-submit" id="loginSubmit">Sign in</button>
+  </form>
+
+  <details class="test-accounts">
+    <summary>Test accounts</summary>
+    <p class="test-hint">Password for all accounts: <code>coach1234</code></p>
+    <ul id="testAccounts"></ul>
+  </details>
+</main>
+
+<script src="api.js"></script>
+<script src="login.js"></script>
+</body>
+</html>

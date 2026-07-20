@@ -3,7 +3,10 @@
 // collection/doc shape so the swap is mechanical.
 //
 // Collections (the Phase B data model):
-//   users         { id, email, displayName, role: 'student'|'teacher', createdAt }
+//   users         { id, email, displayName, role: 'student'|'teacher', createdAt,
+//                   passwordHash, passwordSalt }   (dev-only; prod is SSO)
+//   authSessions  dev login sessions — replaced by Firebase ID tokens in prod:
+//                 { id, userId, token, createdAt, expiresAt }
 //   assignments   { id, teacherId, title, prompt, dueDate, draftBudget,
 //                   coachingLevels: ['full','full','questions','sounding-board'], createdAt }
 //   sessions      one per revision cycle:

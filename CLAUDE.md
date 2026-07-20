@@ -1,6 +1,23 @@
 # CTA — Critical Thinking Auditor
 
-## Overview
+## Start here — which codebase are you in?
+
+This repo holds **two things**. Most current work is in the second.
+
+| | What | Status |
+|---|---|---|
+| **`index.html`** (+ `teacher-dashboard.html`) | The original single-file paste-in CTA. Everything below in this file describes *this*. | Mature. **Do not modify** — it must stay revertible (pre-Path-B state: commit `1b1c36c`). Code is copied *out* of it into `app/`, never edited. |
+| **`app/`** | Path B — the built-in chat app students actually use: login, coach chat, submission pipeline, reports, teacher dashboard. | Where active work happens. |
+
+**For any work on `app/`, read `built-in-chat-plan.md` first — it is the source of truth** for design decisions, phase status, the backlog, and a session log of what each build session did. `app/README.md` is the implementation companion (seams, test accounts, what's built, what isn't).
+
+**For any design, CSS, or UI work in `app/`, also read `designsystem.md`** — locked decisions, colour and voice rules, component inventory, and the implementation plan. The system itself lives in `app/web/tokens.css`. The v7 standalone design-system HTML at the repo root is **superseded**; do not build from it.
+
+Run it: `node app/server/index.js` → http://localhost:8787. Everything is behind a login; test accounts are in `app/README.md`.
+
+---
+
+## Overview (the single-file CTA — `index.html`)
 
 A single-file, client-side web app (`index.html`) that analyzes how a student used AI during a writing or research task. It produces a TAU Score (four dimensions, each 1–5) and a divergence chart visualization of idea thread development.
 
