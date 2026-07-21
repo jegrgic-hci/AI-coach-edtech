@@ -96,7 +96,7 @@ Settled. Don't relitigate without a reason that's changed.
 | **Students see the total and all four dimension scores.** | Confirmed 2026-07-20. Obliges two rules — see *Score display rules* below. |
 | **The divergence chart is student-facing.** | It's the visual map of their interaction. Inherits the coach-voice rule: describes, never judges. |
 | **Dropped connections get real states, not a toast.** | Every turn is persisted server-side as sent, so the copy is allowed to promise the work is safe. |
-| **White ground, forest as accent only.** | A tool people sit inside for an hour should recede. v7 tinted the greys, shadows and page ground toward sage, which reads as a brand demo. |
+| **Forest-washed ground in light theme, card surfaces stay white.** *(Revised 2026-07-21 — was "white ground, forest as accent only.")* | The all-neutral ground was itself the "white-washed tool with a green accent" problem the product owner flagged — forest is the brand colour, not just an accent. The wash is whisper-quiet (`oklch` chroma 0.006–0.010, same hue as forest) so it doesn't repeat v7's mistake of a saturated brand-demo tint; `--tau-surface` (cards, panels) is untouched pure white so content still separates from the ground. Dark theme is unchanged — see the next row. |
 | **SAMR is a subtitle, never the primary label.** | PD jargon. Students don't know it; teachers who missed that inservice don't either. |
 | **Both light and dark themes ship.** | Students write at night, on phones. Dark is charcoal, not forest — a brand-tinted dark theme becomes a green room. |
 | **Light is the default for everyone; the OS preference is ignored.** | Confirmed 2026-07-20. A teacher projecting the tool shouldn't get a different screen from the class because their laptop is in dark mode. Dark is a choice a reader makes, not one the device makes for them. |
@@ -107,9 +107,10 @@ Settled. Don't relitigate without a reason that's changed.
 ## Rules that constrain design choices
 
 ### Colour
-- **Forest gets four jobs and no others:** interactive text, primary fills, meter fills, and the rule marking a system message.
+- **Forest gets six jobs and no others:** interactive text, primary fills, meter fills, the rule marking a system message, the light-theme ground wash (2026-07-21), and — new the same day — a student's own score numerals (`.report-total-n`, `.dim-val .n`).
 - **Sage is fill-only.** It fails contrast as text.
-- **Neutrals stay neutral.** No brand tint in greys, shadows, or panel fills.
+- **Neutrals stay neutral past the ground wash.** The page background (`--tau-bg`/`--tau-surface-2`/`--tau-surface-3`) carries a whisper of forest; card surfaces (`--tau-surface`), shadows, and panel fills do not. The wash is one deliberate, quiet exception — it is not licence to tint greys generally.
+- **Forest on a score numeral is brand identity, not a verdict, because it never varies with the value.** A 5/20 and a 20/20 render in the exact same colour and weight — this is the one place a value-keyed rule could look like it's being broken, so it's worth stating why it isn't: *semantic* colour (positive/caution/attention) still never touches a score. This is a fixed brand treatment applied uniformly regardless of the number, same category as the SAMR band pip.
 - **Semantic colour (positive/caution/attention) never touches a student's own score.** A level is a position on a path, not a verdict. Semantic is for direction-of-travel and teacher-side signals only.
 - **SAMR band foregrounds step down in lightness 1→4.** Do not reorder — the ramp carries meaning in greyscale and for colour-blind readers on its own.
 - **Colour is never the only channel.** Anything encoded by hue is also encoded by shape, weight, dash, or text.
@@ -914,3 +915,48 @@ Not done, and deliberately: the `--label-*`/`--samr-*` alias group in `tokens.cs
 only thing keeping the bridge section non-empty, along with a few stray `--muted`/`--text`
 references in `teacher.js` and `report-render.js`), and the value-ramp colours in
 `renderHorizChart()` (see *Known debt*) — both pre-existing, neither touched by this session.
+
+**2026-07-21 — brand-as-ground, then report score hierarchy**
+
+Two changes in one session, both colour-hierarchy work, no markup restructuring beyond the
+report hero.
+
+**Forest reclassified from accent to brand colour.** The product owner's original ask ("green as
+an accent") should have been "green is the brand colour" — the previous locked decision ("white
+ground, forest as accent only") was quietly the thing making the app read as "white-washed with
+a green accent" rather than a branded tool. Added a whisper-quiet forest wash (oklch chroma
+0.006–0.010, same hue as forest) to `--tau-bg`/`--tau-surface-2`/`--tau-surface-3`/`--tau-line`
+in light theme only — `--tau-surface` (cards, panels) stays pure white so content still separates
+from the ground, and dark theme is untouched (the existing "charcoal, not forest" rule still
+holds — a tinted dark theme becomes a green room, which this change does not want either).
+Verified: every `var()` still resolves, login screen screenshot in both themes, contrast
+unaffected because only chroma moved, not lightness.
+
+**Report score hierarchy rebuilt** after the wash made the existing report read flatter than
+before — every card, number, and label was close enough in size and weight that nothing told a
+reader where to look first. Two changes, both about visual weight rather than new layout:
+
+1. **Hero reordered.** The total score used to render *after* the narrative lede and the band
+   chip, so a glance landed on a sentence before the number. Now the total leads (`--tau-text-
+   display`, 50px, forest, weight 700), the band chip and trend sit beside it, and the lede
+   becomes a caption below a hairline rule — supporting text, not the opening line.
+2. **The four-dimension strip's number now dominates its own card.** `.dim-val .n` went from
+   19px to 24px/weight 700/forest; `.dim-name` dropped from 14.5px/600 to 13px/500/`--tau-ink-
+   soft`. The two were close enough in size before that the label competed with the number for
+   attention inside a four-column strip that's supposed to be scannable at a glance.
+
+**Forest on a score numeral needed its own justification**, because "semantic colour never
+touches a student's score" is a locked rule and colouring the score forest could look like the
+same mistake with extra steps. The distinction: semantic colour (positive/caution/attention)
+varies *by value* — a verdict. Forest here is fixed regardless of value — confirmed by screenshotting
+Devon's 5/20 next to Maya's 20/20: both numerals render in identical forest, at identical weight,
+same as the SAMR band pip already does. Written into *Rules that constrain design choices* so a
+future session doesn't have to re-derive this the same way.
+
+Verified across three accounts via a same-origin driver (fetch login, then `location.replace` to
+the real report URL — `document.write`ing the fetched HTML does not carry the query string, since
+the document's own location doesn't change; discovered this before it cost a session): Maya
+draft 3 (20/20, rising trend, light and dark), Devon draft 1 (5/20, Substitution band, light) —
+low score renders with the same visual confidence as the high one, nothing about the new
+hierarchy reads as harsher at the bottom of the scale. Driver file deleted after; no submissions
+or sessions written to `app/data/` (both accounts only hit login + report GET).

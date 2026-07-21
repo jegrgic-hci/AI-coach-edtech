@@ -29,21 +29,27 @@
   --tau-on-forest:   #FFFFFF;
 
   /* ---------------------------------------------------------------
-   * 2. GROUND — white, with genuinely neutral greys.
-   * Tinting these toward the brand is what made v7 read as a brand
-   * demo rather than a tool.
+   * 2. GROUND — a faint forest wash, with card surfaces left white.
+   * Forest is the brand colour, not just an accent (revised
+   * 2026-07-21) — v7's fully-neutral ground was the "white-washed
+   * with a green accent" problem, not the fix for it. The wash stays
+   * whisper-quiet (chroma 0.006–0.010, same hue as forest) so it
+   * reads as identity, not as v7's saturated brand-demo tint: --tau-
+   * surface (cards, panels) stays pure white so content still pops
+   * off the ground, and body-text contrast ratios are unchanged
+   * because only chroma moved, not lightness.
    * --------------------------------------------------------------- */
-  --tau-bg:        #FFFFFF;
+  --tau-bg:        oklch(0.992 0.006 162);
   --tau-surface:   #FFFFFF;
-  --tau-surface-2: #F6F7F8;
-  --tau-surface-3: #ECEEEF;
+  --tau-surface-2: oklch(0.968 0.008 162);
+  --tau-surface-3: oklch(0.938 0.010 162);
 
   --tau-ink:       #16191C;
   --tau-ink-soft:  #545B63;
   --tau-ink-faint: #767D85;
 
-  --tau-line:        #E4E6E8;
-  --tau-line-strong: #C9CDD1;
+  --tau-line:        oklch(0.895 0.008 162);
+  --tau-line-strong: oklch(0.815 0.010 162);
 
   /* ---------------------------------------------------------------
    * 3. SAMR BANDS
@@ -257,9 +263,9 @@
 :root[data-theme="light"] {
   color-scheme: light;
   --tau-forest: #1F4D3A; --tau-forest-lift: #2A6349; --tau-sage: #3D7A5A; --tau-on-forest: #FFFFFF;
-  --tau-bg: #FFFFFF; --tau-surface: #FFFFFF; --tau-surface-2: #F6F7F8; --tau-surface-3: #ECEEEF;
+  --tau-bg: oklch(0.992 0.006 162); --tau-surface: #FFFFFF; --tau-surface-2: oklch(0.968 0.008 162); --tau-surface-3: oklch(0.938 0.010 162);
   --tau-ink: #16191C; --tau-ink-soft: #545B63; --tau-ink-faint: #767D85;
-  --tau-line: #E4E6E8; --tau-line-strong: #C9CDD1;
+  --tau-line: oklch(0.895 0.008 162); --tau-line-strong: oklch(0.815 0.010 162);
   --tau-band-1-bg: oklch(0.951 0.018 32);  --tau-band-1-fg: oklch(0.42 0.058 32);
   --tau-band-2-bg: oklch(0.953 0.022 72);  --tau-band-2-fg: oklch(0.38 0.058 68);
   --tau-band-3-bg: oklch(0.948 0.018 242); --tau-band-3-fg: oklch(0.34 0.052 244);

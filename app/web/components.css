@@ -173,7 +173,10 @@
   gap: 9px;
 }
 .dim:last-child { border-right: none; }
-/* PQ / SU / CS / OC. Mono because it is a code, not a word to be read aloud. */
+/* PQ / SU / CS / OC. Mono because it is a code, not a word to be read aloud.
+   Sits with the full name as one quiet caption row — the number below is
+   what the eye is meant to land on, so the label can't compete with it. */
+.dim-head { display: flex; align-items: baseline; gap: 6px; }
 .dim-abbr {
   font-family: var(--tau-font-mono);
   font-size: var(--tau-text-xs);
@@ -181,9 +184,12 @@
   color: var(--tau-forest);
   letter-spacing: var(--tau-track-label);
 }
-.dim-name { font-size: var(--tau-text-md); font-weight: 600; line-height: var(--tau-leading-tight); }
-.dim-val { display: flex; align-items: baseline; gap: 5px; }
-.dim-val .n { font-size: var(--tau-text-xl); font-weight: 600; }
+.dim-name { font-size: var(--tau-text-sm); font-weight: 500; color: var(--tau-ink-soft); line-height: var(--tau-leading-tight); }
+.dim-val { display: flex; align-items: baseline; gap: 4px; }
+/* The number this whole strip exists to show. Forest, uniformly, regardless
+   of value — same reasoning as .report-total-n: brand identity on the
+   number's face, not a verdict painted onto a low score. */
+.dim-val .n { font-size: var(--tau-text-2xl); font-weight: 700; color: var(--tau-forest); line-height: 1; }
 /* The denominator is never optional — a bare "2" is a mark, "2 of 5" is a
    position. Same reason the total always carries its band. */
 .dim-val .of { font-size: var(--tau-text-sm); color: var(--tau-ink-faint); }

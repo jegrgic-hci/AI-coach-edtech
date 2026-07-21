@@ -79,6 +79,10 @@ const PAT_DESCRIPTIONS = {
   "flitting":           "Multiple topic pivots without substantive turns between them. Suggests the student is exploring without depth — no thread is being developed.",
   "argument-engaged":   "The AI made an argument and you pushed back with a challenge, rejection, or refinement. This is exactly the kind of critical engagement that develops independent thinking.",
   "missed-argument":    "The AI was making arguments but your responses stayed passive. These are missed opportunities to evaluate, challenge, or build on what the AI was presenting.",
+  "correction-held":    "The AI pushed back on something you said, and you engaged with it — challenging, refining, or holding your position with a reason — instead of immediately accepting the correction. Calibrated skepticism: not every AI correction is right.",
+  "capitulation":       "The AI corrected or disagreed with you and you accepted it right away, without asking why or pushing back. Sometimes the AI is right — but folding every time it disagrees lets its confidence, not the evidence, decide. Worth asking: was the correction actually justified?",
+  "assertion-questioned":"The AI stated something as established fact and you questioned it — asking for evidence or pushing back — rather than taking it at face value. This is the habit that keeps AI honest.",
+  "assertion-unquestioned":"The AI asserted a definition or fact and you accepted it or built on it without checking. Confident phrasing isn't evidence — a quick “how do you know that?” would have been worth it here.",
 };
 
 // s = student chip, a = ai chip; strings are rendered as separators/annotations
@@ -121,6 +125,18 @@ const PATTERN_SEQUENCES = {
   "flitting": [
     {t:"a",l:"content"}, "→", {t:"s",l:"pivot"},
     "→", {t:"a",l:"follows topic"}, "→", {t:"s",l:"pivot"}, "→", "···", "×3+",
+  ],
+  "correction-held": [
+    {t:"a",l:"correction"}, "→", {t:"s",l:"challenge / rejection / refinement"},
+  ],
+  "assertion-questioned": [
+    {t:"a",l:"definition"}, "→", {t:"s",l:"challenge / rejection"},
+  ],
+  "capitulation": [
+    {t:"a",l:"correction"}, "→", {t:"s",l:"validation / extraction"},
+  ],
+  "assertion-unquestioned": [
+    {t:"a",l:"definition"}, "→", {t:"s",l:"validation / extraction"},
   ],
 };
 
@@ -262,23 +278,51 @@ function detectPatterns(classified) {
     }
   }
 
+  // Interaction moments (single-turn, keyed on the AI turn that set up the choice).
+  // The AI turn and the student's response carry opposite meanings depending on
+  // each other, so these can only be read from the two-sided record.
+  const ENGAGED_RESP = new Set(["challenge", "rejection", "refinement"]);
+  const FOLD_RESP    = new Set(["validation", "extraction"]);
+  for (let i = 0; i < n; i++) {
+    // Pushback moment: the AI corrected or disagreed with the student
+    if (aiLabels[i] === "correction") {
+      if (ENGAGED_RESP.has(labels[i])) {
+        patterns.push({ start: i, end: i, id: "correction-held", label: "Held Ground", tier: "high" });
+      } else if (FOLD_RESP.has(labels[i])) {
+        patterns.push({ start: i, end: i, id: "capitulation", label: "Capitulation", tier: "low" });
+      }
+    }
+    // Assertion moment: the AI stated a definition/fact as established
+    if (aiLabels[i] === "definition") {
+      if (labels[i] === "challenge" || labels[i] === "rejection") {
+        patterns.push({ start: i, end: i, id: "assertion-questioned", label: "Questioned Assertion", tier: "high" });
+      } else if (FOLD_RESP.has(labels[i])) {
+        patterns.push({ start: i, end: i, id: "assertion-unquestioned", label: "Unquestioned Assertion", tier: "low" });
+      }
+    }
+  }
+
   return patterns;
 }
 
 function renderPatternGuide() {
   const HIGH = [
-    { id: "challenge-arc",      label: "Challenge Arc" },
-    { id: "argument-engaged",   label: "Argument Engaged" },
-    { id: "rejection-redirect", label: "Rejection → Redirect" },
-    { id: "claim-support",      label: "Claim-Support Cycle" },
-    { id: "extraction-landing", label: "Extraction → Insight" },
+    { id: "challenge-arc",        label: "Challenge Arc" },
+    { id: "argument-engaged",     label: "Argument Engaged" },
+    { id: "rejection-redirect",   label: "Rejection → Redirect" },
+    { id: "claim-support",        label: "Claim-Support Cycle" },
+    { id: "extraction-landing",   label: "Extraction → Insight" },
+    { id: "correction-held",      label: "Held Ground" },
+    { id: "assertion-questioned", label: "Questioned Assertion" },
   ];
   const PASSIVE = [
-    { id: "extraction-loop",   label: "Extraction Loop" },
-    { id: "validation-spiral", label: "Validation Spiral" },
-    { id: "helplessness-loop", label: "Helplessness Loop" },
-    { id: "missed-argument",   label: "Missed Argument" },
-    { id: "flitting",          label: "Flitting" },
+    { id: "extraction-loop",        label: "Extraction Loop" },
+    { id: "validation-spiral",      label: "Validation Spiral" },
+    { id: "helplessness-loop",      label: "Helplessness Loop" },
+    { id: "missed-argument",        label: "Missed Argument" },
+    { id: "capitulation",           label: "Capitulation" },
+    { id: "assertion-unquestioned", label: "Unquestioned Assertion" },
+    { id: "flitting",               label: "Flitting" },
   ];
   function renderSeq(id) {
     const seq = PATTERN_SEQUENCES[id];
@@ -453,6 +497,8 @@ function renderAgencyChart(classified) {
     "claim-support":"Claim-Support Cycle", "extraction-landing":"Extraction → Insight",
     "extraction-loop":"Extraction Loop", "validation-spiral":"Validation Spiral",
     "helplessness-loop":"Helplessness Loop", "flitting":"Flitting", "missed-argument":"Missed Argument",
+    "correction-held":"Held Ground", "capitulation":"Capitulation",
+    "assertion-questioned":"Questioned Assertion", "assertion-unquestioned":"Unquestioned Assertion",
   };
   const rawPatterns = detectPatterns(classified);
   const patterns = rawPatterns.map(p => ({
@@ -920,16 +966,20 @@ function renderReportHero(scores, history) {
 
   return `
     <div class="card card-lg report-hero">
-      <p class="report-lede">${esc(SAMR_DESCRIPTIONS[SAMR])}</p>
-      <div class="report-band">
-        <span class="band band-${band.n}"><i class="band-pip"></i>${esc(band.label)}</span>
-        <span class="band-sub">${esc(SAMR)} on the SAMR scale</span>
-      </div>
-      <div class="report-total">
-        <span class="report-total-n">${totalScore}</span>
-        <span class="report-total-of">of 20</span>
+      <div class="report-headline">
+        <div class="report-headline-main">
+          <div class="report-total">
+            <span class="report-total-n">${totalScore}</span>
+            <span class="report-total-of">of 20</span>
+          </div>
+          <div class="report-band">
+            <span class="band band-${band.n}"><i class="band-pip"></i>${esc(band.label)}</span>
+            <span class="band-sub">${esc(SAMR)} on the SAMR scale</span>
+          </div>
+        </div>
         <span class="traj report-traj">${renderTrajectory(history, totalScore)}</span>
       </div>
+      <p class="report-lede">${esc(SAMR_DESCRIPTIONS[SAMR])}</p>
     </div>`;
 }
 
@@ -1080,8 +1130,10 @@ function renderSummary(scores) {
       .map((i) => `<i class="${i <= n ? "on" : ""}"></i>`).join("");
     return `
       <div class="dim">
-        <span class="dim-abbr">${k}</span>
-        <span class="dim-name">${DIM_NAMES[k]}</span>
+        <div class="dim-head">
+          <span class="dim-abbr">${k}</span>
+          <span class="dim-name">${DIM_NAMES[k]}</span>
+        </div>
         <span class="dim-val"><span class="n">${n}</span><span class="of">of 5</span></span>
         <span class="steps" role="img" aria-label="${n} out of 5">${pips}</span>
       </div>`;
