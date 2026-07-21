@@ -67,11 +67,8 @@
         <summary>Assignment prompt</summary>
         <p id="wsPrompt"></p>
       </details>
-      <div class="drafts-meter" id="draftsMeter"></div>
-      <div class="drafts-list" id="draftsList"></div>
     </div>
-    <button class="new-conv-btn" id="btnNewConv">+ New conversation</button>
-    <nav class="conv-list" id="convList"></nav>
+    <nav class="draft-sections" id="draftSections"></nav>
     <div class="sidebar-footer">
       <button id="btnSaveClose">Save &amp; close</button>
       <button id="btnSubmit" class="submit-btn">Submit draft</button>
@@ -84,6 +81,7 @@
       <button id="btnRename" title="Rename conversation">&#9998;</button>
       <button class="theme-toggle theme-toggle-end" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
     </div>
+    <div class="reading-banner hidden" id="readingBanner"></div>
     <div class="mode-banner hidden" id="coachMode"></div>
     <div class="messages" id="messages">
       <div class="empty-state" id="emptyState">
@@ -103,7 +101,6 @@
         <button id="btnSend" class="btn btn-primary btn-sm">Send</button>
       </div>
     </div>
-    <div class="locked-note hidden" id="lockedNote">This conversation was part of a submitted draft. You can read and copy from it, but it can't continue.</div>
   </section>
 </div>
 

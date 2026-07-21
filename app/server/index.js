@@ -221,8 +221,6 @@ async function handleApi(req, res, user, route) {
       if (done) {
         past.push({ id: a.id, title: a.title, dueDate: a.dueDate, draftBudget: a.draftBudget, drafts });
       } else {
-        const nextCycle = submissions.length;
-        const levels = a.coachingLevels;
         // Live conversations in the open session — "where you left off" is part
         // of the card's hierarchy, not something to rediscover by opening it.
         const openConvs = active
@@ -231,6 +229,12 @@ async function handleApi(req, res, user, route) {
         const lastActiveAt = openConvs.length
           ? openConvs.map((c) => c.lastActiveAt || c.createdAt).sort().pop()
           : null;
+        // The current draft's own state — distinct from the assignment's overall
+        // state. A submission on draft 1 does not make draft 2 "in progress": it
+        // is only in progress once the student has actually sent a message.
+        const hasActivity = openConvs.some(
+          (c) => col('turns').list((t) => t.conversationId === c.id).length > 0
+        );
         current.push({
           id: a.id,
           title: a.title,
@@ -238,11 +242,7 @@ async function handleApi(req, res, user, route) {
           dueDate: a.dueDate,
           draftBudget: a.draftBudget,
           draftsUsed: submissions.length,
-          // A submitted draft with no open session still counts as started —
-          // the next session isn't created until the student opens it.
-          status: active || submissions.length > 0 ? 'in-progress' : 'not-started',
-          nextCoachLabel: LEVELS[levels[Math.min(nextCycle, levels.length - 1)]].label,
-          nextCoachNote: LEVELS[levels[Math.min(nextCycle, levels.length - 1)]].modeNote,
+          hasActivity,
           conversationCount: openConvs.length,
           lastActiveAt,
           drafts,
@@ -311,11 +311,21 @@ async function handleApi(req, res, user, route) {
         .map((c) => ({ ...c, cycleIndex: s.cycleIndex }))
     );
 
+    // Same "has the student actually done anything on this draft yet" signal
+    // as the home view — a session existing (or an empty first conversation)
+    // isn't activity; a sent message is.
+    const hasActivity = session
+      ? conversations
+          .filter((c) => c.cycleIndex === session.cycleIndex)
+          .some((c) => col('turns').list((t) => t.conversationId === c.id).length > 0)
+      : false;
+
     return json(res, 200, {
       assignment,
       session: session || null,
       conversations,
       draftsUsed: submissions.length,
+      hasActivity,
       coachLabel: session ? LEVELS[session.coachingLevel].label : null,
       modeLead: session ? LEVELS[session.coachingLevel].modeLead : null,
       modeNote: session ? LEVELS[session.coachingLevel].modeNote : null,
@@ -478,12 +488,18 @@ async function handleApi(req, res, user, route) {
     const submissions = col('submissions')
       .list((s) => s.studentId === user.id && (!assignmentId || s.assignmentId === assignmentId))
       .sort((a, b) => a.cycleIndex - b.cycleIndex)
-      .map((s) => ({
-        id: s.id,
-        cycleIndex: s.cycleIndex,
-        submittedAt: s.submittedAt,
-        analysisStatus: s.analysisId ? col('analyses').get(s.analysisId)?.status : null,
-      }));
+      .map((s) => {
+        const analysis = s.analysisId ? col('analyses').get(s.analysisId) : null;
+        const complete = analysis?.status === 'complete';
+        return {
+          id: s.id,
+          cycleIndex: s.cycleIndex,
+          submittedAt: s.submittedAt,
+          analysisStatus: analysis?.status || null,
+          // Score summary only — flags stay teacher-only, enforced by never selecting them.
+          tau: complete ? { totalScore: analysis.tau.totalScore, SAMR: analysis.tau.SAMR } : null,
+        };
+      });
     return json(res, 200, submissions);
   }
 

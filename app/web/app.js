@@ -11,6 +11,9 @@ const state = {
   assignment: null,
   session: null,
   conversations: [],
+  submissions: [],
+  hasActivity: false,
+  expandedCycles: new Set(),
   conv: null,
   turns: [],
   streaming: false,
@@ -94,14 +97,61 @@ function dueInfo(iso) {
   return { text: `Due ${fmtDate(iso)}`, tone: 'calm', days };
 }
 
-// Says where this assignment stands when it carries no deadline — a card
-// eyebrow reading "No due date" earns nothing.
+// The eyebrow is about the deadline only — never progress. "In progress" /
+// "not started" describe a specific draft (see draftRowStatus below); saying
+// them here too, about the assignment as a whole, is exactly the collision
+// that made it unclear which draft was actually being talked about.
 function statusEyebrow(a) {
   const due = dueInfo(a.dueDate);
-  if (due.text) return due;
-  return a.status === 'not-started'
-    ? { text: 'Ready to start', tone: 'calm' }
-    : { text: 'In progress', tone: 'calm' };
+  return due.text ? due : { text: 'No due date', tone: 'calm' };
+}
+
+// Single vocabulary for what a draft's state means, shared by the home card's
+// draft list and the workspace sidebar's draft sections, so the two surfaces
+// never describe the same draft two different ways.
+//   submitted    — locked, sent to the teacher (scored, analyzing, or failed)
+//   in-progress  — this is the open draft and the student has sent a message
+//   not-started  — this is the open draft but nothing has been sent yet
+//   locked       — a future draft; can't open until the one before it submits
+function draftRowStatus(cycleIndex, { currentCycle, hasActivity, submission }) {
+  if (submission) {
+    if (!submission.tau) {
+      return {
+        key: 'submitted', label: 'Submitted',
+        detail: submission.analysisStatus === 'error' ? 'Report unavailable' : 'Analyzing your draft…',
+      };
+    }
+    return {
+      key: 'submitted', label: 'Submitted',
+      detail: `${submission.tau.totalScore}/20 · ${submission.tau.SAMR}`,
+      samr: submission.tau.SAMR,
+    };
+  }
+  if (currentCycle !== null && cycleIndex === currentCycle) {
+    return hasActivity
+      ? { key: 'in-progress', label: 'In progress' }
+      : { key: 'not-started', label: 'Not started' };
+  }
+  return {
+    key: 'locked', label: 'Not available yet',
+    detail: `Opens after Draft ${cycleIndex} is submitted`,
+  };
+}
+
+// One row per draft slot 1..budget — every draft is shown, whether or not it
+// exists yet, so a locked future draft reads as "not yours yet" rather than
+// silently missing.
+function draftRow(cycleIndex, status, reportId) {
+  const row = el('div', `draft-row draft-row-${status.key}` + (status.samr ? ` samr-${status.samr.toLowerCase()}` : ''));
+  row.append(el('span', 'draft-row-num', `Draft ${cycleIndex + 1}`));
+  row.append(el('span', `draft-row-status status-${status.key}`, status.label));
+  if (status.detail) row.append(el('span', 'draft-row-detail', status.detail));
+  if (status.key === 'submitted' && reportId) {
+    const link = el('button', 'draft-row-action', 'View report →');
+    link.onclick = () => showReport(reportId);
+    row.append(link);
+  }
+  return row;
 }
 
 function relTime(iso) {
@@ -304,18 +354,9 @@ function renderRail(home) {
   dimBlock.append(dimensionMeters(last.tau, prev ? prev.tau : null));
 }
 
-// Draft budget as dots: how far through the assignment you are, at a glance.
-function draftPips(used, budget) {
-  const wrap = el('span', 'pips');
-  wrap.setAttribute('aria-label', `Draft ${Math.min(used + 1, budget)} of ${budget}`);
-  for (let i = 0; i < budget; i++) {
-    wrap.append(el('span', 'pip' + (i < used ? ' pip-done' : i === used ? ' pip-current' : '')));
-  }
-  return wrap;
-}
-
 // Current assignment. Reading order is the order a student needs it in:
-// when is it due → what is it → where am I → what changes → what to do.
+// when is it due → what is it → where every draft stands → what changes →
+// what to do.
 function currentCard(a) {
   const card = el('article', 'acard');
   const eyebrow = statusEyebrow(a);
@@ -326,28 +367,27 @@ function currentCard(a) {
   top.append(el('h3', 'acard-title', a.title));
   card.append(top);
 
-  const state = el('div', 'acard-state');
-  const draftNo = Math.min(a.draftsUsed + 1, a.draftBudget);
-  const stat = el('div', 'acard-stat');
-  stat.append(el('span', 'acard-stat-label', 'Working on'));
-  const dline = el('span', 'acard-stat-val');
-  dline.append(document.createTextNode(`Draft ${draftNo} of ${a.draftBudget}`));
-  dline.append(draftPips(a.draftsUsed, a.draftBudget));
-  stat.append(dline);
-  state.append(stat);
+  // Mapped directly to the title it belongs to, not stranded at the bottom
+  // of the card past the draft list and actions.
+  const details = el('details', 'acard-prompt');
+  details.append(el('summary', null, 'Read the assignment prompt'));
+  details.append(el('p', null, a.prompt));
+  card.append(details);
 
-  const conv = el('div', 'acard-stat');
-  conv.append(el('span', 'acard-stat-label', 'Conversations'));
-  conv.append(el('span', 'acard-stat-val', a.conversationCount
-    ? `${a.conversationCount} open · last worked ${relTime(a.lastActiveAt)}`
-    : 'None yet'));
-  state.append(conv);
-  card.append(state);
-
-  const coach = el('p', 'acard-coach');
-  coach.append(el('strong', null, a.nextCoachLabel));
-  coach.append(document.createTextNode(a.nextCoachNote ? ` — ${a.nextCoachNote}` : ''));
-  card.append(coach);
+  // Every draft slot gets its own row and its own status — an assignment
+  // being "underway" says nothing about whether draft 2 specifically has
+  // been started, so that has to be read off its own row, not inferred.
+  const rows = el('div', 'draft-rows');
+  const currentCycle = a.draftsUsed;
+  for (let i = 0; i < a.draftBudget; i++) {
+    const submission = a.drafts.find((d) => d.cycleIndex === i);
+    const status = draftRowStatus(i, { currentCycle, hasActivity: a.hasActivity, submission });
+    if (status.key === 'in-progress') {
+      status.detail = `${a.conversationCount} conversation${a.conversationCount === 1 ? '' : 's'} · last worked ${relTime(a.lastActiveAt)}`;
+    }
+    rows.append(draftRow(i, status, submission?.submissionId));
+  }
+  card.append(rows);
 
   // Advice from this assignment's own last draft, where it applies.
   const lastScored = [...a.drafts].reverse().find((d) => d.growthMove);
@@ -362,21 +402,11 @@ function currentCard(a) {
   if (note) card.append(teacherNoteBlock(note));
 
   const foot = el('div', 'acard-foot');
-  const go = el('button', 'acard-btn', a.status === 'not-started' ? 'Start writing →' : 'Continue writing →');
+  const go = el('button', 'acard-btn',
+    `${a.hasActivity ? 'Continue' : 'Start'} Draft ${currentCycle + 1} →`);
   go.onclick = () => openAssignment(a.id);
   foot.append(go);
-  if (a.drafts.length) {
-    const chips = el('div', 'acard-chips');
-    chips.append(el('span', 'acard-chips-label', 'Submitted'));
-    chips.append(draftChipRow(a.drafts));
-    foot.append(chips);
-  }
   card.append(foot);
-
-  const details = el('details', 'acard-prompt');
-  details.append(el('summary', null, 'Read the assignment prompt'));
-  details.append(el('p', null, a.prompt));
-  card.append(details);
   return card;
 }
 
@@ -449,14 +479,18 @@ async function openAssignment(id) {
   state.assignment = data.assignment;
   state.session = data.session;
   state.conversations = data.conversations;
+  state.hasActivity = data.hasActivity;
   state.conv = null;
   state.turns = [];
+  state.submissions = [];
+  // The current draft is always open; a past draft, once expanded to review
+  // it, should stay expanded across a re-render (e.g. after sending a message).
+  state.expandedCycles = new Set();
 
   $('viewAssignments').classList.add('hidden');
   $('viewWorkspace').classList.remove('hidden');
   $('wsTitle').textContent = data.assignment.title;
   $('wsPrompt').textContent = data.assignment.prompt;
-  renderDraftBudget(data.draftsUsed, data.assignment.draftBudget);
 
   const mode = $('coachMode');
   mode.innerHTML = '';
@@ -469,52 +503,130 @@ async function openAssignment(id) {
   }
   mode.classList.remove('hidden');
   $('btnSubmit').disabled = !data.session;
-  $('btnNewConv').disabled = !data.session;
 
   logEvent('episode-resume');
-  renderConvList();
+  renderDraftSections();
   renderConversation();
-  loadDraftsList().catch(() => {});
+  loadSubmissions().catch(() => {});
 }
 
-function renderDraftBudget(used, budget) {
-  const box = $('draftsMeter');
-  box.innerHTML = '';
-  box.append(el('span', 'budget-label', 'Drafts'));
-  const track = el('div', 'budget-track');
-  for (let i = 0; i < budget; i++) track.append(el('i', i < used ? 'spent' : null));
-  box.append(track);
-  const left = budget - used;
-  box.append(el('span', 'budget-cap', `${used} of ${budget} used · ${left} left`));
+async function loadSubmissions() {
+  state.submissions = await api(`/api/submissions?assignmentId=${state.assignment.id}`);
+  renderDraftSections();
 }
 
-function renderConvList() {
-  const list = $('convList');
-  list.innerHTML = '';
-  let lastCycle = null;
+// One row per draft slot, 1..budget, always in that order — the same list
+// the home card shows, and the same draftRowStatus vocabulary, so a student
+// never sees "Draft 2" described one way on the home page and another way
+// once they open it. Submitted drafts collapse to a summary line; the
+// current draft is always expanded to its conversations; future drafts
+// beyond the current one render as an inert locked row.
+function renderDraftSections() {
+  const nav = $('draftSections');
+  nav.innerHTML = '';
+  const budget = state.assignment.draftBudget;
+  const currentCycle = state.session ? state.session.cycleIndex : null;
+
+  const byCycle = new Map();
   for (const c of state.conversations) {
-    if (c.cycleIndex !== lastCycle) {
-      lastCycle = c.cycleIndex;
-      const label = document.createElement('div');
-      label.className = 'conv-cycle-label';
-      label.textContent = `Draft ${c.cycleIndex + 1}`;
-      list.appendChild(label);
-    }
-    const item = document.createElement('div');
-    item.className = 'conv-item' + (c.locked ? ' locked' : '') + (state.conv?.id === c.id ? ' active' : '');
-    item.textContent = c.title;
-    item.onclick = () => openConversation(c.id);
-    list.appendChild(item);
+    if (!byCycle.has(c.cycleIndex)) byCycle.set(c.cycleIndex, []);
+    byCycle.get(c.cycleIndex).push(c);
   }
+
+  for (let cycle = 0; cycle < budget; cycle++) {
+    const isCurrent = cycle === currentCycle;
+    const convs = byCycle.get(cycle) || [];
+    const submission = state.submissions.find((s) => s.cycleIndex === cycle);
+    const status = draftRowStatus(cycle, { currentCycle, hasActivity: state.hasActivity, submission });
+    if (isCurrent && status.key === 'in-progress') {
+      status.detail = `${convs.length} conversation${convs.length === 1 ? '' : 's'}`;
+    }
+    nav.append(draftSection({ cycle, status, isCurrent, convs, submission }));
+  }
+}
+
+function draftSection({ cycle, status, isCurrent, convs, submission }) {
+  const cls = `draft-section draft-section-${status.key}`
+    + (isCurrent ? ' draft-section-current' : '')
+    + (status.samr ? ` samr-${status.samr.toLowerCase()}` : '');
+  const section = el('div', cls);
+  const header = el('div', 'draft-section-header');
+  const collapsible = status.key === 'submitted';
+
+  if (collapsible) {
+    header.append(el('span', 'draft-section-caret', state.expandedCycles.has(cycle) ? '▾' : '▸'));
+  }
+  header.append(el('span', 'draft-section-label', `Draft ${cycle + 1}`));
+  header.append(el('span', `draft-section-status status-${status.key}`, status.label));
+  if (status.detail) header.append(el('span', 'draft-section-detail', status.detail));
+  section.append(header);
+
+  if (collapsible) {
+    header.onclick = () => {
+      if (state.expandedCycles.has(cycle)) state.expandedCycles.delete(cycle);
+      else state.expandedCycles.add(cycle);
+      renderDraftSections();
+    };
+  }
+
+  const expanded = isCurrent || (collapsible && state.expandedCycles.has(cycle));
+  if (expanded) {
+    const body = el('div', 'draft-section-body');
+    if (isCurrent) {
+      const newBtn = el('button', 'new-conv-btn', '+ New conversation');
+      newBtn.disabled = !state.session;
+      newBtn.onclick = createConversation;
+      body.append(newBtn);
+    }
+    for (const c of convs) {
+      const item = el('div', 'conv-item' + (c.locked ? ' locked' : '') + (state.conv?.id === c.id ? ' active' : ''), c.title);
+      item.onclick = () => openConversation(c.id);
+      body.append(item);
+    }
+    if (status.key === 'submitted' && submission) {
+      const link = el('div', 'draft-section-report-link', 'View report →');
+      link.onclick = () => showReport(submission.id);
+      body.append(link);
+    }
+    section.append(body);
+  }
+
+  return section;
+}
+
+async function createConversation() {
+  if (!state.session) return;
+  const conv = await api('/api/conversations', { method: 'POST', body: { sessionId: state.session.id } });
+  state.conversations.unshift({ ...conv, cycleIndex: state.session.cycleIndex });
+  await openConversation(conv.id);
 }
 
 async function openConversation(id) {
   if (state.streaming) return;
   const data = await api(`/api/conversations/${id}`);
-  state.conv = data.conversation;
+  // The conversation fetch doesn't carry cycleIndex — it's a workspace-only
+  // grouping concept, cached from the /open response and new-conversation calls.
+  const cached = state.conversations.find((c) => c.id === id);
+  state.conv = { ...data.conversation, cycleIndex: cached?.cycleIndex };
   state.turns = data.turns;
-  renderConvList();
+  renderDraftSections();
   renderConversation();
+}
+
+// Jumps back to the current draft's most recently active conversation when a
+// student is reading a past, locked draft and wants to return to live work.
+function returnToCurrentDraft() {
+  if (!state.session) return;
+  const convs = state.conversations.filter((c) => c.cycleIndex === state.session.cycleIndex);
+  if (convs.length) {
+    const mostRecent = [...convs].sort((a, b) => (b.lastActiveAt || '').localeCompare(a.lastActiveAt || ''))[0];
+    openConversation(mostRecent.id);
+  } else {
+    state.conv = null;
+    state.turns = [];
+    renderDraftSections();
+    renderConversation();
+  }
 }
 
 function renderConversation() {
@@ -524,7 +636,10 @@ function renderConversation() {
 
   const locked = hasConv && state.conv.locked;
   $('composer').classList.toggle('hidden', !hasConv || locked);
-  $('lockedNote').classList.toggle('hidden', !locked);
+  renderReadingBanner(locked);
+  // The mode banner describes the current draft's coaching level — showing it
+  // while reading an archived draft would misattribute it to that draft.
+  $('coachMode').classList.toggle('hidden', locked);
 
   const box = $('messages');
   box.innerHTML = '';
@@ -536,6 +651,23 @@ function renderConversation() {
   for (const t of state.turns) box.appendChild(renderTurn(t));
   updateActionButtons();
   box.scrollTop = box.scrollHeight;
+}
+
+// Replaces the old passive bottom-of-page note: a persistent header that
+// stays visible while scrolled, and always offers one click back to live work
+// — reorienting a student who followed a locked conversation into the past.
+function renderReadingBanner(locked) {
+  const banner = $('readingBanner');
+  banner.innerHTML = '';
+  banner.classList.toggle('hidden', !locked);
+  if (!locked) return;
+  banner.append(el('span', 'reading-banner-text',
+    `Reading Draft ${state.conv.cycleIndex + 1} · submitted — read-only`));
+  if (state.session && state.conv.cycleIndex !== state.session.cycleIndex) {
+    const btn = el('button', 'reading-banner-return', `Return to Draft ${state.session.cycleIndex + 1} →`);
+    btn.onclick = returnToCurrentDraft;
+    banner.append(btn);
+  }
 }
 
 function makeEmptyState() {
@@ -698,6 +830,11 @@ async function sendMessage() {
 
   await streamAction(`/api/conversations/${state.conv.id}/message`, { text, editOfTurnId }, 'coach');
 
+  // Flips the draft from "not started" to "in progress" the moment a message
+  // is actually sent — not when a conversation is merely created.
+  const wasFirstActivity = !state.hasActivity;
+  state.hasActivity = true;
+
   if (isFirst) {
     const title = text.length > 42 ? text.slice(0, 42) + '…' : text;
     await api(`/api/conversations/${state.conv.id}/rename`, { method: 'POST', body: { title } });
@@ -705,8 +842,8 @@ async function sendMessage() {
     const item = state.conversations.find((c) => c.id === state.conv.id);
     if (item) item.title = title;
     $('convTitle').textContent = title;
-    renderConvList();
   }
+  if (isFirst || wasFirstActivity) renderDraftSections();
 }
 
 // ---------- wiring ----------
@@ -738,13 +875,6 @@ $('btnEvaluate').onclick = () => {
 
 $('btnCancelEdit').onclick = cancelEdit;
 
-$('btnNewConv').onclick = async () => {
-  if (!state.session) return;
-  const conv = await api('/api/conversations', { method: 'POST', body: { sessionId: state.session.id } });
-  state.conversations.unshift({ ...conv, cycleIndex: state.session.cycleIndex });
-  await openConversation(conv.id);
-};
-
 $('btnRename').onclick = async () => {
   const title = prompt('Rename conversation:', state.conv.title);
   if (!title) return;
@@ -753,7 +883,7 @@ $('btnRename').onclick = async () => {
   const item = state.conversations.find((c) => c.id === state.conv.id);
   if (item) item.title = title;
   $('convTitle').textContent = title;
-  renderConvList();
+  renderDraftSections();
 };
 
 $('btnBack').onclick = () => showAssignments();
@@ -781,19 +911,6 @@ document.addEventListener('copy', () => {
 
 function showReport(submissionId) {
   location.href = `/report.html?id=${submissionId}`;
-}
-
-async function loadDraftsList() {
-  const drafts = await api(`/api/submissions?assignmentId=${state.assignment.id}`);
-  const list = $('draftsList');
-  list.innerHTML = '';
-  for (const d of drafts) {
-    const link = document.createElement('div');
-    link.className = 'draft-link';
-    link.innerHTML = `Draft ${d.cycleIndex + 1} report ${d.analysisStatus !== 'complete' ? '<span class="pending-dot">(analyzing…)</span>' : ''}`;
-    link.onclick = () => showReport(d.id);
-    list.appendChild(link);
-  }
 }
 
 // ---------- submit flow ----------
