@@ -7,13 +7,60 @@ const el = (tag, className, text) => {
   return node;
 };
 
+// The right-sliding drawer (.tray/.tray-overlay etc., components.css) — built
+// for the teacher dashboard's flag detail, reused here for anything that's
+// verbose enough to want its own scrollable surface rather than fighting for
+// space inline on a card. Built lazily, once, and reused across opens rather
+// than rebuilt per card.
+let trayOverlayEl = null;
+let trayEl = null;
+function ensureTray() {
+  if (trayEl) return;
+  trayOverlayEl = el('div', 'tray-overlay');
+  trayOverlayEl.onclick = closeTray;
+  document.body.append(trayOverlayEl);
+
+  trayEl = el('div', 'tray');
+  const header = el('div', 'tray-header');
+  const headings = el('div', null);
+  headings.style.flex = '1';
+  headings.append(el('div', 'tray-title'));
+  headings.append(el('div', 'tray-subtitle'));
+  header.append(headings);
+  const close = el('button', 'tray-close');
+  close.innerHTML = iconSVG('close');
+  close.type = 'button';
+  close.setAttribute('aria-label', 'Close');
+  close.onclick = closeTray;
+  header.append(close);
+  trayEl.append(header);
+  trayEl.append(el('div', 'tray-body'));
+  document.body.append(trayEl);
+
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTray(); });
+}
+function openTray({ title, subtitle, body }) {
+  ensureTray();
+  trayEl.querySelector('.tray-title').textContent = title;
+  trayEl.querySelector('.tray-subtitle').textContent = subtitle || '';
+  const bodyEl = trayEl.querySelector('.tray-body');
+  bodyEl.innerHTML = '';
+  bodyEl.append(body);
+  trayOverlayEl.classList.add('open');
+  trayEl.classList.add('open');
+}
+function closeTray() {
+  if (!trayEl) return;
+  trayOverlayEl.classList.remove('open');
+  trayEl.classList.remove('open');
+}
+
 const state = {
   assignment: null,
   session: null,
   conversations: [],
   submissions: [],
   hasActivity: false,
-  expandedCycles: new Set(),
   conv: null,
   turns: [],
   streaming: false,
@@ -73,12 +120,75 @@ const DIMENSION_NAMES = {
   OC: 'How much was yours',
 };
 
-const SAMR_BLURB = {
-  Substitution: 'The coach did most of the thinking on this one.',
-  Augmentation: 'You used the coach well, mostly to get answers.',
-  Modification: 'You pushed on what the coach gave you and reshaped it.',
-  Redefinition: 'You drove the thinking; the coach worked for you.',
+// What each dimension actually tracks — shown before there's any history to
+// compare a draft against. One-time orientation, not a definition a student
+// needs repeated once they know the system.
+const DIMENSION_EXPLAIN = {
+  PQ: "Whether you ask questions that push back or go deeper, not just ones that ask for more.",
+  SU: 'What you do after getting an answer — build on it, or take it and move on.',
+  CS: "Whether you push back when something doesn't sit right, rather than accepting it.",
+  OC: "How much of the essay's thinking started with you, not the session.",
 };
+
+// A forward-looking nudge for a dimension that isn't trending up yet.
+// Coach-voice: what to try, never what went wrong.
+const DIMENSION_TIPS = {
+  PQ: "Try asking a question that challenges what you're told, not just one that asks for more.",
+  SU: 'When you get an answer, try pushing it further yourself before you move on.',
+  CS: "It's fine to disagree — say so, and ask for something different.",
+  OC: "Make sure some of the essay's ideas start with you, not just the session.",
+};
+
+// Named growth for a dimension that's genuinely climbing. Only used when
+// that dimension's own trend actually supports it — see dimensionTier below.
+const DIMENSION_WINS = {
+  PQ: 'asking sharper questions than a few drafts ago',
+  SU: 'doing more with what you get back, instead of stopping there',
+  CS: 'pushing back more than you used to',
+  OC: 'bringing more of your own thinking into the draft',
+};
+
+// The floor tier: a dimension that's stayed low for a stretch of drafts
+// needs more than a one-line nudge (DIMENSION_TIPS assumes the student
+// already gets the idea and just needs a reminder). This teaches the move
+// itself, with a concrete next step — not what went wrong on any one draft.
+const DIMENSION_EDUCATION = {
+  PQ: "A challenge question pushes back on something specific — \"Why does this argument assume X?\" — instead of just asking for more. Next session, pick one thing the coach says and ask why it's true, not what else you can add.",
+  SU: "Getting an answer isn't the finish line, it's the start of the next move. When the coach hands you something, restate it in your own words, test it against your own argument, or ask a follow-up before you use it — carrying it forward as-is is the pattern this dimension is catching.",
+  CS: "Disagreeing with the coach isn't a risk, it's the point. If something doesn't sit right, say so directly: \"I don't think that's right because...\" or \"Can you give me something different?\" The coach can only revise what you push back on.",
+  OC: "This dimension checks where the essay's ideas actually came from. Before you write a paragraph, work out what you think first — then use the coach to test or sharpen it, not to generate it. An idea you had before the session started counts as yours even if the coach agreed with it.",
+};
+
+// Below this, on average, a dimension counts as "consistently low" rather
+// than just a rough draft — see dimensionTier.
+const LOW_TIER_THRESHOLD = 2.5;
+// Averaged over the most recent drafts, not the whole history — an early
+// bad draft shouldn't keep weighing on the average once a student improves.
+const LOW_TIER_WINDOW = 3;
+
+function recentAverage(scored, key) {
+  const recent = scored.slice(-LOW_TIER_WINDOW);
+  return recent.reduce((sum, d) => sum + d.tau[key], 0) / recent.length;
+}
+
+// Each dimension gets its own tier, independent of how the other three are
+// doing — a student can be climbing on Selective Use and still need the tip
+// on Calibrated Skepticism; averaging that into one line would hide it.
+// educational (orientation): nothing to compare against yet (first scored draft).
+// affirmative: this dimension specifically is trending up — checked first,
+//   so a student climbing out of a low patch gets the win, not a lecture.
+// educational (floor): stayed low across recent drafts and isn't currently
+//   climbing — needs to learn the move, not just be reminded of it.
+// helpful: default — a tip on this dimension.
+// Never assumes every draft involved the coach; that's its own signal in the
+// numbers, not something the copy needs to presuppose.
+function dimensionTier(key, tau, priorAvg, scored) {
+  if (!priorAvg) return DIMENSION_EXPLAIN[key];
+  const delta = tau[key] - priorAvg[key];
+  if (delta >= 0.75) return `You're ${DIMENSION_WINS[key]}.`;
+  if (recentAverage(scored, key) < LOW_TIER_THRESHOLD) return DIMENSION_EDUCATION[key];
+  return DIMENSION_TIPS[key];
+}
 
 function fmtDate(iso) {
   if (!iso) return null;
@@ -106,9 +216,8 @@ function statusEyebrow(a) {
   return due.text ? due : { text: 'No due date', tone: 'calm' };
 }
 
-// Single vocabulary for what a draft's state means, shared by the home card's
-// draft list and the workspace sidebar's draft sections, so the two surfaces
-// never describe the same draft two different ways.
+// Single vocabulary for what a draft's state means — used by the home card's
+// draft list (the only place cross-draft status is shown).
 //   submitted    — locked, sent to the teacher (scored, analyzing, or failed)
 //   in-progress  — this is the open draft and the student has sent a message
 //   not-started  — this is the open draft but nothing has been sent yet
@@ -121,11 +230,7 @@ function draftRowStatus(cycleIndex, { currentCycle, hasActivity, submission }) {
         detail: submission.analysisStatus === 'error' ? 'Report unavailable' : 'Analyzing your draft…',
       };
     }
-    return {
-      key: 'submitted', label: 'Submitted',
-      detail: `${submission.tau.totalScore}/20 · ${submission.tau.SAMR}`,
-      samr: submission.tau.SAMR,
-    };
+    return { key: 'submitted', label: 'Submitted' };
   }
   if (currentCycle !== null && cycleIndex === currentCycle) {
     return hasActivity
@@ -140,17 +245,82 @@ function draftRowStatus(cycleIndex, { currentCycle, hasActivity, submission }) {
 
 // One row per draft slot 1..budget — every draft is shown, whether or not it
 // exists yet, so a locked future draft reads as "not yours yet" rather than
-// silently missing.
-function draftRow(cycleIndex, status, reportId) {
-  const row = el('div', `draft-row draft-row-${status.key}` + (status.samr ? ` samr-${status.samr.toLowerCase()}` : ''));
-  row.append(el('span', 'draft-row-num', `Draft ${cycleIndex + 1}`));
-  row.append(el('span', `draft-row-status status-${status.key}`, status.label));
-  if (status.detail) row.append(el('span', 'draft-row-detail', status.detail));
-  if (status.key === 'submitted' && reportId) {
-    const link = el('button', 'draft-row-action', 'View report →');
-    link.onclick = () => showReport(reportId);
-    row.append(link);
+// silently missing. Everything that belongs to a specific draft (its action
+// button, its teacher note, its score) renders inside that draft's own row —
+// there is no assignment-level footer duplicating what a row already owns.
+//
+// A submitted draft never shows its score or SAMR band here — a number
+// invites reading it as a grade, and the ledger isn't where a student should
+// be forming their read of a draft. That's the report's job; this row's
+// only move is to point there.
+//
+// Every row reads in the same three lines regardless of state, so a locked
+// row and an in-progress row visually rhyme instead of each showing whatever
+// fields happen to apply: identity (which draft, when it's due), status (one
+// word, its own line), functionality (the one thing — a button, a report
+// link, or the reason there's nothing to do — this row offers right now).
+function draftRow(cycleIndex, status, opts = {}) {
+  const reportId = opts.submission?.submissionId;
+  const row = el('div', `draft-row draft-row-${status.key}`);
+
+  // The current draft's activity detail ("3 sessions · last worked
+  // today") travels with its button rather than sitting up in the head —
+  // it's context for the action, so it reads next to the thing it explains.
+  const detailGoesWithButton = opts.isCurrent && status.key === 'in-progress' && status.detail;
+
+  // Line 1 — identity: which draft, and when it's due.
+  const id = el('div', 'draft-row-id');
+  id.append(el('span', 'draft-row-num', `Draft ${cycleIndex + 1}`));
+  // Only shown pre-submission — once a draft is in, its due date is no
+  // longer a live fact the student needs on this row.
+  if (status.key !== 'submitted' && opts.dueDate) {
+    const due = dueInfo(opts.dueDate);
+    if (due.text) {
+      id.append(el('span', 'draft-row-sep', '·'));
+      id.append(el('span', `draft-row-due acard-due-${due.tone}`, due.text));
+    }
   }
+  // Marks the last draft slot as the one with nowhere further to revise to —
+  // purely derived from draftBudget, not a flag a teacher sets separately.
+  if (opts.isFinal) id.append(el('span', 'draft-row-final-badge', 'Final draft'));
+  row.append(id);
+
+  // Line 2 — status: one word, its own line, never sharing space with the
+  // due date or the identity line.
+  row.append(el('div', `draft-row-status status-${status.key}`, status.label));
+
+  // Line 3 — functionality: whatever this row lets you do right now.
+  const body = el('div', 'draft-row-body');
+  if (opts.isCurrent) {
+    // The one action a student can take lives in the row of the draft it
+    // moves forward — not in a card-level footer that repeats "Draft N".
+    const go = el('button', 'acard-btn draft-row-btn');
+    go.innerHTML = `${status.key === 'in-progress' ? 'Continue' : 'Start'} Draft ${cycleIndex + 1} ${iconSVG('arrowForward')}`;
+    go.onclick = () => openAssignment(opts.assignmentId);
+    body.append(go);
+    if (detailGoesWithButton) body.append(el('span', 'draft-row-action-detail', status.detail));
+  } else if (status.key === 'submitted' && reportId && !status.detail) {
+    // .btn-quiet — same component and same visible-border-at-rest as the
+    // "Prompt & rubric" tray trigger, not a one-off text link. .btn-tertiary
+    // sets border-color: transparent by design, so it reads as plain text
+    // until hovered — no better than what this replaced.
+    const link = el('button', 'btn btn-quiet btn-sm');
+    link.innerHTML = `${iconSVG('description')} View report`;
+    link.onclick = () => showReport(reportId);
+    body.append(link);
+  } else if (status.detail) {
+    body.append(el('span', 'draft-row-detail', status.detail));
+  }
+  // A teacher note is never guaranteed and never the point of the row — a
+  // quiet flag, not a block, so it can't crowd out the row's one real
+  // action. The note itself only ever reads in the report.
+  if (opts.submission?.teacherNote) {
+    const flag = el('span', 'draft-row-note-flag');
+    flag.innerHTML = `${iconSVG('chat')} Note from your teacher`;
+    body.append(flag);
+  }
+  if (body.childNodes.length) row.append(body);
+
   return row;
 }
 
@@ -188,7 +358,11 @@ function draftChip(draft) {
   score.append(el('span', 'chip-denom', '/20'));
   chip.append(score);
   chip.append(el('span', 'chip-samr', draft.tau.SAMR));
-  if (draft.hasTeacherNote) chip.append(el('span', 'chip-note', '✉'));
+  if (draft.hasTeacherNote) {
+    const note = el('span', 'chip-note');
+    note.innerHTML = iconSVG('chat');
+    chip.append(note);
+  }
   chip.onclick = () => showReport(draft.submissionId);
   return chip;
 }
@@ -200,93 +374,57 @@ function draftChipRow(drafts) {
 }
 
 
-const svgNS = 'http://www.w3.org/2000/svg';
-const ns = (tag, attrs) => {
-  const n = document.createElementNS(svgNS, tag);
-  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
-  return n;
-};
-
-// Trend of every submitted draft, drawn as one polyline PER ASSIGNMENT rather
-// than one continuous line. The scores are not a single trajectory — a student
-// who grew 12→20 and then opened a new essay at 12 has not regressed, and a
-// connected line would assert exactly that.
-function totalTrendSVG(drafts, w = 248, h = 46) {
-  const PAD = 7;
-  const MIN = 4, MAX = 20;
-  const x = (i) => PAD + (i * (w - PAD * 2)) / Math.max(drafts.length - 1, 1);
-  const y = (v) => h - PAD - ((v - MIN) / (MAX - MIN)) * (h - PAD * 2);
-
-  const svg = ns('svg', {
-    viewBox: `0 0 ${w} ${h}`, class: 'trend-svg', role: 'img',
-    'aria-label': `Total score across ${drafts.length} submitted drafts, ${drafts.map((d) => d.tau.totalScore).join(', ')} out of 20.`,
-  });
-
-  const groups = [];
-  drafts.forEach((d, i) => {
-    const prev = groups[groups.length - 1];
-    if (prev && prev.title === d.assignmentTitle) prev.pts.push(i);
-    else groups.push({ title: d.assignmentTitle, pts: [i] });
-  });
-
-  // A break between assignments needs to look deliberate. Without the rule, a
-  // gap in the line reads as a rendering fault rather than as "new assignment".
-  groups.forEach((g, gi) => {
-    if (gi > 0) {
-      const boundary = (x(groups[gi - 1].pts[groups[gi - 1].pts.length - 1]) + x(g.pts[0])) / 2;
-      svg.append(ns('line', { class: 'trend-split', x1: boundary, x2: boundary, y1: 0, y2: h }));
-    }
-    if (g.pts.length > 1) {
-      svg.append(ns('polyline', {
-        class: 'trend-line',
-        points: g.pts.map((i) => `${x(i)},${y(drafts[i].tau.totalScore)}`).join(' '),
-      }));
-    }
-  });
-
-  drafts.forEach((d, i) => {
-    const isLast = i === drafts.length - 1;
-    const dot = ns('circle', {
-      class: 'trend-dot' + (isLast ? ' trend-dot-current' : ''),
-      cx: x(i), cy: y(d.tau.totalScore), r: isLast ? 5 : 4,
-    });
-    const t = document.createElementNS(svgNS, 'title');
-    t.textContent = `${d.assignmentTitle} — draft ${d.cycleIndex + 1}: ${d.tau.totalScore} of 20`;
-    dot.append(t);
-    svg.append(dot);
-  });
-  return svg;
-}
-
-// Meter per dimension: fill on a lighter step of the same ramp, so the unfilled
-// track still reads as part of the scale rather than as empty space.
-function dimensionMeters(tau, prev) {
+// One block per dimension: name, current score, and a guidance line tiered
+// to that dimension's own trend (see dimensionTier) — no bar, the number and
+// the sentence carry it.
+//
+// Compared against priorAvg — the mean of every earlier scored draft, not
+// just the immediately previous one — because the dimensions are the one
+// figure that's actually comparable across different assignments (they
+// measure a behaviour, not an outcome graded against that assignment's own
+// rubric). A same-assignment-only comparison sat empty for any student who
+// submits one draft per assignment; the average has something to compare
+// against from a student's second scored draft on, full stop.
+function dimensionMeters(tau, priorAvg, scored) {
   const grid = el('div', 'meters');
   for (const [key, name] of Object.entries(DIMENSION_NAMES)) {
     const row = el('div', 'meter-row');
-    const head = el('div', 'meter-head');
-    head.append(el('span', 'meter-name', name));
-    const val = el('span', 'meter-val', `${tau[key]}`);
-    val.append(el('span', 'meter-denom', '/5'));
-    head.append(val);
-    row.append(head);
-
-    const track = el('span', 'meter-track');
-    const fill = el('span', 'meter-fill');
-    fill.style.width = `${(tau[key] / 5) * 100}%`;
-    track.append(fill);
-    row.append(track);
-
-    if (prev) {
-      const delta = tau[key] - prev[key];
-      if (delta !== 0) {
-        row.append(el('span', `meter-delta ${delta > 0 ? 'up' : 'down'}`,
-          `${delta > 0 ? '▲' : '▼'} ${Math.abs(delta)} since last draft`));
-      }
-    }
+    row.append(el('span', 'meter-name', name));
+    row.append(el('p', 'meter-guidance', dimensionTier(key, tau, priorAvg, scored)));
     grid.append(row);
   }
   return grid;
+}
+
+// Same order the main list renders in (soonest due date first) so a rail
+// row and its card never disagree about position — one sort, read twice.
+function sortedCurrent(home) {
+  return [...home.current].sort((a, b) => dueInfo(a.dueDate).days - dueInfo(b.dueDate).days);
+}
+
+function renderRailNav(home) {
+  const host = $('railNav');
+  host.innerHTML = '';
+  const current = sortedCurrent(home);
+  host.classList.toggle('hidden', current.length === 0);
+  if (!current.length) return;
+
+  host.append(el('h3', 'rail-label', 'Jump to'));
+  for (const a of current) {
+    const eyebrow = statusEyebrow(a);
+    const row = el('button', 'rail-nav-row');
+    row.type = 'button';
+    row.append(el('span', 'rail-nav-title', a.title));
+    row.append(el('span', `rail-nav-due acard-due-${eyebrow.tone}`, eyebrow.text));
+    row.addEventListener('click', () => {
+      const card = $(`card-${a.id}`);
+      if (!card) return;
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('acard-jumped');
+      setTimeout(() => card.classList.remove('acard-jumped'), 1200);
+    });
+    host.append(row);
+  }
 }
 
 function renderRail(home) {
@@ -295,6 +433,8 @@ function renderRail(home) {
     .split(' ').slice(0, 2).map((p) => p[0]).join('').toUpperCase();
   $('railName').textContent = home.student.displayName;
 
+  renderRailNav(home);
+
   const scored = scoredDrafts(home);
   const host = $('railProgress');
   host.innerHTML = '';
@@ -302,125 +442,134 @@ function renderRail(home) {
   if (!scored.length) {
     $('railSub').textContent = 'No drafts submitted yet';
     host.append(el('p', 'rail-empty',
-      `Submit your first draft, ${first}, and this is where you'll see how you worked with the coach.`));
+      `Submit your first draft, ${first}, and this is where you'll see how you're working with the coach.`));
     return;
   }
 
-  $('railSub').textContent = `${scored.length} draft${scored.length === 1 ? '' : 's'} submitted`;
+  // A cumulative, always-true fact rather than a score — the one thing on
+  // the rail that only ever goes up, regardless of how any single draft
+  // scored. Per-draft score and SAMR band already live on the assignment
+  // cards (current and past); the rail doesn't repeat them.
+  const assignmentCount = new Set(scored.map((d) => d.assignmentTitle)).size;
+  $('railSub').textContent = assignmentCount > 1
+    ? `${scored.length} draft${scored.length === 1 ? '' : 's'} · ${assignmentCount} assignments`
+    : `${scored.length} draft${scored.length === 1 ? '' : 's'} submitted`;
+
   const last = scored[scored.length - 1];
+  const earlier = scored.slice(0, -1);
 
-  // Three blocks so the module can stack in the rail and run as a horizontal
-  // band when the rail collapses — otherwise the meters stretch page-wide.
-  const summary = el('div', 'rail-block');
-  const trendBlock = el('div', 'rail-block');
-  const dimBlock = el('div', 'rail-block');
-  host.append(summary, trendBlock, dimBlock);
-
-  summary.append(el('h3', 'rail-label', 'Your progress'));
-
-  // Hero figure — the one number the dashboard leads with.
-  const hero = el('div', 'rail-hero');
-  const num = el('span', 'rail-hero-num', String(last.tau.totalScore));
-  num.append(el('span', 'rail-hero-denom', '/20'));
-  hero.append(num);
-  hero.append(el('span', `rail-band samr-${last.tau.SAMR.toLowerCase()}`, last.tau.SAMR));
-  summary.append(hero);
-  summary.append(el('p', 'rail-blurb', SAMR_BLURB[last.tau.SAMR] || ''));
-
-  // A delta only means something within one assignment. Across assignments the
-  // comparison is between different tasks, so it is withheld rather than framed.
-  const sameAssignment = scored.filter((d) => d.assignmentTitle === last.assignmentTitle);
-  const prev = sameAssignment.length > 1 ? sameAssignment[sameAssignment.length - 2] : null;
-  if (prev) {
-    const change = last.tau.totalScore - prev.tau.totalScore;
-    const cls = change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
-    const arrow = change > 0 ? '▲' : change < 0 ? '▼' : '—';
-    summary.append(el('p', `rail-delta ${cls}`,
-      `${arrow} ${change === 0 ? 'No change' : Math.abs(change)} from draft ${prev.cycleIndex + 1}`));
+  // The dimensions are the one figure on this dashboard that's actually
+  // comparable across different assignments — they measure a behaviour
+  // (do you push back, do you follow up), not an outcome graded against
+  // that assignment's own rubric. Compared against the mean of every
+  // earlier scored draft, not gated to same-assignment pairs.
+  let priorAvg = null;
+  if (earlier.length) {
+    priorAvg = {};
+    for (const key of Object.keys(DIMENSION_NAMES)) {
+      priorAvg[key] = earlier.reduce((sum, d) => sum + d.tau[key], 0) / earlier.length;
+    }
   }
 
-  summary.append(el('p', 'rail-caption',
-    `Draft ${last.cycleIndex + 1} of "${last.assignmentTitle}"${prev ? '' : ' — your first on this one'}`));
-
-  if (scored.length >= 2) {
-    trendBlock.append(el('h3', 'rail-label rail-label-sub', 'Every draft so far'));
-    const trend = el('div', 'rail-trend');
-    trend.append(totalTrendSVG(scored));
-    trend.append(el('p', 'rail-trend-note', 'Lines join drafts of the same assignment.'));
-    trendBlock.append(trend);
-  }
-
-  dimBlock.append(el('h3', 'rail-label rail-label-sub', 'Your last draft, by dimension'));
-  dimBlock.append(dimensionMeters(last.tau, prev ? prev.tau : null));
+  const block = el('div', 'rail-block');
+  block.append(el('h3', 'rail-label', 'AI use guidance'));
+  block.append(dimensionMeters(last.tau, priorAvg, scored));
+  host.append(block);
 }
 
 // Current assignment. Reading order is the order a student needs it in:
 // when is it due → what is it → where every draft stands → what changes →
 // what to do.
+// Chrome is the shared .card molecule (+.card-lg, the size this card's own
+// radius/padding independently matched); urgency reuses .card-edge-caution/
+// .card-edge-attention from the same layer rather than a private edge rule.
+const CARD_EDGE_CLASS = { soon: 'card-edge-caution', late: 'card-edge-attention' };
+// A plain chevron, not a text-content ::after trick — "we need an icon to
+// denote the interaction" was explicit feedback, not a nice-to-have. Shared
+// by both disclosures below (the prompt and the assignment-wide note).
+const CHEVRON_SVG = '<svg class="acard-disclosure-icon" viewBox="0 0 12 12" fill="none" aria-hidden="true">'
+  + '<path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
 function currentCard(a) {
-  const card = el('article', 'acard');
+  // card-hero (the same lift/radius step as the report's score panel) is
+  // reserved for the one surface per screen that's the actual takeaway — a
+  // student can have several open assignment cards at once, and giving all
+  // of them hero elevation would mean none of them reads as more important
+  // than the others. Plain card-lg keeps them at content-unit elevation.
+  const card = el('article', 'card card-lg acard');
+  card.id = `card-${a.id}`;
   const eyebrow = statusEyebrow(a);
-  if (eyebrow.tone !== 'calm') card.classList.add(`acard-${eyebrow.tone}`);
+  if (CARD_EDGE_CLASS[eyebrow.tone]) card.classList.add(CARD_EDGE_CLASS[eyebrow.tone]);
 
   const top = el('div', 'acard-top');
   top.append(el('span', `acard-due acard-due-${eyebrow.tone}`, eyebrow.text));
-  top.append(el('h3', 'acard-title', a.title));
+  const titleRow = el('div', 'acard-title-row');
+  titleRow.append(el('h3', 'acard-title', a.title));
+  // The prompt + rubric is genuinely long — usually the whole grading
+  // criteria, not a sentence — so it earns its own scrollable surface
+  // instead of an inline block that pushes every other card element down
+  // every time a student has it open. A button, not a disclosure: there's
+  // nothing to preview, it's either open in the tray or it isn't.
+  const rubricBtn = el('button', 'btn btn-quiet btn-sm acard-rubric-btn');
+  rubricBtn.innerHTML = `${iconSVG('checklist')} Prompt & rubric`;
+  rubricBtn.type = 'button';
+  rubricBtn.onclick = () => openTray({
+    title: 'Assignment prompt & rubric',
+    subtitle: a.title,
+    body: el('p', 'tray-section-body', a.prompt),
+  });
+  titleRow.append(rubricBtn);
+  top.append(titleRow);
   card.append(top);
 
-  // Mapped directly to the title it belongs to, not stranded at the bottom
-  // of the card past the draft list and actions.
-  const details = el('details', 'acard-prompt');
-  details.append(el('summary', null, 'Read the assignment prompt'));
-  details.append(el('p', null, a.prompt));
-  card.append(details);
+  // An assignment-wide teacher note (not tied to any one draft) is never
+  // guaranteed — most assignments won't have one — so it stays a small,
+  // click-to-expand disclosure rather than a block that would read as a
+  // permanent part of the card. It's the one thing left inline (unlike the
+  // rubric, above, now in the tray): short enough that its own vertical
+  // space is worth spending. The chip itself carries the auditor tint even
+  // closed, not just the text — colour is the "carries weight" signal here.
+  if (a.teacherNote) {
+    const noteDetails = el('details', 'acard-disclosure acard-disclosure-note');
+    const noteSummary = el('summary', 'acard-disclosure-toggle');
+    noteSummary.innerHTML = `${CHEVRON_SVG}${iconSVG('chat')} Teacher's note`;
+    noteDetails.append(noteSummary);
+    noteDetails.append(el('p', null, a.teacherNote));
+    card.append(noteDetails);
+  }
 
   // Every draft slot gets its own row and its own status — an assignment
   // being "underway" says nothing about whether draft 2 specifically has
   // been started, so that has to be read off its own row, not inferred.
-  const rows = el('div', 'draft-rows');
+  // Locked rows stay one-per-draft (a collapsed "N more drafts" line was
+  // tried and read as vague — the budget itself, draft 3 of 4 etc., should
+  // be as explicit as every other row) but are visually inert: no bold, no
+  // status color, the row reads as unavailable at a glance. The current
+  // draft's action button and any teacher note live inside that same row —
+  // content maps to the specific draft it belongs to, not to the card as a
+  // whole.
   const currentCycle = a.draftsUsed;
+  const rows = el('div', 'draft-rows');
   for (let i = 0; i < a.draftBudget; i++) {
     const submission = a.drafts.find((d) => d.cycleIndex === i);
     const status = draftRowStatus(i, { currentCycle, hasActivity: a.hasActivity, submission });
     if (status.key === 'in-progress') {
-      status.detail = `${a.conversationCount} conversation${a.conversationCount === 1 ? '' : 's'} · last worked ${relTime(a.lastActiveAt)}`;
+      status.detail = `${a.conversationCount} session${a.conversationCount === 1 ? '' : 's'} · last worked ${relTime(a.lastActiveAt)}`;
     }
-    rows.append(draftRow(i, status, submission?.submissionId));
+    rows.append(draftRow(i, status, {
+      submission, isCurrent: i === currentCycle, assignmentId: a.id,
+      dueDate: a.draftDueDates?.[i], isFinal: i === a.draftBudget - 1,
+    }));
   }
   card.append(rows);
 
-  // Advice from this assignment's own last draft, where it applies.
-  const lastScored = [...a.drafts].reverse().find((d) => d.growthMove);
-  if (lastScored) {
-    const move = el('div', 'acard-move');
-    move.append(el('span', 'acard-move-label', `From draft ${lastScored.cycleIndex + 1} — try this now`));
-    move.append(el('p', null, lastScored.growthMove));
-    card.append(move);
-  }
-
-  const note = [...a.drafts].reverse().find((d) => d.teacherNote);
-  if (note) card.append(teacherNoteBlock(note));
-
-  const foot = el('div', 'acard-foot');
-  const go = el('button', 'acard-btn',
-    `${a.hasActivity ? 'Continue' : 'Start'} Draft ${currentCycle + 1} →`);
-  go.onclick = () => openAssignment(a.id);
-  foot.append(go);
-  card.append(foot);
   return card;
-}
-
-function teacherNoteBlock(draft) {
-  const box = el('div', 'acard-note');
-  box.append(el('span', 'acard-note-label', `✉ Note from your teacher on draft ${draft.cycleIndex + 1}`));
-  box.append(el('p', null, draft.teacherNote));
-  return box;
 }
 
 // Past assignments are review-only: no action, no coaching state — just the
 // outcome and a way back into the reports.
 function pastCard(a) {
-  const card = el('article', 'pcard');
+  const card = el('article', 'card pcard');
   const head = el('div', 'pcard-head');
   head.append(el('h3', null, a.title));
   const final = [...a.drafts].reverse().find((d) => d.tau);
@@ -435,9 +584,8 @@ function pastCard(a) {
   card.append(el('p', 'pcard-meta',
     `${a.drafts.length} draft${a.drafts.length === 1 ? '' : 's'} submitted`));
 
-  const note = [...a.drafts].reverse().find((d) => d.teacherNote);
-  if (note) card.append(teacherNoteBlock(note));
-
+  // A note's presence is the chip's own ✉ marker (draftChip) — the chip
+  // already opens the report on click, which is where the note itself reads.
   card.append(draftChipRow(a.drafts));
   return card;
 }
@@ -446,17 +594,14 @@ async function showAssignments() {
   $('viewWorkspace').classList.add('hidden');
   $('viewAssignments').classList.remove('hidden');
 
-  const [home] = await Promise.all([
-    api('/api/student/home'),
-    mountAccountChip($('accountChip')),
-  ]);
+  const home = await api('/api/student/home');
 
   renderRail(home);
+  renderNavCrumbs($('navCrumbs'), [{ label: 'All assignments', current: true }]);
+  renderNavLocal($('navLocal'), []);
 
   // Soonest deadline first — the only ordering a student can predict.
-  const current = [...home.current].sort(
-    (a, b) => dueInfo(a.dueDate).days - dueInfo(b.dueDate).days
-  );
+  const current = sortedCurrent(home);
   const list = $('currentList');
   list.innerHTML = '';
   for (const a of current) list.append(currentCard(a));
@@ -483,13 +628,9 @@ async function openAssignment(id) {
   state.conv = null;
   state.turns = [];
   state.submissions = [];
-  // The current draft is always open; a past draft, once expanded to review
-  // it, should stay expanded across a re-render (e.g. after sending a message).
-  state.expandedCycles = new Set();
 
   $('viewAssignments').classList.add('hidden');
   $('viewWorkspace').classList.remove('hidden');
-  $('wsTitle').textContent = data.assignment.title;
   $('wsPrompt').textContent = data.assignment.prompt;
 
   const mode = $('coachMode');
@@ -499,121 +640,103 @@ async function openAssignment(id) {
     mode.append(document.createTextNode(' ' + (data.modeNote || '')));
   } else {
     mode.append(el('strong', null, 'All drafts submitted.'));
-    mode.append(document.createTextNode(' These conversations stay readable, but you can\'t add to them.'));
+    mode.append(document.createTextNode(' These sessions stay readable, but you can\'t add to them.'));
   }
   mode.classList.remove('hidden');
   $('btnSubmit').disabled = !data.session;
 
   logEvent('episode-resume');
-  renderDraftSections();
+  renderSessionList();
   renderConversation();
   loadSubmissions().catch(() => {});
 }
 
+// The header's breadcrumb and local toggle both come from workspace state,
+// not from which HTML view is showing — called after anything that changes
+// which assignment/draft/session is on screen. The toggle only renders
+// while reading a locked, submitted draft: that's the one case where a
+// report genuinely exists for the same draft as the session in view.
+function renderWorkspaceNav() {
+  const draftNum = state.conv ? state.conv.cycleIndex + 1
+    : state.session ? state.session.cycleIndex + 1
+    : null;
+  const crumbs = [
+    { label: 'All assignments', onClick: showAssignments },
+    { label: state.assignment.title },
+  ];
+  if (draftNum != null) crumbs.push({ label: `Draft ${draftNum}`, current: true });
+  renderNavCrumbs($('navCrumbs'), crumbs);
+
+  if (state.conv && state.conv.locked) {
+    const submission = state.submissions.find((s) => s.cycleIndex === state.conv.cycleIndex);
+    // Same fixed left-to-right order as report-boot.js's toggle (Report,
+    // then Session) — only which one is active differs. Reordering by
+    // active state instead would make the pair swap sides across the page
+    // navigation between the two views, which reads as broken, not sliding.
+    renderNavLocal($('navLocal'), [
+      { label: 'Report', active: false, onClick: () => submission && showReport(submission.id) },
+      { label: 'Session', active: true },
+    ]);
+  } else {
+    renderNavLocal($('navLocal'), []);
+  }
+}
+
 async function loadSubmissions() {
   state.submissions = await api(`/api/submissions?assignmentId=${state.assignment.id}`);
-  renderDraftSections();
+  renderSessionList();
+  renderWorkspaceNav();
 }
 
-// One row per draft slot, 1..budget, always in that order — the same list
-// the home card shows, and the same draftRowStatus vocabulary, so a student
-// never sees "Draft 2" described one way on the home page and another way
-// once they open it. Submitted drafts collapse to a summary line; the
-// current draft is always expanded to its conversations; future drafts
-// beyond the current one render as an inert locked row.
-function renderDraftSections() {
-  const nav = $('draftSections');
-  nav.innerHTML = '';
-  const budget = state.assignment.draftBudget;
+// Claude-Code-style session panel: a flat, newest-first list of this draft's
+// sessions. Other drafts already have full status, score and report
+// links on the home assignment card — repeating that hierarchy here would
+// just be a second, competing place to look for it, so the workspace only
+// ever shows the one draft you're actually working in.
+function renderSessionList() {
+  const list = $('sessionList');
+  list.innerHTML = '';
   const currentCycle = state.session ? state.session.cycleIndex : null;
+  const convs = state.conversations.filter((c) => c.cycleIndex === currentCycle);
 
-  const byCycle = new Map();
-  for (const c of state.conversations) {
-    if (!byCycle.has(c.cycleIndex)) byCycle.set(c.cycleIndex, []);
-    byCycle.get(c.cycleIndex).push(c);
+  $('btnNewSession').disabled = !state.session;
+
+  if (!convs.length) {
+    list.append(el('p', 'session-list-empty', 'No sessions yet.'));
+    return;
   }
-
-  for (let cycle = 0; cycle < budget; cycle++) {
-    const isCurrent = cycle === currentCycle;
-    const convs = byCycle.get(cycle) || [];
-    const submission = state.submissions.find((s) => s.cycleIndex === cycle);
-    const status = draftRowStatus(cycle, { currentCycle, hasActivity: state.hasActivity, submission });
-    if (isCurrent && status.key === 'in-progress') {
-      status.detail = `${convs.length} conversation${convs.length === 1 ? '' : 's'}`;
-    }
-    nav.append(draftSection({ cycle, status, isCurrent, convs, submission }));
+  for (const c of convs) {
+    const item = el('div', 'conv-item' + (c.locked ? ' locked' : '') + (state.conv?.id === c.id ? ' active' : ''), c.title);
+    item.onclick = () => openConversation(c.id);
+    list.append(item);
   }
 }
 
-function draftSection({ cycle, status, isCurrent, convs, submission }) {
-  const cls = `draft-section draft-section-${status.key}`
-    + (isCurrent ? ' draft-section-current' : '')
-    + (status.samr ? ` samr-${status.samr.toLowerCase()}` : '');
-  const section = el('div', cls);
-  const header = el('div', 'draft-section-header');
-  const collapsible = status.key === 'submitted';
-
-  if (collapsible) {
-    header.append(el('span', 'draft-section-caret', state.expandedCycles.has(cycle) ? '▾' : '▸'));
-  }
-  header.append(el('span', 'draft-section-label', `Draft ${cycle + 1}`));
-  header.append(el('span', `draft-section-status status-${status.key}`, status.label));
-  if (status.detail) header.append(el('span', 'draft-section-detail', status.detail));
-  section.append(header);
-
-  if (collapsible) {
-    header.onclick = () => {
-      if (state.expandedCycles.has(cycle)) state.expandedCycles.delete(cycle);
-      else state.expandedCycles.add(cycle);
-      renderDraftSections();
-    };
-  }
-
-  const expanded = isCurrent || (collapsible && state.expandedCycles.has(cycle));
-  if (expanded) {
-    const body = el('div', 'draft-section-body');
-    if (isCurrent) {
-      const newBtn = el('button', 'new-conv-btn', '+ New conversation');
-      newBtn.disabled = !state.session;
-      newBtn.onclick = createConversation;
-      body.append(newBtn);
-    }
-    for (const c of convs) {
-      const item = el('div', 'conv-item' + (c.locked ? ' locked' : '') + (state.conv?.id === c.id ? ' active' : ''), c.title);
-      item.onclick = () => openConversation(c.id);
-      body.append(item);
-    }
-    if (status.key === 'submitted' && submission) {
-      const link = el('div', 'draft-section-report-link', 'View report →');
-      link.onclick = () => showReport(submission.id);
-      body.append(link);
-    }
-    section.append(body);
-  }
-
-  return section;
-}
-
-async function createConversation() {
-  if (!state.session) return;
-  const conv = await api('/api/conversations', { method: 'POST', body: { sessionId: state.session.id } });
-  state.conversations.unshift({ ...conv, cycleIndex: state.session.cycleIndex });
-  await openConversation(conv.id);
+// "+ New session" doesn't create anything server-side yet — a session only
+// earns a spot in the list (and a server row) once the student actually sends
+// a first message, in sendMessage() below. Until then this is just a blank
+// composer the student can also abandon by clicking another session.
+function startNewSession() {
+  if (!state.session || state.streaming) return;
+  state.conv = { id: null, title: 'New session', cycleIndex: state.session.cycleIndex, locked: false };
+  state.turns = [];
+  renderSessionList();
+  renderConversation();
 }
 
 async function openConversation(id) {
   if (state.streaming) return;
   const data = await api(`/api/conversations/${id}`);
-  // The conversation fetch doesn't carry cycleIndex — it's a workspace-only
-  // grouping concept, cached from the /open response and new-conversation calls.
+  // The session fetch doesn't carry cycleIndex — it's a workspace-only
+  // grouping concept, cached from the /open response and new-session calls.
   const cached = state.conversations.find((c) => c.id === id);
   state.conv = { ...data.conversation, cycleIndex: cached?.cycleIndex };
   state.turns = data.turns;
-  renderDraftSections();
+  renderSessionList();
   renderConversation();
 }
 
-// Jumps back to the current draft's most recently active conversation when a
+// Jumps back to the current draft's most recently active session when a
 // student is reading a past, locked draft and wants to return to live work.
 function returnToCurrentDraft() {
   if (!state.session) return;
@@ -624,15 +747,18 @@ function returnToCurrentDraft() {
   } else {
     state.conv = null;
     state.turns = [];
-    renderDraftSections();
+    renderSessionList();
     renderConversation();
   }
 }
 
 function renderConversation() {
+  renderWorkspaceNav();
+
   const hasConv = !!state.conv;
   $('convTitle').textContent = hasConv ? state.conv.title : '';
-  $('btnRename').classList.toggle('hidden', !hasConv);
+  // No server row yet for a not-yet-sent new session — nothing to rename.
+  $('btnRename').classList.toggle('hidden', !hasConv || !state.conv.id);
 
   const locked = hasConv && state.conv.locked;
   $('composer').classList.toggle('hidden', !hasConv || locked);
@@ -655,7 +781,7 @@ function renderConversation() {
 
 // Replaces the old passive bottom-of-page note: a persistent header that
 // stays visible while scrolled, and always offers one click back to live work
-// — reorienting a student who followed a locked conversation into the past.
+// — reorienting a student who followed a locked session into the past.
 function renderReadingBanner(locked) {
   const banner = $('readingBanner');
   banner.innerHTML = '';
@@ -674,8 +800,8 @@ function makeEmptyState() {
   const div = document.createElement('div');
   div.className = 'empty-state';
   div.id = 'emptyState';
-  div.innerHTML = `<p>Start a conversation with your writing coach.</p>
-    <p class="empty-sub">The coach knows your assignment prompt — but not your other conversations. Catch it up on anything it needs to know.</p>`;
+  div.innerHTML = `<p>Start a session with your writing coach.</p>
+    <p class="empty-sub">The coach knows your assignment prompt — but not your other sessions. Catch it up on anything it needs to know.</p>`;
   return div;
 }
 
@@ -708,10 +834,10 @@ function renderTurn(t) {
 // token lands and the placeholder is swapped for the real bubble.
 function thinkingIndicator(role) {
   const wrap = el('div', 'thinking');
-  const pulse = el('span', 'thinking-pulse');
-  for (let i = 0; i < 3; i++) pulse.append(el('i'));
-  wrap.append(pulse);
-  wrap.append(el('span', null, role === 'auditor' ? 'Auditor is reading…' : 'Coach is thinking…'));
+  wrap.append(el('span', 'thinking-orb'));
+  // "Thinking" is vague; naming what's actually happening makes the wait
+  // legible instead of just decorative.
+  wrap.append(el('span', null, role === 'auditor' ? 'Auditor is reading…' : 'Reading your last message…'));
   return wrap;
 }
 
@@ -828,6 +954,14 @@ async function sendMessage() {
   $('messages').append(student.wrap);
   $('messages').scrollTop = $('messages').scrollHeight;
 
+  // The server row (and the sidebar entry) doesn't exist until this first
+  // send — see startNewSession().
+  if (!state.conv.id) {
+    const conv = await api('/api/conversations', { method: 'POST', body: { sessionId: state.session.id } });
+    state.conv = { ...conv, cycleIndex: state.session.cycleIndex };
+    state.conversations.unshift(state.conv);
+  }
+
   await streamAction(`/api/conversations/${state.conv.id}/message`, { text, editOfTurnId }, 'coach');
 
   // Flips the draft from "not started" to "in progress" the moment a message
@@ -843,7 +977,7 @@ async function sendMessage() {
     if (item) item.title = title;
     $('convTitle').textContent = title;
   }
-  if (isFirst || wasFirstActivity) renderDraftSections();
+  if (isFirst || wasFirstActivity) renderSessionList();
 }
 
 // ---------- wiring ----------
@@ -876,22 +1010,17 @@ $('btnEvaluate').onclick = () => {
 $('btnCancelEdit').onclick = cancelEdit;
 
 $('btnRename').onclick = async () => {
-  const title = prompt('Rename conversation:', state.conv.title);
+  const title = prompt('Rename session:', state.conv.title);
   if (!title) return;
   await api(`/api/conversations/${state.conv.id}/rename`, { method: 'POST', body: { title } });
   state.conv.title = title;
   const item = state.conversations.find((c) => c.id === state.conv.id);
   if (item) item.title = title;
   $('convTitle').textContent = title;
-  renderDraftSections();
+  renderSessionList();
 };
 
-$('btnBack').onclick = () => showAssignments();
-
-$('btnSaveClose').onclick = () => {
-  logEvent('episode-save');
-  showAssignments();
-};
+$('btnNewSession').onclick = startNewSession;
 
 // Copy from a coach/auditor message = observed extraction.
 document.addEventListener('copy', () => {
@@ -913,14 +1042,30 @@ function showReport(submissionId) {
   location.href = `/report.html?id=${submissionId}`;
 }
 
+// Entry point from a report page's "Session" toggle — jumps straight
+// into that draft's own session rather than the assignment list, since
+// the report already told the student exactly which draft they came from.
+async function openFromReportLink(assignmentId, cycleIndex) {
+  await openAssignment(assignmentId);
+  const convs = state.conversations.filter((c) => c.cycleIndex === cycleIndex);
+  if (convs.length) {
+    const mostRecent = [...convs].sort((a, b) => (b.lastActiveAt || '').localeCompare(a.lastActiveAt || ''))[0];
+    await openConversation(mostRecent.id);
+  }
+}
+
 // ---------- submit flow ----------
 
 $('btnSubmit').onclick = () => {
   if (!state.session) return;
   const used = state.session.cycleIndex;
   const budget = state.assignment.draftBudget;
-  $('submitWarning').textContent =
-    `Submitting ends this session: all ${state.conversations.filter((c) => c.cycleIndex === state.session.cycleIndex).length || 'its'} conversation(s) lock and go to your teacher with your draft. This uses draft ${used + 1} of ${budget}.`;
+  const convCount = state.conversations.filter((c) => c.cycleIndex === state.session.cycleIndex).length || 1;
+  const warning = $('submitWarning');
+  warning.innerHTML = '';
+  warning.append(el('li', null,
+    `All ${convCount} of this draft's session${convCount === 1 ? '' : 's'} lock and go to your teacher with your draft.`));
+  warning.append(el('li', null, `This uses draft ${used + 1} of ${budget}.`));
   $('essayText').value = '';
   $('submitModal').classList.remove('hidden');
 };
@@ -930,7 +1075,7 @@ $('btnCancelSubmit').onclick = () => $('submitModal').classList.add('hidden');
 $('btnConfirmSubmit').onclick = async () => {
   const essayText = $('essayText').value.trim();
   if (!essayText) {
-    alert('Paste your draft first — the submission bundles your conversations with the essay.');
+    alert('Paste your draft first — the submission bundles your sessions with the essay.');
     return;
   }
   $('btnConfirmSubmit').disabled = true;
@@ -948,4 +1093,16 @@ $('btnConfirmSubmit').onclick = async () => {
 
 // ---------- boot ----------
 
-showAssignments();
+mountAccountChip($('accountChip')).catch(() => {});
+
+// A report page's "Session" toggle lands here as ?open=<assignmentId>
+// &cycle=<cycleIndex> rather than a plain visit to the assignment list.
+const bootParams = new URLSearchParams(location.search);
+const openAssignmentId = bootParams.get('open');
+const openCycle = bootParams.get('cycle');
+if (openAssignmentId && openCycle !== null && openCycle !== '') {
+  history.replaceState(null, '', '/index.html');
+  openFromReportLink(openAssignmentId, Number(openCycle)).catch(() => showAssignments());
+} else {
+  showAssignments();
+}

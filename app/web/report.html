@@ -11,13 +11,22 @@
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 </head>
 <body>
-<div class="results-layout">
-  <div class="report-topbar">
-    <a href="/" id="backLink">&larr; Back to assignment</a>
-    <h1 id="pageTitle">Draft report</h1>
-    <button class="theme-toggle theme-toggle-end" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
-  </div>
+<!-- Same shell as index.html's nav — mark, breadcrumb, the local
+     Report/Session toggle, identity. Filled in by report-boot.js once
+     the submission (and its assignment) is known. -->
+<header class="tau-nav" id="tauNav">
+  <span class="tau-nav-mark"><span class="tau-nav-glyph">&tau;</span>Coach</span>
+  <nav class="tau-nav-crumbs" id="navCrumbs"></nav>
+  <span class="tau-nav-fill"></span>
+  <span class="tau-nav-local hidden" id="navLocal"></span>
+  <div class="account-chip" id="accountChip"></div>
+  <!-- Demo/explainer material, not a destination most students need — a
+       header button rather than a permanent tab slot. Slated to be sunset. -->
+  <button class="account-signout" id="patternGuideBtn" type="button">Pattern Guide</button>
+  <button class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
+</header>
 
+<div class="results-layout">
   <div id="pending">
     <div class="spinner"></div>
     Analyzing your conversations and draft…<br><small>This usually takes under a minute.</small>
@@ -26,62 +35,87 @@
   <div id="results">
     <div id="samrHero"></div>
 
-    <div class="card" id="summaryPanel">
-      <span class="eyebrow">The four things this looks at</span>
-      <div class="dims" id="summaryGrid"></div>
-      <div class="dim-details" id="dimDetails"></div>
+    <div id="teacherNotePanel"></div>
+
+    <!-- Sticky jump nav: reachable at any scroll depth once the hero itself
+         has scrolled out of view, at which point the mini score (filled in
+         by renderJumpScore in report-render.js) fades into the left edge
+         instead of costing the page a second permanently-visible score. -->
+    <nav class="report-jump" id="reportJump" aria-label="Report sections">
+      <div class="report-jump-score" id="reportJumpScore"></div>
+      <div class="report-jump-scroll">
+        <button class="report-jump-btn" data-target="summaryPanel"><span class="report-jump-dot"></span>Overview</button>
+        <button class="report-jump-btn" data-target="tabReflect"><span class="report-jump-dot"></span>My Session</button>
+        <button class="report-jump-btn" data-target="tabChart"><span class="report-jump-dot"></span>Agency Chart</button>
+        <button class="report-jump-btn" data-target="tabDriving"><span class="report-jump-dot"></span>Who's Driving</button>
+        <button class="report-jump-btn" id="jumpBtnNext" data-target="growthMovesPanel"><span class="report-jump-dot"></span>Next Time</button>
+      </div>
+    </nav>
+
+    <div class="card card-lg report-section" id="summaryPanel">
+      <span class="report-section-title">The four things this looks at</span>
+      <div class="dim-grid" id="dimGrid"></div>
     </div>
 
-    <div class="card" id="snapshotPanel">
-      <span class="eyebrow">What stood out</span>
-      <div id="snapshotContent"></div>
+    <div class="card card-lg report-section" id="tabReflect">
+      <span class="report-section-title">My Session</span>
+      <div id="reflectContent"></div>
     </div>
 
-    <div class="card" id="tabsPanel">
-      <span class="eyebrow">Your session breakdown</span>
-      <div class="tab-bar">
-        <button class="tab-btn active" data-tab="chart">Agency Chart</button>
-        <button class="tab-btn" data-tab="reflect">My Session</button>
-        <button class="tab-btn" data-tab="provenance">Idea Origins</button>
-        <button class="tab-btn" data-tab="patternguide">Pattern Guide</button>
-      </div>
-
-      <div class="tab-pane active" id="tabChart">
-        <div id="chartSummaryEl" style="width:796px;max-width:100%;"></div>
-        <svg id="agencyChart"></svg>
-        <div id="chartLegendEl" style="width:796px;max-width:100%;"></div>
-        <p class="tab-intro">Each row is one of your turns. The higher it sits, the more you were in control — asking questions, making your own points, pushing back on the AI. Lower turns are more passive: asking it to generate content, checking its answers, or getting stuck. Brackets on the side mark groups of turns the tool identified as a recognisable pattern.</p>
-      </div>
-
-      <div class="tab-pane" id="tabReflect">
-        <div id="reflectContent"></div>
-      </div>
-
-      <div class="tab-pane" id="tabProvenance">
-        <div class="prov-stat-row" id="provStats"></div>
-        <div id="provenanceContent">
-          <div class="provenance-grid">
-            <div>
-              <span class="eyebrow">Your draft, by where each idea started</span>
-              <div class="essay-heatmap" id="essayHeatmap"></div>
-            </div>
-            <div>
-              <span class="eyebrow">Every idea we could trace</span>
-              <div class="concept-list" id="conceptList"></div>
-            </div>
-          </div>
+    <div class="card card-lg report-section" id="tabChart">
+      <div class="report-section-head">
+        <span class="report-section-title-group">
+          <span class="report-section-title">Agency Chart</span>
+          <span class="dim-info">
+            <button class="dim-info-btn" type="button" aria-label="What this chart shows">i</button>
+            <span class="dim-tooltip" role="tooltip">Each row is one of your turns. The higher it sits, the more you were in control — asking questions, making your own points, pushing back on the AI. Lower turns are more passive: asking it to generate content, checking its answers, or getting stuck. Brackets on the side mark groups of turns the tool identified as a recognisable pattern.</span>
+          </span>
+        </span>
+        <div class="chart-toggle" id="chartToggle" role="group" aria-label="Chart layers">
+          <button type="button" class="chart-toggle-btn is-active" data-layer="bars">Bars</button>
+          <button type="button" class="chart-toggle-btn is-active" data-layer="trend">Trend line</button>
         </div>
       </div>
+      <div id="chartSummaryEl" style="width:796px;max-width:100%;"></div>
+      <svg id="agencyChart"></svg>
+      <div id="chartLegendEl" style="width:796px;max-width:100%;"></div>
+    </div>
 
-      <div class="tab-pane" id="tabPatternGuide">
-        <div id="patternGuideContent"></div>
+    <div class="card card-lg report-section" id="tabDriving">
+      <div class="report-section-head">
+        <span class="report-section-title-group">
+          <span class="report-section-title">Who's Driving</span>
+          <span class="dim-info">
+            <button class="dim-info-btn" type="button" aria-label="What this chart shows">i</button>
+            <span class="dim-tooltip" role="tooltip">Same turns, asking a different question: who was steering, not how agentic the turn was. <strong>Student-driven</strong> turns are moves you made yourself — a claim, a challenge, a pivot. <strong>AI-driven</strong> turns are ones where the coach authored the content even though you asked for it, like an extraction or a validation. <strong>Shared</strong> turns split the difference — a refinement redirects the coach's own draft. The line beneath the strip is a 5-turn rolling share of student- vs. AI-driven turns.</span>
+          </span>
+        </span>
       </div>
+      <svg id="drivingChart"></svg>
+      <div id="drivingLegendEl" style="width:796px;max-width:100%;"></div>
+    </div>
+
+    <div class="card card-lg report-section" id="growthMovesPanel">
+      <span class="report-section-title">Try this next time</span>
+      <div id="growthMovesContent"></div>
+    </div>
+  </div>
+
+  <!-- Static record, not the live coach chat: every session from this draft,
+       read-only. Toggled in place of #results by the nav's local
+       Report/Sessions option — see report-boot.js. -->
+  <div class="card card-lg conv-view hidden" id="conversationView">
+    <span class="report-section-title" id="convViewTitle">Loading…</span>
+    <p class="tab-intro" id="convViewIntro">Loading…</p>
+    <div class="conv-view-body">
+      <div class="conv-view-list" id="convViewList"></div>
+      <div class="conv-view-transcript" id="convViewTranscript"></div>
     </div>
   </div>
 </div>
 
 <div id="dt-modal-overlay">
-  <div id="dt-modal">
+  <div class="confirm dt-modal-box" id="dt-modal">
     <button id="dt-modal-close">&#x2715;</button>
     <div id="dt-modal-turn"></div>
     <div id="dt-modal-classifier"></div>
@@ -101,12 +135,17 @@
   <div class="div-pat-sidebar-body" id="patternSidebarBody"></div>
 </div>
 
-<div id="turnModal" onclick="if(event.target===this)closeTurnModal()">
-  <div class="turn-modal-box" id="turnModalBox"></div>
+<div id="patternGuideModal" onclick="if(event.target===this)closePatternGuideModal()">
+  <div class="confirm confirm-lg pattern-guide-modal-box" id="patternGuideModalBox">
+    <button id="patternGuideModalClose" aria-label="Close">&#x2715;</button>
+    <div id="patternGuideContent"></div>
+  </div>
 </div>
 
+<script src="icons.js"></script>
 <script src="api.js"></script>
 <script src="report-render.js"></script>
+<script src="report-conversation.js"></script>
 <script src="report-boot.js"></script>
 </body>
 </html>

@@ -7,8 +7,12 @@
 //                   passwordHash, passwordSalt }   (dev-only; prod is SSO)
 //   authSessions  dev login sessions — replaced by Firebase ID tokens in prod:
 //                 { id, userId, token, createdAt, expiresAt }
-//   assignments   { id, teacherId, title, prompt, dueDate, draftBudget,
-//                   coachingLevels: ['full','full','questions','sounding-board'], createdAt }
+//   assignments   { id, teacherId, title, prompt, dueDate, draftDueDates,
+//                   draftBudget, coachingLevels: ['full','full','questions','sounding-board'],
+//                   createdAt }
+//                 draftDueDates[i] is when draft i+1 is due, ascending, length
+//                 draftBudget; draftDueDates[draftBudget-1] === dueDate (the
+//                 final draft's due date is the assignment's due date).
 //   sessions      one per revision cycle:
 //                 { id, assignmentId, studentId, cycleIndex, coachingLevel,
 //                   status: 'active'|'submitted', startedAt, submittedAt }

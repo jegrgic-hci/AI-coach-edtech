@@ -9,10 +9,11 @@
 <link rel="stylesheet" href="style.css">
 <script src="theme.js"></script>
 <style>
-.teacher-badge { font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 10px; background: var(--tau-caution-bg); color: var(--tau-caution); }
 .teacher-main { padding: 28px 32px; max-width: 1000px; margin: 0 auto; width: 100%; overflow-y: auto; }
 
-.panel-card { background: var(--tau-surface); border: 1px solid var(--tau-line); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+/* Chrome (background/border/radius/padding) comes from components.css's
+   .card-lg now — this only adds the stacking margin between panels. */
+.panel-card { margin-bottom: 16px; }
 .panel-card h3 { margin-bottom: 10px; }
 
 .new-assignment-form { display: none; flex-direction: column; gap: 10px; margin-top: 14px; }
@@ -24,24 +25,35 @@
 .form-row label { font-size: 13px; color: var(--tau-ink-soft); }
 .level-selects { display: flex; gap: 8px; flex-wrap: wrap; }
 
-.roster-row { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-top: 1px solid var(--tau-line); cursor: pointer; }
-.roster-row:hover .student-name { color: var(--tau-forest); }
-.student-name { font-weight: 600; min-width: 140px; }
-.cycle-chip { font-size: 12px; padding: 3px 10px; border-radius: 8px; background: var(--tau-surface-2); color: var(--tau-forest); }
-.cycle-chip.flagged { background: var(--tau-caution-bg); color: var(--tau-caution); }
-.cycle-chip.pending { background: var(--tau-surface-2); color: var(--tau-ink-soft); }
+/* Row chrome comes from components.css's .list-row/.list-row-name now — this
+   only adds the separator rule between rows, the name's fixed width, and the
+   hover-forest nuance this roster wants, none of which the shared component
+   opinions on. */
+.roster-row { border-top: 1px solid var(--tau-line); }
+.list-row:hover .list-row-name { color: var(--tau-forest); }
+.list-row-name { min-width: 140px; }
+/* One colour pairing (forest-on-neutral) that doesn't match any of
+   components.css's five .chip-* variants — shape/padding still come from
+   .chip. .flagged/.pending now reuse .chip-caution/.chip-grey directly. */
+.cycle-chip { background: var(--tau-surface-2); color: var(--tau-forest); }
 .active-dot { font-size: 12px; color: var(--tau-positive); }
 
 /* student detail */
 .traj-strip { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
-.traj-card { flex: 1; min-width: 150px; background: var(--tau-surface); border: 1px solid var(--tau-line); border-radius: 12px; padding: 14px; }
+/* Chrome comes from components.css's .card now — this keeps only the flex
+   sizing three cards need to sit side by side. */
+.traj-card { flex: 1; min-width: 150px; }
 .traj-card .lvl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tau-ink-soft); }
 .traj-card .samr { font-weight: 700; margin: 4px 0; }
-/* Not .dims — that is the four-dimension grid in components.css. This is the
-   one-line triage summary, which is a different object at a different density. */
+/* Not .dim-grid — that is the four-dimension quadrant grid in components.css.
+   This is the one-line triage summary, which is a different object at a
+   different density. */
 .traj-card .dim-line { font-size: 12px; color: var(--tau-ink-soft); }
 .traj-card a { font-size: 12px; }
 
+/* Shaped closer to a callout than a card (no background/full border/radius —
+   just a ruled left edge over running text), so it stays its own pattern
+   rather than being forced onto .card or .quote. */
 .moment { border-left: 3px solid var(--tau-forest); padding: 6px 14px; margin-bottom: 10px; }
 .moment .m-kind { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tau-forest); }
 .moment .m-quote { font-style: italic; margin: 3px 0; }
@@ -50,17 +62,14 @@
 
 .transcript { border: 1px solid var(--tau-line); border-radius: 10px; padding: 14px; margin-top: 10px; }
 .transcript summary { cursor: pointer; font-weight: 600; font-size: 14px; }
-.t-turn { padding: 8px 12px; margin: 8px 0; border-radius: 8px; font-size: 14px; white-space: pre-wrap; }
-.t-student { background: var(--tau-surface-2); }
-.t-ai { background: var(--tau-surface-2); }
-.t-auditor { background: var(--tau-auditor-bg); border: 1px dashed var(--tau-auditor); }
-.t-superseded { opacity: var(--tau-disabled); text-decoration: line-through; }
-.t-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--tau-ink-soft); margin-bottom: 3px; display: flex; gap: 8px; }
-.t-label .lb { padding: 0 7px; border-radius: 7px; background: var(--tau-positive-bg); color: var(--tau-positive); }
+/* The transcript itself is components.css's .turn/.msg/.turn-student/
+   .turn-coach/.turn-auditor/.msg-superseded now — see teacher.js. */
 .t-event { font-size: 12px; color: var(--tau-caution); background: var(--tau-caution-bg); border-radius: 6px; padding: 3px 10px; margin: 6px 0; display: inline-block; }
 .note-box { width: 100%; font: inherit; border: 1px solid var(--tau-line); border-radius: 8px; padding: 8px 12px; resize: vertical; }
 .note-saved { font-size: 12px; color: var(--tau-positive); margin-left: 8px; }
-.section-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tau-ink-soft); margin: 14px 0 8px; }
+/* Layout tweak only — text/colour/weight come from components.css's
+   .eyebrow now (was its own near-identical uppercase micro-label). */
+.eyebrow { margin: 14px 0 8px; }
 </style>
 </head>
 <body>
@@ -68,7 +77,7 @@
 <div id="viewOverview" class="view">
   <header class="app-header">
     <h1>Writing Coach</h1>
-    <span class="teacher-badge">Teacher</span>
+    <span class="chip chip-caution">Teacher</span>
     <span class="visibility-cue">Signals are conversation-starters, never verdicts</span>
     <div class="account-chip" id="accountChip"></div>
     <button class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
@@ -80,7 +89,7 @@
   <header class="app-header">
     <button class="back-btn" id="btnBackOverview">&larr; All assignments</button>
     <h1 id="studentTitle"></h1>
-    <span class="teacher-badge">Teacher</span>
+    <span class="chip chip-caution">Teacher</span>
     <button class="theme-toggle theme-toggle-end" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
   </header>
   <main class="teacher-main" id="studentBody"></main>

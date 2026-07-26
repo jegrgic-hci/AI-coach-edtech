@@ -28,6 +28,9 @@ const GUIDE_ASSIGNMENT = {
     'usable as an oral presentation with references.',
   draftBudget: 1,
   coachingLevels: ['full'],
+  // Signed day offsets from "now" (negative = past, positive = future) — one
+  // entry per draft, ascending, last one is the assignment's own final due date.
+  draftDueInDays: [-1],
 };
 
 const ASSIGNMENTS = {
@@ -39,6 +42,14 @@ const ASSIGNMENTS = {
       'and cite evidence for your claims.',
     draftBudget: 3,
     coachingLevels: ['full', 'questions', 'sounding-board'],
+    // -1/2/8 rather than all-future — the demo class needs at least one
+    // draft slot to actually read as overdue (Devon's draft 1) alongside the
+    // due-soon (Maya's draft 2) and calm (draft 3) tones, not just three
+    // shades of "later."
+    draftDueInDays: [-1, 2, 8],
+    // Assignment-wide, not about any one draft — demonstrates the rubric-
+    // style disclosure on the assignment card, distinct from a per-draft note.
+    teacherNote: "A reminder for the whole class on this one: your counterargument has to be a real position someone could hold, not a strawman you set up to knock down. I'll be checking for that specifically.",
   },
   past: {
     title: 'Rhetorical analysis: a speech that changed something',
@@ -48,6 +59,7 @@ const ASSIGNMENTS = {
       'Ground every claim in specific language from the speech.',
     draftBudget: 3,
     coachingLevels: ['full', 'questions', 'sounding-board'],
+    draftDueInDays: [-32, -24, -15],
   },
 };
 
@@ -552,6 +564,14 @@ const TEACHER_NOTES = {
   'devon@school.dev': "Devon — read your last paragraph again. The idea about difficulty being the reason rather than the obstacle is genuinely good and it's yours. That's the standard now. Let's talk about how to get there earlier next time.",
 };
 
+// Separate from TEACHER_NOTES (which lands on the *past* assignment's final
+// draft) — this one lands on a draft within the *open* assignment, so the
+// demo shows a teacher note inside the draft-row ledger itself, not just on
+// the past-assignment summary card.
+const OPEN_TEACHER_NOTES = {
+  'maya@school.dev': "Good opening position on draft 1 — the evidence for your second reason is still doing more assertion than argument. Bring a source to our next check-in.",
+};
+
 module.exports = {
   DEV_PASSWORD,
   STUDENTS,
@@ -563,4 +583,5 @@ module.exports = {
   FLAGS,
   SNAPSHOTS,
   TEACHER_NOTES,
+  OPEN_TEACHER_NOTES,
 };

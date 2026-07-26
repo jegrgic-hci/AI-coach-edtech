@@ -4,7 +4,10 @@ Living document for the design layer of `app/`. Companion to `built-in-chat-plan
 (which owns product/architecture decisions) and `app/README.md` (implementation).
 **Read this before any design or CSS work in `app/`.**
 
-**Status as of 2026-07-20.** Tokens linked and live on all five pages. `style.css`,
+**Status as of 2026-07-22.** The atomic-design debt flagged 2026-07-21 (`dashboard.html`/
+`teacher.html` independently rebuilding chip/roster-row/modal/turn-shell patterns) is closed — see
+that day's session log entry. `components.css` now has 11 sections; all three pages compose it for
+those patterns. Tokens linked and live on all five pages. `style.css`,
 `teacher.html`, `report.css`, and now **`dashboard.html`** are migrated onto `--tau-*` — zero
 hardcoded hexes (outside three intentionally-literal value ramps, see *Known debt*), zero legacy
 names, every `var()` resolves, on every page. Theme toggle ships on every page for both roles,
@@ -81,6 +84,81 @@ than one surface** goes in `components.css`; **layout only** goes in the page's 
 rebuild turns on: the moment `report.css` styles its own turn or its own card again, the split
 is back. If a component doesn't fit a surface, change the component or add a modifier — in
 `components.css`, where both surfaces get it.
+
+---
+
+## Atomic Design taxonomy (2026-07-21)
+
+The file split above already draws the same line Atomic Design draws — this section gives it that
+vocabulary and, more usefully, a trigger for when to act on it. An inventory pass this session
+found the same handful of patterns reinvented independently 3-4 times across files that never
+reference each other: `.card` (components.css) vs `.acard`/`.pcard` (style.css, different radius
+and padding each time); the SAMR colour ramp defined once as `.band-1..4` and a second time as a
+private `.samr-*` border mapping; and three independent scrim+box implementations (`.scrim`/
+`.confirm` in components.css — built, never consumed — plus `.modal-backdrop`/`.modal` in
+style.css and `#turnModal`/`.turn-modal-box` in report.css, both live). None of these files import
+from each other, so nothing forced a second implementation to notice the first existed.
+
+| Tier | Definition | Lives in |
+|---|---|---|
+| **Atoms** | Smallest single-purpose UI primitive — button, badge, avatar, input, meter track. Not decomposable further. | `components.css` |
+| **Molecules** | A small, fixed group of atoms doing one reusable job — a card, a turn/message bubble, a confirm dialog, a legend, a sparkline. | `components.css` |
+| **Organisms** | A full, page-context section built from molecules/atoms — the workspace sidebar, the report hero, the teacher roster table, the dashboard rail. Usually page-specific by nature. | page sheets (`style.css`, `report.css`, inline blocks) |
+| **Templates** | The page's layout skeleton (grid/flex regions organisms drop into), no real content. | the `<body>` structure in each page's own sheet |
+| **Pages** | Real screens with real content. | the five `.html` files |
+
+**No class-name prefixes** (`.a-btn`, `.m-card` etc.) — tier is tracked in the inventory table
+below, not encoded in the name. Renaming ~300 classes across 5 pages and 2 JS renderers that build
+class strings dynamically (`report-render.js`, `teacher.js`) is where real breakage risk lives in a
+no-build vanilla setup, for a purely cosmetic gain.
+
+**The promotion trigger, sharpened from the rule two paragraphs up**: *when the same visual pattern
+appears identically on 2+ surfaces, it gets promoted into `components.css` as an atom or molecule;
+a page sheet may lay a promoted component out (margins, grid position) but may not redefine its
+chrome (background/border/radius/padding/shadow).* "2+ surfaces, identical" is the trigger — not a
+judgment call each time a page sheet is edited.
+
+**components.css's 11 sections, tagged by tier** (comments only, no reordering):
+Atoms — micro-label, theme toggle, buttons, band chip + meters, avatar, field, chip, dot.
+Molecules — four dimensions grid, card, turn shell, origin/provenance, legend, trajectory
+sparkline, confirm + scrim, offline bar, stat-tile, tray, list-row.
+
+**Section 11, added 2026-07-22**: `.chip`/`.chip-neutral/-grey/-positive/-caution/-attention` (a
+generic status pill, distinct from `.band` which always carries a pip and is reserved for the SAMR
+level), `.dot`/`.dot-sm`/`.dot-caution` (a filled-circle indicator on `currentColor`), `.stat-tile`
+(a label/value pair in a tinted box), `.tray`/`.tray-overlay` (the right-sliding drawer, mechanically
+distinct from `.scrim`/`.confirm`), and `.list-row`/`.list-row-name/-meta/-action` (a non-tabular
+avatar+name+action row, lighter than `table.roster`). Also added `.msg-superseded` to the existing
+turn shell (section 6).
+
+**Deduped this session** (see *Component inventory* below for the updated consumed-by column):
+- `.acard`/`.pcard` now compose `.card`/`.card-lg` for chrome, keeping only their own layout
+  (margin, internal grids). `.acard`'s own radius/padding was an exact match for `.card-lg`
+  already — pure duplication, zero value drift. `.pcard`'s was ~1-2px off `.card`'s base values,
+  resolved onto the canonical one rather than kept as an unintentional third size. Urgency edges
+  (`.acard-soon`/`.acard-late`) were themselves duplicates of `.card-edge-caution`/
+  `.card-edge-attention` — same rule, deleted the copy.
+- The SAMR-as-border-accent mapping (`.samr-substitution/augmentation/modification/redefinition`)
+  moved from `style.css` into `components.css`, next to `.band-1..4` — same `--tau-band-N-fg`
+  tokens, one documented mapping with two treatments (filled pill vs. border accent) instead of
+  one documented and one shadow copy.
+- The submit-draft dialog (`index.html`) now uses `.scrim`/`.confirm` — the component
+  `designsystem.md` already documented as built but unconsumed — instead of its own
+  `.modal-backdrop`/`.modal`. Picked up `.confirm`'s actual design contract in the process: the
+  warning is a `<ul>` naming each consequence, not a single caution-tinted sentence (`.confirm`'s
+  own comment: *"the list is the component's whole point... a paragraph hides the fourth item"*).
+  Added `.confirm-lg` as a widened variant for dialogs with real content (this one holds an essay
+  textarea) rather than force every consumer into the 460px default.
+- `report.css`'s turn-detail modal (`#turnModal`/`.turn-modal-box`) now composes `.confirm` for
+  its chrome, keeping only its own size override. Its `#turnModal`/`.open` open-close mechanism
+  (JS-driven, `display:none` default) was left alone — different convention from the `.hidden`
+  utility everywhere else, not worth the risk in the same pass as the chrome dedup.
+
+**Explicitly not touched this session** (tracked in *Known debt* below): `dashboard.html` and
+`teacher.html`'s independent chip/roster-row/modal/turn-shell implementations, and `report.css`'s
+second modal (`#dt-modal-overlay`/`#dt-modal`, the drill-through turn-detail popup, distinct from
+`#turnModal`). `dashboard.html` was already deferred in the session-6 log for being out of scope;
+this doesn't relitigate that.
 
 ---
 
@@ -181,6 +259,45 @@ Preference is stored per browser, not per account. Correct for a display setting
 knowing on shared Chromebooks: one student's dark choice greets the next student on that machine.
 Move it to the user record if that turns up in a pilot.
 
+### Motion
+Added 2026-07-22, revised same day onto Material 3's motion system rather than invented values —
+M3 publishes a tested duration scale and easing set for exactly this problem, and there's no
+reason to guess our own numbers. The first pass (`--tau-dur-fast: 120ms`) read as too fast in
+review; M3's own scale explains why — 120ms sits below M3's *shortest* named rung (`short1`,
+50ms) short of their smallest useful step, when what we wanted was their **short** category, not
+something faster than it.
+
+We take two rungs of M3's four-tier ladder (`short`, `medium`, `long`, `extra-long`) — `short` and
+`medium` — because this system has no large-surface or expressive transitions (page transforms,
+shared-element hero motion) for `long`/`extra-long` to serve. An unused rung is just a third value
+someone reaches for out of habit later.
+
+| Token | Value | M3 source | Use for |
+|---|---|---|---|
+| `--tau-dur-short` | 150ms | `short3` | Colour/background/border state changes — hover, focus, a toggle flipping. No distance travelled. |
+| `--tau-dur-medium` | 300ms | `medium2` | Anything that moves or resizes on screen — a disclosure opening, a panel sliding, a card lifting. |
+| `--tau-ease-standard` | `cubic-bezier(0.2,0,0,1)` | `standard` | Default for anything symmetric — the same motion plays in reverse (hover, press, most toggles). |
+| `--tau-ease-decelerate` | `cubic-bezier(0.05,0.7,0.1,1)` | `emphasized-decelerate` | Something entering/appearing — arrives fast, settles slow. |
+| `--tau-ease-accelerate` | `cubic-bezier(0.3,0,0.8,0.15)` | `emphasized-accelerate` | Something leaving — starts slow, exits fast. |
+
+M3's full "emphasized" curve is a two-segment path (accelerate into decelerate) that isn't
+expressible as one CSS `cubic-bezier`. We use the accelerate/decelerate halves directly on
+whichever edge of a transition needs them instead of approximating the whole path — the same
+single-property use M3's own CSS token guidance recommends.
+
+**Rules:**
+- Never animate `top`/`left`/`width`/`height` for movement — `transform`/`opacity` only, so motion
+  doesn't trigger layout on every frame.
+- A hover/focus/press state uses `--tau-dur-short` + `--tau-ease-standard`; anything that changes
+  an element's size or position on screen uses `--tau-dur-medium` with `-decelerate` (appearing)
+  or `-accelerate` (leaving). Don't reach for a third duration because something "feels" in
+  between — pick the nearer rung.
+- Loading spinners (`@keyframes spin`/`rspin`) are a different category — continuous indicators,
+  not interaction feedback — and stay outside this token set.
+- `prefers-reduced-motion` is already enforced globally (baseline block, `tokens.css`) — collapses
+  every `transition`/`animation` to near-zero. New motion never needs its own reduced-motion
+  override; the blanket rule already covers it.
+
 ### Accessibility floor
 Shipped in the baseline block of `tokens.css`: global `:focus-visible`, `prefers-reduced-motion`,
 `100dvh`. Plus `--tau-target: 44px` as a real minimum — v7 claimed 44px while shipping 20px chips,
@@ -226,14 +343,15 @@ expected shape between 3c and 3e, not a stall.
 | Theme toggle | `components.css` | all five pages, both roles |
 | Button system (`.btn`) | `components.css` | index, login |
 | Band chip (`.band`) + segmented meter (`.steps`) | `components.css` | report hero + dimensions |
+| SAMR border accent (`.samr-substitution/augmentation/modification/redefinition`) | `components.css` (moved from `style.css`, 2026-07-21) | index (`.draft-chip`, `.draft-row`, `.draft-section`) · same `--tau-band-N-fg` ramp as `.band-1..4` above, one mapping documented once |
 | Turn shell (`.turn` / `.msg` / auditor form) | `components.css` (moved out of `style.css`, 3c) | index chat |
 | Origin chips + provenance bar | `components.css` (moved, 3c) | report Idea Origins · `.concept-origin-badge` deleted |
-| Card (`.card` + edge modifiers) | `components.css` (3c) | report (all panels) · `.panel` `.summary-card` deleted |
+| Card (`.card` + edge modifiers, `.card-lg`) | `components.css` (3c) | report (all panels), **index (`.acard`/`.pcard` compose it, 2026-07-21)** · `.panel` `.summary-card` deleted |
 | Four dimensions (`.dims` / `.dim`) | `components.css` (3c) | report · `.summary-card` deleted |
 | Legend (`.legend`) | `components.css` (3c) | report provenance · `.prov-legend-*` deleted; `.div-legend-*` `.dt-legend-*` remain |
 | Trajectory sparkline (`.traj`) | `components.css` (3c) | report hero · rail still uses `.trend-svg` |
 | Continuous meter (`.meter-track`) | `components.css` (moved, 3c) | dashboard rail |
-| Submit confirmation (`.confirm`) | `components.css` (3c) | — · `.modal-*` still ships, names one consequence not four |
+| Confirm dialog (`.confirm`/`.scrim`, `.confirm-lg`) | `components.css` (3c) | **index submit-draft dialog, report turn-detail modal (both 2026-07-21)** · `dashboard.html`/`teacher.html` still ship independent modals, see *Known debt* |
 | Offline bar + queued turn | `components.css` (3c) | — · **needs logic, not just CSS** |
 | Micro-label (`.eyebrow`), avatar, field | `components.css` (3c) | `.eyebrow` on report (replaced `.section-header`) |
 | Quote (`.quote`) | `components.css` (3c) | report snapshot |
@@ -244,6 +362,8 @@ expected shape between 3c and 3e, not a stall.
 | Report layout | `report.css` | report · fully on the layer, top half and all four tabs |
 | Teacher roster | `style.css` | teacher · needs density + band labels + flag framing |
 | Plain-language band labels | **Written** — `BAND_META` in `report-render.js` | report hero |
+| Global nav (`.tau-nav` + crumbs + local toggle) | `components.css` (2026-07-22) | index (home + workspace), report — see session log. Not on `dashboard.html`/`teacher.html`, which keep their own `.tab-nav`. |
+| Icon system (`.tau-icon`, M3-style) | `icons.js` (new file) + `.tau-icon` base in `components.css` | index home card (chat, close, description, arrowForward, checklist, expandMore) — replaces the ✉/✕/→ text glyphs that were standing in for icons. `chat` (not `mail`) for the teacher-note vocabulary specifically — a note reads as "someone said something," not correspondence. Self-hosted inline SVG, not the Material Symbols webfont/CDN: the app loads zero external resources today (system fonts only) and a font dependency would break that. Not yet on `teacher.js`/`dashboard.html` or the workspace's `reading-banner-return`. |
 | Assignment setup flow | **Missing** | |
 
 ---
@@ -613,6 +733,15 @@ the same line in the band and origin blocks, and a naive `^\s*--` reports 21 fal
   Snapping them will move layout, so it needs its own pass and its own screenshots.
 - **No self-hosted UI font.** System stack for now; leading with Helvetica Neue (as v7 did)
   degrades to Liberation Sans on Chromebooks, the dominant device in this market.
+- ~~`dashboard.html` and `teacher.html` still ship independent chip/roster-row/modal/turn-shell
+  implementations~~ — **resolved 2026-07-22**, see the session log entry. `components.css` gained
+  a new section 11 (`.chip`, `.dot`/`.dot-caution`, `.stat-tile`, `.tray`, `.list-row`, and a
+  `.msg-superseded` modifier on the existing turn shell); both pages and `report.css`'s `#dt-modal`
+  now compose it. Two things this pass found are genuinely *not* duplicates and were left alone:
+  `dashboard.html`'s `.talkabout`/teacher's `.moment` (a ruled-edge callout, shaped closer to
+  `.quote` than a full `.card`, but not a clean fit for either without restructuring its markup),
+  and `report.css`'s `.dt-stat-block`/`.dt-verdict-block` (a segmented row sharing a parent's
+  border, shaped like `.dims`/`.dim` rather than the freestanding tinted box `.stat-tile` is for).
 
 ---
 
@@ -636,6 +765,13 @@ added speculatively.
 locked rule gives forest exactly four jobs and a tint fill isn't among them. Those uses became
 neutral `--tau-surface-2` with forest *text*, which complies and looks better. `--tau-meter-track`
 is the one exception and only because meter fills are already on forest's list.
+
+## Tokens added 2026-07-22 (motion)
+
+| Token | Why it was needed |
+|---|---|
+| `--tau-dur-short` (150ms), `--tau-dur-medium` (300ms) | Every `transition` in the codebase was a hand-picked literal — six different values in four files, none shared. Values are M3's `short3`/`medium2` rungs, not invented — an initial 120ms/200ms pass read as too fast in review and turned out to sit under M3's own `short` category. See *Motion*. |
+| `--tau-ease-standard`, `--tau-ease-decelerate`, `--tau-ease-accelerate` | No easing was ever declared explicitly (bare `ease` or nothing); these are M3's `standard` and `emphasized-decelerate`/`-accelerate` curves, giving symmetric and directional motion one deliberate curve each instead of the browser default. |
 
 ## Session log
 
@@ -960,3 +1096,341 @@ draft 3 (20/20, rising trend, light and dark), Devon draft 1 (5/20, Substitution
 low score renders with the same visual confidence as the high one, nothing about the new
 hierarchy reads as harsher at the bottom of the scale. Driver file deleted after; no submissions
 or sessions written to `app/data/` (both accounts only hit login + report GET).
+
+- **2026-07-21 (Atomic Design taxonomy + card/chip/modal dedup)** — Adopted Atomic Design's
+  vocabulary for the file split that already existed (tokens → atoms/molecules in `components.css`
+  → organisms/templates in page sheets → pages), with a sharpened promotion rule: *same pattern on
+  2+ surfaces, identical → promote; a page sheet may lay a promoted component out but not redefine
+  its chrome.* An inventory pass found the same three patterns reinvented independently: `.card`
+  vs `.acard`/`.pcard` (different radius/padding each time — `.acard`'s values turned out to be an
+  exact match for `.card-lg`, pure duplication; `.pcard`'s were ~1-2px organic drift, resolved onto
+  `.card`'s own values rather than kept as a third size); the SAMR colour ramp defined twice
+  (`.band-1..4` as a filled pill, a private `.samr-*` border mapping using the identical
+  `--tau-band-N-fg` tokens); and three scrim+box implementations, one of them (`.scrim`/`.confirm`)
+  built in Step 3c and never wired up. Deduped all three: `.acard`/`.pcard` now compose `.card`/
+  `.card-lg` (plus their urgency edges turned out to duplicate `.card-edge-caution`/
+  `.card-edge-attention` too — same fix); the `.samr-*` mapping moved into `components.css` next to
+  `.band-1..4`; the index.html submit-draft dialog and report.html's turn-detail modal
+  (`#turnModal`/`.turn-modal-box`) both now compose `.confirm` for chrome, each keeping only their
+  own size override (`.confirm-lg`, and a local `max-width` respectively). Picked up `.confirm`'s
+  actual design intent in the process — the submit warning became a `<ul>` naming both real
+  consequences instead of one run-on sentence, since `.confirm`'s own comment says a paragraph
+  hides the list's fourth item (only two exist here; no new content invented to fill a third).
+  `#turnModal`'s `.open`/`display:none` toggle convention (JS-driven, different from the `.hidden`
+  utility everywhere else) was left alone — chrome dedup only, not the interaction plumbing.
+  **Not touched, tracked as debt**: `dashboard.html`/`teacher.html`'s independent chip/roster-row/
+  modal/turn-shell implementations, and `report.css`'s second modal (`#dt-modal-overlay`). Verified
+  headless in both themes: student home (card/chip rendering unchanged), the submit modal open
+  (new bullet-list warning, correct sizing), and the report turn-detail modal — the last of which
+  turned out to have **no live caller anywhere in the current UI** (`showTurnModal` is dead code,
+  the same shape of finding as session 5's other dead rendering paths), so it was verified by
+  invoking the function directly rather than through a click path. Console clean on every run.
+
+**2026-07-22 — closing the debt: `dashboard.html`, `teacher.html`, `report.css`'s second modal**
+
+Picked up the 2026-07-21 inventory's punch list and finished it: an audit of the actual files (not
+just the doc's prior notes) found the debt was larger than logged — a status-chip shape
+independently built 6+ times (`dashboard.html`'s `.chip*`/`.status-*`/`.flag-type-*`/`.arc-badge`/
+`.reflect-type-badge`/`.score-delta`, `teacher.html`'s `.cycle-chip`/`.teacher-badge`), a stat-tile
+built inline three times (`statTile()`) plus once more in `report.css`, four independent "quiet
+caution dot" implementations, and two unrelated modal mechanisms in `dashboard.html` (a centred
+dialog and a sliding tray) neither composing `.scrim`/`.confirm`.
+
+Added five atoms/molecules to `components.css` (section 11 above) and rewired all three files onto
+them, in the order the risk profile suggested: the mechanical one first (`report.css`'s
+`#dt-modal-overlay`/`#dt-modal` → composes `.scrim`/`.confirm`, same pattern `#turnModal` already
+set), then `dashboard.html` (the larger, more JS-heavy file), then `teacher.html` (the one with
+the most structural change — see below).
+
+Five things worth carrying forward:
+
+1. **Two literal duplicates turned out to be identical values, not just similar shapes** —
+   `dashboard.html`'s `.status-final/-draft/-not-started/-missing` were an exact bg/fg match for
+   `.chip-positive/-caution/-grey/-attention`, and `.arc-delta`/`.arc-delta-inline` were the same
+   caution pair defined twice in the same file. Both collapsed onto the shared names rather than
+   being kept as page-owned aliases.
+2. **A `::before` pseudo-element can't carry a second class**, so `.signal-pill-review::before`'s
+   circle stayed a literal value-match to `.dot-sm`/`.dot-caution` with a comment pointing at the
+   recipe it copies, rather than actually composing it — the one dedup in this pass that's
+   traceable but not mechanical.
+3. **`teacher.html`'s transcript view now visually matches the live chat** — `.t-turn`'s flat
+   background rows were replaced with `.turn`/`.msg`/`.turn-student`/`.turn-coach`/`.turn-auditor`,
+   so an archived session in the teacher's view uses the same self-aligned bubble encoding a
+   student sees while chatting. This is a real visual change (row → bubble), not just a class
+   rename, and was screenshotted in both themes before trusting it. The one feature `.t-turn` had
+   that the shared shell didn't — a superseded-turn state — became `.msg-superseded` on the shell
+   itself (section 6) rather than a one-off page rule.
+4. **A leftover voice-rule violation surfaced while touching `.cycle-chip`**: `teacher.js` was
+   still appending a `⚑` glyph to a flagged cycle chip's text, the exact "alert iconography on a
+   conversation-starter" mistake session 6 fixed on `dashboard.html` but never carried to
+   `teacher.js`. Removed — the caution colour and the chip's own words already carry the signal.
+5. **Two things this pass considered promoting turned out not to fit and were left alone,
+   deliberately**: `teacher.html`'s `.moment`/`.moment.warn` (a ruled-edge callout with no
+   background or full border — closer in shape to `.quote` than `.card`, but its `.m-kind`/
+   `.m-quote`/`.m-why` internal structure doesn't map onto `.quote`'s quote/quote-src pair without
+   a markup rewrite this pass didn't want to risk) and `report.css`'s `.dt-stat-block`/
+   `.dt-verdict-block` (a segmented row sharing one parent border, the same shape as `.dims`/`.dim`
+   rather than `.stat-tile`'s freestanding tinted box). Forcing either would have been the
+   "judgment call every time" the promotion rule was written to avoid.
+
+Verified with same-origin drivers (fetch-login, then either an iframe with `contentWindow` calls
+for interactive states — the flag modal, the side tray, the report's drill-through modal — or
+`location.replace` for static views) across the teacher account, both themes, on `dashboard.html`
+(Overview/Class/Assignment/Student tabs, the flag modal, the side tray, a drilled-in student
+detail), `teacher.html` (roster overview, a student detail page with its transcript expanded), and
+`report.html` (hero plus the `#dt-modal` opened directly). A temporary `__probe.html` covered the
+one state no seeded data exercises (`.msg-superseded`). Console clean on every run; all driver and
+probe files deleted after. The `var()`-resolves audit from *Verifying visually* also re-run clean.
+
+**2026-07-22 (later same day) — one global nav, replacing three independent headers**
+
+Reviewed the three student screens (dashboard/home, chat workspace, report) for cohesion and
+found no shared wayfinding at all: `.app-header` on the home view, a bare sidebar back-arrow in
+the workspace, `.report-topbar` on the report — three unrelated headers with no reference to one
+another. First pass proposed a `Home / Chat / Report` tab bar; corrected before building, because
+the actual IA is strictly hierarchical, not three peer destinations. A conversation belongs to
+exactly one draft (`sessions` collection, `cycleIndex`); a report belongs to exactly one submitted
+draft (`submissions`); a submitted draft carries *both* a locked conversation and a report, an
+in-progress draft carries only a conversation. Confirmed against the actual data model
+(`app/server/store.js`, `app/server/index.js`) rather than assumed.
+
+Built one `.tau-nav` (`components.css` section 12): a fixed mark, a breadcrumb (`All assignments
+› Assignment › Draft N`), and a **local** Report/Conversation toggle that only renders when both
+genuinely exist for the draft on screen — Report leads and is active by default there, since it's
+what a student came to see after submitting. No class segment in the crumb: `app/server/index.js`
+still synthesizes one class per student (no real class entity), so a class-switcher would be
+designing for data that doesn't exist yet. The crumb-building helpers (`renderNavCrumbs`,
+`renderNavLocal`) live in `api.js`, shared between `app.js` and `report-boot.js`, so the two never
+drift onto their own markup for the same component the way `style.css`/`report.css` did before.
+
+`index.html` restructured so the nav is a true single persistent element (a sibling of both views,
+not duplicated inside each) — the account chip and theme toggle now mount once, not once per
+view. `report.html`'s `.report-topbar` is retired; the report endpoint
+(`GET /api/submissions/:id/report`) now returns `assignmentId`/`assignmentTitle` on the submission,
+which the nav needs and nothing asked for before. `app.js` gained `?open=<assignmentId>&cycle=`
+handling so the local toggle's "Conversation" link can land a student in that exact draft's most
+recent conversation rather than the assignment list.
+
+**One real bug found by screenshotting, not by reading the diff**: `.account-chip`/
+`.account-signout` lived only in `style.css`, which `report.html` never linked — so the sign-out
+button rendered as a bare unstyled native `<button>` there the moment it moved into the shared
+nav. Moved the rule to `components.css`, self-contained (border/radius/colour all declared, not
+leaning on a page's own generic `button` reset) rather than assuming every consumer has one — the
+same lesson section 12's other rules already follow. Verified via the same-origin
+fetch-login-then-redirect probe (`__probe.html`-style, deleted after) across all three nav states —
+root, an open draft, a submitted draft with the toggle — in both themes.
+
+Not touched: `dashboard.html`/`teacher.html` keep their own `.tab-nav` — a separate audit, since
+that surface already has its own working wayfinding.
+
+**2026-07-22 (evening) — depth, shape, and a second colour doing real work**
+
+Product owner review: the rebuilt surfaces were tokenised and consistent but read as clinical —
+flat bordered cards, one hairline shadow value applied everywhere, sage present in the token file
+but consumed in about six places, and a static three-dot "thinking" row indistinguishable from any
+web loading spinner. Prototyped three passes as artifacts before touching code — a forest/sage
+rebalance, a mark/type/motion pass (parked; brand identity turned out to mean look-and-feel, not
+the logo), and a depth/shape/motion pass — then applied the accepted parts of the third to the
+chat workspace, report, and student dashboard.
+
+**Landed in code:**
+- `.card` (`components.css`) now carries `box-shadow: var(--tau-shadow)` in addition to its
+  existing hairline border — additive, not a replacement, so nothing that already looked fine
+  broke. Because `.acard` and the report's `summaryPanel`/`snapshotPanel`/`tabsPanel` already
+  compose `.card`/`.card-lg`, this one change lifted the assignment cards and every report panel
+  without touching `app.js`, `style.css`, or `report-render.js` markup.
+- New `.card-hero` modifier: `--tau-r-xl` radius, `--tau-shadow-lift`, transparent border. Applied
+  only to the report's score hero (`report-render.js`'s `card card-lg card-hero report-hero`) —
+  the one panel per screen that's the actual takeaway gets one more step of both radius and
+  elevation, so shape carries hierarchy instead of leaving it to border and font-size alone.
+- `.tau-nav-local-opt.active` (the Report/Conversation toggle) and the report's `.tab-btn.active`
+  both move from forest to sage. Reasoning carried over from the palette prototype: these are
+  wayfinding state ("which of two views am I on"), not the primary action, so forest stays
+  reserved for the one thing that actually moves a student forward on a given screen. The report
+  tab bar itself changed shape to match — a `--tau-surface-2` tray with a filled sage pill
+  (`--tau-origin-together-bg`, reusing the existing origin token rather than inventing a new sage
+  fill) for the active tab, replacing the underline. Reads as a control being operated, not a
+  paper form's section dividers.
+- `.btn-primary`, `.submit-btn`, `.acard-btn` all pick up a soft forest-tinted shadow
+  (`color-mix(in oklab, var(--tau-forest) 45%, transparent)`, same pattern the band pip already
+  used) — the one primary action per screen now reads as raised, not just forest-on-a-rect.
+- The "coach is thinking" dots (`style.css`) gained a soft sage glow via `box-shadow` alongside
+  their existing `bob` animation. Smallest change in the pass, but this is the one moment the
+  product is visibly an AI reasoning in real time rather than a static form, so it earned a touch
+  more presence than a plain loading dot.
+
+**Not landed, deliberately deferred:** the mark/logomark redesign (thread-motif glyph) and the
+Geist type pairing — product owner clarified "brand identity" meant look-and-feel, not the logo,
+so those two prototypes are parked rather than adopted. The "coach is thinking" breathing-orb
+treatment and streaming-text reveal from the prototype were also not built into the real chat —
+today's pass kept the existing dot indicator and only added the glow; a full orb/streaming rebuild
+of `thinkingIndicator()` in `app.js` is a larger, separate piece of work.
+
+**Verified:** logged in as `maya@school.dev` via Playwright (installed on the dev machine, not an
+app dependency), screenshotted home/workspace/report in both themes. No white-on-white, no
+invisible text, no console errors. The token-resolution check (`comm -23` against `tokens.css`)
+still prints nothing.
+
+**Correction, same evening:** the first pass above was too conservative against what the artifact
+actually showed and got approved — a shadow was added, but the shape-language changes (bigger
+radius, pill-shaped primary actions, a tightened/tinted sidebar) were quietly dropped without
+flagging it, so the live app barely looked different from before at normal zoom. Separately,
+`dashboard.html` (teacher) was never touched at all — it hand-rolls its own inline-styled boxes
+rather than composing `.card`, so it stayed completely flat while the student surfaces moved,
+which is its own real inconsistency (tracked, not fixed this session — out of the originally
+agreed scope of chat/report/assignment).
+
+Second pass actually closed the gap:
+- `.acard` (`app.js`'s `currentCard()`) now also carries `card-hero` — assignment cards get the
+  same bumped radius + lift as the report hero, not just the base `.card` shadow.
+- `.btn-primary`, `.acard-btn`, `.submit-btn` are now pill-shaped (`--tau-r-pill`), not just
+  shadowed rectangles — this was the single most visible thing missing from the first pass.
+- `.sidebar` (workspace) and `.dash-rail` (student home) both moved to `--tau-surface-2`, so the
+  structural rail reads as a deliberately quieter register next to the content it frames, per the
+  artifact's "considered, not competing" pitch. `.rail-avatar` moved to `--tau-surface-3` so it
+  doesn't blend into its own now-tinted parent.
+- `.draft-section-current` (the active draft in the workspace sidebar) moved off `--tau-surface-2`
+  — once the sidebar itself uses that token, the old active-state fill stopped reading as active.
+  Now `--tau-origin-together-bg` (the existing sage-tint token, reused rather than inventing a new
+  one) plus a 2px sage left border.
+
+Re-verified the same way (Playwright, both themes, home/workspace/report) after this pass —
+screenshots now visibly match the artifact's shape language rather than technically containing the
+tokens but reading the same as before.
+
+**2026-07-24 — student assignment dashboard: ground colour, attention hue, draft-row rebuild, teacher notes, icons**
+
+A run of smaller passes on `index.html`'s assignment dashboard, each checked against a mockup
+artifact before landing:
+
+- **Ground.** `.dash-main` (the assignments-view content pane) moved off `--tau-bg`'s forest wash
+  to flat white — the wash is right for the page shell but was reading as dinginess once the
+  student's actual content (assignment cards) sat inside it. Dark theme untouched.
+- **Attention colour.** `--tau-attention` moved from hue 32 (terra/red-orange, ~126° from the
+  sage/ground hue) to hue 18 ("clay") in all four theme blocks. Reasoning, in order: terra sat too
+  far from sage for analogous harmony and short of true complementary contrast — the zone that
+  reads as noise rather than signal. First candidate was a plum/violet (hue 352, nearer sage's true
+  complement) but that collides with the auditor voice's own hue (300), which already owns "second
+  voice, not the coach" as a locked distinction — reusing an adjacent hue for an unrelated meaning
+  undoes that. Clay stays in the true-red family (institutional software's established "problem/
+  overdue" signal) while rotating enough off pure orange to break the red-green vibration. Verified
+  contrast (all combinations clear WCAG AA, several with more margin than the original terra).
+- **Draft-row ledger rebuilt three ways:**
+  1. *Radius.* The ledger was a flat, hairline-divided list — zero radius anywhere except the
+     current-draft row — against a system where radius is a deliberate, load-bearing signal
+     elsewhere (`.card`/`.card-lg`/`.card-hero`, every chip, every button). Rows now sit in
+     `gap`-separated boxes at `--tau-r-md`, the current draft steps up to `--tau-r-lg` (same
+     "important thing gets the next radius step" move as `.card`→`.card-lg`), and the SAMR band
+     accent moved from a hard `border-left` (which fights a rounded corner) to an inset
+     `box-shadow` stripe — the same fix `.card-edge-caution/-attention` already used.
+  2. *Score removed from the ledger.* A submitted draft no longer shows its score/SAMR band inline
+     — a number invites reading as a grade, and the ledger isn't where a student should be forming
+     their read of a draft; that's the report's job. `BAND_META` and the score/denom/band markup
+     came out of `draftRow()` entirely (dead code, not hidden via CSS).
+  3. *Content hierarchy standardized to three fixed lines* regardless of state — identity
+     (`Draft N · due date · final badge`), status (one word, its own line), functionality (button,
+     report link, or the reason there's nothing to do) — so a locked row and an in-progress row
+     visually rhyme instead of each showing whatever fields happen to apply.
+  Demo seed data (`seed-data.js`/`seed.js`) rebuilt alongside to actually exercise every state
+  across the 5-student class rather than only ever showing submitted-and-scored or not-started:
+  Maya (submitted+note, in-progress, locked+final), Devon (not-started+overdue, locked+due-soon),
+  Priya (submitted+still-analyzing), Luis (submitted+errored analysis) — plus draft due dates
+  changed to `[-1, 2, 8]` days so overdue/soon/calm tones all have a real example, not three
+  shades of "later."
+- **Teacher notes — two distinct surfaces, several iterations.** Draft-level notes (tied to one
+  submission) went from a full `.acard-note` block — which was visually burying the row's one real
+  action ("View report") — to a small flag next to the link; the note text itself only ever reads
+  on the report page (already built). Found and fixed a real pre-existing bug while in that code:
+  the "View report" link's condition never checked `status.detail`, so it silently overrode
+  "Analyzing your draft…"/"Report unavailable" on incomplete analyses. Assignment-level notes (not
+  tied to any draft) are new: `teacherNote`/`teacherNoteAt` on the assignment record, a
+  `POST /api/assignments/:id/note` endpoint mirroring the existing per-submission one, no
+  authoring UI yet (same deferral as draft-level notes on in-progress work — teacher-dashboard
+  territory). Display went through three shapes before landing: (1) a second `<details>` disclosure
+  stacked under the rubric's, (2) reordered above the rubric with a truncated preview of the note's
+  own text in the closed summary, (3) final — the rubric moved out entirely into a slide-in tray
+  (below) since two stacked full-width disclosures cost vertical space the actual ask didn't need,
+  leaving the note as the one thing still inline: closed label reads plain `Teacher's note`, and
+  the chip itself carries the auditor/violet tint as background even closed, not just as text
+  colour — colour is what signals "this carries weight," not a preview string.
+- **Rubric moved to a tray, not a disclosure.** The prompt/rubric text is often genuinely long
+  (full grading criteria) and was pushing every other card element down whenever a student had it
+  open. `.tray`/`.tray-overlay` already existed in `components.css` for the teacher dashboard's
+  flag detail but had never been used on the student side — reused wholesale rather than building
+  a second drawer pattern. New `openTray()`/`closeTray()` in `app.js`, lazily constructed once. A
+  quiet `.btn-quiet.btn-sm` button next to the assignment title opens it now.
+- **"View report" button aligned to the component system.** Was a one-off `.draft-row-link` (naked
+  text + arrow) — the only place in the app doing that. First pass moved it to `.btn-tertiary`,
+  which turned out to have `border-color: transparent` by design (reads as plain text until
+  hover — no visible change at rest, caught on screenshot). Landed on `.btn-quiet` instead, same
+  component the tray trigger uses, with a real border at rest.
+- **Icon system introduced.** The app had no icon library — one hand-drawn chevron plus Unicode
+  glyphs (✉ ✕ →) standing in everywhere else, most visibly a missing icon for teacher notes at
+  all. New `icons.js`: self-hosted inline SVG (`ICONS` map + `iconSVG(name, class)`), hand-drawn to
+  Material Symbols Outlined's silhouette (24dp grid, stroke, round caps/joins) rather than the
+  Material Symbols webfont/CDN — the app loads zero external resources today (system fonts only,
+  `tokens.css`) and a font dependency would break that. `.tau-icon` base rule added to
+  `components.css` (section 3b). Six icons landed: `chat` (teacher notes — a note reads as
+  "someone said something," not correspondence, so `chat_bubble`'s shape over an envelope),
+  `expandMore` (the pre-existing chevron, now named/shared), `close`, `description` (View report),
+  `arrowForward` (Continue/Start), `checklist` (Prompt & rubric). Not yet on `teacher.js`/
+  `dashboard.html` or the workspace's `reading-banner-return` — left alone as out of this session's
+  surface, not forgotten.
+
+**Worth carrying forward:**
+1. **A shared component can go unused on half the app without anyone noticing.** The tray existed,
+   fully built, for two build sessions before this one and had exactly one caller (the teacher
+   dashboard). Worth a periodic sweep of `components.css` for definitions with a single consumer —
+   that's either dead weight or, like the tray, a missed reuse.
+2. **`reportId` being unconditionally truthy silently masked a whole status branch.** The bug (View
+   report always winning over "Analyzing…"/"Report unavailable") existed before this session and
+   would have kept existing indefinitely — it only surfaced because the row's branching logic was
+   being read closely for an unrelated reason (the hierarchy rebuild). Branch conditions that look
+   right in isolation are worth re-deriving from the data, not just trusting the existing `if`/`else if` order.
+3. **Self-hosting the icon set was a direct consequence of an existing constraint (system fonts
+   only), not a default choice.** Worth restating for whoever adds the next icon: reach for
+   `icons.js`'s hand-drawn-SVG pattern, not a font/CDN, even though the latter is the more common
+   default elsewhere.
+
+**2026-07-26 (WIP, uncommitted) — `report.html` IA: tabs → sections + sticky jump nav**
+
+Diagnosis: the report had grown dense enough (hero, four-dimension overview, three tab panes,
+growth moves) that a student had no map of what the page contained and no way back to a section
+without re-clicking through the tab bar. Reworked the middle of the page rather than adding a
+table-of-contents on the side: the three tab panes (My Session / Agency Chart / Who's Driving)
+are now permanently-visible top-level `.card` sections instead of hidden panes, and a new sticky
+`.report-jump` nav sits between the hero and the sections — five buttons (Overview, My Session,
+Agency Chart, Who's Driving, Next Time), click-to-scroll plus an `IntersectionObserver`
+scrollspy that marks the current section with the same sage "current location" tint
+`.tau-nav-local-opt.active` and My Session's own `.group-nav` already use. Deliberately reused
+that existing idiom rather than inventing a new active-state treatment.
+
+**Persistent score, without new vertical space.** The ask was to keep the TAU score visible while
+scrolling without pinning the full hero. Solve landed inside the same sticky bar rather than a
+second one: a `.report-jump-score` chip (`renderJumpScore()` in `report-render.js`) sits collapsed
+to zero width at the jump nav's left edge and expands in (`max-width`/`opacity` transition) only
+once a second observer confirms `#samrHero` has scrolled out of view — so the score is one glance
+away at any depth, but never doubles up with the real hero while it's on screen.
+
+**Follow-up pass, same session:** the five section labels were still using `.eyebrow` — the
+system's one sanctioned uppercase micro-label (assignment name in the hero, "Worth a chat" on the
+teacher panel) — which read as quiet and, worse, sat at a different vertical offset per section
+because Overview and Next Time were on plain `.card` (16px top padding) while the other three were
+on `.card-lg` (20px). Fixed both at once: new `.report-section-title` (19px/700/ink, sized one
+step above `.dim-quad-name`'s existing "name a thing inside a card" treatment, not a louder
+`.eyebrow`) and all five sections standardised onto `.card-lg` so the title lands at the same
+offset everywhere. Agency Chart's title shares a row with the Bars/Trend toggle; that row's
+`align-items` moved from `baseline` to `center` since the toggle's 13px buttons no longer
+baseline-matched a 19px title.
+
+Verified server-side only so far (`/api/auth/login`, `/api/submissions`, and the report endpoint
+all return clean 200s with real TAU data for Maya's drafts) — no headless-browser tool was
+available in this environment to screenshot the actual render, so the visual result has not been
+confirmed in a browser yet. **Not committed** — still being iterated on; do that before starting
+a fresh session on other report work, per the doc's own advice against carrying WIP across
+sessions in your head instead of in git.
+
+Touches: `app/web/report.html`, `app/web/report.css`, `app/web/report-render.js`,
+`app/web/report-boot.js`. Superseded in this same pass: the `.tab-bar`/`.tab-btn`/`.tab-pane`
+rules session 5 wrote for this exact page — worth noting since it's the second time this file's
+tab treatment has been rebuilt from scratch.

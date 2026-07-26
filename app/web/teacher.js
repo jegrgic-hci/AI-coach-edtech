@@ -20,14 +20,14 @@ async function showOverview() {
   const assignments = await api('/api/teacher/assignments');
   const body = $('overviewBody');
   body.innerHTML = `
-    <div class="panel-card">
+    <div class="card-lg panel-card">
       <h3 style="display:flex;justify-content:space-between;align-items:center">
         Assignments
         <button id="btnNewAssignment">+ New assignment</button>
       </h3>
       <form class="new-assignment-form" id="newAssignmentForm">
         <input name="title" placeholder="Title" required>
-        <textarea name="prompt" rows="4" placeholder="Assignment prompt — this is all the coach will know at the start of every conversation" required></textarea>
+        <textarea name="prompt" rows="4" placeholder="Assignment prompt — this is all the coach will know at the start of every session" required></textarea>
         <div class="form-row">
           <label>Due date <input type="date" name="dueDate"></label>
           <label>Draft budget <input type="number" name="draftBudget" value="3" min="1" max="10" style="width:60px"></label>
@@ -46,18 +46,18 @@ async function showOverview() {
   const cards = $('assignmentCards');
   for (const a of assignments) {
     const card = document.createElement('div');
-    card.className = 'panel-card';
+    card.className = 'card-lg panel-card';
     card.innerHTML = `
       <h3>${esc(a.title)}</h3>
       <div style="font-size:13px;color:var(--muted);margin-bottom:6px">
         ${a.draftBudget} drafts · fade: ${a.coachingLevels.map((l) => LEVEL_LABEL[l]).join(' → ')}
       </div>
       ${a.roster.map((r) => `
-        <div class="roster-row" data-student="${r.studentId}" data-assignment="${a.id}">
-          <span class="student-name">${esc(r.displayName)}</span>
+        <div class="list-row roster-row" data-student="${r.studentId}" data-assignment="${a.id}">
+          <span class="list-row-name">${esc(r.displayName)}</span>
           ${r.cycles.map((c) => c.analysisStatus === 'complete'
-            ? `<span class="cycle-chip${c.flagCount ? ' flagged' : ''}" title="${c.flagCount ? `${c.flagCount} integrity signal(s)` : ''}">D${c.cycleIndex + 1}: ${c.tau.totalScore} ${c.tau.SAMR}${c.flagCount ? ' ⚑' : ''}</span>`
-            : `<span class="cycle-chip pending">D${c.cycleIndex + 1}: ${c.analysisStatus || 'no analysis'}</span>`).join('')}
+            ? `<span class="chip ${c.flagCount ? 'chip-caution' : 'cycle-chip'}" title="${c.flagCount ? `${c.flagCount} integrity signal(s)` : ''}">D${c.cycleIndex + 1}: ${c.tau.totalScore} ${c.tau.SAMR}</span>`
+            : `<span class="chip chip-grey">D${c.cycleIndex + 1}: ${c.analysisStatus || 'no analysis'}</span>`).join('')}
           ${r.activeSession ? '<span class="active-dot">● working on next draft</span>' : ''}
           ${r.cycles.length === 0 && !r.activeSession ? '<span style="font-size:12px;color:var(--muted)">not started</span>' : ''}
         </div>`).join('')}`;
@@ -103,7 +103,7 @@ async function showOverview() {
 
 // ---------- student detail ----------
 
-// Conversation-ready moments, computed from the analysis: quoted turns a
+// Session-ready moments, computed from the analysis: quoted turns a
 // teacher can open a conference with — "show me what you meant here," not
 // a score.
 function computeMoments(analysis) {
@@ -114,7 +114,7 @@ function computeMoments(analysis) {
   for (const t of student) {
     if (!byConv[t.conversationId]) {
       byConv[t.conversationId] = true;
-      moments.push({ kind: 'First turn of a conversation', quote: t.text, why: 'Blank-context opener — the purest snapshot of where the student starts unaided.', warn: false });
+      moments.push({ kind: 'First turn of a session', quote: t.text, why: 'Blank-context opener — the purest snapshot of where the student starts unaided.', warn: false });
     }
   }
 
@@ -152,17 +152,17 @@ function renderTimeline(conv, events) {
       return `<div class="t-event">⚡ ${esc(desc)}</div>`;
     }
     const t = item.turn;
-    const cls = t.role === 'auditor' ? 't-auditor' : t.role === 'student' ? 't-student' : 't-ai';
-    const labels = [];
-    if (t.role === 'student') labels.push(`<span class="lb">student</span>`);
-    else labels.push(`<span>${t.role}</span>`);
-    if (t.metaTurn) labels.push('<span>meta-turn — excluded from TAU</span>');
-    if (t.superseded) labels.push('<span>superseded</span>');
-    if (t.meta?.regenerated) labels.push('<span>regeneration</span>');
-    if (t.meta?.editOf) labels.push('<span>edit</span>');
-    if (t.meta?.stopped) labels.push('<span>stopped early</span>');
-    return `<div class="t-turn ${cls}${t.superseded ? ' t-superseded' : ''}">
-      <div class="t-label">${labels.join(' ')}</div>${esc(t.text)}</div>`;
+    const cls = t.role === 'auditor' ? 'turn-auditor' : t.role === 'student' ? 'turn-student' : 'turn-coach';
+    const labels = [t.role];
+    if (t.metaTurn) labels.push('meta-turn — excluded from TAU');
+    if (t.superseded) labels.push('superseded');
+    if (t.meta?.regenerated) labels.push('regeneration');
+    if (t.meta?.editOf) labels.push('edit');
+    if (t.meta?.stopped) labels.push('stopped early');
+    return `<div class="turn ${cls}">
+      <div class="turn-speaker">${labels.map(esc).join(' · ')}</div>
+      <div class="msg${t.superseded ? ' msg-superseded' : ''}">${esc(t.text)}</div>
+    </div>`;
   }).join('');
 }
 
@@ -181,7 +181,7 @@ async function showStudent(assignmentId, studentId) {
     strip.className = 'traj-strip';
     strip.innerHTML = submitted.map(({ session, submission, analysis }) => {
       const done = analysis?.status === 'complete';
-      return `<div class="traj-card">
+      return `<div class="card traj-card">
         <div class="lvl">Draft ${session.cycleIndex + 1} · ${LEVEL_LABEL[session.coachingLevel]}</div>
         ${done ? `
           <div class="samr">${analysis.tau.SAMR} · ${analysis.tau.totalScore}/20</div>
@@ -204,7 +204,7 @@ async function showStudent(assignmentId, studentId) {
     if (done) {
       const moments = computeMoments(analysis);
       if (moments.length) {
-        html += `<div class="section-label">Conversation-ready moments</div>`;
+        html += `<div class="eyebrow">Session-ready moments</div>`;
         html += moments.map((m) => `
           <div class="moment${m.warn ? ' warn' : ''}">
             <div class="m-kind">${esc(m.kind)}</div>
@@ -214,7 +214,7 @@ async function showStudent(assignmentId, studentId) {
       }
 
       if (analysis.snapshot) {
-        html += `<div class="section-label">What the student was told</div>
+        html += `<div class="eyebrow">What the student was told</div>
           <div style="font-size:13px;line-height:1.6">
             ${(analysis.snapshot.strengths || []).map((s) => `<div>• “${esc(s.quote)}” — ${esc(s.note)}</div>`).join('')}
             ${(analysis.snapshot.growthMoves || []).map((g) => `<div>→ ${esc(g)}</div>`).join('')}
@@ -222,18 +222,18 @@ async function showStudent(assignmentId, studentId) {
       }
 
       if (analysis.flags?.length) {
-        html += `<div class="section-label">Integrity signals (teacher-only)</div>
+        html += `<div class="eyebrow">Integrity signals (teacher-only)</div>
           ${analysis.flags.map((f) => `<div class="moment warn"><div class="m-kind">${esc(f.flag)}</div><div class="m-why">${esc(f.evidence)}</div></div>`).join('')}`;
       }
     }
 
     if (submission) {
-      html += `<div class="section-label">Your note to the student <span class="note-saved" id="noteSaved-${submission.id}"></span></div>
+      html += `<div class="eyebrow">Your note to the student <span class="note-saved" id="noteSaved-${submission.id}"></span></div>
         <textarea class="note-box" id="note-${submission.id}" rows="2" placeholder="Shown beside their snapshot — your read next to the auditor's.">${esc(submission.teacherNote || '')}</textarea>
         <div style="margin-top:6px"><button data-save-note="${submission.id}">Save note</button></div>`;
     }
 
-    html += `<div class="section-label">Transcript${conversations.length !== 1 ? `s (${conversations.length} conversations)` : ''}</div>`;
+    html += `<div class="eyebrow">Transcript${conversations.length !== 1 ? `s (${conversations.length} sessions)` : ''}</div>`;
     for (const conv of conversations) {
       html += `<details class="transcript"><summary>${esc(conv.title)} · ${conv.turns.filter((t) => !t.superseded && !t.metaTurn).length} turns</summary>
         ${renderTimeline(conv, events)}</details>`;

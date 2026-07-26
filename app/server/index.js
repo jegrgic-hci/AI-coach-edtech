@@ -219,7 +219,10 @@ async function handleApi(req, res, user, route) {
       )[0];
 
       if (done) {
-        past.push({ id: a.id, title: a.title, dueDate: a.dueDate, draftBudget: a.draftBudget, drafts });
+        past.push({
+          id: a.id, title: a.title, dueDate: a.dueDate, draftDueDates: a.draftDueDates,
+          draftBudget: a.draftBudget, drafts,
+        });
       } else {
         // Live conversations in the open session — "where you left off" is part
         // of the card's hierarchy, not something to rediscover by opening it.
@@ -240,12 +243,16 @@ async function handleApi(req, res, user, route) {
           title: a.title,
           prompt: a.prompt,
           dueDate: a.dueDate,
+          draftDueDates: a.draftDueDates,
           draftBudget: a.draftBudget,
           draftsUsed: submissions.length,
           hasActivity,
           conversationCount: openConvs.length,
           lastActiveAt,
           drafts,
+          // Assignment-wide, not tied to any one draft's report — a teacher
+          // note about the drafting process itself, not about a submission.
+          teacherNote: a.teacherNote || null,
         });
       }
     }
@@ -517,38 +524,47 @@ async function handleApi(req, res, user, route) {
       ...(isTeacher ? {} : { flags: undefined }),
     };
 
-    // The design system forbids showing a total without the change since the
-    // last draft — a number quoted to a friend has to be a position on a path,
-    // not a mark. So the report needs its own past, not just its own score.
-    // Drafts still analysing are dropped rather than sent as null: a gap in the
-    // line reads as a dip.
-    const history = col('submissions')
-      .list((s) => s.studentId === submission.studentId
-        && s.assignmentId === submission.assignmentId
-        && s.cycleIndex <= submission.cycleIndex)
-      .sort((a, b) => a.cycleIndex - b.cycleIndex)
-      .map((s) => ({
-        cycleIndex: s.cycleIndex,
-        totalScore: (s.analysisId ? col('analyses').get(s.analysisId) : null)?.tau?.totalScore ?? null,
-      }))
-      .filter((h) => h.totalScore !== null);
+    // The nav's breadcrumb and its "Conversation" toggle both need to name
+    // and link back to the assignment this draft belongs to — neither was
+    // on the wire before the shared nav existed.
+    const assignment = col('assignments').get(submission.assignmentId);
 
     return json(res, 200, {
       submission: {
         id: submission.id,
+        assignmentId: submission.assignmentId,
+        assignmentTitle: assignment ? assignment.title : null,
         cycleIndex: submission.cycleIndex,
         submittedAt: submission.submittedAt,
         essayText: submission.essayText,
         teacherNote: submission.teacherNote || null,
       },
       analysis: report,
-      history,
     });
+  }
+
+  // GET /api/submissions/:id/conversations — every conversation from the
+  // draft's session (cycle), full turn record, for the report's static
+  // Conversation view. Same auth as the report route; oldest-first, since
+  // this is a history a student reads front to back, not a live sidebar
+  // surfacing the most recent thread first.
+  if (req.method === 'GET' && seg1 === 'submissions' && seg3 === 'conversations') {
+    const submission = col('submissions').get(seg2);
+    if (!submission) return json(res, 404, { error: 'submission not found' });
+    const isTeacher = user.role === 'teacher';
+    if (!isTeacher && submission.studentId !== user.id) return json(res, 403, { error: 'forbidden' });
+
+    const conversations = col('conversations')
+      .list((c) => c.sessionId === submission.sessionId)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      .map((c) => ({ ...c, turns: liveTurns(conversationTurns(c.id)) }));
+
+    return json(res, 200, { conversations });
   }
 
   // ---------- teacher routes ----------
 
-  if (seg1 === 'teacher' || (req.method === 'POST' && seg1 === 'assignments' && !seg2) || (req.method === 'POST' && seg1 === 'submissions' && seg3 === 'note')) {
+  if (seg1 === 'teacher' || (req.method === 'POST' && seg1 === 'assignments' && (!seg2 || seg3 === 'note')) || (req.method === 'POST' && seg1 === 'submissions' && seg3 === 'note')) {
     if (user.role !== 'teacher') return json(res, 403, { error: 'teacher only' });
   }
 
@@ -574,6 +590,20 @@ async function handleApi(req, res, user, route) {
       createdAt: now(),
     });
     return json(res, 200, assignment);
+  }
+
+  // POST /api/assignments/:id/note — set or clear the assignment-wide
+  // teacher note (distinct from a per-submission note: this one isn't tied
+  // to any single draft's report, so it lives on the assignment record).
+  if (req.method === 'POST' && seg1 === 'assignments' && seg3 === 'note') {
+    const assignment = col('assignments').get(seg2);
+    if (!assignment) return json(res, 404, { error: 'assignment not found' });
+    const body = await readBody(req);
+    col('assignments').update(assignment.id, {
+      teacherNote: String(body.text || '').trim().slice(0, 2000),
+      teacherNoteAt: now(),
+    });
+    return json(res, 200, { ok: true });
   }
 
   // GET /api/teacher/dashboard — feeds the ported triage dashboard

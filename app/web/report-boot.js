@@ -9,6 +9,41 @@
     return;
   }
 
+  // 'report' | 'sessions' — which of the two the results-layout is currently
+  // showing. reportReady flips once render() has actually drawn the report,
+  // so switching back from Sessions while analysis is still pending restores
+  // the spinner rather than an empty results panel.
+  let mode = 'report';
+  let reportReady = false;
+
+  function setLocalNav(submission) {
+    renderNavLocal(document.getElementById('navLocal'), [
+      { label: 'Report', active: mode === 'report', onClick: () => { mode = 'report'; applyMode(); setLocalNav(submission); } },
+      {
+        label: 'Sessions', active: mode === 'sessions',
+        onClick: () => {
+          mode = 'sessions'; applyMode(); setLocalNav(submission);
+          loadConversationView(submission).catch((err) => {
+            console.error('session view failed', err);
+            document.getElementById('convViewTranscript').innerHTML =
+              '<p class="conv-view-empty">Could not load your sessions. Reload to try again.</p>';
+          });
+        },
+      },
+    ]);
+  }
+
+  function applyMode() {
+    document.getElementById('conversationView').classList.toggle('hidden', mode !== 'sessions');
+    if (mode === 'sessions') {
+      document.getElementById('pending').style.display = 'none';
+      document.getElementById('results').style.display = 'none';
+      return;
+    }
+    document.getElementById('pending').style.display = reportReady ? 'none' : '';
+    document.getElementById('results').style.display = reportReady ? 'flex' : 'none';
+  }
+
   async function load() {
     // Whether flags come back is decided server-side from the signed-in user's
     // role — the ?role=teacher param no longer grants anything.
@@ -18,10 +53,14 @@
       document.getElementById('pending').textContent = 'Could not load this report.';
       return;
     }
-    const { submission, analysis, history } = await res.json();
+    const { submission, analysis } = await res.json();
 
-    document.getElementById('pageTitle').textContent =
-      `Draft ${submission.cycleIndex + 1} — How you worked with the AI`;
+    renderNavCrumbs(document.getElementById('navCrumbs'), [
+      { label: 'All assignments', href: '/' },
+      { label: submission.assignmentTitle || 'Assignment' },
+      { label: `Draft ${submission.cycleIndex + 1}`, current: true },
+    ]);
+    setLocalNav(submission);
 
     if (!analysis || analysis.status === 'pending') {
       setTimeout(load, 2500);
@@ -40,7 +79,7 @@
       return;
     }
 
-    render(submission, analysis, history || []);
+    render(submission, analysis);
   }
 
   function adaptClassified(stored) {
@@ -56,28 +95,20 @@
     });
   }
 
-  function renderSnapshot(snapshot, coachingLevel) {
-    const el = document.getElementById('snapshotContent');
-    if (!snapshot) { el.parentElement.style.display = 'none'; return; }
-    el.innerHTML = `
-      ${(snapshot.strengths || []).map((s) => `
-        <div class="quote">
-          <span>“${esc(s.quote)}”</span>
-          <span class="snapshot-note">${esc(s.note)}</span>
-        </div>`).join('')}
-      ${(snapshot.growthMoves || []).map((g) => `<div class="report-next">Next draft: ${esc(g)}</div>`).join('')}
-      ${snapshot.bridge ? `<p class="snapshot-bridge">${esc(snapshot.bridge)}</p>` : ''}
-      <p class="snapshot-bridge">Coach was in <strong>${esc(coachingLevel)}</strong> mode this draft.</p>`;
-  }
-
+  // Placed directly under the hero, not folded into any other card — a
+  // teacher's note outranks the coach's own read of the draft, so it gets
+  // its own section rather than living inside one titled "what stood out".
+  // Same auditor tint the assignment dashboard's teacher-note disclosure
+  // uses (that one collapses to save space inside a crowded card; this one
+  // has the whole report to itself, so it stays permanently open).
   function renderTeacherNote(note) {
-    if (!note) return;
-    const panel = document.createElement('div');
-    panel.className = 'card';
+    const panel = document.getElementById('teacherNotePanel');
+    if (!note) { panel.innerHTML = ''; return; }
     panel.innerHTML = `
-      <span class="eyebrow">A note from your teacher</span>
-      <p class="teacher-note">${esc(note)}</p>`;
-    document.getElementById('snapshotPanel').after(panel);
+      <div class="card teacher-note-panel">
+        <div class="teacher-note-panel-head">${iconSVG('chat')}<span>Teacher's note</span></div>
+        <p class="teacher-note-panel-body">${esc(note)}</p>
+      </div>`;
   }
 
   // Teacher mode only — the API strips flags for students, so this panel
@@ -93,25 +124,21 @@
     document.getElementById('results').appendChild(panel);
   }
 
-  function render(submission, analysis, history) {
+  function render(submission, analysis) {
     const scores = analysis.tau;
     const classified = adaptClassified(analysis.classified || []);
-    // The server stores { concept, phrase, origin }; the renderers also need
-    // character positions in the essay and a trace back to the originating
-    // turn. traceProvenance computes both, and nothing had ever called it — so
-    // the heatmap was reading p.positions off an object that has never had it,
-    // throwing before the concept list rendered. Hence a whole tab of headings
-    // with no content under them.
+    // The server stores { concept, phrase, origin }; My Session's grouping
+    // also needs character positions in the essay and a trace back to the
+    // originating turn — traceProvenance computes both.
     const provenanceData = traceProvenance(
       analysis.provenance || [], classified, submission.essayText || '');
 
-    document.getElementById('pending').style.display = 'none';
-    document.getElementById('results').style.display = 'flex';
+    reportReady = true;
+    applyMode();
 
-    document.getElementById('samrHero').innerHTML = renderReportHero(scores, history);
-    document.getElementById('summaryGrid').innerHTML = renderSummary(scores);
-    document.getElementById('dimDetails').innerHTML = renderDimDetails(scores);
-    renderSnapshot(analysis.snapshot, analysis.coachingLevel);
+    document.getElementById('samrHero').innerHTML = renderReportHero(scores, submission);
+    document.getElementById('reportJumpScore').innerHTML = renderJumpScore(scores);
+    document.getElementById('dimGrid').innerHTML = renderDimGrid(scores);
     renderTeacherNote(submission.teacherNote);
     // The presence of flags IS the teacher signal — the API strips them for
     // students server-side, so there is nothing for the client to decide. The
@@ -121,20 +148,22 @@
     renderFlagsPanel(analysis.flags);
 
     renderAgencyChart(classified);
+    renderDrivingChart(classified);
 
     document.getElementById('reflectContent').innerHTML =
       renderReflect(classified, provenanceData, submission.essayText || '');
-    initReflectDashboard();
+    initReflectInteractions();
 
-    if (provenanceData.length > 0) {
-      document.getElementById('provStats').innerHTML = renderProvStats(provenanceData);
-      document.getElementById('essayHeatmap').innerHTML = renderEssayHeatmap(submission.essayText || '', provenanceData);
-      document.getElementById('conceptList').innerHTML = renderConceptList(provenanceData);
+    const growthMovesHtml = renderGrowthMoves(analysis.snapshot && analysis.snapshot.growthMoves);
+    const growthMovesPanel = document.getElementById('growthMovesPanel');
+    if (growthMovesHtml) {
+      document.getElementById('growthMovesContent').innerHTML = growthMovesHtml;
     } else {
-      document.getElementById('essayHeatmap').textContent = 'Provenance analysis unavailable for this draft.';
+      growthMovesPanel.style.display = 'none';
+      // Nothing to jump to — pull its entry out of the jump nav rather than
+      // leaving a dead link to a hidden section.
+      document.getElementById('jumpBtnNext').style.display = 'none';
     }
-
-    renderPatternGuide();
   }
 
   document.getElementById('patternSidebarClose').addEventListener('click', () => closePatternSidebar());
@@ -156,4 +185,6 @@
     pending.style.display = '';
     pending.textContent = 'Something went wrong drawing this report. Your work is safe — reload to try again.';
   });
+
+  mountAccountChip(document.getElementById('accountChip')).catch(() => {});
 })();

@@ -8,6 +8,7 @@ const TEST_ACCOUNTS = [
   { email: 'priya@school.dev', note: 'student — integrity flags (teacher-only)' },
   { email: 'luis@school.dev', note: 'student — mid-assignment' },
   { email: 'sam@school.dev', note: 'student — no history yet' },
+  { email: 'jamie@school.dev', note: 'student — real transcript (bike guide, 44 turns)' },
   { email: 'teacher@school.dev', note: 'teacher — dashboard + roster' },
 ];
 
@@ -34,11 +35,16 @@ function renderTestAccounts() {
 }
 
 function landingFor(role) {
+  const roleHome = role === 'teacher' ? '/dashboard.html' : '/index.html';
   const next = new URLSearchParams(location.search).get('next');
   // Only honour same-origin relative paths — never redirect to an absolute URL
-  // supplied in the query string.
-  if (next && next.startsWith('/') && !next.startsWith('//')) return next;
-  return role === 'teacher' ? '/dashboard.html' : '/index.html';
+  // supplied in the query string. A teacher bounced off the student app's
+  // index.html (401 -> ?next=/index.html) should still land on their own
+  // dashboard, not back on the page that rejected them.
+  if (next && next.startsWith('/') && !next.startsWith('//') && next !== '/index.html') {
+    return next;
+  }
+  return roleHome;
 }
 
 $('loginForm').addEventListener('submit', async (e) => {

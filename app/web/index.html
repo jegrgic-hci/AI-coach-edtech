@@ -11,15 +11,22 @@
 </head>
 <body>
 
+<!-- The one element that never resets: mark, breadcrumb, the local
+     Report/Session toggle (only when a draft actually has both), and
+     identity. Lives outside both views on purpose — index.html's home and
+     workspace views, and report.html, all fill the same shell rather than
+     each inventing their own header. -->
+<header class="tau-nav" id="tauNav">
+  <span class="tau-nav-mark"><span class="tau-nav-glyph">&tau;</span>Coach</span>
+  <nav class="tau-nav-crumbs" id="navCrumbs"></nav>
+  <span class="tau-nav-fill"></span>
+  <span class="tau-nav-local hidden" id="navLocal"></span>
+  <div class="account-chip" id="accountChip"></div>
+  <button class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
+</header>
+
 <!-- View 1: student home -->
 <div id="viewAssignments" class="view">
-  <header class="app-header">
-    <h1>Writing Coach</h1>
-    <span class="visibility-cue">Your conversations here are visible to your teacher</span>
-    <div class="account-chip" id="accountChip"></div>
-    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
-  </header>
-
   <!-- The rail is the dashboard's fixed ground: who you are and where you stand.
        It does not change as assignments come and go. Content scrolls beside it. -->
   <div class="dash">
@@ -31,6 +38,7 @@
           <span class="rail-sub" id="railSub"></span>
         </div>
       </div>
+      <div class="rail-nav" id="railNav"></div>
       <div class="rail-progress" id="railProgress"></div>
     </aside>
 
@@ -59,59 +67,60 @@
 
 <!-- View 2: assignment workspace -->
 <div id="viewWorkspace" class="view hidden">
-  <aside class="sidebar">
-    <button class="back-btn" id="btnBack">&larr; Assignments</button>
-    <div class="assignment-info">
-      <h2 id="wsTitle"></h2>
-      <details class="prompt-details">
-        <summary>Assignment prompt</summary>
+  <div class="ws-body">
+    <aside class="sidebar">
+      <details class="acard-disclosure acard-disclosure-prompt ws-prompt">
+        <summary class="acard-disclosure-toggle">
+          <svg class="acard-disclosure-icon" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Assignment prompt
+        </summary>
         <p id="wsPrompt"></p>
       </details>
-    </div>
-    <nav class="draft-sections" id="draftSections"></nav>
-    <div class="sidebar-footer">
-      <button id="btnSaveClose">Save &amp; close</button>
-      <button id="btnSubmit" class="submit-btn">Submit draft</button>
-    </div>
-  </aside>
+      <button id="btnNewSession" class="new-session-btn">+ New session</button>
+      <nav class="session-list" id="sessionList"></nav>
+      <div class="sidebar-footer">
+        <button id="btnSubmit" class="submit-btn">Submit draft</button>
+      </div>
+    </aside>
 
-  <section class="chat">
-    <div class="chat-header">
-      <span id="convTitle"></span>
-      <button id="btnRename" title="Rename conversation">&#9998;</button>
-      <button class="theme-toggle theme-toggle-end" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
-    </div>
-    <div class="reading-banner hidden" id="readingBanner"></div>
-    <div class="mode-banner hidden" id="coachMode"></div>
-    <div class="messages" id="messages">
-      <div class="empty-state" id="emptyState">
-        <p>Start a conversation with your writing coach.</p>
-        <p class="empty-sub">The coach knows your assignment prompt — but not your other conversations. Catch it up on anything it needs to know.</p>
+    <section class="chat">
+      <div class="chat-header">
+        <span id="convTitle"></span>
+        <button id="btnRename" title="Rename session">&#9998;</button>
       </div>
-    </div>
-    <div class="composer" id="composer">
-      <div class="edit-banner hidden" id="editBanner">Editing your message <button id="btnCancelEdit">cancel</button></div>
-      <textarea id="input" rows="2" placeholder="Reply to the coach…"></textarea>
-      <div class="composer-row">
-        <button id="btnEvaluate" class="btn btn-quiet btn-sm btn-auditor" title="Ask the auditor how you're using the AI">How am I doing?</button>
-        <button id="btnRegenerate" class="btn btn-quiet btn-sm hidden">&#8635; Regenerate</button>
-        <button id="btnStop" class="btn btn-quiet btn-sm stop-btn hidden">&#9632; Stop</button>
-        <span class="spacer"></span>
-        <span class="composer-hint">Your teacher can read this conversation</span>
-        <button id="btnSend" class="btn btn-primary btn-sm">Send</button>
+      <div class="reading-banner hidden" id="readingBanner"></div>
+      <div class="mode-banner hidden" id="coachMode"></div>
+      <div class="messages" id="messages">
+        <div class="empty-state" id="emptyState">
+          <p>Start a session with your writing coach.</p>
+          <p class="empty-sub">The coach knows your assignment prompt — but not your other sessions. Catch it up on anything it needs to know.</p>
+        </div>
       </div>
-    </div>
-  </section>
+      <div class="composer" id="composer">
+        <div class="edit-banner hidden" id="editBanner">Editing your message <button id="btnCancelEdit">cancel</button></div>
+        <textarea id="input" rows="2" placeholder="Reply to the coach…"></textarea>
+        <div class="composer-row">
+          <button id="btnEvaluate" class="btn btn-quiet btn-sm btn-auditor" title="Ask the auditor how you're using the AI">How am I doing?</button>
+          <button id="btnRegenerate" class="btn btn-quiet btn-sm hidden">&#8635; Regenerate</button>
+          <button id="btnStop" class="btn btn-quiet btn-sm stop-btn hidden">&#9632; Stop</button>
+          <span class="spacer"></span>
+          <span class="composer-hint">Your teacher can read this session</span>
+          <button id="btnSend" class="btn btn-primary btn-sm">Send</button>
+        </div>
+      </div>
+    </section>
+  </div>
 </div>
 
-<!-- Submit modal -->
-<div class="modal-backdrop hidden" id="submitModal">
-  <div class="modal">
-    <h3>Submit draft</h3>
-    <p class="modal-warning" id="submitWarning"></p>
+<!-- Submit modal — the shared .scrim/.confirm dialog (components.css),
+     widened via .confirm-lg for the essay textarea. -->
+<div class="scrim hidden" id="submitModal">
+  <div class="confirm confirm-lg">
+    <h4>Submit draft</h4>
+    <ul id="submitWarning"></ul>
     <p>Paste your current essay draft from Google Docs:</p>
     <textarea id="essayText" rows="12" placeholder="Paste your full draft here…"></textarea>
-    <div class="modal-actions">
+    <div class="confirm-acts">
       <button id="btnCancelSubmit">Cancel</button>
       <button id="btnConfirmSubmit" class="submit-btn">Submit — this ends my session</button>
     </div>
@@ -119,6 +128,7 @@
 </div>
 
 <script src="api.js"></script>
+<script src="icons.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

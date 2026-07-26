@@ -162,6 +162,20 @@ function getAILabelBefore(studentIdx, classified) {
   return null;
 }
 
+// Same walk-back as getAILabelBefore, returning the turn itself — used to
+// check whether the specific AI content a student pushed back on ever shows
+// up as a landed concept in the essay (My Session's "kept it out" group).
+function getAITurnBefore(studentIdx, classified) {
+  const studentTurns = classified.filter(t => t.role === "student");
+  if (studentIdx >= studentTurns.length) return null;
+  const target = studentTurns[studentIdx];
+  const pos    = classified.indexOf(target);
+  for (let i = pos - 1; i >= 0; i--) {
+    if (classified[i].role === "ai") return classified[i];
+  }
+  return null;
+}
+
 function detectPatterns(classified) {
   const student  = classified.filter(t => t.role === "student");
   const labels   = student.map(t => t.label || "extraction");
@@ -356,6 +370,13 @@ function renderPatternGuide() {
     ${cardGroup(PASSIVE, "dt-cat-card-name--low")}`;
 }
 
+function positionTooltip(event) {
+  const tooltip = document.getElementById("dt-tooltip");
+  const pad = 12, tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+  tooltip.style.left = (event.clientX + pad + tw > window.innerWidth  ? event.clientX - tw - pad : event.clientX + pad) + "px";
+  tooltip.style.top  = (event.clientY + pad + th > window.innerHeight ? event.clientY - th - pad : event.clientY + pad) + "px";
+}
+
 function showTurnTooltip(event, d) {
   const tooltip = document.getElementById("dt-tooltip");
   const preview = (d.text || "").length > 130 ? d.text.slice(0, 130) + "…" : (d.text || "");
@@ -365,9 +386,82 @@ function showTurnTooltip(event, d) {
   document.getElementById("dt-tooltip-learn-more").style.display = "none";
   tooltip.classList.add("dt-tooltip--turn");
   tooltip.style.display = "block";
-  const pad = 12, tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
-  tooltip.style.left = (event.clientX + pad + tw > window.innerWidth  ? event.clientX - tw - pad : event.clientX + pad) + "px";
-  tooltip.style.top  = (event.clientY + pad + th > window.innerHeight ? event.clientY - th - pad : event.clientY + pad) + "px";
+  positionTooltip(event);
+}
+
+// Named only on hover — the chart itself carries no label or icon for a
+// pattern band, so this tooltip (and the sidebar a click opens) is the only
+// place its name and description live. Mirrors the prototype's showPatternTip.
+function showPatternTooltip(event, p) {
+  const tooltip = document.getElementById("dt-tooltip");
+  const orig = p._orig;
+  const isHigh = p.side === "right";
+  tooltip.querySelector(".dt-tooltip-title").textContent = `${p.title} — turns ${orig.start + 1}–${orig.end + 1}`;
+  tooltip.querySelector(".dt-tooltip-body").innerHTML =
+    `<span style="display:inline-block;padding:1px 7px;border-radius:var(--tau-r-pill);background:${isHigh ? "var(--tau-band-4-bg)" : "var(--tau-band-2-bg)"};color:${isHigh ? "var(--tau-band-4-fg)" : "var(--tau-band-2-fg)"};font-size:10px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;">${isHigh ? "high" : "low"}-agency pattern</span><br>${esc(PAT_DESCRIPTIONS[orig.id] || "")}`;
+  document.getElementById("dt-tooltip-learn-more").style.display = "none";
+  tooltip.classList.add("dt-tooltip--turn");
+  tooltip.style.display = "block";
+  positionTooltip(event);
+}
+
+// Legend as labelled clusters rather than one long inline strip — matches
+// how the chart itself already reads (low/neutral/high agency, patterns,
+// trend) instead of leaving the grouping implicit in swatch order.
+//
+// Two-tier IA, not one flat row: groups marked `annotation` (Patterns, Trend)
+// describe chart *markings*, not the value encoding itself — mixing them in
+// with the actual colour key (Low/High agency, Who's driving) at equal
+// weight made every group read as equally load-bearing, when only the key
+// groups are what a reader needs to decode a single bar's colour. A divider
+// plus a quieter, smaller row demotes them to "reference, if you need it."
+function renderGroupedLegend(containerEl, groups) {
+  containerEl.className = "legend-groups";
+  containerEl.innerHTML = "";
+
+  function buildGroup(group) {
+    const g = document.createElement("div"); g.className = "legend-group";
+    if (group.label) {
+      const label = document.createElement("span"); label.className = "legend-group-label"; label.textContent = group.label;
+      g.appendChild(label);
+    }
+    const row = document.createElement("div"); row.className = "legend-group-row";
+    group.items.forEach(item => {
+      const wrap = document.createElement("div");
+      wrap.className = item.sub ? "legend-item legend-item-stacked" : "legend-item";
+      const sw = document.createElement("div");
+      sw.className = item.line ? "legend-swatch-line" : "legend-swatch";
+      if (!item.line) sw.style.background = item.color;
+      if (item.outline) sw.style.border = "1px solid var(--tau-line-strong)";
+      if (item.sub) {
+        const txt = document.createElement("span"); txt.className = "legend-item-text";
+        const main = document.createElement("span"); main.className = "legend-item-label"; main.textContent = item.label;
+        const sub = document.createElement("span"); sub.className = "legend-item-sub"; sub.textContent = item.sub;
+        txt.append(main, sub);
+        wrap.appendChild(sw); wrap.appendChild(txt);
+      } else {
+        const txt = document.createElement("span"); txt.textContent = item.label;
+        wrap.appendChild(sw); wrap.appendChild(txt);
+      }
+      row.appendChild(wrap);
+    });
+    g.appendChild(row);
+    return g;
+  }
+
+  const keyGroups = groups.filter(g => !g.annotation);
+  const metaGroups = groups.filter(g => g.annotation);
+
+  const keyRow = document.createElement("div"); keyRow.className = "legend-row legend-row-key";
+  keyGroups.forEach(group => keyRow.appendChild(buildGroup(group)));
+  containerEl.appendChild(keyRow);
+
+  if (metaGroups.length) {
+    containerEl.appendChild(Object.assign(document.createElement("div"), { className: "legend-divider" }));
+    const metaRow = document.createElement("div"); metaRow.className = "legend-row legend-row-meta";
+    metaGroups.forEach(group => metaRow.appendChild(buildGroup(group)));
+    containerEl.appendChild(metaRow);
+  }
 }
 
 function hideTurnTooltip() {
@@ -376,16 +470,72 @@ function hideTurnTooltip() {
   tooltip.classList.remove("dt-tooltip--turn");
 }
 
+// A window-turn moving average — used both for the agency chart's trend
+// line and the driving chart's rolling student/AI share.
+function movingAverage(values, window) {
+  const half = Math.floor(window / 2);
+  return values.map((_, i) => {
+    const lo = Math.max(0, i - half), hi = Math.min(values.length - 1, i + half);
+    const slice = values.slice(lo, hi + 1);
+    return slice.reduce((a, b) => a + b, 0) / slice.length;
+  });
+}
+
+// Same band-scale math as renderHorizChart, factored out so the driving
+// chart's turn columns line up exactly with the agency chart's — same 44
+// turns, same x position, so the two tabs read as one instrument.
+function computeChartScale(data, innerW, maxBarW) {
+  const n = data.length;
+  const probe   = d3.scaleBand().domain(data.map(d=>d.label)).range([0,innerW]).paddingInner(0.18).paddingOuter(0.1);
+  const barArea = probe.bandwidth() > maxBarW ? (maxBarW/(1-0.18))*n : innerW;
+  const xScale  = d3.scaleBand().domain(data.map(d=>d.label)).range([0,barArea]).paddingInner(0.18).paddingOuter(0.1);
+  return { xScale, barArea };
+}
+
+const PAT_LABEL_MAP = {
+  "challenge-arc":"Challenge Arc", "rejection-redirect":"Rejection → Redirect",
+  "claim-support":"Claim-Support Cycle", "extraction-landing":"Extraction → Insight",
+  "extraction-loop":"Extraction Loop", "validation-spiral":"Validation Spiral",
+  "helplessness-loop":"Helplessness Loop", "flitting":"Flitting", "missed-argument":"Missed Argument",
+  "correction-held":"Held Ground", "capitulation":"Capitulation",
+  "assertion-questioned":"Questioned Assertion", "assertion-unquestioned":"Unquestioned Assertion",
+};
+
+// Shared by the agency chart and the driving chart — both read the same 44
+// student turns and the same detected patterns, just projected differently.
+function buildAgencyTurnsAndPatterns(classified) {
+  const student = classified.filter(t => t.role === "student");
+  const turns = student.map((t, i) => ({
+    id: i + 1,
+    value: TURN_VALUE[t.label] ?? 0,
+    classifier: t.label || "extraction",
+    text: t.text || "",
+  }));
+  const rawPatterns = detectPatterns(classified);
+  const patterns = rawPatterns.map(p => ({
+    rows: Array.from({ length: p.end - p.start + 1 }, (_, k) => String(p.start + k + 1)),
+    side: (p.tier === "high" || p.tier === "medium") ? "right" : "left",
+    title: PAT_LABEL_MAP[p.id] || p.label,
+    aiLabels: Array.from({ length: p.end - p.start + 1 }, (_, k) => getAILabelBefore(p.start + k, classified) || ""),
+    _orig: p,
+  }));
+  return { student, turns, patterns };
+}
+
 // ── Shared horizontal chart renderer ─────────────────────────────────────────
+// Deliberately minimal, matching the agency-viz prototype: bars, a trend
+// line, and unlabelled tinted bands behind the bars. No axis ticks, no
+// per-pattern icon — a pattern's name and description live in the hover
+// tooltip and the sidebar a click opens, not printed on the chart itself.
 function renderHorizChart(svgSel, data, patterns, onBarClick, onPatternClick) {
-  const hMarg    = { top: 44, right: 24, bottom: 60, left: 24 };
+  const hMarg    = { top: 24, right: 24, bottom: 44, left: 92 };
   const hSvgW    = 796;
   const hInnerW  = hSvgW - hMarg.left - hMarg.right;
   const hMaxBarW = 24;
   const hPosU    = 5, hNegU = 3;
   const hInnerH  = 320;
   const hZeroY   = Math.round(hInnerH * hPosU / (hPosU + hNegU));
-  const hYTicks  = [-3,-2,-1,0,1,2,3,4,5];
+  const hYTicks  = [-2,-1,0,1,2,3,4];
   const hYScale  = d3.scaleLinear().domain([-hNegU, hPosU]).range([hInnerH, 0]);
   // The per-turn value ramp (green intensity for agentic turns, terra for
   // passive ones) is literal colour, not tokens — carrying this onto the
@@ -398,52 +548,51 @@ function renderHorizChart(svgSel, data, patterns, onBarClick, onPatternClick) {
   const hNegScl  = d3.scaleSequential().domain([-1,-2]).interpolator(d3.interpolateRgb("#e8ae94","#b85c38"));
   const hFill    = v => v===0 ? "#b0b0b0" : v>0 ? hPosScl(v) : hNegScl(v);
 
-  const n = data.length;
-  const probe   = d3.scaleBand().domain(data.map(d=>d.label)).range([0,hInnerW]).paddingInner(0.18).paddingOuter(0.1);
-  const barArea = probe.bandwidth() > hMaxBarW ? (hMaxBarW/(1-0.18))*n : hInnerW;
-  const xScale  = d3.scaleBand().domain(data.map(d=>d.label)).range([0,barArea]).paddingInner(0.18).paddingOuter(0.1);
+  const { xScale, barArea } = computeChartScale(data, hInnerW, hMaxBarW);
 
   svgSel.attr("width",hSvgW).attr("height",hMarg.top+hInnerH+hMarg.bottom).style("overflow","visible").selectAll("*").remove();
 
-  const defs = svgSel.append("defs");
-  defs.append("marker").attr("id","hArrowUp").attr("viewBox","0 -5 10 10").attr("refX",8).attr("refY",0).attr("markerWidth",4).attr("markerHeight",4).attr("orient","auto")
-    .append("path").attr("d","M0,-5L10,0L0,5").attr("fill","var(--tau-positive)");
-  defs.append("marker").attr("id","hArrowDown").attr("viewBox","0 -5 10 10").attr("refX",8).attr("refY",0).attr("markerWidth",4).attr("markerHeight",4).attr("orient","auto")
-    .append("path").attr("d","M0,-5L10,0L0,5").attr("fill","var(--tau-band-2-fg)");
-
-  const g = svgSel.append("g").attr("transform",`translate(${hMarg.left},${hMarg.top})`);
-
-  const step=xScale.step(), halfGap=step*xScale.paddingInner()/2;
-  const bandData=d3.groups(data,d=>Math.floor((d.id-1)/5)).filter(([i])=>i%2===1);
-  g.selectAll(".col-band").data(bandData).join("rect").attr("class","col-band")
-    .attr("x",([,rows])=>xScale(rows[0].label)-halfGap).attr("y",0)
-    .attr("width",([,rows])=>step*rows.length).attr("height",hInnerH).attr("fill","var(--tau-surface-2)");
+  // A capped bar width means short sessions produce a plot narrower than the
+  // fixed 796px canvas — centre it in the available space rather than
+  // leaving it stuck to the left margin.
+  const hOffsetX = (hInnerW - barArea) / 2;
+  const g = svgSel.append("g").attr("transform",`translate(${hMarg.left+hOffsetX},${hMarg.top})`);
 
   g.selectAll(".grid-line").data(hYTicks).join("line").attr("class","grid-line")
     .attr("x1",0).attr("x2",barArea).attr("y1",d=>hYScale(d)).attr("y2",d=>hYScale(d));
   g.append("line").attr("class","zero-line").attr("x1",0).attr("x2",barArea).attr("y1",hZeroY).attr("y2",hZeroY);
-  g.append("line").attr("x1",0).attr("x2",barArea).attr("y1",0).attr("y2",0).attr("stroke","var(--tau-line)").attr("stroke-width",1);
-  g.append("line").attr("x1",0).attr("x2",barArea).attr("y1",hInnerH).attr("y2",hInnerH).attr("stroke","var(--tau-line)").attr("stroke-width",1);
+
+  // Values are ordinal labels (challenge, extraction, validation...), not a
+  // measured quantity — numeric ticks would claim a precision that isn't
+  // there. Name the two real extremes and the neutral middle instead.
+  g.append("text").attr("x",-10).attr("y",hYScale(4)+4).attr("text-anchor","end")
+    .attr("font-size","11px").attr("fill","var(--tau-ink-faint)").text("High agency");
+  g.append("text").attr("x",-10).attr("y",hZeroY+4).attr("text-anchor","end")
+    .attr("font-size","11px").attr("fill","var(--tau-ink-faint)").text("Neutral");
+  g.append("text").attr("x",-10).attr("y",hYScale(-2)+4).attr("text-anchor","end")
+    .attr("font-size","11px").attr("fill","var(--tau-ink-faint)").text("Low agency");
 
   patterns.forEach(p => {
     const xs=p.rows.map(r=>xScale(r)).filter(x=>x!==undefined);
     if (!xs.length) return;
     const x1=Math.min(...xs), x2=Math.max(...xs)+xScale.bandwidth(), pw=x2-x1;
-    // Same "level, not verdict" band ramp as the pattern-group tiers and the
-    // pattern sidebar title, not a fourth blue/terra pair.
-    const isPos=p.side==="right", color=isPos?"var(--tau-band-4-fg)":"var(--tau-band-2-fg)", pad=3;
-    const pg=g.append("g").style("cursor","pointer").on("click",e=>onPatternClick(e,p));
+    // Same "level, not verdict" band ramp as the pattern sidebar title, not
+    // a fourth blue/terra pair.
+    const isPos=p.side==="right", pad=3;
+    const pg=g.append("g").style("cursor","pointer")
+      .on("mousemove",e=>showPatternTooltip(e,p))
+      .on("mouseleave",hideTurnTooltip)
+      .on("click",e=>onPatternClick(e,p));
     pg.append("rect").attr("x",x1-pad).attr("y",isPos?0:hZeroY).attr("width",pw+pad*2)
       .attr("height",isPos?hZeroY:hInnerH-hZeroY).attr("rx",3).attr("fill",isPos?"var(--tau-band-4-bg)":"var(--tau-band-2-bg)").attr("stroke","none");
-    const lb=pg.append("g").attr("transform",`translate(${x1-pad+10},${isPos?12:hInnerH-12})`);
-    lb.append("circle").attr("cx",0).attr("cy",-3).attr("r",4.5).attr("fill","none").attr("stroke",color).attr("stroke-width",1.5);
-    lb.append("line").attr("x1",-3).attr("y1",1).attr("x2",-3).attr("y2",3).attr("stroke",color).attr("stroke-width",1.5).attr("stroke-linecap","round");
-    lb.append("line").attr("x1", 3).attr("y1",1).attr("x2", 3).attr("y2",3).attr("stroke",color).attr("stroke-width",1.5).attr("stroke-linecap","round");
-    lb.append("line").attr("x1",-3).attr("y1",3).attr("x2", 3).attr("y2",3).attr("stroke",color).attr("stroke-width",1.5).attr("stroke-linecap","round");
-    lb.append("line").attr("x1",-2).attr("y1",5).attr("x2", 2).attr("y2",5).attr("stroke",color).attr("stroke-width",1.5).attr("stroke-linecap","round");
   });
 
-  g.selectAll(".bar").data(data).join("rect").attr("class","bar")
+  // Each layer in its own group so the Bars/Trend line toggle can hide one
+  // independently of the other — not exclusive, both default on.
+  const barsGroup  = g.append("g").attr("class","layer-bars");
+  const trendGroup = g.append("g").attr("class","layer-trend");
+
+  barsGroup.selectAll(".bar").data(data).join("rect").attr("class","bar")
     .attr("x",d=>xScale(d.label))
     .attr("y",d=>{ if(d.value===0) return hZeroY-4; if(d.value>0) return hYScale(d.value); return hZeroY; })
     .attr("width",xScale.bandwidth())
@@ -451,63 +600,27 @@ function renderHorizChart(svgSel, data, patterns, onBarClick, onPatternClick) {
     .attr("fill",d=>hFill(d.value)).style("cursor","pointer")
     .on("click",(event,d)=>onBarClick(event,d));
 
+  // Trend line — 3-turn moving average over the same values as the bars.
+  // Plain ink, not a score colour: it's a read aid over the bars, not a
+  // fifth agency signal competing with the green/terra ramp.
+  const trendSmoothed = movingAverage(data.map(d=>d.value), 3);
+  const trendLine = d3.line()
+    .x(d=>xScale(d.label)+xScale.bandwidth()/2)
+    .y((d,i)=>hYScale(trendSmoothed[i]))
+    .curve(d3.curveCatmullRom.alpha(0.5));
+  trendGroup.append("path").attr("class","trend-line").attr("d",trendLine(data));
+
   g.selectAll(".turn-label").data(data).join("text")
     .attr("x",d=>xScale(d.label)+xScale.bandwidth()/2).attr("y",hInnerH+16)
     .attr("dy","0.35em").attr("text-anchor","middle")
     .attr("font-size","13px").attr("fill","var(--tau-ink-soft)")
     .text(d=>d.id%5===0?d.label:"");
-
-  // Zone labels keep their own four-way colour scheme rather than the band
-  // ramp: they name the axis itself (an editorial scale), not a position on
-  // this student's result, so the "level, not verdict" rule doesn't apply
-  // the same way it does to a per-student value. Still literal hex, so
-  // tracked as debt alongside the value ramp above.
-  [{label:"PASSIVE",cy:hYScale(-1.5),fill:"#c07050"},{label:"NEUTRAL",cy:hYScale(0),fill:"#aaa"},
-   {label:"BUILDING",cy:hYScale(1.5),fill:"#1d4ed8"},{label:"QUESTIONING",cy:hYScale(3.5),fill:"#059669"}
-  ].forEach(z=>{
-    g.append("text").attr("transform",`translate(-8,${z.cy}) rotate(-90)`)
-      .attr("text-anchor","middle")
-      .attr("font-size","10px").attr("font-weight","700")
-      .attr("letter-spacing","0.07em").attr("fill",z.fill).text(z.label);
-  });
-
-  g.append("line").attr("x1",-3).attr("y1",hZeroY-6).attr("x2",-3).attr("y2",6)
-    .attr("stroke","var(--tau-positive)").attr("stroke-width",1.5).attr("marker-end","url(#hArrowUp)");
-  g.append("line").attr("x1",-3).attr("y1",hZeroY+6).attr("x2",-3).attr("y2",hInnerH-6)
-    .attr("stroke","var(--tau-band-2-fg)").attr("stroke-width",1.5).attr("marker-end","url(#hArrowDown)");
-
-  g.append("text").attr("font-size","11px").attr("fill","var(--tau-ink-faint)")
-    .attr("x",barArea/2).attr("y",hInnerH+42).attr("text-anchor","middle").text("Student turns (chronological →)");
 }
 
 function renderAgencyChart(classified) {
   if (typeof d3 === "undefined") return;
-  const student = classified.filter(t => t.role === "student");
+  const { student, turns, patterns } = buildAgencyTurnsAndPatterns(classified);
   if (student.length < 2) return;
-
-  // ── Convert to dt sample format ──────────────────────────────────────────
-  const turns = student.map((t, i) => ({
-    id: i + 1,
-    value: TURN_VALUE[t.label] ?? 0,
-    classifier: t.label || "extraction",
-    text: t.text || "",
-  }));
-  const PAT_LABEL_MAP = {
-    "challenge-arc":"Challenge Arc", "rejection-redirect":"Rejection → Redirect",
-    "claim-support":"Claim-Support Cycle", "extraction-landing":"Extraction → Insight",
-    "extraction-loop":"Extraction Loop", "validation-spiral":"Validation Spiral",
-    "helplessness-loop":"Helplessness Loop", "flitting":"Flitting", "missed-argument":"Missed Argument",
-    "correction-held":"Held Ground", "capitulation":"Capitulation",
-    "assertion-questioned":"Questioned Assertion", "assertion-unquestioned":"Unquestioned Assertion",
-  };
-  const rawPatterns = detectPatterns(classified);
-  const patterns = rawPatterns.map(p => ({
-    rows: Array.from({ length: p.end - p.start + 1 }, (_, k) => String(p.start + k + 1)),
-    side: (p.tier === "high" || p.tier === "medium") ? "right" : "left",
-    title: PAT_LABEL_MAP[p.id] || p.label,
-    aiLabels: Array.from({ length: p.end - p.start + 1 }, (_, k) => getAILabelBefore(p.start + k, classified) || ""),
-    _orig: p,
-  }));
 
   // ── Summary strip ─────────────────────────────────────────────────────────
   const total = turns.length;
@@ -569,24 +682,28 @@ function renderAgencyChart(classified) {
   const posScaleL = d3.scaleSequential().domain([1,4]).interpolator(d3.interpolateRgb("#86efac","#14532d"));
   const negScaleL = d3.scaleSequential().domain([-1,-2]).interpolator(d3.interpolateRgb("#e8ae94","#b85c38"));
   const fillL = v => v===0 ? "#b0b0b0" : v>0 ? posScaleL(v) : negScaleL(v);
-  const legendItems = [
-    { value: -2, label: "stuck" }, { value: -1, label: "validation" }, null,
-    { value:  0, label: "extraction" }, null,
-    { value:  1, label: "feedback / narrative" }, { value:  2, label: "refinement" }, null,
-    { value:  3, label: "claim / conceptual / pivot" }, { value:  4, label: "challenge / rejection" },
-  ];
-  const legendEl = document.getElementById("chartLegendEl");
-  legendEl.className = "legend";
-  legendEl.innerHTML = "";
-  legendItems.forEach(item => {
-    if (item === null) { const d = document.createElement("div"); d.className = "legend-divider"; legendEl.appendChild(d); return; }
-    const wrap = document.createElement("div"); wrap.className = "legend-item";
-    const sw   = document.createElement("div"); sw.className = "legend-swatch"; sw.style.background = fillL(item.value);
-    if (item.value === 0) sw.style.border = "1px solid var(--tau-line-strong)";
-    const txt = document.createElement("span");
-    txt.textContent = item.label;
-    wrap.appendChild(sw); wrap.appendChild(txt); legendEl.appendChild(wrap);
-  });
+  renderGroupedLegend(document.getElementById("chartLegendEl"), [
+    { label: "Low agency", items: [
+        { color: fillL(-2), label: "stuck" },
+        { color: fillL(-1), label: "validation" },
+      ] },
+    { label: "Neutral", items: [
+        { color: fillL(0), label: "extraction", outline: true },
+      ] },
+    { label: "High agency", items: [
+        { color: fillL(1), label: "feedback / narrative" },
+        { color: fillL(2), label: "refinement" },
+        { color: fillL(3), label: "claim / conceptual / pivot" },
+        { color: fillL(4), label: "challenge / rejection" },
+      ] },
+    { label: "Patterns", annotation: true, items: [
+        { color: "var(--tau-band-4-bg)", label: "high-agency pattern", outline: true },
+        { color: "var(--tau-band-2-bg)", label: "low-agency pattern", outline: true },
+      ] },
+    { label: "Trend", annotation: true, items: [
+        { line: true, label: "3-turn average" },
+      ] },
+  ]);
 
   // ── Chart ─────────────────────────────────────────────────────────────────
   const data   = turns.map(d => ({ ...d, label: String(d.id) }));
@@ -608,6 +725,114 @@ function renderAgencyChart(classified) {
     .on("mouseout",  ()          => hideTurnTooltip());
 }
 
+// ── Who's driving — same 44 turns, reclassified as a 3-state control fact
+// rather than a magnitude. Reuses the report's existing you/together/coach
+// origin vocabulary (--tau-origin-you/-together/-coach) so this teaches the
+// same encoding as My Session's essay panels instead of inventing a fourth
+// colour set.
+const DRIVING_MAP = {
+  claim: "student", challenge: "student", rejection: "student", pivot: "student", conceptual: "student",
+  refinement: "shared", narrative: "shared", feedback: "shared",
+  extraction: "ai", validation: "ai", stuck: "ai",
+};
+const DRV_COLOR = { student: "var(--tau-origin-you)", shared: "var(--tau-origin-together)", ai: "var(--tau-origin-coach)" };
+const DRV_LABEL = { student: "student-driven", shared: "shared", ai: "AI-driven" };
+const DRV_NUM   = { student: 1, shared: 0, ai: -1 };
+
+function renderDrivingChart(classified) {
+  if (typeof d3 === "undefined") return;
+  const { student, turns, patterns } = buildAgencyTurnsAndPatterns(classified);
+  if (student.length < 2) return;
+
+  const data = turns.map(d => ({ ...d, label: String(d.id), drv: DRIVING_MAP[d.classifier] || "shared" }));
+
+  // ── Legend ────────────────────────────────────────────────────────────────
+  renderGroupedLegend(document.getElementById("drivingLegendEl"), [
+    { label: "Who's driving", items: [
+        { color: DRV_COLOR.student, label: "Student-driven", sub: "claim · challenge · rejection · pivot · conceptual" },
+        { color: DRV_COLOR.shared,  label: "Shared",         sub: "refinement · narrative · feedback" },
+        { color: DRV_COLOR.ai,      label: "AI-driven",      sub: "extraction · validation · stuck" },
+      ] },
+    { label: "Patterns", annotation: true, items: [
+        { color: "var(--tau-band-4-bg)", label: "high-agency pattern", outline: true },
+        { color: "var(--tau-band-2-bg)", label: "low-agency pattern", outline: true },
+      ] },
+    { label: "Trend", annotation: true, items: [
+        { line: true, label: "rolling share (5-turn window)" },
+      ] },
+  ]);
+
+  // ── Chart ─────────────────────────────────────────────────────────────────
+  const dMarg    = { top: 20, right: 24, bottom: 44, left: 40 };
+  const dSvgW    = 796;
+  const dInnerW  = dSvgW - dMarg.left - dMarg.right;
+  const dMaxBarW = 24;
+  const laneH = 28, laneGap = 16, lineH = 140;
+  const lineTop = laneH + laneGap;
+
+  const { xScale, barArea } = computeChartScale(data, dInnerW, dMaxBarW);
+  const yScale = d3.scaleLinear().domain([-1,1]).range([lineTop+lineH, lineTop]);
+
+  const svgSel = d3.select("#drivingChart");
+  svgSel.attr("width", dSvgW).attr("height", dMarg.top + lineTop + lineH + dMarg.bottom)
+    .style("overflow","visible").selectAll("*").remove();
+  const dOffsetX = (dInnerW - barArea) / 2;
+  const g = svgSel.append("g").attr("transform", `translate(${dMarg.left+dOffsetX},${dMarg.top})`);
+
+  // Same bracket patterns as the agency chart, spanning the full lane+line
+  // height here rather than sitting above/below a zero line — there's no
+  // zero-centred bar to frame, just the two rows of the same story.
+  patterns.forEach(p => {
+    const xs = p.rows.map(r => xScale(r)).filter(x => x !== undefined);
+    if (!xs.length) return;
+    const x1 = Math.min(...xs), x2 = Math.max(...xs) + xScale.bandwidth(), pw = x2 - x1;
+    const isHigh = p.side === "right";
+    const pg = g.append("g").style("cursor","pointer")
+      .on("mousemove", e => showPatternTooltip(e, p))
+      .on("mouseleave", hideTurnTooltip)
+      .on("click", e => { e.stopPropagation(); openPatternSidebar(p._orig, student, classified); });
+    pg.append("rect").attr("x", x1-3).attr("y", 0).attr("width", pw+6)
+      .attr("height", lineTop+lineH).attr("rx", 3)
+      .attr("fill", isHigh ? "var(--tau-band-4-bg)" : "var(--tau-band-2-bg)");
+  });
+
+  [-1,-0.5,0,0.5,1].forEach(v => {
+    g.append("line").attr("class", v===0 ? "zero-line" : "grid-line")
+      .attr("x1",0).attr("x2",barArea).attr("y1",yScale(v)).attr("y2",yScale(v));
+  });
+
+  g.selectAll(".drv-tick").data(data).join("rect").attr("class","drv-tick")
+    .attr("x", d=>xScale(d.label)).attr("y", 0)
+    .attr("width", xScale.bandwidth()).attr("height", laneH).attr("rx", 2)
+    .attr("fill", d=>DRV_COLOR[d.drv]).style("cursor","pointer")
+    .on("mouseover", (event, d) => showTurnTooltip(event, { ...d, classifier: `${d.classifier} · ${DRV_LABEL[d.drv]}` }))
+    .on("mouseout", hideTurnTooltip)
+    .on("click", (event, d) => {
+      hideTurnTooltip();
+      document.getElementById("dt-modal-turn").textContent = `Student Turn ${d.id}`;
+      document.getElementById("dt-modal-classifier").textContent = d.classifier;
+      document.getElementById("dt-modal-text").textContent = d.text;
+      document.getElementById("dt-modal-overlay").classList.add("open");
+    });
+
+  const drvSmoothed = movingAverage(data.map(d=>DRV_NUM[d.drv]), 5);
+  const shareLine = d3.line()
+    .x(d=>xScale(d.label)+xScale.bandwidth()/2)
+    .y((d,i)=>yScale(drvSmoothed[i]))
+    .curve(d3.curveCatmullRom.alpha(0.5));
+  g.append("path").attr("class","trend-line").attr("stroke","var(--tau-origin-you)").attr("d",shareLine(data));
+
+  g.append("text").attr("x",-8).attr("y",lineTop+4).attr("text-anchor","end")
+    .attr("font-size","10px").attr("fill","var(--tau-ink-faint)").text("+1 student");
+  g.append("text").attr("x",-8).attr("y",lineTop+lineH).attr("text-anchor","end")
+    .attr("font-size","10px").attr("fill","var(--tau-ink-faint)").text("−1 AI");
+
+  g.selectAll(".turn-label").data(data).join("text").attr("class","turn-label")
+    .attr("x", d=>xScale(d.label)+xScale.bandwidth()/2).attr("y", lineTop+lineH+22)
+    .attr("text-anchor","middle").attr("font-size","13px").attr("fill","var(--tau-ink-soft)")
+    .text(d => d.id%5===0 ? d.label : "");
+}
+
 function openPatternSidebar(p, student, classified) {
   const sidebar = document.getElementById("patternSidebar");
   if (!sidebar) return;
@@ -621,8 +846,8 @@ function openPatternSidebar(p, student, classified) {
     "helplessness-loop":  "Helplessness Loop",
     "flitting":           "Flitting",
   };
-  // Same "level, not verdict" band ramp as the pattern-group tiers in My
-  // Session — not a new blue/terra good-bad pair.
+  // Same "level, not verdict" band ramp used elsewhere in the report — not
+  // a new blue/terra good-bad pair.
   const isRight = p.tier === "high" || p.tier === "medium";
   const color   = isRight ? "var(--tau-band-4-fg)" : "var(--tau-band-2-fg)";
   const title   = PAT_LABEL[p.id] || p.label;
@@ -668,27 +893,19 @@ function closePatternSidebar() {
   document.getElementById("patternSidebar")?.classList.remove("open");
 }
 
-function showTurnModal(d) {
-  const modal = document.getElementById("turnModal");
-  const box   = document.getElementById("turnModalBox");
-  if (!modal || !box) return;
-  box.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:10px">
-        ${labelBadge(d.label)}
-        <span style="font-size:11px;color:var(--muted);font-weight:600">Turn ${d.studentIdx + 1}</span>
-      </div>
-      <button onclick="closeTurnModal()"
-        style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:20px;line-height:1;padding:0;flex-shrink:0">&times;</button>
-    </div>
-    <div style="font-size:13px;color:var(--text);line-height:1.75;white-space:pre-wrap">${esc(d.text)}</div>
-  `;
+// Pattern Guide moved out of the tab bar into a header button — it's demo/
+// explainer material, not something most students need to visit, so it lives
+// behind a lightweight modal rather than taking a permanent tab slot.
+function openPatternGuideModal() {
+  const modal = document.getElementById("patternGuideModal");
+  if (!modal) return;
+  renderPatternGuide();
   modal.classList.add("open");
   document.body.style.overflow = "hidden";
 }
 
-function closeTurnModal() {
-  document.getElementById("turnModal")?.classList.remove("open");
+function closePatternGuideModal() {
+  document.getElementById("patternGuideModal")?.classList.remove("open");
   document.body.style.overflow = "";
 }
 
@@ -710,15 +927,27 @@ function findConceptPositions(phrase, text) {
   return positions;
 }
 
-function conceptInText(concept, text) {
-  const re = conceptRegex(concept);
-  return re ? re.test(text) : false;
+// concept is the analyser's own paraphrase of the idea, not verbatim chat
+// text, so a strict ordered-phrase match against it almost never hits — word
+// overlap (same threshold matchConceptsToTurns uses) actually finds the turn.
+function findTraceTurn(concept, classified) {
+  const words = concept.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(w => w.length > 3);
+  if (!words.length) return null;
+  for (const t of classified) {
+    const text = (t.text || "").toLowerCase();
+    const hits = words.filter(w => text.includes(w)).length;
+    if (hits >= Math.max(1, Math.ceil(words.length * 0.5))) return t;
+  }
+  return null;
 }
 
+// Exposes traceTurn (not just a text snippet of it) so My Session's grouping
+// logic can compare turns by identity — e.g. "did anything from the exact AI
+// turn this challenge responded to ever land in the essay?"
 function traceProvenance(provenanceItems, classified, essayText) {
   return provenanceItems.map(({ concept, phrase, origin }) => {
     const positions = findConceptPositions(phrase, essayText);
-    const traceTurn = classified.find(t => conceptInText(concept, t.text)) || null;
+    const traceTurn = findTraceTurn(concept, classified);
     // The old fallback asserted "prior knowledge" whenever the concept name
     // didn't appear verbatim in a turn — which it usually doesn't, since the
     // name is the analyser's paraphrase. That put "prior knowledge" under
@@ -729,85 +958,8 @@ function traceProvenance(provenanceItems, classified, essayText) {
       : origin === "prior"
         ? "You brought this in — it isn’t in the chat at all."
         : "Traced to your draft; no single turn matched it.";
-    return { concept, phrase, origin, positions, traceSnippet };
+    return { concept, phrase, origin, positions, traceSnippet, traceTurn };
   }).filter(p => p.positions.length > 0);
-}
-
-function renderEssayHeatmap(essayText, provenanceData) {
-  const spans = [];
-  for (const p of provenanceData) {
-    if (p.origin === "prior") continue;
-    for (const pos of p.positions) spans.push({ ...pos, origin: p.origin, concept: p.concept });
-  }
-  spans.sort((a, b) => a.start - b.start);
-  const PRIORITY = { synthesized: 3, "student-born": 2, "ai-born": 1 };
-  const merged = [];
-  for (const span of spans) {
-    if (merged.length && span.start < merged[merged.length - 1].end) {
-      const prev = merged[merged.length - 1];
-      if ((PRIORITY[span.origin] || 0) > (PRIORITY[prev.origin] || 0)) prev.origin = span.origin;
-      prev.end = Math.max(prev.end, span.end);
-    } else {
-      merged.push({ ...span });
-    }
-  }
-  let html = "";
-  let cursor = 0;
-  for (const span of merged) {
-    if (span.start > cursor) html += esc(essayText.slice(cursor, span.start));
-    html += `<mark class="${span.origin}" title="${esc(span.concept)}">${esc(essayText.slice(span.start, span.end))}</mark>`;
-    cursor = span.end;
-  }
-  html += esc(essayText.slice(cursor));
-  return html;
-}
-
-// Authorship, not quality. "Student-Born / AI-Born" is filing-cabinet language
-// for a thing the student did; this is the same you → together → coach
-// vocabulary the conversation map uses, so the two visuals teach one encoding.
-const ORIGIN_LABEL = {
-  "student-born": "You",
-  "prior":        "You, before this",
-  "synthesized":  "Together",
-  "ai-born":      "The coach",
-};
-
-function renderConceptList(provenanceData) {
-  return provenanceData.map(p => `
-    <div class="concept-row">
-      <span class="origin-chip origin-${p.origin}">${ORIGIN_LABEL[p.origin] || p.origin}</span>
-      <div>
-        <div class="concept-term">${esc(p.concept)}</div>
-        <div class="concept-phrase">“${esc(p.phrase)}”</div>
-        <div class="concept-trace">${esc(p.traceSnippet)}</div>
-      </div>
-    </div>`).join("");
-}
-
-// One proportional bar plus a legend, rather than four chips each carrying its
-// own count and percentage. The bar is the thing that shows a mix at a glance;
-// nothing in it is ordered good-to-bad, so no arrangement of it can accuse.
-function renderProvStats(provenanceData) {
-  const counts = { "student-born": 0, "ai-born": 0, "synthesized": 0, "prior": 0 };
-  for (const p of provenanceData) { if (counts[p.origin] !== undefined) counts[p.origin]++; }
-  const total = provenanceData.length || 1;
-
-  // "Prior" is knowledge the student brought in and the chat never touched, so
-  // it belongs on the same side of the bar as student-born.
-  const segments = [
-    { cls: "prov-you",      n: counts["student-born"] + counts["prior"], label: "Yours" },
-    { cls: "prov-together", n: counts["synthesized"],                    label: "Developed together" },
-    { cls: "prov-coach",    n: counts["ai-born"],                        label: "Came from the coach" },
-  ];
-
-  const bar = segments.filter(s => s.n > 0).map(s =>
-    `<span class="${s.cls}" style="flex:${s.n}"></span>`).join("");
-  const legend = segments.map(s =>
-    `<span class="legend-item">
-       <span class="legend-swatch ${s.cls}"></span>${s.label} — ${s.n} of ${total}
-     </span>`).join("");
-
-  return `<div class="prov-bar">${bar}</div><div class="legend">${legend}</div>`;
 }
 
 // ─── Integrity flags ──────────────────────────────────────────────────────────
@@ -929,58 +1081,78 @@ const SAMR_DESCRIPTIONS = {
   Redefinition: 'You were in the driver\'s seat throughout — questioning, connecting ideas, and bringing your own perspective. The AI was your tool, not your author.',
 };
 
-// Direction of travel, not standing — which is the one thing semantic colour is
-// allowed to describe here. On a first draft there is no direction yet, and the
-// copy has to say so rather than draw a flat line implying no progress.
-function renderTrajectory(history, totalScore) {
-  const pts = history.map((h) => h.totalScore);
-  if (pts.length < 2) {
-    return '<span class="traj-cap">First draft — a starting point, not a mark.</span>';
-  }
-
-  const prevCycle = history[history.length - 2].cycleIndex + 1;
-  const delta = totalScore - pts[pts.length - 2];
-  const dir = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
-  const word = delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : 'no change';
-
-  const w = 132, h = 34, pad = 4;
-  const x = (i) => pad + (i * (w - pad * 2)) / (pts.length - 1);
-  const y = (v) => h - pad - ((v - 4) / 16) * (h - pad * 2);
-  const path = pts.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
-  const dots = pts.map((v, i) =>
-    `<circle class="traj-dot${i === pts.length - 1 ? ' traj-dot-now' : ''}" cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3"/>`).join('');
-
+// One row per dimension: full name + its own five-pip .steps bar, the same
+// component the summary panel below uses — this is a preview of that panel,
+// not a different way of drawing the same fact, so it has to be the same
+// component or the two would visually disagree with each other. No PQ/SU/CS/OC
+// badge — that's a code a reader has to learn, and the full name already
+// fits on one line.
+function renderHeroDimRow(key, n) {
+  const pips = [1, 2, 3, 4, 5].map((i) => `<i class="${i <= n ? "on" : ""}"></i>`).join("");
   return `
-    <svg class="traj-svg" viewBox="0 0 ${w} ${h}" aria-hidden="true">
-      <path class="traj-line" d="${path}"/>${dots}
-    </svg>
-    <span class="traj-cap"><span class="traj-delta traj-${dir}">${word}</span> since draft ${prevCycle}</span>`;
+    <div class="report-hero-dim">
+      <span class="report-hero-dim-label">
+        ${DIM_NAMES[key]}
+        <span class="report-hero-dim-n">${n}<span class="report-hero-dim-of">/5</span></span>
+      </span>
+      <span class="steps report-hero-dim-steps" role="img" aria-label="${n} out of 5">${pips}</span>
+    </div>`;
 }
 
-// Narrative first, number after. The total carries its band label and its change
-// since last draft in the same block, because both are locked requirements and
-// splitting them is how a number ends up quoted on its own as a grade.
-function renderReportHero(scores, history) {
+// Two halves, even at 50/50: the charts (score — a quiet recessed panel,
+// .card-quiet, the system's existing "block sitting inside another card"
+// treatment, so it reads as its own instrument rather than text floating
+// next to a rule — plus the breakdown that adds up to it, same four rows
+// the summary panel below spells out) on the left, and the verdict (band +
+// plain-language sentence) on the right, given real width instead of being
+// demoted to a caption row underneath or crowded out by however much the
+// charts side happened to need. The verdict's left rule borrows its colour from
+// the band pill it sits beside — same idiom the auditor voice already uses
+// for its own edge — so the sentence visually cites the pill that names it
+// instead of a generic grey divider. No SAMR sub-label: the pill already
+// says the same thing in plain language, and naming the framework alongside
+// it was the one spot in this card still speaking PD jargon instead of
+// human language. The eyebrow above is what the nav crumbs already say
+// (assignment, draft) — repeated here because a student scrolling back up
+// to the hero shouldn't have to look up at the nav bar to remember which
+// draft this is.
+function renderReportHero(scores, submission) {
   const { totalScore, SAMR } = scores;
   const band = BAND_META[SAMR];
 
   return `
-    <div class="card card-lg report-hero">
-      <div class="report-headline">
-        <div class="report-headline-main">
-          <div class="report-total">
-            <span class="report-total-n">${totalScore}</span>
-            <span class="report-total-of">of 20</span>
+    <div class="card card-lg card-hero report-hero">
+      <span class="eyebrow report-hero-eyebrow">${esc(submission.assignmentTitle || 'Assignment')} · Draft ${submission.cycleIndex + 1}</span>
+      <div class="report-hero-row">
+        <div class="report-hero-charts">
+          <div class="report-hero-score card-quiet">
+            <span class="report-hero-score-label">TAU score</span>
+            <div class="report-total">
+              <span class="report-total-n">${totalScore}</span>
+              <span class="report-total-of">of 20</span>
+            </div>
           </div>
-          <div class="report-band">
-            <span class="band band-${band.n}"><i class="band-pip"></i>${esc(band.label)}</span>
-            <span class="band-sub">${esc(SAMR)} on the SAMR scale</span>
+          <div class="report-hero-dims">
+            ${DIM_ORDER.map((k) => renderHeroDimRow(k, scores[k])).join('')}
           </div>
         </div>
-        <span class="traj report-traj">${renderTrajectory(history, totalScore)}</span>
+        <div class="report-hero-verdict" style="border-left-color: var(--tau-band-${band.n}-fg)">
+          <span class="band band-${band.n}"><i class="band-pip"></i>${esc(band.label)}</span>
+          <p class="report-hero-description">${esc(SAMR_DESCRIPTIONS[SAMR])}</p>
+        </div>
       </div>
-      <p class="report-lede">${esc(SAMR_DESCRIPTIONS[SAMR])}</p>
     </div>`;
+}
+
+// Bottom-of-report card — the one piece of Snapshot that's genuinely
+// forward-looking rather than a recap of turns My Session already shows.
+function renderGrowthMoves(growthMoves) {
+  if (!growthMoves || !growthMoves.length) return "";
+  return growthMoves.map((g) => `
+    <div class="snap-move">
+      ${iconSVG('checklist', 'snap-move-icon')}
+      <p class="snap-move-text">${esc(g)}</p>
+    </div>`).join('');
 }
 
 function dimExplanation(key, scores) {
@@ -1121,50 +1293,43 @@ const DIM_NAMES = {
   OC: "Original Contribution",
 };
 
-// No value-keyed colour anywhere in here. A 2 used to render in the same red as
-// an error, which makes the report a verdict at the moment it claims to coach.
-function renderSummary(scores) {
+// One quadrant per dimension, three zones: the name (once — no PQ/SU/CS/OC
+// code, which was a second label the strip below used to repeat next to it),
+// the score as a single instrument (number + its own five-pip .steps bar on
+// one row, not stacked as two separate facts), and one callout line — a quiet
+// evidence clause plus the coaching sentence, joined instead of stacked as
+// two paragraphs a reader had to read twice to connect. No value-keyed colour
+// anywhere: a 2 must not render in the same red as an error, which makes the
+// report a verdict at the moment it claims to coach.
+function renderDimGrid(scores) {
   return DIM_ORDER.map((k) => {
     const n = scores[k];
     const pips = [1, 2, 3, 4, 5]
       .map((i) => `<i class="${i <= n ? "on" : ""}"></i>`).join("");
-    return `
-      <div class="dim">
-        <div class="dim-head">
-          <span class="dim-abbr">${k}</span>
-          <span class="dim-name">${DIM_NAMES[k]}</span>
-        </div>
-        <span class="dim-val"><span class="n">${n}</span><span class="of">of 5</span></span>
-        <span class="steps" role="img" aria-label="${n} out of 5">${pips}</span>
-      </div>`;
-  }).join("");
-}
-
-// The strip answers "what are my four numbers"; this answers "why". Splitting
-// them is what lets .dims stay a four-column strip instead of four columns of
-// paragraph, and it puts the reasoning next to the advice that follows from it.
-function renderDimDetails(scores) {
-  return DIM_ORDER.map((k) => {
     const { explain, nudge } = dimExplanation(k, scores);
     return `
-      <div class="dim-detail">
-        <div class="dim-detail-head">
-          <span class="dim-abbr">${k}</span>
-          <h4>${DIM_NAMES[k]}</h4>
+      <div class="dim-quad">
+        <div class="dim-quad-name">
+          ${DIM_NAMES[k]}
           <span class="dim-info">
             <button class="dim-info-btn" type="button"
               aria-label="What ${DIM_NAMES[k]} measures">i</button>
             <span class="dim-tooltip" role="tooltip">${esc(DIM_TOOLTIPS[k])}</span>
           </span>
         </div>
-        <p class="dim-say">${esc(explain)}</p>
-        ${nudge ? `<p class="dim-nudge">${esc(nudge)}</p>` : ""}
+        <div class="dim-quad-score">
+          <span class="dim-quad-score-n"><span class="n">${n}</span><span class="of">/5</span></span>
+          <span class="steps dim-quad-steps" role="img" aria-label="${n} out of 5">${pips}</span>
+        </div>
+        <p class="dim-quad-callout"><span class="dim-evidence">${esc(explain)}</span>${nudge ? ` ${esc(nudge)}` : ""}</p>
       </div>`;
   }).join("");
 }
 
+// globalTurnIndex -> [provenance item, ...] — student-born/synthesized concepts
+// only, i.e. essay content that traces back to the student, not the AI.
 function matchConceptsToTurns(classified, provenanceData) {
-  const result = {}; // globalTurnIndex -> [concept, ...]
+  const result = {};
   if (!provenanceData || !provenanceData.length) return result;
 
   const relevant = provenanceData.filter(p => p.origin === "student-born" || p.origin === "synthesized");
@@ -1180,7 +1345,7 @@ function matchConceptsToTurns(classified, provenanceData) {
       const hits = words.filter(w => text.includes(w)).length;
       if (hits >= Math.max(1, Math.ceil(words.length * 0.5))) {
         if (!result[turn.globalIndex]) result[turn.globalIndex] = [];
-        result[turn.globalIndex].push(prov.concept);
+        result[turn.globalIndex].push(prov);
         break;
       }
     }
@@ -1188,205 +1353,210 @@ function matchConceptsToTurns(classified, provenanceData) {
   return result;
 }
 
-const DRIVING_LABELS  = new Set(["claim","conceptual","challenge","rejection","refinement","pivot"]);
-const FOLLOWING_LABELS = new Set(["extraction","validation","stuck","feedback","narrative"]);
-
-const LABEL_DESCRIPTIONS = {
-  claim:      { title: "Claim", body: "You put forward your own point of view — something you believe or are arguing, not something the AI gave you. These are the moments where your own thinking shows up." },
-  conceptual: { title: "Conceptual", body: "You asked a 'how' or 'why' question to actually understand something, not just get content. These turns show you're thinking, not just collecting." },
-  challenge:  { title: "Challenge", body: "You questioned or pushed back on what the AI said — asking for evidence, pointing out a problem, or disagreeing with a claim. This is what critical thinking with AI looks like." },
-  rejection:  { title: "Rejection", body: "You disagreed with or dismissed what the AI gave you. A clear sign you're deciding what's good and what isn't, rather than just accepting everything." },
-  refinement: { title: "Refinement", body: "You told the AI what to change, cut, or do differently. You were steering it — not just reading what it produced." },
-  narrative:  { title: "Narrative", body: "You gave the AI context about your situation, task, or background. These turns help the AI understand what you need, but don't directly develop your argument." },
-  pivot:      { title: "Pivot", body: "You changed topic or direction, starting a new thread in the conversation. Whether that was a good move depends on what came after." },
-  feedback:   { title: "Feedback", body: "You reacted to the AI's output — something like 'good' or 'that works' — without changing direction. Not very significant on its own, but useful if it leads to a challenge or refinement." },
-  extraction: { title: "Extraction", body: "You asked the AI to give you content, facts, or information. Getting content from AI isn't a bad thing — what matters is what you do with it next." },
-  validation: { title: "Validation", body: "You asked the AI to confirm or check something — often its own previous answer. If this happens a lot, it might mean you're relying on the AI to judge things instead of forming your own opinion." },
-  stuck:      { title: "Stuck", body: "You told the AI you were unsure or struggling, and asked it to help you move forward. Getting stuck is normal — but if it happens a lot in a row, it may mean the AI is doing the thinking instead of you." },
-};
-
-const PATTERNS_DESCRIPTION = {
-  title: "Patterns",
-  body: "Patterns are sequences of turns that the tool recognised — like a run of content requests, or a challenge followed by a refinement. They're detected automatically based on the order and types of your turns. The groups below show which turns belong together and what pattern they form.",
-};
-
-function sessionBucket(label) {
-  if (DRIVING_LABELS.has(label))  return "driving";
-  if (FOLLOWING_LABELS.has(label)) return "following";
-  return "following";
+// Long sessions (40+ turns) can put a dozen-plus cards in a single My Session
+// group — always full detail, never a count-only summary, so the first 5
+// stay open and the rest fold behind a click instead of forcing a scroll.
+const FOLD_THRESHOLD = 5;
+function foldCards(cardsHtml) {
+  if (cardsHtml.length <= FOLD_THRESHOLD) return cardsHtml.join("");
+  const visible = cardsHtml.slice(0, FOLD_THRESHOLD).join("");
+  const hidden = cardsHtml.slice(FOLD_THRESHOLD).join("");
+  return `${visible}<details class="acard-disclosure acard-disclosure-prompt">
+    <summary class="acard-disclosure-toggle">${iconSVG("expandMore", "acard-disclosure-icon")}Show all ${cardsHtml.length} turns</summary>
+    <div class="turn-list" style="margin-top:var(--tau-s3)">${hidden}</div>
+  </details>`;
 }
 
+// My Session groups every student turn by what it actually did to the essay,
+// not by label or chronology — staying out of the draft after a pushback is
+// as meaningful an outcome as landing in it, so it gets its own group instead
+// of reading as "nothing happened."
 function renderReflect(classified, provenanceData, essayRaw) {
   const studentTurns = classified
     .map((t, i) => ({ ...t, globalIndex: i }))
     .filter(t => t.role === "student");
 
-  const essayMatches = matchConceptsToTurns(classified, provenanceData);
   const hasEssay = !!(essayRaw && essayRaw.trim());
+  const hasProvenance = !!(provenanceData && provenanceData.length);
+  const essayMatches = matchConceptsToTurns(classified, provenanceData);
 
-  // Build index: student turn position → pattern
   const patterns = detectPatterns(classified);
   const turnPattern = {};
   for (const p of patterns) {
     for (let i = p.start; i <= p.end; i++) turnPattern[i] = p;
   }
 
-  // Count per label in the order they appear in the legend
-  const LABEL_ORDER = ["claim","conceptual","challenge","rejection","refinement","narrative","pivot","feedback","extraction","validation","stuck"];
-  const counts = {};
-  for (const t of studentTurns) counts[t.label] = (counts[t.label] || 0) + 1;
-
-  const patternTurnIndices = new Set();
-  for (const p of patterns) {
-    for (let j = p.start; j <= p.end; j++) patternTurnIndices.add(j);
+  function patternNote(i) {
+    const pat = turnPattern[i];
+    return pat ? `<div class="turn-pattern-note">Part of a <strong>${esc(pat.label)}</strong> pattern.</div>` : "";
   }
 
-  const dashCards = LABEL_ORDER
-    .filter(l => counts[l])
-    .map(l => `
-      <div class="session-dash-card" data-filter="label" data-label="${l}">
-        <div class="session-dash-count">${counts[l]}</div>
-        ${labelBadge(l)}
-      </div>`)
-    .join("");
-
-  const patternCard = patterns.length > 0 ? `
-    <div class="session-dash-card patterns-card" data-filter="patterns">
-      <div class="session-dash-count">${patterns.length}</div>
-      <div class="session-dash-label">Patterns</div>
-    </div>` : "";
-
-  const dashboard = `<div class="session-dashboard">${dashCards}${patternCard}</div>
-    <div class="session-desc-panel" id="session-desc-panel" style="display:none">
-      <h4 id="session-desc-title"></h4>
-      <p id="session-desc-body"></p>
-    </div>`;
-
-  function renderTurn(t, i) {
-    const bucket = sessionBucket(t.label);
-    const concepts = essayMatches[t.globalIndex] || [];
-    const essayBadge = concepts.length
-      ? `<span class="session-essay-badge">in your essay — ${esc(concepts[0])}</span>`
-      : "";
-    const inPattern = patternTurnIndices.has(i) ? " data-in-pattern=\"true\"" : "";
-    const pat = turnPattern[i];
-    const patternFootnote = pat
-      ? `<div class="session-turn-pattern-note">Part of a <strong>${esc(pat.label)}</strong> pattern</div>`
-      : "";
+  function compactRow(t, i) {
+    const preview = t.text.length > 90 ? t.text.slice(0, 90) + "…" : t.text;
     return `
-      <div class="session-turn ${bucket}" id="session-turn-${i}" data-label="${t.label}"${inPattern}>
-        <div class="session-turn-num">${i + 1}</div>
-        <div class="session-turn-body">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
-            ${labelBadge(t.label)}
-            ${essayBadge}
+      <div class="turn-row" id="session-turn-${i}">
+        <div class="turn-num">${i + 1}</div>
+        ${labelBadge(t.label)}
+        <div class="turn-row-text">${esc(preview)}</div>
+      </div>`;
+  }
+
+  if (!hasEssay) {
+    const list = studentTurns.map((t, i) => compactRow(t, i)).join("");
+    return `<div class="no-essay-note">Paste your essay above to see which of your turns made it into your final draft.</div>
+      <div class="turn-list">${list}</div>`;
+  }
+
+  // Group 1 — became the essay: your own idea, traceable in the draft.
+  // Group 2 — you kept it out: a rejection/refinement/challenge whose target
+  //   AI turn never produced anything that made it into the draft.
+  // Group 3 — made it in from the AI: essay content that traces to an AI
+  //   turn with no pushback in between.
+  // Group 4 — everything else: didn't feed the draft either way.
+  const PUSHBACK_LABELS = new Set(["rejection", "refinement", "challenge"]);
+  const landedIdx = new Set();
+  const keptOut = [];
+  const keptOutIdx = new Set();
+
+  studentTurns.forEach((t, i) => {
+    if (essayMatches[t.globalIndex]) { landedIdx.add(i); return; }
+    if (!hasProvenance || !PUSHBACK_LABELS.has(t.label)) return;
+    const aiTurn = getAITurnBefore(i, classified);
+    if (!aiTurn) return;
+    const landedFromThatTurn = provenanceData.some(p => p.origin === "ai-born" && p.traceTurn === aiTurn);
+    if (!landedFromThatTurn) { keptOutIdx.add(i); keptOut.push({ i, turn: t, aiTurn }); }
+  });
+
+  const madeItFromAI = provenanceData.filter(p => p.origin === "ai-born" && p.traceTurn && p.traceTurn.role === "ai");
+
+  const restIdx = studentTurns
+    .map((_, i) => i)
+    .filter(i => !landedIdx.has(i) && !keptOutIdx.has(i));
+
+  function landedCard(i) {
+    const t = studentTurns[i];
+    const item = essayMatches[t.globalIndex][0];
+    return `
+      <div class="turn landed" id="session-turn-${i}">
+        <div class="turn-num">${i + 1}</div>
+        <div class="turn-body">
+          <div class="turn-top-row">${labelBadge(t.label)}</div>
+          <div class="turn-text">${esc(t.text)}</div>
+          ${patternNote(i)}
+          <div class="side-panel landed">
+            <span class="glyph">&#10003;</span>
+            <div class="side-panel-text">
+              <span class="tag">In your essay</span>
+              <q>${esc(item.phrase)}</q>
+            </div>
           </div>
-          <div class="session-turn-text">${esc(t.text)}</div>
-          ${patternFootnote}
         </div>
       </div>`;
   }
 
-  // Flat view: all turns with footnotes
-  let flatHtml = "";
-  for (let i = 0; i < studentTurns.length; i++) {
-    flatHtml += renderTurn(studentTurns[i], i);
+  function keptOutCard({ i, turn, aiTurn }) {
+    const preview = aiTurn.text.length > 140 ? aiTurn.text.slice(0, 140) + "…" : aiTurn.text;
+    return `
+      <div class="turn excluded" id="session-turn-${i}">
+        <div class="turn-num">${i + 1}</div>
+        <div class="turn-body">
+          <div class="turn-top-row">${labelBadge(turn.label)}</div>
+          <div class="turn-text">${esc(turn.text)}</div>
+          ${patternNote(i)}
+          <div class="side-panel excluded">
+            <span class="glyph">&#8856;</span>
+            <div class="side-panel-text">
+              <span class="tag">Stayed out of your essay</span>
+              The AI suggested "${esc(preview)}" — it doesn't appear anywhere in your draft.
+            </div>
+          </div>
+        </div>
+      </div>`;
   }
 
-  // Grouped view: pattern turns wrapped in group blocks, non-pattern turns hidden
-  let groupedHtml = "";
-  let gi = 0;
-  while (gi < studentTurns.length) {
-    const p = turnPattern[gi];
-    if (p && p.start === gi) {
-      const desc = PAT_DESCRIPTIONS[p.id] || "";
-      groupedHtml += `<div class="pattern-group tier-${p.tier}">
-        <div class="pattern-group-header">
-          <span class="pattern-group-label">${esc(p.label)}</span>
-          <span class="pattern-group-desc">${esc(desc)}</span>
-        </div>`;
-      for (let j = p.start; j <= p.end; j++) {
-        groupedHtml += renderTurn(studentTurns[j], j);
-      }
-      groupedHtml += `</div>`;
-      gi = p.end + 1;
-    } else {
-      gi++;
-    }
+  function fromAICard(item) {
+    const aiTurn = item.traceTurn;
+    const preview = aiTurn.text.length > 140 ? aiTurn.text.slice(0, 140) + "…" : aiTurn.text;
+    return `
+      <div class="turn flagged">
+        <div class="turn-body">
+          <div class="turn-top-row"><span class="turn-role">AI &middot; ${esc(aiTurn.label || "content")}</span></div>
+          <div class="turn-text">${esc(preview)}</div>
+          <div class="side-panel flagged">
+            <span class="glyph">i</span>
+            <div class="side-panel-text">
+              <span class="tag">In your essay, unchallenged</span>
+              <q>${esc(item.phrase)}</q>
+            </div>
+          </div>
+          <p class="turn-caption">This is close to what the AI said, with nothing in between pushing back on it. Worth a second read before you submit.</p>
+        </div>
+      </div>`;
   }
 
-  const essayNote = !hasEssay
-    ? `<div class="no-essay-note">Paste your essay above to see which of your turns made it into your final draft.</div>`
-    : "";
+  const navHtml = hasProvenance ? `
+    <div class="group-nav">
+      <button type="button" data-target="rg-1"><span class="n">${landedIdx.size}</span><span class="lbl">Became<br>your essay</span></button>
+      <button type="button" data-target="rg-2"><span class="n">${keptOut.length}</span><span class="lbl">You kept<br>it out</span></button>
+      <button type="button" data-target="rg-3"><span class="n">${madeItFromAI.length}</span><span class="lbl">Made it in<br>from the AI</span></button>
+      <button type="button" data-target="rg-4"><span class="n">${restIdx.length}</span><span class="lbl">Didn't go<br>anywhere</span></button>
+    </div>` : "";
 
-  return `
-    ${dashboard}
-    ${essayNote}
-    <div class="session-turn-list" data-flat="${encodeURIComponent(flatHtml)}" data-grouped="${encodeURIComponent(groupedHtml)}">${flatHtml}</div>`;
+  const g1 = landedIdx.size ? `
+    <div class="group" id="rg-1">
+      <div class="group-head">
+        <p class="group-title">Became your essay</p>
+        <p class="group-desc">These turns' ideas are in your draft, and they trace back to you.</p>
+      </div>
+      <div class="turn-list">${foldCards([...landedIdx].sort((a, b) => a - b).map(landedCard))}</div>
+    </div>` : "";
+
+  const g2 = keptOut.length ? `
+    <div class="group" id="rg-2">
+      <div class="group-head">
+        <p class="group-title">You kept it out</p>
+        <p class="group-desc">You pushed back on something the AI offered, and it never made it into your draft. Not every disagreement needs to end up on the page to count.</p>
+      </div>
+      <div class="turn-list">${foldCards(keptOut.map(keptOutCard))}</div>
+    </div>` : "";
+
+  const g3 = madeItFromAI.length ? `
+    <div class="group" id="rg-3">
+      <div class="group-head">
+        <p class="group-title">Made it in from the AI</p>
+        <p class="group-desc">This is in your draft, but it started with the AI — no challenge in between. Worth a second read before you submit.</p>
+      </div>
+      <div class="turn-list">${foldCards(madeItFromAI.map(fromAICard))}</div>
+    </div>` : "";
+
+  const g4Title = hasProvenance ? "Didn't go anywhere" : "Your session";
+  const g4Desc  = hasProvenance
+    ? "Turns that didn't feed the draft either way — content requested but not used, check-ins, side notes."
+    : "Essay tracing wasn't available for this draft, so these turns aren't grouped by outcome.";
+  const g4 = restIdx.length ? `
+    <div class="group" id="rg-4">
+      <div class="group-head">
+        <p class="group-title">${g4Title}</p>
+        <p class="group-desc">${g4Desc}</p>
+      </div>
+      <details class="acard-disclosure acard-disclosure-prompt"${hasProvenance ? "" : " open"}>
+        <summary class="acard-disclosure-toggle">${iconSVG("expandMore", "acard-disclosure-icon")}Show these ${restIdx.length} turns</summary>
+        <div class="turn-list" style="margin-top:var(--tau-s3)">${restIdx.map(i => compactRow(studentTurns[i], i)).join("")}</div>
+      </details>
+    </div>` : "";
+
+  return `${navHtml}${g1}${g2}${g3}${g4}`;
 }
 
-function initReflectDashboard() {
+function initReflectInteractions() {
   const container = document.getElementById("reflectContent");
   if (!container) return;
-
-  const descPanel = document.getElementById("session-desc-panel");
-  const descTitle = document.getElementById("session-desc-title");
-  const descBody  = document.getElementById("session-desc-body");
-
-  let activeFilter = null;
-
-  function applyFilter(filter) {
-    const list = container.querySelector(".session-turn-list");
-
-    if (!filter) {
-      if (list) list.innerHTML = decodeURIComponent(list.dataset.flat || "");
-      descPanel.style.display = "none";
-      return;
-    }
-
-    if (filter === "patterns") {
-      if (list) list.innerHTML = decodeURIComponent(list.dataset.grouped || "");
-      descTitle.textContent = PATTERNS_DESCRIPTION.title;
-      descBody.textContent  = PATTERNS_DESCRIPTION.body;
-      descPanel.style.display = "block";
-    } else {
-      if (list) list.innerHTML = decodeURIComponent(list.dataset.flat || "");
-      const turns = list ? list.querySelectorAll(".session-turn") : [];
-      turns.forEach(el => {
-        el.classList.toggle("filtered-out", el.dataset.label !== filter);
-      });
-      const def = LABEL_DESCRIPTIONS[filter];
-      if (def) {
-        descTitle.textContent = def.title;
-        descBody.textContent  = def.body;
-        descPanel.style.display = "block";
-      }
-    }
-  }
-
   container.addEventListener("click", e => {
-    const card = e.target.closest(".session-dash-card");
-    if (!card) return;
-
-    const filter = card.dataset.filter === "patterns" ? "patterns" : card.dataset.label;
-
-    if (activeFilter === filter) {
-      // deselect — show all
-      activeFilter = null;
-      container.querySelectorAll(".session-dash-card").forEach(c => c.classList.remove("active"));
-      applyFilter(null);
-    } else {
-      activeFilter = filter;
-      container.querySelectorAll(".session-dash-card").forEach(c => c.classList.remove("active"));
-      card.classList.add("active");
-      applyFilter(filter);
-    }
+    const btn = e.target.closest(".group-nav button[data-target]");
+    if (!btn) return;
+    const target = document.getElementById(btn.dataset.target);
+    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
   });
-}
-
-function renderLegend() {
-  const labels = ["challenge","rejection","refinement","claim","conceptual","narrative","pivot","feedback","extraction","validation","stuck"];
-  return labels.map(l => `<div class="legend-item">${labelBadge(l)}</div>`).join("");
 }
 
 function renderFlags(flags) {
@@ -1407,17 +1577,65 @@ function renderFlags(flags) {
     </div>`).join("");
 }
 
-const TAB_MAP = { chart: "tabChart", provenance: "tabProvenance", divergence: "tabDivergence", reflect: "tabReflect", patternguide: "tabPatternGuide" };
-
-function activateTab(key) {
-  document.querySelectorAll(".tab-btn").forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.tab === key);
-  });
-  document.querySelectorAll(".tab-pane").forEach(pane => pane.classList.remove("active"));
-  const target = document.getElementById(TAB_MAP[key]);
-  if (target) target.classList.add("active");
+// Report jump nav — content for the mini score chip that docks into the
+// sticky bar once the hero scrolls out of view. Same number and band label
+// as renderReportHero, just re-said at 1/4 the height; band colour keyed the
+// same way the hero's verdict rule is (var(--tau-band-N-fg)) so the two
+// never disagree if the ramp itself ever changes.
+function renderJumpScore(scores) {
+  const { totalScore, SAMR } = scores;
+  const band = BAND_META[SAMR];
+  return `
+    <span class="report-jump-score-n">${totalScore}<span class="report-jump-score-of">/20</span></span>
+    <span class="report-jump-score-band" style="color: var(--tau-band-${band.n}-fg)">${esc(band.label)}</span>`;
 }
 
-document.querySelectorAll(".tab-btn").forEach(btn => {
-  btn.addEventListener("click", () => activateTab(btn.dataset.tab));
+// Click-to-scroll + scrollspy for the five report sections, plus the
+// hero-visibility watch that toggles the mini score into the same bar. All
+// three elements referenced here exist in the initial HTML (unlike the
+// content they observe/scroll to, which render() fills in later), so this
+// can wire up once at parse time rather than waiting on render().
+(function initReportJump() {
+  const jump = document.getElementById("reportJump");
+  const hero = document.getElementById("samrHero");
+  if (!jump || !hero) return;
+
+  const buttons = Array.from(jump.querySelectorAll(".report-jump-btn"));
+  buttons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.getElementById(btn.dataset.target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+
+  const sections = buttons.map(btn => document.getElementById(btn.dataset.target)).filter(Boolean);
+  const spy = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const idx = sections.indexOf(entry.target);
+      if (idx === -1) return;
+      buttons.forEach(b => b.classList.remove("is-current"));
+      buttons[idx].classList.add("is-current");
+    });
+  }, { rootMargin: "-96px 0px -70% 0px", threshold: 0 });
+  sections.forEach(s => spy.observe(s));
+
+  const heroWatch = new IntersectionObserver(([entry]) => {
+    jump.classList.toggle("is-scrolled", !entry.isIntersecting && entry.boundingClientRect.top < 0);
+  }, { threshold: 0 });
+  heroWatch.observe(hero);
+})();
+
+document.getElementById("patternGuideBtn")?.addEventListener("click", () => openPatternGuideModal());
+document.getElementById("patternGuideModalClose")?.addEventListener("click", () => closePatternGuideModal());
+document.getElementById("patternGuideModal")?.addEventListener("click", (e) => {
+  if (e.target.id === "patternGuideModal") closePatternGuideModal();
+});
+
+// Bars / Trend line toggle — independent show/hide, not exclusive.
+document.querySelectorAll("#chartToggle [data-layer]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const on = !btn.classList.contains("is-active");
+    btn.classList.toggle("is-active", on);
+    document.querySelectorAll(`#agencyChart .layer-${btn.dataset.layer}`).forEach(el => el.classList.toggle("mode-hidden", !on));
+  });
 });

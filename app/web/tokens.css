@@ -59,8 +59,13 @@
    * Student-facing labels are words, not levels — see --tau-band-N-label
    * in the product copy, not here.
    * --------------------------------------------------------------- */
-  --tau-band-1-bg: oklch(0.951 0.018 32);   --tau-band-1-fg: oklch(0.42 0.058 32);
-  --tau-band-2-bg: oklch(0.953 0.022 72);   --tau-band-2-fg: oklch(0.38 0.058 68);
+  /* Hues 280/205 (not 18/68 — those are --tau-attention/--tau-caution, and
+     reusing them made the two lower bands read as warning/error states,
+     contradicting "none of the four is a pass or a fail". Also clear of 300
+     (--tau-auditor's own hue) so a band chip never reads as the auditor
+     voice either. */
+  --tau-band-1-bg: oklch(0.951 0.018 280);  --tau-band-1-fg: oklch(0.42 0.058 280);
+  --tau-band-2-bg: oklch(0.953 0.022 205);  --tau-band-2-fg: oklch(0.38 0.058 205);
   --tau-band-3-bg: oklch(0.948 0.018 242);  --tau-band-3-fg: oklch(0.34 0.052 244);
   --tau-band-4-bg: oklch(0.948 0.022 162);  --tau-band-4-fg: oklch(0.30 0.048 162);
 
@@ -72,11 +77,11 @@
    * --------------------------------------------------------------- */
   --tau-positive:  oklch(0.50 0.10 158);
   --tau-caution:   oklch(0.52 0.11 68);
-  --tau-attention: oklch(0.50 0.12 32);
+  --tau-attention: oklch(0.48 0.10 18);
 
   --tau-positive-bg:  oklch(0.96 0.022 158);
   --tau-caution-bg:   oklch(0.96 0.024 72);
-  --tau-attention-bg: oklch(0.96 0.022 32);
+  --tau-attention-bg: oklch(0.96 0.022 18);
 
   /* ---------------------------------------------------------------
    * 5. AUDITOR — the second voice.
@@ -186,6 +191,38 @@
      so state reads across the whole bar. This stays inside forest's
      "meter fills" job rather than opening a fifth one. */
   --tau-meter-track: oklch(0.945 0.020 162);
+
+  /* ---------------------------------------------------------------
+   * 10. MOTION
+   * Duration and easing values are Material 3's, not invented here —
+   * M3's motion system is a published, tested answer to exactly this
+   * problem and there's no reason to guess our own numbers. We take
+   * two rungs of M3's duration scale (short3, medium2) rather than
+   * the full short/medium/long/extra-long ladder — this system has
+   * no large-surface or expressive transitions (page transforms,
+   * shared-element hero motion) for the slower rungs to serve, and an
+   * unused rung is just a third value someone eventually reaches for
+   * out of habit.
+   * short   — a state change with no distance to travel: hover,
+   *           press, a toggle's colour/background.
+   * medium  — something moves or resizes on screen: a disclosure
+   *           opening, a panel sliding, a card lifting.
+   * Easing: standard for anything symmetric (the same motion plays in
+   * reverse — most hover/press states); decelerate for something
+   * entering or appearing (arrives fast, settles slow); accelerate
+   * for something leaving (starts slow, exits fast). M3's full
+   * "emphasized" curve is a two-segment path built from exactly these
+   * accelerate/decelerate halves — we use the halves directly on
+   * whichever edge of a transition needs them rather than approximate
+   * the whole path as one cubic-bezier, which is what M3's own CSS
+   * guidance recommends for single-property transitions.
+   * --------------------------------------------------------------- */
+  --tau-dur-short:  150ms;  /* M3 short3 */
+  --tau-dur-medium: 300ms;  /* M3 medium2 */
+
+  --tau-ease-standard:    cubic-bezier(0.2, 0, 0, 1);       /* M3 standard */
+  --tau-ease-decelerate:  cubic-bezier(0.05, 0.7, 0.1, 1);  /* M3 emphasized-decelerate */
+  --tau-ease-accelerate:  cubic-bezier(0.3, 0, 0.8, 0.15);  /* M3 emphasized-accelerate */
 }
 
 /* ===================================================================
@@ -212,18 +249,18 @@
     --tau-line:        #2D3134;
     --tau-line-strong: #3E4448;
 
-    --tau-band-1-bg: oklch(0.26 0.030 32);   --tau-band-1-fg: oklch(0.82 0.070 32);
-    --tau-band-2-bg: oklch(0.26 0.034 72);   --tau-band-2-fg: oklch(0.85 0.075 72);
+    --tau-band-1-bg: oklch(0.26 0.030 280);  --tau-band-1-fg: oklch(0.82 0.070 280);
+    --tau-band-2-bg: oklch(0.26 0.034 205);  --tau-band-2-fg: oklch(0.85 0.075 205);
     --tau-band-3-bg: oklch(0.26 0.032 242);  --tau-band-3-fg: oklch(0.83 0.065 242);
     --tau-band-4-bg: oklch(0.26 0.034 162);  --tau-band-4-fg: oklch(0.86 0.070 162);
 
     --tau-positive:  oklch(0.76 0.11 158);
     --tau-caution:   oklch(0.79 0.11 72);
-    --tau-attention: oklch(0.75 0.11 32);
+    --tau-attention: oklch(0.74 0.10 18);
 
     --tau-positive-bg:  oklch(0.26 0.032 158);
     --tau-caution-bg:   oklch(0.26 0.034 72);
-    --tau-attention-bg: oklch(0.26 0.032 32);
+    --tau-attention-bg: oklch(0.26 0.032 18);
 
     --tau-auditor:    oklch(0.80 0.09 300);
     --tau-auditor-bg: oklch(0.25 0.035 300);
@@ -246,12 +283,12 @@
   --tau-bg: #16181A; --tau-surface: #1C1F21; --tau-surface-2: #232729; --tau-surface-3: #2D3134;
   --tau-ink: #E9EBEC; --tau-ink-soft: #A2A9AE; --tau-ink-faint: #858C92;
   --tau-line: #2D3134; --tau-line-strong: #3E4448;
-  --tau-band-1-bg: oklch(0.26 0.030 32);  --tau-band-1-fg: oklch(0.82 0.070 32);
-  --tau-band-2-bg: oklch(0.26 0.034 72);  --tau-band-2-fg: oklch(0.85 0.075 72);
+  --tau-band-1-bg: oklch(0.26 0.030 280); --tau-band-1-fg: oklch(0.82 0.070 280);
+  --tau-band-2-bg: oklch(0.26 0.034 205); --tau-band-2-fg: oklch(0.85 0.075 205);
   --tau-band-3-bg: oklch(0.26 0.032 242); --tau-band-3-fg: oklch(0.83 0.065 242);
   --tau-band-4-bg: oklch(0.26 0.034 162); --tau-band-4-fg: oklch(0.86 0.070 162);
-  --tau-positive: oklch(0.76 0.11 158); --tau-caution: oklch(0.79 0.11 72); --tau-attention: oklch(0.75 0.11 32);
-  --tau-positive-bg: oklch(0.26 0.032 158); --tau-caution-bg: oklch(0.26 0.034 72); --tau-attention-bg: oklch(0.26 0.032 32);
+  --tau-positive: oklch(0.76 0.11 158); --tau-caution: oklch(0.79 0.11 72); --tau-attention: oklch(0.74 0.10 18);
+  --tau-positive-bg: oklch(0.26 0.032 158); --tau-caution-bg: oklch(0.26 0.034 72); --tau-attention-bg: oklch(0.26 0.032 18);
   --tau-auditor: oklch(0.80 0.09 300); --tau-auditor-bg: oklch(0.25 0.035 300);
   --tau-origin-you-bg: oklch(0.27 0.035 162); --tau-origin-together-bg: oklch(0.25 0.022 162);
   --tau-meter-track: oklch(0.30 0.030 162);
@@ -266,12 +303,12 @@
   --tau-bg: oklch(0.992 0.006 162); --tau-surface: #FFFFFF; --tau-surface-2: oklch(0.968 0.008 162); --tau-surface-3: oklch(0.938 0.010 162);
   --tau-ink: #16191C; --tau-ink-soft: #545B63; --tau-ink-faint: #767D85;
   --tau-line: oklch(0.895 0.008 162); --tau-line-strong: oklch(0.815 0.010 162);
-  --tau-band-1-bg: oklch(0.951 0.018 32);  --tau-band-1-fg: oklch(0.42 0.058 32);
-  --tau-band-2-bg: oklch(0.953 0.022 72);  --tau-band-2-fg: oklch(0.38 0.058 68);
+  --tau-band-1-bg: oklch(0.951 0.018 280); --tau-band-1-fg: oklch(0.42 0.058 280);
+  --tau-band-2-bg: oklch(0.953 0.022 205); --tau-band-2-fg: oklch(0.38 0.058 205);
   --tau-band-3-bg: oklch(0.948 0.018 242); --tau-band-3-fg: oklch(0.34 0.052 244);
   --tau-band-4-bg: oklch(0.948 0.022 162); --tau-band-4-fg: oklch(0.30 0.048 162);
-  --tau-positive: oklch(0.50 0.10 158); --tau-caution: oklch(0.52 0.11 68); --tau-attention: oklch(0.50 0.12 32);
-  --tau-positive-bg: oklch(0.96 0.022 158); --tau-caution-bg: oklch(0.96 0.024 72); --tau-attention-bg: oklch(0.96 0.022 32);
+  --tau-positive: oklch(0.50 0.10 158); --tau-caution: oklch(0.52 0.11 68); --tau-attention: oklch(0.48 0.10 18);
+  --tau-positive-bg: oklch(0.96 0.022 158); --tau-caution-bg: oklch(0.96 0.024 72); --tau-attention-bg: oklch(0.96 0.022 18);
   --tau-auditor: oklch(0.42 0.09 300); --tau-auditor-bg: oklch(0.965 0.015 300);
   --tau-origin-you-bg: oklch(0.955 0.022 162); --tau-origin-together-bg: oklch(0.962 0.014 162);
   --tau-meter-track: oklch(0.945 0.020 162);
@@ -365,6 +402,16 @@
   outline: var(--tau-focus-ring);
   outline-offset: var(--tau-focus-gap);
   border-radius: var(--tau-r-sm);
+}
+
+/* Shared entrance for content that appears in place — a disclosure opening,
+   a panel's content mounting. Native <details> snaps its content in with no
+   transition of its own; this runs once the browser sets display:block, so
+   it doesn't fight the toggle mechanics. Any surface can reuse it rather
+   than writing its own reveal keyframes. */
+@keyframes tau-reveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {

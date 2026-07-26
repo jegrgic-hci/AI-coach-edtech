@@ -51,8 +51,76 @@
     return me;
   }
 
+  // Populates the shared nav's breadcrumb — used by both the SPA (app.js)
+  // and the report page (report-boot.js) so the two never drift onto their
+  // own markup for the same component. A segment is exactly one of: current
+  // (plain text, bold), a link (href, real navigation), a click (in-SPA
+  // action), or a plain label (no destination exists for that level yet).
+  function renderNavCrumbs(container, segments) {
+    if (!container) return;
+    container.innerHTML = '';
+    segments.forEach((seg, i) => {
+      if (i > 0) {
+        const sep = document.createElement('span');
+        sep.className = 'crumb-sep';
+        sep.textContent = '›';
+        container.append(sep);
+      }
+      if (seg.current) {
+        container.append(el('span', 'crumb-current', seg.label));
+      } else if (seg.onClick) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'crumb-link';
+        btn.textContent = seg.label;
+        btn.onclick = seg.onClick;
+        container.append(btn);
+      } else if (seg.href) {
+        const a = document.createElement('a');
+        a.className = 'crumb-link';
+        a.href = seg.href;
+        a.textContent = seg.label;
+        container.append(a);
+      } else {
+        container.append(el('span', 'crumb-label', seg.label));
+      }
+    });
+  }
+
+  // Populates the local Report/Session toggle. Pass an empty array to
+  // hide it — the toggle is scoped to one draft and only makes sense when
+  // both a session and a report actually exist for it.
+  function renderNavLocal(container, options) {
+    if (!container) return;
+    container.innerHTML = '';
+    if (!options || !options.length) {
+      container.classList.add('hidden');
+      return;
+    }
+    container.classList.remove('hidden');
+    for (const opt of options) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'tau-nav-local-opt' + (opt.active ? ' active' : '');
+      btn.textContent = opt.label;
+      if (!opt.active && opt.onClick) btn.onclick = opt.onClick;
+      container.append(btn);
+    }
+  }
+
+  // Minimal DOM helper — api.js loads before app.js/report-boot.js define
+  // their own, and this file has no other dependency to reach for one.
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
   window.api = api;
   window.logout = logout;
   window.mountAccountChip = mountAccountChip;
   window.requireLogin = toLogin;
+  window.renderNavCrumbs = renderNavCrumbs;
+  window.renderNavLocal = renderNavLocal;
 })();

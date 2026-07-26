@@ -7,10 +7,14 @@ body {
   color: var(--tau-ink);
   height: 100vh;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .hidden { display: none !important; }
-.view { height: 100vh; display: flex; flex-direction: column; }
+/* The nav (a sibling, not a child) takes its own height; each view fills
+   whatever's left rather than claiming the full viewport itself. */
+.view { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 
 button {
   font: inherit;
@@ -25,26 +29,19 @@ button:hover { border-color: var(--tau-forest); }
 
 /* ---------- assignment list ---------- */
 
-.app-header {
-  padding: 20px 32px;
-  background: var(--tau-surface);
-  border-bottom: 1px solid var(--tau-line);
-  display: flex;
-  align-items: baseline;
-  gap: 16px;
-}
-.app-header h1 { font-size: 20px; }
-
-.visibility-cue { font-size: 12px; color: var(--tau-ink-soft); }
+.visibility-cue { font-size: 12px; color: var(--tau-ink-soft); padding: 10px 32px 0; }
 
 /* ---------- workspace ---------- */
 
-#viewWorkspace { flex-direction: row; }
+.ws-body { flex: 1; min-height: 0; display: flex; }
 
 .sidebar {
   width: 290px;
   min-width: 290px;
-  background: var(--tau-surface);
+  /* A step quieter than the chat pane it sits beside — this is structure,
+     not content, and should read as considered rather than competing with
+     the conversation for attention. */
+  background: var(--tau-surface-2);
   border-right: 1px solid var(--tau-line);
   display: flex;
   flex-direction: column;
@@ -52,48 +49,31 @@ button:hover { border-color: var(--tau-forest); }
   gap: 12px;
 }
 
-.back-btn { text-align: left; border: none; color: var(--tau-ink-soft); padding: 4px 0; background: none; }
-.back-btn:hover { color: var(--tau-forest); }
+/* Same collapsible pill-into-sage-box pattern as the assignment card's own
+   prompt (.acard-disclosure-prompt below) — reused wholesale rather than
+   restyled, so the prompt reads as the same object whether it's on the home
+   card or here. The sidebar's own flex gap handles spacing, so no extra
+   margin. */
+.ws-prompt { margin: 0; }
 
-.assignment-info h2 { font-size: 15px; margin-bottom: 8px; }
-.prompt-details { font-size: 13px; color: var(--tau-ink-soft); margin-bottom: 8px; }
-.prompt-details summary { cursor: pointer; }
-.prompt-details p { padding: 8px 0; line-height: 1.5; }
+/* ---------- session list ---------- */
+/* Claude-Code-in-VS-Code shape: a new-session action pinned above a flat,
+   newest-first list of this draft's conversations. Other drafts' status and
+   scores live entirely on the home assignment card — this list only ever
+   answers "which session, in the draft I'm currently in". */
 
-/* ---------- draft sections ---------- */
-
-/* One collapsible section per draft is the sidebar's single representation of
-   "which draft": conversations, score and report link all live under the
-   draft they belong to. The current draft is always open and un-collapsible;
-   past drafts default collapsed to a single summary line. */
-.draft-sections { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
-
-.draft-section { border-radius: 9px; }
-.draft-section:not(.draft-section-current) { border: 1px solid var(--tau-line); }
-.draft-section[class*='samr-'] { border-left-width: 3px; }
-.draft-section-current { background: var(--tau-surface-2); padding: 8px; display: flex; flex-direction: column; gap: 6px; }
-.draft-section-locked { opacity: 0.6; }
-
-.draft-section-header {
-  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
-  padding: 9px 10px; font-size: 13px;
+.new-session-btn {
+  width: 100%;
+  text-align: left;
+  font-weight: 600;
+  color: var(--tau-forest);
+  border-color: var(--tau-line);
 }
-.draft-section:not(.draft-section-current):not(.draft-section-locked) .draft-section-header { cursor: pointer; }
-.draft-section:not(.draft-section-current):not(.draft-section-locked) .draft-section-header:hover { background: var(--tau-hover-surface); }
-.draft-section-caret { color: var(--tau-ink-soft); font-size: 11px; width: 10px; }
-.draft-section-label { font-weight: 600; }
-.draft-section-current .draft-section-label { color: var(--tau-forest); }
-.draft-section-detail { color: var(--tau-ink-soft); font-size: 12px; margin-left: auto; }
+.new-session-btn:hover { background: var(--tau-hover-surface); }
+.new-session-btn:disabled { opacity: 0.5; cursor: default; }
 
-.draft-section-body { display: flex; flex-direction: column; gap: 2px; padding: 0 4px 6px; }
-.draft-section:not(.draft-section-current) .draft-section-body { padding: 0 10px 10px; }
-
-.draft-section-report-link {
-  font-size: 13px; color: var(--tau-forest); cursor: pointer; padding: 6px 0 2px;
-}
-.draft-section-report-link:hover { text-decoration: underline; }
-
-.new-conv-btn { width: 100%; }
+.session-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; min-height: 0; }
+.session-list-empty { color: var(--tau-ink-soft); font-size: 13px; padding: 8px 10px; }
 
 .conv-item {
   padding: 8px 10px;
@@ -109,12 +89,28 @@ button:hover { border-color: var(--tau-forest); }
 .conv-item.locked::after { content: ' 🔒'; font-size: 11px; }
 
 .sidebar-footer { display: flex; flex-direction: column; gap: 8px; }
-.submit-btn { background: var(--tau-forest); color: var(--tau-on-forest); border-color: var(--tau-forest); }
+.submit-btn {
+  background: var(--tau-forest); color: var(--tau-on-forest); border-color: var(--tau-forest);
+  border-radius: var(--tau-r-pill); padding: 10px 18px;
+  box-shadow: 0 3px 8px -3px color-mix(in oklab, var(--tau-forest) 45%, transparent);
+}
 .submit-btn:hover { background: var(--tau-forest-lift); border-color: var(--tau-forest-lift); }
 
 /* ---------- chat ---------- */
 
-.chat { flex: 1; display: flex; flex-direction: column; height: 100vh; }
+/* Floats beside the tinted sidebar rather than sitting flush against it —
+   same "structure stays quiet, content gets elevation" split as the
+   dashboard's tinted rail next to its shadow-lifted cards. Rounded only on
+   the free edges (right/top/bottom); the sidebar-facing edge stays square,
+   since that seam is the docking line, not a corner. */
+.chat {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+  margin: 8px 8px 8px 0;
+  border-radius: 0 var(--tau-r-xl) var(--tau-r-xl) 0;
+  overflow: hidden;
+  background: var(--tau-surface);
+  box-shadow: var(--tau-shadow);
+}
 
 .chat-header {
   padding: 12px 24px;
@@ -126,7 +122,6 @@ button:hover { border-color: var(--tau-forest); }
   font-weight: 600;
   font-size: 14px;
 }
-.chat-header .visibility-cue { margin-left: auto; font-weight: 400; }
 #btnRename { border: none; background: none; color: var(--tau-ink-soft); padding: 2px 6px; }
 
 /* ---------- coaching-mode banner ---------- */
@@ -186,15 +181,21 @@ button:hover { border-color: var(--tau-forest); }
   font-size: 13.5px;
   padding-left: 2px;
 }
-.thinking-pulse { display: flex; gap: var(--tau-s1); }
-.thinking-pulse i {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--tau-sage);
-  animation: bob 1.1s ease-in-out infinite;
+/* A breathing orb, not three static dots — this is the one moment the
+   product is visibly an AI reasoning in real time, and a row of grey dots is
+   indistinguishable from any loading spinner on the web. Sage-to-forest, the
+   same two brand colours already in the token set doing one more job, not a
+   new colour invented for this. */
+.thinking-orb {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  background: radial-gradient(circle at 32% 30%, var(--tau-origin-together-bg), var(--tau-forest) 75%);
+  animation: tau-breathe 2.1s ease-in-out infinite;
 }
-.thinking-pulse i:nth-child(2) { animation-delay: 0.15s; }
-.thinking-pulse i:nth-child(3) { animation-delay: 0.3s; }
-@keyframes bob { 0%, 60%, 100% { opacity: 0.3; } 30% { opacity: 1; } }
+@keyframes tau-breathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in oklab, var(--tau-forest) 28%, transparent); }
+  50% { transform: scale(1.12); box-shadow: 0 0 0 6px color-mix(in oklab, var(--tau-forest) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .thinking-orb { animation: none; } }
 
 .msg-edit-btn {
   position: absolute;
@@ -246,15 +247,17 @@ button:hover { border-color: var(--tau-forest); }
   width: 100%;
   font: inherit;
   font-size: var(--tau-text-md);
-  border: 1px solid var(--tau-line-strong);
-  border-radius: var(--tau-r-md);
+  border: 1px solid transparent;
+  border-radius: var(--tau-r-lg);
   padding: 11px 13px;
   resize: none;
   max-height: 160px;
-  background: var(--tau-surface);
+  background: var(--tau-surface-2);
   color: var(--tau-ink);
+  transition: box-shadow var(--tau-dur-medium) var(--tau-ease-decelerate), background var(--tau-dur-short) var(--tau-ease-standard);
 }
-#input:focus { outline: none; border-color: var(--tau-forest); }
+#input:hover { background: var(--tau-surface); box-shadow: var(--tau-shadow); }
+#input:focus { outline: none; background: var(--tau-surface); box-shadow: var(--tau-shadow); border-color: var(--tau-forest); }
 
 /* Persistent header (not a note buried at the bottom) so a student who follows
    a locked past-draft conversation is reoriented the instant they land, and
@@ -318,36 +321,10 @@ button:hover { border-color: var(--tau-forest); }
 .concept-item { display: flex; gap: 10px; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--tau-line); align-items: baseline; }
 .concept-phrase { color: var(--tau-ink-soft); font-style: italic; }
 
-/* ---------- modal ---------- */
-
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: var(--tau-scrim);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-}
-.modal {
-  background: var(--tau-surface);
-  border-radius: 14px;
-  padding: 24px;
-  width: min(620px, 92vw);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.modal-warning {
-  background: var(--tau-caution-bg);
-  border: 1px solid var(--tau-caution);
-  color: var(--tau-caution);
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 14px;
-}
-.modal textarea { font: inherit; border: 1px solid var(--tau-line); border-radius: 10px; padding: 10px 14px; resize: vertical; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+/* ---------- submit modal ---------- */
+/* Chrome + layout come from components.css's .scrim/.confirm/.confirm-lg —
+   this is only the essay textarea's own styling. */
+#essayText { font: inherit; border: 1px solid var(--tau-line); border-radius: var(--tau-r-md); padding: 10px 14px; resize: vertical; }
 
 /* ---------- login ---------- */
 
@@ -461,32 +438,34 @@ button:hover { border-color: var(--tau-forest); }
 }
 .test-note { font-size: 11px; }
 
-/* ---------- account chip ---------- */
-
-.account-chip { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-.account-name { font-size: 13px; font-weight: 600; }
-.account-signout { padding: 5px 10px; font-size: 12px; }
-
 /* ---------- dashboard shell ---------- */
 
 .dash { display: flex; flex: 1; overflow: hidden; }
 
-/* Fixed ground: identity and standing. Scrolls independently of the content. */
+/* Fixed ground: identity and standing. Scrolls independently of the content.
+   No border — separation from the content pane is tonal (surface-2 against
+   the page's --tau-bg), not a hairline. Depth belongs to elevated surfaces
+   like the assignment cards; this is flat structure, so it stays flat. */
 .dash-rail {
   width: 292px;
   min-width: 292px;
-  background: var(--tau-surface);
-  border-right: 1px solid var(--tau-line);
+  background: var(--tau-surface-2);
   overflow-y: auto;
-  padding: 22px 20px 40px;
+  padding: 20px 18px 36px;
+  display: flex;
+  flex-direction: column;
 }
-.dash-main { flex: 1; overflow-y: auto; padding: 26px 32px 72px; }
+.dash-main { flex: 1; overflow-y: auto; padding: 26px 32px 72px; background: #FFFFFF; }
+:root[data-theme="dark"] .dash-main { background: var(--tau-bg); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .dash-main { background: var(--tau-bg); }
+}
 .dash-main > .chunk { max-width: 880px; }
 
-.rail-identity { display: flex; align-items: center; gap: 11px; padding-bottom: 20px; border-bottom: 1px solid var(--tau-line); }
+.rail-identity { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
 .rail-avatar {
   width: 40px; height: 40px; border-radius: 50%;
-  background: var(--tau-surface-2); color: var(--tau-forest);
+  background: var(--tau-surface-3); color: var(--tau-forest);
   display: grid; place-items: center;
   font-size: 14px; font-weight: 700; flex-shrink: 0;
 }
@@ -494,45 +473,37 @@ button:hover { border-color: var(--tau-forest); }
 .rail-name { font-size: 14px; font-weight: 600; }
 .rail-sub { font-size: 12px; color: var(--tau-ink-soft); }
 
-.rail-progress { padding-top: 20px; }
+.rail-nav {
+  padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--tau-line);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-nav-row {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  width: 100%; padding: 7px 8px; border: none; border-radius: var(--tau-r-sm);
+  background: none; text-align: left; cursor: pointer;
+  transition: background var(--tau-dur-short) var(--tau-ease-standard);
+}
+.rail-nav-row:hover, .rail-nav-row:focus-visible { background: var(--tau-surface-3); }
+.rail-nav-title { font-size: 13px; font-weight: 600; }
+.rail-nav-due { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* Pinned to the bottom of the rail via margin-top: auto — whatever room
+   .rail-nav doesn't use, this claims, so guidance reads as the rail's
+   settled-at-the-bottom conclusion rather than just more stacked content. */
+.rail-progress { padding-top: 16px; margin-top: auto; border-top: 1px solid var(--tau-line); }
 .rail-label {
   font-size: 11px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.07em; color: var(--tau-ink-soft); margin-bottom: 12px;
 }
-.rail-label-sub { margin-top: 0; }
 .rail-block + .rail-block { margin-top: 26px; }
 .rail-empty { font-size: 13px; color: var(--tau-ink-soft); line-height: 1.55; }
 
-/* Hero figure — the one number the dashboard leads with. Exactly one per view. */
-.rail-hero { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-.rail-hero-num { font-size: var(--tau-text-display); font-weight: 700; line-height: 1; letter-spacing: -0.03em; }
-.rail-hero-denom { font-size: 18px; font-weight: 600; color: var(--tau-ink-soft); letter-spacing: 0; }
-.rail-band { font-size: 13px; font-weight: 600; padding-left: 9px; border-left-width: 3px; border-left-style: solid; }
-.rail-blurb { font-size: 13px; color: var(--tau-ink-soft); line-height: 1.5; margin-top: 10px; }
-
-.rail-delta { font-size: 12px; font-weight: 600; margin-top: 10px; }
-.rail-delta.up   { color: var(--tau-positive); }
-.rail-delta.down { color: var(--tau-attention); }
-.rail-delta.flat { color: var(--tau-ink-soft); }
-.rail-caption { font-size: 12px; color: var(--tau-ink-soft); margin-top: 3px; line-height: 1.45; }
-
-.rail-trend { margin-top: 18px; }
-.trend-svg { width: 100%; height: 46px; overflow: visible; display: block; }
-.trend-line { fill: none; stroke: var(--tau-sage); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.trend-split { stroke: var(--tau-line); stroke-width: 1; stroke-dasharray: 2 3; }
-.trend-dot { fill: var(--tau-sage); stroke: var(--tau-surface); stroke-width: 2; }
-.trend-dot-current { fill: var(--tau-forest); }
-.rail-trend-note { font-size: 11px; color: var(--tau-ink-soft); line-height: 1.45; margin-top: 7px; }
-
-.meters { display: flex; flex-direction: column; gap: 13px; }
-.meter-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
-.meter-name { font-size: 12px; color: var(--tau-ink-soft); }
-.meter-val { font-size: 13px; font-weight: 700; }
-.meter-denom { font-size: 11px; font-weight: 400; color: var(--tau-ink-soft); }
-/* .meter-track / .meter-fill are in components.css. */
-.meter-delta { display: block; font-size: 11px; margin-top: 4px; }
-.meter-delta.up   { color: var(--tau-positive); }
-.meter-delta.down { color: var(--tau-attention); }
+.meters { display: flex; flex-direction: column; gap: 18px; }
+.meter-name { font-size: 12px; color: var(--tau-ink-soft); margin-bottom: 5px; display: block; }
+/* Same slot the old ▲/▼ delta line and the bar underneath it used to fill —
+   a sentence carries more than either did on its own, so it replaces both
+   rather than sitting alongside them. */
+.meter-guidance { font-size: 12.5px; color: var(--tau-ink-soft); line-height: 1.5; }
 
 /* ---------- content chunks ---------- */
 
@@ -546,46 +517,72 @@ button:hover { border-color: var(--tau-forest); }
 
 /* ---------- current assignment card ---------- */
 
-.acard {
-  background: var(--tau-surface);
-  border: 1px solid var(--tau-line);
-  border-radius: 14px;
-  padding: 20px 22px;
-  margin-bottom: 14px;
-}
-/* Urgency earns a rule on the card edge — not a recoloured card, which would
-   make an ordinary deadline look like an error state. */
-.acard-soon { border-left: 4px solid var(--tau-caution); }
-.acard-late { border-left: 4px solid var(--tau-attention); }
+/* Chrome (background/border/radius/padding) comes from components.css's
+   .card + .card-lg — this card's own values were an exact, independently-
+   arrived-at match for .card-lg, so it composes rather than redeclares.
+   Urgency reuses .card-edge-caution/.card-edge-attention for the same
+   reason: a recoloured card would make an ordinary deadline look like an
+   error state, and that edge rule already exists once in components.css. */
+.acard { margin-bottom: 14px; transition: outline-color var(--tau-dur-short) var(--tau-ease-standard); outline: var(--tau-focus-ring); outline-color: transparent; outline-offset: var(--tau-focus-gap); }
+.acard-jumped { outline-color: var(--tau-forest); }
 
 .acard-due { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; }
 .acard-due-calm { color: var(--tau-ink-soft); }
 .acard-due-soon { color: var(--tau-caution); }
 .acard-due-late { color: var(--tau-attention); }
-.acard-title { font-size: 20px; letter-spacing: -0.015em; margin-top: 5px; }
+.acard-title-row { display: flex; align-items: center; justify-content: space-between; gap: var(--tau-s3); margin-top: 5px; }
+.acard-title { font-size: 20px; letter-spacing: -0.015em; }
+.acard-rubric-btn { flex-shrink: 0; }
 
 /* ---------- draft rows (home card) ---------- */
 
 /* One row per draft slot, always in budget order — the single place a
    student reads "where does draft 2 stand," independent of whatever the
-   assignment as a whole is doing. Same status vocabulary and color language
-   as the workspace's draft sections (see draft-section-* below). */
+   assignment as a whole is doing. The workspace sidebar only ever shows the
+   current draft's sessions, so this is also the only cross-draft view. */
 .draft-rows {
-  display: flex; flex-direction: column;
-  margin: 15px 0; border-top: 1px solid var(--tau-line); border-bottom: 1px solid var(--tau-line);
+  display: flex; flex-direction: column; gap: 8px;
+  margin: 15px 0;
 }
 .draft-row {
-  display: flex; align-items: baseline; gap: 10px; padding: 9px 2px;
-  font-size: 13px; flex-wrap: wrap;
+  display: flex; flex-direction: column; gap: 10px; padding: 13px 15px;
+  font-size: 13px;
+  border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-md);
 }
-.draft-row + .draft-row { border-top: 1px solid var(--tau-line); }
-.draft-row-num { font-weight: 600; min-width: 56px; }
-.draft-row-detail { color: var(--tau-ink-soft); flex: 1; }
-.draft-row-action { margin-left: auto; font-size: 12px; background: none; border: none; color: var(--tau-forest); padding: 0; }
-.draft-row-action:hover { text-decoration: underline; }
-.draft-row-locked { color: var(--tau-ink-faint); }
-.draft-row-locked .draft-row-num { font-weight: 400; }
-.draft-row[class*='samr-'] { border-left-width: 3px; border-left-style: solid; padding-left: 8px; }
+/* Line 1 — identity: which draft, and when it's due. */
+.draft-row-id { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.draft-row-num { font-weight: 600; }
+.draft-row-sep { color: var(--tau-line-strong); }
+.draft-row-final-badge {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--tau-ink-soft); border: 1px solid var(--tau-line); border-radius: var(--tau-r-pill);
+  padding: 2px 8px; margin-left: 2px;
+}
+.draft-row-due { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* Line 3 — functionality: a button (current draft), a report link
+   (submitted), or just the detail text explaining why there's nothing to do
+   (locked, still analyzing). */
+.draft-row-body { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.draft-row-detail { color: var(--tau-ink-soft); }
+/* Explicitly inert, not just quieter: no bold num, no colored status word,
+   reduced opacity on the whole row — has to read as "can't touch this yet"
+   at a glance, not as a same-weight row that happens to be gray. */
+.draft-row-locked { opacity: 0.55; border-style: dashed; }
+.draft-row-locked .draft-row-num { font-weight: 400; color: var(--tau-ink-faint); }
+
+/* draft-row-in-progress/-not-started only ever apply to the current cycle's
+   row (see draftRowStatus) — the ledger's "you are here" row, anchored so a
+   student scanning down from the button lands on it without re-reading every
+   row's label. Sized up (padding, gap) beyond the other rows too — it's the
+   one row a returning student actually needs to act on, so it gets to be the
+   biggest thing in the ledger, not the same size as an inert past row. */
+.draft-row-in-progress, .draft-row-not-started {
+  padding: 18px 16px; gap: 14px; border-radius: var(--tau-r-lg);
+  background: var(--tau-surface-2);
+  border-color: transparent;
+}
 
 /* Status vocabulary shared with the workspace's draft sections — one color
    per state so the same word always reads the same way everywhere. */
@@ -594,39 +591,43 @@ button:hover { border-color: var(--tau-forest); }
 .status-in-progress { color: var(--tau-forest); font-weight: 600; }
 .status-locked { color: var(--tau-ink-faint); }
 
-.acard-move { margin-top: 11px; padding: 11px 13px; background: var(--tau-surface-2); border-radius: 9px; font-size: 13px; line-height: 1.5; }
-.acard-move-label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tau-ink-soft); margin-bottom: 4px; }
-
-.acard-note {
-  margin-top: 11px; padding: 12px 14px;
-  background: var(--tau-auditor-bg);
-  border-left: 3px solid var(--tau-auditor);
-  border-radius: 0 9px 9px 0;
-  font-size: 13px; line-height: 1.55;
+/* A teacher note on a submitted draft is never guaranteed and never the
+   point of the row — it's a quiet flag, not a block, so it can't crowd out
+   the row's one real action (View report). The note itself only ever reads
+   in the report, same place the flag's icon (✉) already means "teacher
+   note" on the past-assignment chips. */
+.draft-row-note-flag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 600; color: var(--tau-auditor);
 }
-.acard-note-label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tau-auditor); margin-bottom: 5px; }
+.draft-row-note-flag .tau-icon { width: 13px; height: 13px; }
 
-.acard-foot { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-top: 16px; }
-.acard-btn {
+/* Lives inside the current draft's row now, not a card-level footer — sized
+   down slightly (13px vs 14px) since it's one element among several in a
+   row rather than the card's sole point of action. */
+.acard-btn, .draft-row-btn {
+  display: inline-flex; align-items: center; gap: 6px;
   background: var(--tau-forest); border-color: var(--tau-forest); color: var(--tau-on-forest);
-  font-weight: 600; font-size: 14px; padding: 11px 20px; border-radius: 10px;
+  font-weight: 600; border-radius: var(--tau-r-pill);
+  box-shadow: 0 3px 8px -3px color-mix(in oklab, var(--tau-forest) 45%, transparent);
+  transition: background var(--tau-dur-short) var(--tau-ease-standard), border-color var(--tau-dur-short) var(--tau-ease-standard), transform var(--tau-dur-short) var(--tau-ease-standard);
 }
-.acard-btn:hover { background: var(--tau-forest-lift); border-color: var(--tau-forest-lift); }
-.acard-chips { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
-.acard-chips-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tau-ink-soft); }
-.acard-prompt { font-size: 13px; color: var(--tau-ink-soft); margin-top: 15px; }
-.acard-prompt summary { cursor: pointer; }
-.acard-prompt p { padding-top: 8px; line-height: 1.6; }
+.acard-btn { font-size: 14px; padding: 11px 20px; }
+.draft-row-btn { font-size: 13px; padding: 9px 16px; }
+.draft-row-action-detail { color: var(--tau-ink-soft); font-size: 13px; }
+.acard-btn:hover, .draft-row-btn:hover { background: var(--tau-forest-lift); border-color: var(--tau-forest-lift); }
+.acard-btn:active, .draft-row-btn:active { transform: scale(0.97); }
+
+/* .acard-disclosure* moved to components.css section 3c — report.html
+   needed the same disclosure component and doesn't load style.css. */
 
 /* ---------- past assignment card ---------- */
 
-.pcard {
-  background: var(--tau-surface);
-  border: 1px solid var(--tau-line);
-  border-radius: 12px;
-  padding: 15px 18px;
-  margin-bottom: 10px;
-}
+/* Chrome comes from components.css's .card — this card's own radius/padding
+   (12px, 15/18px) were organic drift from an independent implementation, not
+   an intentional size; they're within a couple of px of .card's own values,
+   so this composes onto .card exactly rather than keeping a third value. */
+.pcard { margin-bottom: 10px; }
 .pcard-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
 .pcard-head h3 { font-size: 15px; flex: 1; min-width: 200px; }
 .pcard-outcome { display: flex; align-items: baseline; gap: 9px; }
@@ -647,20 +648,17 @@ button:hover { border-color: var(--tau-forest); }
 .draft-chip .chip-score { font-weight: 700; font-variant-numeric: tabular-nums; }
 .draft-chip .chip-denom { font-weight: 400; font-size: 11px; color: var(--tau-ink-soft); }
 .draft-chip .chip-samr { font-size: 12px; color: var(--tau-ink-soft); }
-.draft-chip .chip-note { font-size: 12px; color: var(--tau-auditor); }
-button.draft-chip { cursor: pointer; }
+.draft-chip .chip-note { color: var(--tau-auditor); display: inline-flex; }
+.draft-chip .chip-note .tau-icon { width: 13px; height: 13px; }
+button.draft-chip { cursor: pointer; transition: border-color var(--tau-dur-short) var(--tau-ease-standard); }
 button.draft-chip:hover { border-color: var(--tau-forest); }
 .draft-chip-pending { color: var(--tau-ink-soft); }
 .draft-chip-pending .chip-score { font-weight: 400; font-size: 12px; }
 
-/* SAMR is an ORDERED scale, so it gets one hue light→dark, not four hues — a
-   rainbow would hide that Redefinition outranks Substitution. The hue rides a
-   border rule; the label itself stays ink so it never fails contrast. */
+/* The .samr-* colour mapping itself lives in components.css, next to
+   .band-1..4 (same ramp, applied as a border accent) — this is just the
+   width/padding this particular chip needs from it. */
 .draft-chip[class*='samr-'] { border-left-width: 5px; padding-left: 10px; }
-.samr-substitution { border-left-color: var(--tau-band-1-fg); }
-.samr-augmentation { border-left-color: var(--tau-band-2-fg); }
-.samr-modification { border-left-color: var(--tau-band-3-fg); }
-.samr-redefinition { border-left-color: var(--tau-band-4-fg); }
 
 @media (max-width: 900px) {
   .dash { flex-direction: column; overflow-y: auto; }

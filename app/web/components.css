@@ -17,7 +17,15 @@
  *   3. buttons          8. legend
  *   4. band + meters    9. trajectory sparkline
  *   5. card            10. avatar · field · confirm · offline
+ *                      11. chip · dot · stat-tile · tray · list-row
  */
+
+/* Bare utility, not a numbered section — needed here because report.html
+   never loads style.css (where the workspace's own copy lives), yet the
+   shared nav markup this file styles (.tau-nav-local) already depends on
+   toggling this class from api.js's renderNavLocal. Without it, report.html
+   had no rule for the class at all. */
+.hidden { display: none !important; }
 
 /* ---------- 1. micro-label ---------- */
 
@@ -88,11 +96,20 @@
   align-items: center;
   gap: var(--tau-s2);
   cursor: pointer;
-  transition: background 0.14s ease, border-color 0.14s ease;
+  transition: background var(--tau-dur-short) var(--tau-ease-standard), border-color var(--tau-dur-short) var(--tau-ease-standard), transform var(--tau-dur-short) var(--tau-ease-standard);
 }
 .btn:disabled { opacity: var(--tau-disabled); cursor: not-allowed; }
+.btn:active:not(:disabled) { transform: scale(0.97); }
 
-.btn-primary { background: var(--tau-forest); color: var(--tau-on-forest); }
+/* A raised primary action reads as "press me," not just "forest text on a
+   rect" — the elevation scale below applies to the one button per screen
+   that's actually the primary move, not to every button. */
+.btn-primary {
+  background: var(--tau-forest);
+  color: var(--tau-on-forest);
+  border-radius: var(--tau-r-pill);
+  box-shadow: 0 3px 8px -3px color-mix(in oklab, var(--tau-forest) 45%, transparent);
+}
 .btn-primary:hover:not(:disabled) { background: var(--tau-forest-lift); }
 
 .btn-quiet {
@@ -115,6 +132,65 @@
    never for a primary action or a lone control on a phone view. */
 .btn-sm { min-height: 36px; font-size: var(--tau-text-sm); padding: 0 var(--tau-s3); }
 
+/* No fill, no border — but still a button (padding, rounded hover fill),
+   not a bare underlined link, for an action that sits inline with real
+   buttons elsewhere on the same row. */
+.btn-tertiary { background: none; border-color: transparent; color: var(--tau-forest); }
+.btn-tertiary:hover:not(:disabled) { background: var(--tau-hover-surface); }
+
+/* ---------- 3b. icons ----------
+   M3-style, self-hosted (icons.js) — see that file for why not the Material
+   Symbols webfont. currentColor by default, so an icon inside a button or a
+   coloured chip always matches its own text without a separate colour rule. */
+.tau-icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* ---------- 3c. disclosure ----------
+   Any content that's referenced repeatedly rather than read once (a rubric,
+   a teacher's note, a long turn list folded behind "show all N") — a real
+   label, not default browser <details> chrome, and forest/auditor-tinted
+   even closed so it reads as "clickable" at rest, not just on hover. That
+   at-rest tint is the point: a plain grey chip here would be indistinguishable
+   from a static, non-interactive one (a stat chip, a flag label). Icon is a
+   real chevron element (rotates on open), not a text glyph.
+   Shared base + a colour modifier rather than near-identical copies per
+   caller — the prompt (sage/forest) and a teacher's note (auditor) are the
+   same interaction wearing a different voice. */
+.acard-disclosure { margin: 9px 0 0; }
+.acard-disclosure-prompt { --tau-disclosure-bg: var(--tau-origin-together-bg); --tau-disclosure-fg: var(--tau-forest); }
+.acard-disclosure-note   { --tau-disclosure-bg: var(--tau-auditor-bg);         --tau-disclosure-fg: var(--tau-auditor); }
+.acard-disclosure-toggle {
+  cursor: pointer; user-select: none; list-style: none;
+  display: inline-flex; align-items: center; gap: 7px;
+  max-width: 100%;
+  padding: 7px 12px;
+  border-radius: var(--tau-r-pill);
+  background: var(--tau-surface-2);
+  font-size: 12.5px; font-weight: 600; color: var(--tau-disclosure-fg);
+  transition: background var(--tau-dur-short) var(--tau-ease-standard), border-radius var(--tau-dur-short) var(--tau-ease-standard);
+}
+.acard-disclosure-toggle::-webkit-details-marker { display: none; }
+.acard-disclosure-toggle:hover { background: var(--tau-surface-3); }
+/* The note chip carries the auditor tint even closed, not just its text —
+   colour is what signals "this carries weight" at a glance. The rubric chip
+   stays neutral: it's not competing for attention, it's just recall. */
+.acard-disclosure-note .acard-disclosure-toggle { background: var(--tau-auditor-bg); }
+.acard-disclosure-note .acard-disclosure-toggle:hover { background: color-mix(in oklab, var(--tau-auditor-bg) 75%, var(--tau-ink) 8%); }
+.acard-disclosure-icon { width: 12px; height: 12px; flex-shrink: 0; transition: transform var(--tau-dur-short) var(--tau-ease-standard); }
+details[open] > .acard-disclosure-toggle .acard-disclosure-icon { transform: rotate(180deg); }
+details[open] > .acard-disclosure-toggle {
+  display: flex; width: 100%;
+  background: var(--tau-disclosure-bg); color: var(--tau-ink);
+  border-radius: var(--tau-r-md) var(--tau-r-md) 0 0;
+}
+.acard-disclosure p {
+  margin: 0; padding: 12px 14px;
+  background: var(--tau-disclosure-bg); border-radius: 0 0 var(--tau-r-md) var(--tau-r-md);
+  font-size: var(--tau-text-md);
+  line-height: 1.65; color: var(--tau-ink);
+  animation: tau-reveal var(--tau-dur-medium) var(--tau-ease-decelerate);
+}
+.acard-disclosure-prompt p { font-family: var(--tau-font-serif); }
+
 /* ---------- 4. band chip + meters ---------- */
 
 /* Plain language leads; SAMR rides alongside in .band-sub, never inside the
@@ -135,6 +211,16 @@
 .band-3 { background: var(--tau-band-3-bg); color: var(--tau-band-3-fg); }
 .band-4 { background: var(--tau-band-4-bg); color: var(--tau-band-4-fg); }
 .band-sub { font-size: var(--tau-text-sm); color: var(--tau-ink-faint); }
+
+/* Same SAMR ramp as .band-1..4 above, applied as a border-left accent instead
+   of a filled pill — for surfaces that want the level to read as a stripe on
+   an existing element (a card, a chip, a collapsible row) rather than its own
+   badge. One mapping, two treatments, both documented here — not a second
+   copy of the ramp. Consumers set their own border-left-width. */
+.samr-substitution { border-left-color: var(--tau-band-1-fg); }
+.samr-augmentation { border-left-color: var(--tau-band-2-fg); }
+.samr-modification { border-left-color: var(--tau-band-3-fg); }
+.samr-redefinition { border-left-color: var(--tau-band-4-fg); }
 
 /* Five discrete steps, because the engine emits 1–5. A continuous bar would
    claim a precision the model does not have — see the locked scoring decision. */
@@ -159,44 +245,76 @@
 
 /* ---------- 4b. four dimensions ---------- */
 
-/* The engine emits four dimensions at 1–5 and the app rendered them three
-   different ways under three different sets of names. This is the one. No
-   value-keyed colour anywhere in the block: a 2 must not render in the same
-   red as an error, because a level is a position on a path, not a verdict. */
-.dims { display: grid; grid-template-columns: repeat(4, 1fr); }
-.dim {
-  padding: var(--tau-s4) 18px;
+/* The engine emits four dimensions at 1–5. This used to render as a
+   four-column strip (name + score) sitting above a separate 2×2 grid (name
+   again + explanation), so the name and the PQ/SU/CS/OC code each appeared
+   twice and the score was split from the reasoning behind it. One quadrant
+   grid now carries all three: name once, score as a single instrument,
+   one callout line. No value-keyed colour anywhere in the block: a 2 must
+   not render in the same red as an error, because a level is a position on
+   a path, not a verdict. */
+/* No overflow: hidden — a quad has no background of its own to clip against
+   the rounded border, and hiding overflow here was clipping the dimension
+   tooltip against the grid's own bounding box instead of letting it float
+   above the card. */
+.dim-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-md);
+}
+.dim-quad {
+  padding: var(--tau-s4) var(--tau-s5);
   border-right: 1px solid var(--tau-line);
   border-bottom: 1px solid var(--tau-line);
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: var(--tau-s3);
 }
-.dim:last-child { border-right: none; }
-/* PQ / SU / CS / OC. Mono because it is a code, not a word to be read aloud.
-   Sits with the full name as one quiet caption row — the number below is
-   what the eye is meant to land on, so the label can't compete with it. */
-.dim-head { display: flex; align-items: baseline; gap: 6px; }
-.dim-abbr {
-  font-family: var(--tau-font-mono);
-  font-size: var(--tau-text-xs);
-  font-weight: 600;
-  color: var(--tau-forest);
-  letter-spacing: var(--tau-track-label);
+.dim-grid .dim-quad:nth-child(2n) { border-right: none; }
+.dim-grid .dim-quad:nth-last-child(-n+2) { border-bottom: none; }
+/* Zone 1 — the full name, said once. No PQ/SU/CS/OC badge: that was a code a
+   reader had to learn, and the full name already fits on one line. The info
+   button sits inline rather than on its own head row — same tooltip, no
+   extra row height. */
+.dim-quad-name {
+  display: flex; align-items: center; gap: var(--tau-s2);
+  font-size: var(--tau-text-lg); font-weight: 600; color: var(--tau-ink);
 }
-.dim-name { font-size: var(--tau-text-sm); font-weight: 500; color: var(--tau-ink-soft); line-height: var(--tau-leading-tight); }
-.dim-val { display: flex; align-items: baseline; gap: 4px; }
-/* The number this whole strip exists to show. Forest, uniformly, regardless
-   of value — same reasoning as .report-total-n: brand identity on the
-   number's face, not a verdict painted onto a low score. */
-.dim-val .n { font-size: var(--tau-text-2xl); font-weight: 700; color: var(--tau-forest); line-height: 1; }
-/* The denominator is never optional — a bare "2" is a mark, "2 of 5" is a
+/* Zone 2 — the score as one instrument: the number and its five-pip .steps
+   bar read as a single fact on one row, not stacked as two. Forest,
+   uniformly, regardless of value — brand identity on the number's face, not
+   a verdict painted onto a low score (the report hero's band pill is the one
+   place score value gets its own colour). */
+.dim-quad-score { display: flex; align-items: center; gap: var(--tau-s4); }
+.dim-quad-score-n { display: flex; align-items: baseline; gap: 3px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.dim-quad-score-n .n { font-size: var(--tau-text-2xl); font-weight: 700; color: var(--tau-forest); line-height: 1; }
+/* The denominator is never optional — a bare "2" is a mark, "/5" is a
    position. Same reason the total always carries its band. */
-.dim-val .of { font-size: var(--tau-text-sm); color: var(--tau-ink-faint); }
-.dim-say { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: var(--tau-leading-snug); }
+.dim-quad-score-n .of { font-size: var(--tau-text-sm); color: var(--tau-ink-faint); }
+.dim-quad-steps { flex: 1; }
+.dim-quad-steps i { height: 9px; }
+/* Zone 3 — the one thing this dimension is calling out: a quiet evidence
+   clause plus the coaching sentence, joined in one paragraph instead of two
+   stacked ones. Same sage rule the old .dim-nudge used for "this is the
+   takeaway" — now load-bearing instead of competing with a second paragraph
+   above it. Neutral, and deliberately not keyed to the score: reinforcing
+   and coaching nudges must not read as good/bad via colour. */
+.dim-quad-callout {
+  font-size: var(--tau-text-sm);
+  line-height: var(--tau-leading-snug);
+  color: var(--tau-ink);
+  border-left: 2px solid var(--tau-sage);
+  padding-left: 10px;
+}
+.dim-evidence { color: var(--tau-ink-soft); }
 
-@media (max-width: 760px) { .dims { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 460px) { .dims { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .dim-grid { grid-template-columns: 1fr; }
+  .dim-grid .dim-quad:nth-child(2n) { border-right: none; }
+  .dim-grid .dim-quad:nth-last-child(-n+2) { border-bottom: 1px solid var(--tau-line); }
+  .dim-grid .dim-quad:last-child { border-bottom: none; }
+}
 
 /* ---------- 5. card ---------- */
 
@@ -210,16 +328,31 @@
   display: flex;
   flex-direction: column;
   gap: 9px;
+  /* Depth, not just a boundary — a hairline says "here is an edge," a soft
+     shadow says "this is raised off the page." Additive: the border stays,
+     so nothing that already looked fine breaks. */
+  box-shadow: var(--tau-shadow);
 }
 .card-lg { border-radius: var(--tau-r-lg); padding: var(--tau-s5) 22px; gap: var(--tau-s3); }
+
+/* The one panel per screen that's the actual takeaway (the report's score,
+   not its tabs) gets one more step of both radius and elevation, so shape
+   itself signals "this is the important one" before anything is read. */
+.card-hero { border-radius: var(--tau-r-xl); border-color: transparent; box-shadow: var(--tau-shadow-lift); }
 /* Recessed rather than raised — for a block sitting inside another card. */
 .card-quiet { background: var(--tau-surface-2); border-color: transparent; }
 .card-grid { display: grid; gap: var(--tau-s4); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 
 /* Urgency earns a rule on the card edge, not a recoloured card — a recoloured
-   card makes an ordinary deadline look like an error state. */
-.card-edge-caution   { border-left: 4px solid var(--tau-caution); }
-.card-edge-attention { border-left: 4px solid var(--tau-attention); }
+   card makes an ordinary deadline look like an error state. An inset rule,
+   not a border-left: .card is borderless-and-shadowed now, and a hard border
+   sitting on top of a soft shadow was exactly the flat-vs-raised seam the
+   depth pass was trying to erase everywhere else. Composes with the plain
+   .card elevation (var(--tau-shadow)) rather than card-hero's, since edge
+   classes are only ever applied to plain-tier cards today (the assignment
+   card) — revisit if a hero-tier card ever needs an edge too. */
+.card-edge-caution   { box-shadow: var(--tau-shadow), inset 3px 0 0 var(--tau-caution); }
+.card-edge-attention { box-shadow: var(--tau-shadow), inset 3px 0 0 var(--tau-attention); }
 /* The auditor's own form, squared on the ruled side. Matches .turn-auditor so
    the second voice looks the same wherever it speaks. */
 .card-edge-auditor {
@@ -283,6 +416,11 @@
 /* A turn the server has not confirmed yet. Dimmed, never removed — every turn
    is persisted as sent, so the state may say "not yet", never "lost". */
 .turn-pending .msg { opacity: var(--tau-disabled); }
+
+/* A turn a later edit replaced. Distinct from .turn-pending: this one did
+   happen, it just isn't the version that counts anymore — struck through
+   rather than dimmed, so the two states can't be mistaken for each other. */
+.msg-superseded { opacity: 0.6; text-decoration: line-through; }
 .queued { display: inline-flex; align-items: center; gap: 6px; font-size: var(--tau-text-xs); color: var(--tau-ink-faint); }
 .queued i { width: 6px; height: 6px; border-radius: 50%; background: var(--tau-caution); flex: none; }
 
@@ -342,9 +480,11 @@
 
 /* ---------- 9. trajectory sparkline ---------- */
 
-/* Direction of travel, next to the total. The locked rule is that a total
-   never appears without the change since last draft — this component and
-   .traj-cap are how that promise is kept, so they travel together. */
+/* Direction of travel, next to the total — the shape alone, no caption. A
+   text delta ("+2 since draft 2") used to travel with this by locked rule;
+   dropped because the hero eyebrow now names the draft and the ring shows
+   the current score, so the line's own rise or fall was the one thing left
+   to say and saying it twice added nothing. */
 .traj { display: inline-flex; align-items: center; gap: var(--tau-s3); }
 .traj-svg { width: 100%; height: 46px; overflow: visible; display: block; }
 .traj-line { fill: none; stroke: var(--tau-sage); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -352,13 +492,6 @@
 .traj-split { stroke: var(--tau-line); stroke-width: 1; stroke-dasharray: 2 3; }
 .traj-dot { fill: var(--tau-sage); stroke: var(--tau-surface); stroke-width: 2; }
 .traj-dot-now { fill: var(--tau-forest); }
-.traj-cap { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
-/* Direction is semantic — it is movement, not the student's standing, which is
-   the one thing semantic colour is allowed to describe here. */
-.traj-delta { font-size: var(--tau-text-xs); font-weight: 600; }
-.traj-up   { color: var(--tau-positive); }
-.traj-down { color: var(--tau-attention); }
-.traj-flat { color: var(--tau-ink-soft); }
 
 /* ---------- 10. avatar · field · confirm · offline ---------- */
 
@@ -430,6 +563,10 @@
 }
 .confirm ul b { color: var(--tau-ink); font-weight: 600; }
 .confirm-acts { display: flex; gap: 9px; justify-content: flex-end; flex-wrap: wrap; }
+/* Widened variant for a confirm dialog whose content is more than a warning
+   and two buttons — e.g. the submit-draft flow, which also holds an essay
+   textarea. */
+.confirm-lg { width: min(620px, 92vw); }
 
 /* Caution, not attention: nothing is lost. Every turn is persisted server-side
    as sent, so this bar is allowed to promise the work is safe — and must, or
@@ -447,3 +584,278 @@
 }
 .offline-bar b { font-weight: 600; }
 .offline-bar .offline-act { margin-left: auto; }
+
+/* ---------- 11. chip · dot · stat-tile · tray · list-row ---------- */
+
+/* The generic status pill. Distinct from .band: .band always carries a pip
+   and is reserved for the SAMR level; .chip is for everything else that used
+   to improvise its own pill — submission status, a flag's category, an arc
+   or reflection badge, a role label. Six independent copies of this same
+   shape existed across dashboard.html and teacher.html before this section. */
+.chip {
+  display: inline-block;
+  font-size: var(--tau-text-xs);
+  font-weight: 600;
+  padding: 2px var(--tau-s2);
+  border-radius: var(--tau-r-pill);
+  letter-spacing: 0.3px;
+}
+.chip-neutral   { background: var(--tau-band-3-bg); color: var(--tau-band-3-fg); }
+.chip-grey      { background: var(--tau-surface-2); color: var(--tau-ink-soft); border: 1px solid var(--tau-line); }
+.chip-positive  { background: var(--tau-positive-bg); color: var(--tau-positive); }
+.chip-caution   { background: var(--tau-caution-bg); color: var(--tau-caution); }
+.chip-attention { background: var(--tau-attention-bg); color: var(--tau-attention); }
+
+/* A filled circle indicator. Colour rides on currentColor so a parent sets
+   color: var(--tau-caution) etc. rather than this component making that
+   call — the same caution dot means "worth a chat" in a table cell, a
+   sidebar row, and a tray header, and must always be the one the voice
+   rules already settled on (never --tau-attention for a behavioural signal). */
+.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.dot-sm { width: 6px; height: 6px; }
+/* The one colour a behavioural "worth a chat" signal is ever allowed —
+   never --tau-attention, which is reserved for a real deadline problem. */
+.dot-caution { color: var(--tau-caution); }
+
+/* Label/value pair in a tinted, bordered box — a count with what it counts.
+   Colour is set by the consumer via style or a chip-* class reused here for
+   the tint, so one tile serves a caution stat and a neutral one alike. */
+.stat-tile {
+  border-radius: var(--tau-r-md);
+  padding: var(--tau-s4) var(--tau-s4);
+  flex: 1;
+  min-width: 110px;
+}
+.stat-tile-clickable { cursor: pointer; }
+.stat-tile .stat-tile-val { font-size: var(--tau-text-2xl); font-weight: 800; line-height: 1; }
+.stat-tile .stat-tile-label { font-size: var(--tau-text-xs); font-weight: 600; margin-top: 5px; opacity: 0.85; }
+
+/* The right-sliding drawer. Mechanically distinct from .scrim/.confirm
+   (transform-based slide-in vs. a centred grid) rather than a duplicate of
+   it — for a detail view that wants to stay beside the list it drilled
+   from, not interrupt it. */
+.tray-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--tau-scrim);
+  z-index: 100;
+}
+.tray-overlay.open { display: block; }
+.tray {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px;
+  height: 100%;
+  background: var(--tau-surface);
+  border-left: 1px solid var(--tau-line);
+  box-shadow: var(--tau-shadow-lift);
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform var(--tau-dur-medium) var(--tau-ease-decelerate);
+  overflow: hidden;
+}
+.tray.open { transform: translateX(0); }
+.tray-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tau-s3);
+  padding: var(--tau-s5) var(--tau-s5) var(--tau-s4);
+  border-bottom: 1px solid var(--tau-line);
+  flex-shrink: 0;
+}
+.tray-title { font-size: var(--tau-text-lg); font-weight: 700; color: var(--tau-ink); letter-spacing: -0.2px; flex: 1; }
+.tray-subtitle { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); margin-top: 3px; }
+.tray-close {
+  background: none;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tau-ink-soft);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.tray-close:hover { background: var(--tau-hover-surface); color: var(--tau-ink); }
+.tray-body { flex: 1; overflow-y: auto; padding: var(--tau-s5); display: flex; flex-direction: column; gap: var(--tau-s5); }
+.tray-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--tau-ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+}
+.tray-section-body { font-size: var(--tau-text-md); color: var(--tau-ink); line-height: 1.6; }
+.tray-steps { display: flex; flex-direction: column; gap: var(--tau-s2); margin-top: 0; padding: 0; list-style: none; }
+.tray-steps li { display: flex; gap: var(--tau-s3); font-size: var(--tau-text-md); color: var(--tau-ink); line-height: 1.5; }
+.tray-step-num {
+  font-size: var(--tau-text-xs);
+  font-weight: 700;
+  color: var(--tau-forest);
+  background: var(--tau-surface-2);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Avatar + name/meta stack + trailing action — a non-tabular row of
+   students, for the surfaces that want a list rather than the sortable
+   table.roster component. Lighter weight, same underlying job. */
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: var(--tau-s3);
+  padding: 10px var(--tau-s4);
+  cursor: pointer;
+  transition: background var(--tau-dur-short) var(--tau-ease-standard);
+}
+.list-row:hover { background: var(--tau-hover-surface); }
+.list-row-name { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); }
+.list-row-meta {
+  font-size: var(--tau-text-xs);
+  color: var(--tau-ink-soft);
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.list-row-action { font-size: var(--tau-text-xs); color: var(--tau-forest); font-weight: 600; flex-shrink: 0; }
+
+/* ---------- 12. global nav ---------- */
+
+/* The one element that's the same on every student screen — index.html's
+   home and workspace views, and report.html. Only the breadcrumb and the
+   local toggle change; the mark, spacing and identity slot never do. The
+   IA is strictly hierarchical (Assignment -> Draft -> Conversation and/or
+   Report), so this is a breadcrumb plus a *contextual* toggle, never a
+   tab bar implying the three screens are peers a student can jump between. */
+.tau-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--tau-s4);
+  height: 52px;
+  padding: 0 var(--tau-s5);
+  background: var(--tau-surface);
+  border-bottom: 1px solid var(--tau-line);
+  flex-shrink: 0;
+}
+.tau-nav-mark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: var(--tau-text-md);
+  letter-spacing: -0.01em;
+  color: var(--tau-ink);
+  flex-shrink: 0;
+}
+.tau-nav-glyph {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--tau-r-sm);
+  background: var(--tau-forest);
+  color: var(--tau-on-forest);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  font-family: var(--tau-font-mono);
+  flex-shrink: 0;
+}
+
+/* Root and mid segments are plain or clickable; the current segment is the
+   one place a student's eye should land — everything else stays quiet. */
+.tau-nav-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: var(--tau-text-sm);
+  color: var(--tau-ink-faint);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.tau-nav-crumbs .crumb-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--tau-ink-soft);
+  cursor: pointer;
+}
+.tau-nav-crumbs .crumb-link:hover { color: var(--tau-forest); text-decoration: underline; }
+.tau-nav-crumbs .crumb-label { color: var(--tau-ink-soft); }
+.tau-nav-crumbs .crumb-sep { opacity: 0.5; }
+.tau-nav-crumbs .crumb-current {
+  color: var(--tau-ink);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tau-nav-fill { flex: 1; min-width: var(--tau-s3); }
+
+/* Scoped to one draft, never global — rendered only when a conversation and
+   a report genuinely both exist for the draft currently on screen. Visually
+   related to a segmented control, but it is state for "this draft," not a
+   destination list for the whole app. */
+.tau-nav-local {
+  display: flex;
+  gap: 3px;
+  background: var(--tau-surface-2);
+  padding: 3px;
+  border-radius: var(--tau-r-pill);
+  flex-shrink: 0;
+}
+.tau-nav-local-opt {
+  border: none;
+  background: none;
+  padding: 5px 12px;
+  border-radius: var(--tau-r-pill);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tau-ink-soft);
+  cursor: pointer;
+  transition: background var(--tau-dur-short) var(--tau-ease-standard),
+              color var(--tau-dur-short) var(--tau-ease-standard),
+              box-shadow var(--tau-dur-short) var(--tau-ease-standard);
+}
+/* Sage, not forest: this is wayfinding state ("which of the two views am I
+   on"), not the primary action — forest stays reserved for the one thing
+   that actually moves the student forward on a given screen. */
+.tau-nav-local-opt.active {
+  background: var(--tau-surface);
+  color: var(--tau-sage);
+  box-shadow: var(--tau-shadow);
+  cursor: default;
+}
+
+/* Identity slot at the end of the nav. Self-contained rather than leaning
+   on a page's own generic `button` reset — report.html has no such reset,
+   which is exactly why this rendered as a bare native button there before
+   it lived here. */
+.account-chip { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.account-name { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); }
+.account-signout {
+  border: 1px solid var(--tau-line);
+  background: none;
+  border-radius: var(--tau-r-sm);
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--tau-ink-soft);
+  cursor: pointer;
+  transition: border-color var(--tau-dur-short) var(--tau-ease-standard), color var(--tau-dur-short) var(--tau-ease-standard);
+}
+.account-signout:hover { border-color: var(--tau-forest); color: var(--tau-forest); }
