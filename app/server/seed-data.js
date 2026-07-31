@@ -18,14 +18,35 @@ const STUDENTS = [
   { email: 'sam@school.dev', displayName: 'Sam Whitfield', tier: 'flat', pastDrafts: 0, openAssignmentDrafts: 0 },
 ];
 
+// Classes aren't assignment-scoped by accident — a teacher can teach the same
+// course to more than one section, and a student can be in more than one of a
+// teacher's classes at once (e.g. a core class plus an elective). The pilot
+// cohort above is the main class; the elective below reuses two of the same
+// students so the dashboard's multi-class Student view has a real case to
+// show, not a hypothetical one.
+const CLASSES = [
+  { name: 'Period 4 — English 10', studentEmails: STUDENTS.map((s) => s.email) },
+  { name: 'Period 2 — Journalism Elective', studentEmails: ['maya@school.dev', 'devon@school.dev'] },
+];
+
+const ELECTIVE_ASSIGNMENT = {
+  title: 'Op-Ed Draft',
+  description: 'Write an op-ed taking a clear position on a current school or community issue, written for publication in the school paper.',
+  purpose: 'Practice persuasive writing for a real audience — a school paper reader who can just as easily stop reading as agree with you.',
+  requirements: '500–700 words. Take a clear position. Anticipate and address the strongest objection to your position.',
+  draftBudget: 1,
+  coachingLevels: ['full'],
+  draftDueInDays: [-3],
+};
+
 // A real Claude.ai transcript (document co-creation, not the Socratic-coach
 // shape the other tiers assume) — kept separate from STUDENTS/TRANSCRIPTS'
 // tier loop and seeded as a single one-off cycle in seed.js.
 const GUIDE_ASSIGNMENT = {
   title: 'Bicycle maintenance guide (real transcript demo)',
-  prompt:
-    'Write a 1000-word conversational guide to road bike maintenance covering every system, ' +
-    'usable as an oral presentation with references.',
+  description: 'Write a conversational guide to road bike maintenance covering every system.',
+  purpose: 'Translate technical knowledge into a form someone else could actually follow and present.',
+  requirements: '1000 words. Usable as an oral presentation. Include references.',
   draftBudget: 1,
   coachingLevels: ['full'],
   // Signed day offsets from "now" (negative = past, positive = future) — one
@@ -36,10 +57,9 @@ const GUIDE_ASSIGNMENT = {
 const ASSIGNMENTS = {
   open: {
     title: 'Persuasive essay: school start times',
-    prompt:
-      'Write a persuasive essay (600–900 words) arguing whether your school should move to a later start time. ' +
-      'Take a clear position, support it with at least three distinct reasons, address one counterargument, ' +
-      'and cite evidence for your claims.',
+    description: 'Write a persuasive essay arguing whether your school should move to a later start time.',
+    purpose: 'Build the skill of taking a position and defending it with evidence rather than just asserting it.',
+    requirements: '600–900 words. Take a clear position. Support it with at least three distinct reasons. Address one counterargument. Cite evidence for your claims.',
     draftBudget: 3,
     coachingLevels: ['full', 'questions', 'sounding-board'],
     // -1/2/8 rather than all-future — the demo class needs at least one
@@ -53,10 +73,9 @@ const ASSIGNMENTS = {
   },
   past: {
     title: 'Rhetorical analysis: a speech that changed something',
-    prompt:
-      'Choose a speech that produced a measurable change and analyse how it worked rhetorically (700–1000 words). ' +
-      'Identify the audience, the rhetorical strategies used, and argue which strategy did the most work. ' +
-      'Ground every claim in specific language from the speech.',
+    description: 'Choose a speech that produced a measurable change and analyse how it worked rhetorically.',
+    purpose: 'Practice close reading — arguing from the actual language of a text rather than a general impression of it.',
+    requirements: '700–1000 words. Identify the audience and the rhetorical strategies used. Argue which strategy did the most work. Ground every claim in specific language from the speech.',
     draftBudget: 3,
     coachingLevels: ['full', 'questions', 'sounding-board'],
     draftDueInDays: [-32, -24, -15],
@@ -575,7 +594,9 @@ const OPEN_TEACHER_NOTES = {
 module.exports = {
   DEV_PASSWORD,
   STUDENTS,
+  CLASSES,
   ASSIGNMENTS,
+  ELECTIVE_ASSIGNMENT,
   GUIDE_ASSIGNMENT,
   TRANSCRIPTS,
   ESSAYS,

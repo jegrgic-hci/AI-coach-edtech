@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Writing Coach</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="components.css">
 <link rel="stylesheet" href="style.css">
@@ -17,7 +20,7 @@
      workspace views, and report.html, all fill the same shell rather than
      each inventing their own header. -->
 <header class="tau-nav" id="tauNav">
-  <span class="tau-nav-mark"><span class="tau-nav-glyph">&tau;</span>Coach</span>
+  <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="TAU">Coach</span>
   <nav class="tau-nav-crumbs" id="navCrumbs"></nav>
   <span class="tau-nav-fill"></span>
   <span class="tau-nav-local hidden" id="navLocal"></span>
@@ -74,7 +77,7 @@
           <svg class="acard-disclosure-icon" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Assignment prompt
         </summary>
-        <p id="wsPrompt"></p>
+        <div id="wsPrompt"></div>
       </details>
       <button id="btnNewSession" class="new-session-btn">+ New session</button>
       <nav class="session-list" id="sessionList"></nav>

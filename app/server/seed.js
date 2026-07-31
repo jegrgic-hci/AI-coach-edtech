@@ -13,7 +13,7 @@ const { col } = require('./store');
 const { setPassword } = require('./auth');
 const { enrich, scoreTAU } = require('./analysis');
 const {
-  DEV_PASSWORD, STUDENTS, ASSIGNMENTS, GUIDE_ASSIGNMENT, TRANSCRIPTS,
+  DEV_PASSWORD, STUDENTS, CLASSES, ASSIGNMENTS, ELECTIVE_ASSIGNMENT, GUIDE_ASSIGNMENT, TRANSCRIPTS,
   ESSAYS, PROVENANCE, FLAGS, SNAPSHOTS, TEACHER_NOTES, OPEN_TEACHER_NOTES,
 } = require('./seed-data');
 
@@ -38,24 +38,55 @@ function upsertUser({ email, displayName, role }) {
   return user;
 }
 
-function upsertAssignment(teacherId, spec, daysAgo) {
+function upsertAssignment(teacherId, spec, daysAgo, classIds) {
   const existing = col('assignments').list((a) => a.title === spec.title)[0];
-  if (existing) return existing;
   // draftDueDates[i] is when draft i+1 is due; the last entry doubles as the
   // assignment's own final due date — the rule is the final draft's due date
   // *is* the assignment's due date, not a separate value to keep in sync.
   const draftDueDates = spec.draftDueInDays.map(tsOffset);
+  const dueDate = draftDueDates[draftDueDates.length - 1];
+  if (existing) {
+    // draftDueDates are relative to "now" by design (tsOffset, unlike
+    // everything else seeded here) so the demo always shows one overdue
+    // draft, one due soon, one comfortable — but returning `existing`
+    // untouched froze them at whatever day the store was first seeded,
+    // so the narrative silently decayed into "everything overdue" as real
+    // calendar days passed without a full reseed. Refreshed on every
+    // server start instead — 2026-07-30, prompted by exactly that decay
+    // making the class roster's submission/missing counts read as
+    // contradictory. classIds still only backfills, same as before, since
+    // that's real assignment state, not a relative offset that goes stale.
+    const patch = { draftDueDates, dueDate };
+    if (!existing.classIds) patch.classIds = classIds;
+    return col('assignments').update(existing.id, patch);
+  }
   return col('assignments').add({
     teacherId,
+    classIds,
     title: spec.title,
-    prompt: spec.prompt,
-    dueDate: draftDueDates[draftDueDates.length - 1],
+    description: spec.description,
+    purpose: spec.purpose,
+    requirements: spec.requirements,
+    dueDate,
     draftDueDates,
     draftBudget: spec.draftBudget,
     coachingLevels: spec.coachingLevels,
     createdAt: ts(daysAgo),
     ...(spec.teacherNote ? { teacherNote: spec.teacherNote, teacherNoteAt: ts(daysAgo - 1) } : {}),
   });
+}
+
+function upsertClass(teacherId, spec, studentIds) {
+  const existing = col('classes').list((c) => c.name === spec.name)[0];
+  if (existing) {
+    // Membership can grow as students are seeded — keep it current rather
+    // than freezing whatever the first run happened to create.
+    if (JSON.stringify(existing.studentIds) !== JSON.stringify(studentIds)) {
+      return col('classes').update(existing.id, { studentIds });
+    }
+    return existing;
+  }
+  return col('classes').add({ teacherId, name: spec.name, studentIds, createdAt: ts(60) });
 }
 
 // Writes one completed revision cycle: session + conversation + turns +
@@ -220,11 +251,34 @@ function seedActiveDraft({ student, assignment, tier, cycleIndex, daysAgo }) {
 function seed() {
   const teacher = upsertUser({ email: TEACHER_EMAIL, displayName: 'Ms. Karim', role: 'teacher' });
 
-  const openAssignment = upsertAssignment(teacher.id, ASSIGNMENTS.open, 10);
-  const pastAssignment = upsertAssignment(teacher.id, ASSIGNMENTS.past, 45);
+  // Users first, so class membership (which is by studentId) can be built
+  // before any assignment or class record needs it.
+  const studentByEmail = {};
+  for (const spec of STUDENTS) {
+    studentByEmail[spec.email] = upsertUser({ email: spec.email, displayName: spec.displayName, role: 'student' });
+  }
+  const classByName = {};
+  for (const spec of CLASSES) {
+    const studentIds = spec.studentEmails.map((e) => studentByEmail[e].id);
+    classByName[spec.name] = upsertClass(teacher.id, spec, studentIds);
+  }
+  const mainClassId = classByName['Period 4 — English 10'].id;
+  const electiveClassId = classByName['Period 2 — Journalism Elective'].id;
+
+  const openAssignment = upsertAssignment(teacher.id, ASSIGNMENTS.open, 10, [mainClassId]);
+  const pastAssignment = upsertAssignment(teacher.id, ASSIGNMENTS.past, 45, [mainClassId]);
+  const electiveAssignment = upsertAssignment(teacher.id, ELECTIVE_ASSIGNMENT, 5, [electiveClassId]);
+
+  // Gives the elective assignment (and the multi-class Maya belongs to) real
+  // submitted data, rather than an assignment that only ever shows empty rows.
+  if (col('submissions').list((s) => s.studentId === studentByEmail['maya@school.dev'].id && s.assignmentId === electiveAssignment.id).length === 0) {
+    seedCycle({
+      student: studentByEmail['maya@school.dev'], assignment: electiveAssignment, tier: 'strong', cycleIndex: 0, daysAgo: 1,
+    });
+  }
 
   for (const spec of STUDENTS) {
-    const student = upsertUser({ email: spec.email, displayName: spec.displayName, role: 'student' });
+    const student = studentByEmail[spec.email];
 
     // Only seed history for a student who has none — re-running must not
     // duplicate a student's drafts.
@@ -296,9 +350,13 @@ function seed() {
 
   // One-off real transcript (bicycle maintenance guide, document co-creation
   // rather than a Socratic coach cycle) — kept outside the tier loop above
-  // since it doesn't fit the open/past assignment shape.
-  const guideAssignment = upsertAssignment(teacher.id, GUIDE_ASSIGNMENT, 5);
+  // since it doesn't fit the open/past assignment shape. Its own class, not
+  // left unscoped: an unscoped assignment defaults to "every class" (see
+  // classesFor() in dashboard.html), which would otherwise plant a false
+  // "missing" row for this one-off on every real class's roster.
   const guideStudent = upsertUser({ email: 'jamie@school.dev', displayName: 'Jamie Okafor', role: 'student' });
+  const guideClass = upsertClass(teacher.id, { name: 'Guide Workshop' }, [guideStudent.id]);
+  const guideAssignment = upsertAssignment(teacher.id, GUIDE_ASSIGNMENT, 5, [guideClass.id]);
   if (col('submissions').list((s) => s.studentId === guideStudent.id).length === 0) {
     seedCycle({ student: guideStudent, assignment: guideAssignment, tier: 'bikeguide', cycleIndex: 0, daysAgo: 3 });
   }

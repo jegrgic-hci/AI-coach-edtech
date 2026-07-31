@@ -7,12 +7,30 @@
 //                   passwordHash, passwordSalt }   (dev-only; prod is SSO)
 //   authSessions  dev login sessions — replaced by Firebase ID tokens in prod:
 //                 { id, userId, token, createdAt, expiresAt }
-//   assignments   { id, teacherId, title, prompt, dueDate, draftDueDates,
-//                   draftBudget, coachingLevels: ['full','full','questions','sounding-board'],
+//   classes       { id, teacherId, name, studentIds: [], createdAt }
+//                 A student's studentIds membership can span multiple classes
+//                 (e.g. two different course sections) — that's the normal
+//                 case, not an edge case, once a school has more than one
+//                 pilot class running.
+//   assignments   { id, teacherId, classIds: [], title,
+//                   description, purpose, requirements, dueDate,
+//                   draftDueDates, draftBudget,
+//                   coachingLevels: ['full','full','questions','sounding-board'],
 //                   createdAt }
+//                 description/purpose/requirements are three separate teacher-
+//                 authored fields (what the task is / why it matters / what
+//                 must be included) rather than one prompt blob — shown to the
+//                 student as labeled sections and composed into one string
+//                 (assignmentBrief() in index.js) to seed the coach's blank
+//                 context. The tool never grades against these — that stays
+//                 the teacher's own rubric, untouched (see CLAUDE.md scope
+//                 boundary).
 //                 draftDueDates[i] is when draft i+1 is due, ascending, length
 //                 draftBudget; draftDueDates[draftBudget-1] === dueDate (the
 //                 final draft's due date is the assignment's due date).
+//                 classIds is which class(es) this assignment was given to —
+//                 usually one, but a teacher can give the same assignment to
+//                 more than one section of the same course.
 //   sessions      one per revision cycle:
 //                 { id, assignmentId, studentId, cycleIndex, coachingLevel,
 //                   status: 'active'|'submitted', startedAt, submittedAt }

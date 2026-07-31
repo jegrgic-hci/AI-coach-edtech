@@ -328,24 +328,77 @@ button:hover { border-color: var(--tau-forest); }
 
 /* ---------- login ---------- */
 
-.login-body {
+.login-body { overflow: hidden; background: var(--tau-surface-2); }
+
+/* One continuous ground-wash page, not two adjacent panels — the card is
+   what signals "raised," so the two halves don't need their own fill or a
+   seam between them. Stacks on narrow viewports. */
+.login-shell {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+.login-hero {
+  flex: 1 1 50%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--tau-s4);
+  padding: var(--tau-s9);
+}
+.login-hero-logo { height: 64px; width: auto; }
+.login-hero-title {
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+.login-hero-tagline {
+  font-size: clamp(15px, 1.6vw, 19px);
+  color: var(--tau-ink-soft);
+  max-width: 42ch;
+  text-wrap: balance;
+}
+.login-hero-sub {
+  font-size: clamp(13px, 1.2vw, 15px);
+  color: var(--tau-ink-faint);
+  max-width: 44ch;
+  margin-top: calc(var(--tau-s2) * -1);
+  text-wrap: balance;
+}
+.login-panel {
+  flex: 1 1 50%;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow-y: auto;
+  padding: var(--tau-s6);
 }
 .login-card {
-  background: var(--tau-surface);
-  border: 1px solid var(--tau-line);
-  border-radius: 14px;
-  padding: 32px;
-  width: min(420px, 92vw);
-  display: flex;
-  flex-direction: column;
+  width: 100%;
+  max-width: 420px;
   gap: 14px;
 }
-.login-card h1 { font-size: 22px; }
+.login-card h1 { font-size: 20px; }
 .login-sub { font-size: 14px; color: var(--tau-ink-soft); margin-top: -8px; }
+
+@media (max-width: 760px) {
+  .login-shell { flex-direction: column; overflow-y: auto; }
+  .login-hero {
+    flex: 0 0 auto;
+    padding: var(--tau-s7) var(--tau-s6);
+    gap: var(--tau-s3);
+  }
+  .login-hero-logo { height: 44px; }
+  .login-hero-title { font-size: 26px; }
+  .login-hero-tagline { font-size: 14px; max-width: none; }
+  .login-hero-sub { font-size: 13px; max-width: none; }
+  .login-panel { flex: 1 1 auto; max-width: none; }
+}
 
 .google-btn {
   display: flex;

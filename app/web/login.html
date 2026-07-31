@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sign in — Writing Coach</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="components.css">
 <link rel="stylesheet" href="style.css">
@@ -13,37 +16,48 @@
 
 <button class="theme-toggle theme-toggle-floating" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
 
-<main class="login-card">
-  <h1>Writing Coach</h1>
-  <p class="login-sub">Sign in to see your assignments and your drafts.</p>
+<div class="login-shell">
+  <section class="login-hero">
+    <img class="login-hero-logo" src="assets/logo-mark.png" alt="Tau">
+    <h1 class="login-hero-title">Develop your thinking.</h1>
+    <p class="login-hero-tagline">AI should redefine how you think — not substitute it.</p>
+    <p class="login-hero-sub">See how each student actually worked with AI — not just the essay they turned in.</p>
+  </section>
 
-  <!-- The real path after Phase A: domain-restricted Google SSO. Shown now,
-       disabled, so the pilot UI doesn't have to be relearned later. -->
-  <button class="google-btn" disabled>
-    <span class="google-mark" aria-hidden="true">G</span>
-    Sign in with school Google
-    <span class="soon">coming soon</span>
-  </button>
+  <section class="login-panel">
+    <main class="card card-lg login-card">
+      <h1>Sign in</h1>
+      <p class="login-sub">Sign in to see your assignments and your drafts.</p>
 
-  <div class="login-divider"><span>or use a test account</span></div>
+      <!-- The real path after Phase A: domain-restricted Google SSO. Shown now,
+           disabled, so the pilot UI doesn't have to be relearned later. -->
+      <button class="google-btn" disabled>
+        <span class="google-mark" aria-hidden="true">G</span>
+        Sign in with school Google
+        <span class="soon">coming soon</span>
+      </button>
 
-  <form id="loginForm" novalidate>
-    <label for="email">Email</label>
-    <input id="email" name="email" type="email" autocomplete="username" required>
+      <div class="login-divider"><span>or use a test account</span></div>
 
-    <label for="password">Password</label>
-    <input id="password" name="password" type="password" autocomplete="current-password" required>
+      <form id="loginForm" novalidate>
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="username" required>
 
-    <p class="login-error hidden" id="loginError" role="alert"></p>
-    <button type="submit" class="login-submit" id="loginSubmit">Sign in</button>
-  </form>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
 
-  <details class="test-accounts">
-    <summary>Test accounts</summary>
-    <p class="test-hint">Password for all accounts: <code>coach1234</code></p>
-    <ul id="testAccounts"></ul>
-  </details>
-</main>
+        <p class="login-error hidden" id="loginError" role="alert"></p>
+        <button type="submit" class="login-submit" id="loginSubmit">Sign in</button>
+      </form>
+
+      <details class="test-accounts">
+        <summary>Test accounts</summary>
+        <p class="test-hint">Password for all accounts: <code>coach1234</code></p>
+        <ul id="testAccounts"></ul>
+      </details>
+    </main>
+  </section>
+</div>
 
 <script src="api.js"></script>
 <script src="login.js"></script>

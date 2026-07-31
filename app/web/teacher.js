@@ -23,21 +23,22 @@ async function showOverview() {
     <div class="card-lg panel-card">
       <h3 style="display:flex;justify-content:space-between;align-items:center">
         Assignments
-        <button id="btnNewAssignment">+ New assignment</button>
+        <button id="btnNewAssignment" class="btn btn-quiet btn-sm">+ New assignment</button>
       </h3>
-      <form class="new-assignment-form" id="newAssignmentForm">
+      <form class="new-assignment-form new-assignment-form-collapsible field" id="newAssignmentForm">
         <input name="title" placeholder="Title" required>
-        <textarea name="prompt" rows="4" placeholder="Assignment prompt — this is all the coach will know at the start of every session" required></textarea>
+        <textarea name="description" rows="3" placeholder="Description — what the task is" required></textarea>
+        <textarea name="purpose" rows="2" placeholder="Purpose — why this matters, what skill it builds" required></textarea>
+        <textarea name="requirements" rows="3" placeholder="Requirements — length, format, sources, what must be included" required></textarea>
         <div class="form-row">
-          <label>Due date <input type="date" name="dueDate"></label>
           <label>Draft budget <input type="number" name="draftBudget" value="3" min="1" max="10" style="width:60px"></label>
         </div>
         <div class="form-row">
-          <label>Coaching level per draft:</label>
+          <label>Due date &amp; coaching per draft — the last row's date is the assignment's final due date:</label>
           <div class="level-selects" id="levelSelects"></div>
         </div>
         <div class="form-row">
-          <button type="submit" class="submit-btn">Create assignment</button>
+          <button type="submit" class="btn btn-primary">Create assignment</button>
         </div>
       </form>
     </div>
@@ -56,9 +57,11 @@ async function showOverview() {
         <div class="list-row roster-row" data-student="${r.studentId}" data-assignment="${a.id}">
           <span class="list-row-name">${esc(r.displayName)}</span>
           ${r.cycles.map((c) => c.analysisStatus === 'complete'
-            ? `<span class="chip ${c.flagCount ? 'chip-caution' : 'cycle-chip'}" title="${c.flagCount ? `${c.flagCount} integrity signal(s)` : ''}">D${c.cycleIndex + 1}: ${c.tau.totalScore} ${c.tau.SAMR}</span>`
-            : `<span class="chip chip-grey">D${c.cycleIndex + 1}: ${c.analysisStatus || 'no analysis'}</span>`).join('')}
-          ${r.activeSession ? '<span class="active-dot">● working on next draft</span>' : ''}
+            ? (c.flagCount
+                ? `<span class="chip chip-caution" title="${c.flagCount} integrity signal(s)">D${c.cycleIndex + 1}: ${c.tau.totalScore} ${c.tau.SAMR} · ${c.flagCount} flag${c.flagCount !== 1 ? 's' : ''}</span>`
+                : `<span class="cycle-label">D${c.cycleIndex + 1}: ${c.tau.totalScore} ${c.tau.SAMR}</span>`)
+            : `<span class="cycle-label cycle-label-pending">D${c.cycleIndex + 1}: ${c.analysisStatus || 'no analysis'}</span>`).join('')}
+          ${r.activeSession ? '<span class="active-note">working on next draft</span>' : ''}
           ${r.cycles.length === 0 && !r.activeSession ? '<span style="font-size:12px;color:var(--muted)">not started</span>' : ''}
         </div>`).join('')}`;
     cards.appendChild(card);
@@ -71,15 +74,26 @@ async function showOverview() {
   // new-assignment form wiring
   const form = $('newAssignmentForm');
   const budgetInput = form.elements.draftBudget;
+  // Each draft is its own checkpoint with its own due date — drafts are
+  // submitted in strict sequence (app.js gates the next until the current is
+  // in), so the slot order here IS the order students will move through.
+  // The last slot's due date doubles as the assignment's overall due date
+  // (store.js's draftDueDates[draftBudget-1] === dueDate invariant).
   function syncLevelSelects() {
     const n = Math.max(1, Math.min(10, parseInt(budgetInput.value, 10) || 3));
-    const existing = [...$('levelSelects').querySelectorAll('select')].map((s) => s.value);
+    const existingLevels = [...$('levelSelects').querySelectorAll('select')].map((s) => s.value);
+    const existingDates  = [...$('levelSelects').querySelectorAll('input[type=date]')].map((i) => i.value);
     // default fade: full → … → questions → sounding-board
     $('levelSelects').innerHTML = Array.from({ length: n }, (_, i) => {
-      const def = existing[i] || (i >= n - 1 && n > 2 ? 'sounding-board' : i >= n - 2 && n > 1 ? 'questions' : 'full');
-      return `<select data-slot="${i}" title="Draft ${i + 1}">
-        ${Object.entries(LEVEL_LABEL).map(([v, l]) => `<option value="${v}"${v === def ? ' selected' : ''}>D${i + 1}: ${l}</option>`).join('')}
-      </select>`;
+      const isFinal = i === n - 1;
+      const def = existingLevels[i] || (i >= n - 1 && n > 2 ? 'sounding-board' : i >= n - 2 && n > 1 ? 'questions' : 'full');
+      return `<div class="draft-slot-row" data-slot="${i}">
+        <span class="draft-slot-label">${isFinal ? 'Final' : `Draft ${i + 1}`}</span>
+        <input type="date" class="draft-due-input" data-slot="${i}" value="${existingDates[i] || ''}" required>
+        <select class="draft-level-select" data-slot="${i}" title="${isFinal ? 'Final' : `Draft ${i + 1}`}">
+          ${Object.entries(LEVEL_LABEL).map(([v, l]) => `<option value="${v}"${v === def ? ' selected' : ''}>${l}</option>`).join('')}
+        </select>
+      </div>`;
     }).join('');
   }
   syncLevelSelects();
@@ -87,14 +101,21 @@ async function showOverview() {
   $('btnNewAssignment').onclick = () => form.classList.toggle('open');
   form.onsubmit = async (e) => {
     e.preventDefault();
+    const draftDueDates = [...$('levelSelects').querySelectorAll('.draft-due-input')].map((i) => i.value);
+    if (draftDueDates.some((d) => !d)) { alert('Set a due date for every draft.'); return; }
+    for (let i = 1; i < draftDueDates.length; i++) {
+      if (draftDueDates[i] < draftDueDates[i - 1]) { alert('Draft due dates must be in order — each draft due on or after the previous one.'); return; }
+    }
     await api('/api/assignments', {
       method: 'POST',
       body: {
         title: form.elements.title.value,
-        prompt: form.elements.prompt.value,
-        dueDate: form.elements.dueDate.value || null,
+        description: form.elements.description.value,
+        purpose: form.elements.purpose.value,
+        requirements: form.elements.requirements.value,
         draftBudget: parseInt(budgetInput.value, 10),
-        coachingLevels: [...$('levelSelects').querySelectorAll('select')].map((s) => s.value),
+        draftDueDates,
+        coachingLevels: [...$('levelSelects').querySelectorAll('.draft-level-select')].map((s) => s.value),
       },
     });
     showOverview();
@@ -229,8 +250,8 @@ async function showStudent(assignmentId, studentId) {
 
     if (submission) {
       html += `<div class="eyebrow">Your note to the student <span class="note-saved" id="noteSaved-${submission.id}"></span></div>
-        <textarea class="note-box" id="note-${submission.id}" rows="2" placeholder="Shown beside their snapshot — your read next to the auditor's.">${esc(submission.teacherNote || '')}</textarea>
-        <div style="margin-top:6px"><button data-save-note="${submission.id}">Save note</button></div>`;
+        <div class="field"><textarea id="note-${submission.id}" rows="2" placeholder="Shown beside their snapshot — your read next to the auditor's.">${esc(submission.teacherNote || '')}</textarea></div>
+        <div style="margin-top:6px"><button data-save-note="${submission.id}" class="btn btn-quiet btn-sm">Save note</button></div>`;
     }
 
     html += `<div class="eyebrow">Transcript${conversations.length !== 1 ? `s (${conversations.length} sessions)` : ''}</div>`;

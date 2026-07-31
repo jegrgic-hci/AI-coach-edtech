@@ -48,6 +48,11 @@
   --tau-ink-soft:  #545B63;
   --tau-ink-faint: #767D85;
 
+  /* Group-label colour for .eyebrow only. Faint reads as a grouping label on
+     a dark ground (dark theme keeps it) but washes out on white — light
+     theme needs ink-soft's extra weight to stay legible as a divider. */
+  --tau-ink-label: var(--tau-ink-soft);
+
   --tau-line:        oklch(0.895 0.008 162);
   --tau-line-strong: oklch(0.815 0.010 162);
 
@@ -91,6 +96,22 @@
    * --------------------------------------------------------------- */
   --tau-auditor:    oklch(0.42 0.09 300);
   --tau-auditor-bg: oklch(0.965 0.015 300);
+
+  /* ---------------------------------------------------------------
+   * 5a. TOOL-INFO — a second, distinct voice for the teacher dashboard.
+   * The auditor hue (300) is reserved for the Auditor persona's own
+   * evaluative voice and, on the teacher side, for a teacher's own
+   * quoted words (an assignment's rubric-style note) — see
+   * teacher-dashboard-design.md's Visual Language section. Once the
+   * dashboard needed to show the *tool's own* generated synthesis next
+   * to a teacher's quoted words on the same page, both being violet
+   * conflated two different speakers. This is that second voice: same
+   * lightness/chroma construction as the auditor token, hue 205 instead
+   * of 300 (reusing --tau-band-2's existing hue rather than inventing
+   * one from nothing).
+   * --------------------------------------------------------------- */
+  --tau-tool-info:    oklch(0.42 0.09 205);
+  --tau-tool-info-bg: oklch(0.965 0.015 205);
 
   /* ---------------------------------------------------------------
    * 5b. ORIGIN — where an idea in the essay came from.
@@ -245,6 +266,7 @@
     --tau-ink:       #E9EBEC;
     --tau-ink-soft:  #A2A9AE;
     --tau-ink-faint: #858C92;
+    --tau-ink-label: var(--tau-ink-faint);
 
     --tau-line:        #2D3134;
     --tau-line-strong: #3E4448;
@@ -265,6 +287,9 @@
     --tau-auditor:    oklch(0.80 0.09 300);
     --tau-auditor-bg: oklch(0.25 0.035 300);
 
+    --tau-tool-info:    oklch(0.80 0.09 205);
+    --tau-tool-info-bg: oklch(0.25 0.035 205);
+
     --tau-origin-you-bg:      oklch(0.27 0.035 162);
     --tau-origin-together-bg: oklch(0.25 0.022 162);
 
@@ -281,7 +306,7 @@
   color-scheme: dark;
   --tau-forest: #6FBF95; --tau-forest-lift: #8CD1AC; --tau-sage: #4F9973; --tau-on-forest: #12211A;
   --tau-bg: #16181A; --tau-surface: #1C1F21; --tau-surface-2: #232729; --tau-surface-3: #2D3134;
-  --tau-ink: #E9EBEC; --tau-ink-soft: #A2A9AE; --tau-ink-faint: #858C92;
+  --tau-ink: #E9EBEC; --tau-ink-soft: #A2A9AE; --tau-ink-faint: #858C92; --tau-ink-label: var(--tau-ink-faint);
   --tau-line: #2D3134; --tau-line-strong: #3E4448;
   --tau-band-1-bg: oklch(0.26 0.030 280); --tau-band-1-fg: oklch(0.82 0.070 280);
   --tau-band-2-bg: oklch(0.26 0.034 205); --tau-band-2-fg: oklch(0.85 0.075 205);
@@ -290,6 +315,7 @@
   --tau-positive: oklch(0.76 0.11 158); --tau-caution: oklch(0.79 0.11 72); --tau-attention: oklch(0.74 0.10 18);
   --tau-positive-bg: oklch(0.26 0.032 158); --tau-caution-bg: oklch(0.26 0.034 72); --tau-attention-bg: oklch(0.26 0.032 18);
   --tau-auditor: oklch(0.80 0.09 300); --tau-auditor-bg: oklch(0.25 0.035 300);
+  --tau-tool-info: oklch(0.80 0.09 205); --tau-tool-info-bg: oklch(0.25 0.035 205);
   --tau-origin-you-bg: oklch(0.27 0.035 162); --tau-origin-together-bg: oklch(0.25 0.022 162);
   --tau-meter-track: oklch(0.30 0.030 162);
   --tau-scrim: #00000099;
@@ -301,7 +327,7 @@
   color-scheme: light;
   --tau-forest: #1F4D3A; --tau-forest-lift: #2A6349; --tau-sage: #3D7A5A; --tau-on-forest: #FFFFFF;
   --tau-bg: oklch(0.992 0.006 162); --tau-surface: #FFFFFF; --tau-surface-2: oklch(0.968 0.008 162); --tau-surface-3: oklch(0.938 0.010 162);
-  --tau-ink: #16191C; --tau-ink-soft: #545B63; --tau-ink-faint: #767D85;
+  --tau-ink: #16191C; --tau-ink-soft: #545B63; --tau-ink-faint: #767D85; --tau-ink-label: var(--tau-ink-soft);
   --tau-line: oklch(0.895 0.008 162); --tau-line-strong: oklch(0.815 0.010 162);
   --tau-band-1-bg: oklch(0.951 0.018 280); --tau-band-1-fg: oklch(0.42 0.058 280);
   --tau-band-2-bg: oklch(0.953 0.022 205); --tau-band-2-fg: oklch(0.38 0.058 205);
@@ -310,6 +336,7 @@
   --tau-positive: oklch(0.50 0.10 158); --tau-caution: oklch(0.52 0.11 68); --tau-attention: oklch(0.48 0.10 18);
   --tau-positive-bg: oklch(0.96 0.022 158); --tau-caution-bg: oklch(0.96 0.024 72); --tau-attention-bg: oklch(0.96 0.022 18);
   --tau-auditor: oklch(0.42 0.09 300); --tau-auditor-bg: oklch(0.965 0.015 300);
+  --tau-tool-info: oklch(0.42 0.09 205); --tau-tool-info-bg: oklch(0.965 0.015 205);
   --tau-origin-you-bg: oklch(0.955 0.022 162); --tau-origin-together-bg: oklch(0.962 0.014 162);
   --tau-meter-track: oklch(0.945 0.020 162);
   --tau-scrim: #16191C66;

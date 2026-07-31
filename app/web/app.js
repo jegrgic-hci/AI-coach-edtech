@@ -490,6 +490,22 @@ const CARD_EDGE_CLASS = { soon: 'card-edge-caution', late: 'card-edge-attention'
 const CHEVRON_SVG = '<svg class="acard-disclosure-icon" viewBox="0 0 12 12" fill="none" aria-hidden="true">'
   + '<path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+// Three teacher-authored fields, shown as labeled sections rather than one
+// wall of text — matches how they're authored (separate fields) and read
+// (what/why/must-haves), not the single "prompt" blob this used to be.
+function assignmentBriefBody(a) {
+  const wrap = el('div', null);
+  const section = (label, text) => {
+    if (!text) return;
+    wrap.append(el('div', 'tray-section-label', label));
+    wrap.append(el('p', 'tray-section-body', text));
+  };
+  section('Description', a.description);
+  section('Purpose', a.purpose);
+  section('Requirements', a.requirements);
+  return wrap;
+}
+
 function currentCard(a) {
   // card-hero (the same lift/radius step as the report's score panel) is
   // reserved for the one surface per screen that's the actual takeaway — a
@@ -516,7 +532,7 @@ function currentCard(a) {
   rubricBtn.onclick = () => openTray({
     title: 'Assignment prompt & rubric',
     subtitle: a.title,
-    body: el('p', 'tray-section-body', a.prompt),
+    body: assignmentBriefBody(a),
   });
   titleRow.append(rubricBtn);
   top.append(titleRow);
@@ -631,7 +647,9 @@ async function openAssignment(id) {
 
   $('viewAssignments').classList.add('hidden');
   $('viewWorkspace').classList.remove('hidden');
-  $('wsPrompt').textContent = data.assignment.prompt;
+  const wsPrompt = $('wsPrompt');
+  wsPrompt.innerHTML = '';
+  wsPrompt.append(assignmentBriefBody(data.assignment));
 
   const mode = $('coachMode');
   mode.innerHTML = '';

@@ -4,11 +4,28 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Writing Coach — Teacher</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="components.css">
 <link rel="stylesheet" href="style.css">
 <script src="theme.js"></script>
 <style>
+/* Same layout as dashboard.html's bare header element — teacher.html has no
+   equivalent selector of its own, so .app-header was rendering unstyled
+   before this rule existed. */
+.app-header {
+  background: var(--tau-surface);
+  border-bottom: 1px solid var(--tau-line);
+  padding: 13px var(--tau-s6);
+  display: flex;
+  align-items: center;
+  gap: var(--tau-s3);
+  flex-shrink: 0;
+}
+.app-header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.2px; }
+
 .teacher-main { padding: 28px 32px; max-width: 1000px; margin: 0 auto; width: 100%; overflow-y: auto; }
 
 /* Chrome (background/border/radius/padding) comes from components.css's
@@ -16,14 +33,8 @@
 .panel-card { margin-bottom: 16px; }
 .panel-card h3 { margin-bottom: 10px; }
 
-.new-assignment-form { display: none; flex-direction: column; gap: 10px; margin-top: 14px; }
-.new-assignment-form.open { display: flex; }
-.new-assignment-form input, .new-assignment-form textarea, .new-assignment-form select {
-  font: inherit; border: 1px solid var(--tau-line); border-radius: 8px; padding: 8px 12px;
-}
-.form-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.form-row label { font-size: 13px; color: var(--tau-ink-soft); }
-.level-selects { display: flex; gap: 8px; flex-wrap: wrap; }
+/* .new-assignment-form/.form-row/.level-selects/.draft-slot-row* moved to
+   components.css — dashboard.html's new-assignment modal reuses them now. */
 
 /* Row chrome comes from components.css's .list-row/.list-row-name now — this
    only adds the separator rule between rows, the name's fixed width, and the
@@ -32,11 +43,16 @@
 .roster-row { border-top: 1px solid var(--tau-line); }
 .list-row:hover .list-row-name { color: var(--tau-forest); }
 .list-row-name { min-width: 140px; }
-/* One colour pairing (forest-on-neutral) that doesn't match any of
-   components.css's five .chip-* variants — shape/padding still come from
-   .chip. .flagged/.pending now reuse .chip-caution/.chip-grey directly. */
-.cycle-chip { background: var(--tau-surface-2); color: var(--tau-forest); }
-.active-dot { font-size: 12px; color: var(--tau-positive); }
+/* Plain text, not a chip — added 2026-07-29. A completed, unflagged draft
+   cycle is the common case in this row, not the exception, and it isn't
+   actionable; enclosing it the same as the (rare, actionable) flagged cycle
+   meant every roster row showed 2-3 equally salient pills with only one of
+   them worth a look. See designsystem.md's salience-budget rule: enclosure
+   is reserved for values that are both actionable and rare. Only the
+   flagged branch (teacher.js) still gets real chip chrome. */
+.cycle-label { font-size: var(--tau-text-xs); font-weight: 600; color: var(--tau-forest); }
+.cycle-label-pending { color: var(--tau-ink-soft); font-weight: 400; }
+.active-note { font-size: 12px; color: var(--tau-positive); }
 
 /* student detail */
 .traj-strip { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
@@ -65,7 +81,6 @@
 /* The transcript itself is components.css's .turn/.msg/.turn-student/
    .turn-coach/.turn-auditor/.msg-superseded now — see teacher.js. */
 .t-event { font-size: 12px; color: var(--tau-caution); background: var(--tau-caution-bg); border-radius: 6px; padding: 3px 10px; margin: 6px 0; display: inline-block; }
-.note-box { width: 100%; font: inherit; border: 1px solid var(--tau-line); border-radius: 8px; padding: 8px 12px; resize: vertical; }
 .note-saved { font-size: 12px; color: var(--tau-positive); margin-left: 8px; }
 /* Layout tweak only — text/colour/weight come from components.css's
    .eyebrow now (was its own near-identical uppercase micro-label). */
@@ -77,7 +92,7 @@
 <div id="viewOverview" class="view">
   <header class="app-header">
     <h1>Writing Coach</h1>
-    <span class="chip chip-caution">Teacher</span>
+    <span class="chip chip-neutral">Teacher</span>
     <span class="visibility-cue">Signals are conversation-starters, never verdicts</span>
     <div class="account-chip" id="accountChip"></div>
     <button class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
@@ -87,9 +102,9 @@
 
 <div id="viewStudent" class="view hidden">
   <header class="app-header">
-    <button class="back-btn" id="btnBackOverview">&larr; All assignments</button>
+    <button class="btn btn-quiet btn-sm" id="btnBackOverview">&larr; All assignments</button>
     <h1 id="studentTitle"></h1>
-    <span class="chip chip-caution">Teacher</span>
+    <span class="chip chip-neutral">Teacher</span>
     <button class="theme-toggle theme-toggle-end" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
   </header>
   <main class="teacher-main" id="studentBody"></main>

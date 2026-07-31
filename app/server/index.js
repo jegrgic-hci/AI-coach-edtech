@@ -6,11 +6,12 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { col } = require('./store');
-const { authenticate, login, logout, sessionCookie, clearedCookie, tokenFrom } = require('./auth');
+const { authenticate, login, logout, sessionCookie, clearedCookie, tokenFrom, setPassword } = require('./auth');
 const { streamChat, MAX_EVAL_TOKENS } = require('./llm');
 const { LEVELS, coachMessages, auditorMessages } = require('./coach');
 const { runAnalysis } = require('./analysis');
 const { seed } = require('./seed');
+const { DEV_PASSWORD } = require('./seed-data');
 
 const PORT = process.env.PORT || 8787;
 const WEB_DIR = path.join(__dirname, '..', 'web');
@@ -67,6 +68,17 @@ function sessionFor(conversation) {
 
 function assignmentFor(session) {
   return col('assignments').get(session.assignmentId);
+}
+
+// Composes the three teacher-authored fields into the one string the
+// blank-context coach/auditor see as "the assignment" — labeled so the model
+// gets the what/why/must-haves distinction, not a single run-on paragraph.
+function assignmentBrief(a) {
+  return [
+    a.description ? `What the task is:\n${a.description}` : '',
+    a.purpose ? `Why this matters:\n${a.purpose}` : '',
+    a.requirements ? `Requirements:\n${a.requirements}` : '',
+  ].filter(Boolean).join('\n\n');
 }
 
 // ---------- SSE coach/auditor streaming ----------
@@ -241,7 +253,9 @@ async function handleApi(req, res, user, route) {
         current.push({
           id: a.id,
           title: a.title,
-          prompt: a.prompt,
+          description: a.description,
+          purpose: a.purpose,
+          requirements: a.requirements,
           dueDate: a.dueDate,
           draftDueDates: a.draftDueDates,
           draftBudget: a.draftBudget,
@@ -274,7 +288,9 @@ async function handleApi(req, res, user, route) {
       return {
         id: a.id,
         title: a.title,
-        prompt: a.prompt,
+        description: a.description,
+        purpose: a.purpose,
+        requirements: a.requirements,
         dueDate: a.dueDate,
         draftBudget: a.draftBudget,
         draftsUsed: submissions.length,
@@ -407,7 +423,7 @@ async function handleApi(req, res, user, route) {
       });
 
       const turns = liveTurns(conversationTurns(conversation.id));
-      const messages = coachMessages({ level: session.coachingLevel, assignmentPrompt: assignment.prompt, turns });
+      const messages = coachMessages({ level: session.coachingLevel, assignmentPrompt: assignmentBrief(assignment), turns });
       return streamReply({
         res, user, conversation, messages,
         role: 'coach',
@@ -425,7 +441,7 @@ async function handleApi(req, res, user, route) {
       logEvent(user, { type: 'regenerate', sessionId: session.id, conversationId: conversation.id, meta: { turnId: last.id } });
 
       const context = turns.slice(0, -1);
-      const messages = coachMessages({ level: session.coachingLevel, assignmentPrompt: assignment.prompt, turns: context });
+      const messages = coachMessages({ level: session.coachingLevel, assignmentPrompt: assignmentBrief(assignment), turns: context });
       return streamReply({
         res, user, conversation, messages,
         role: 'coach',
@@ -439,7 +455,7 @@ async function handleApi(req, res, user, route) {
     if (req.method === 'POST' && seg3 === 'evaluate') {
       logEvent(user, { type: 'evaluate', sessionId: session.id, conversationId: conversation.id });
       const turns = liveTurns(conversationTurns(conversation.id));
-      const messages = auditorMessages({ assignmentPrompt: assignment.prompt, turns });
+      const messages = auditorMessages({ assignmentPrompt: assignmentBrief(assignment), turns });
       return streamReply({
         res, user, conversation, messages,
         role: 'auditor',
@@ -564,7 +580,7 @@ async function handleApi(req, res, user, route) {
 
   // ---------- teacher routes ----------
 
-  if (seg1 === 'teacher' || (req.method === 'POST' && seg1 === 'assignments' && (!seg2 || seg3 === 'note')) || (req.method === 'POST' && seg1 === 'submissions' && seg3 === 'note')) {
+  if (seg1 === 'teacher' || (req.method === 'POST' && seg1 === 'assignments' && (!seg2 || seg3 === 'note' || seg3 === 'edit')) || (req.method === 'POST' && seg1 === 'submissions' && seg3 === 'note') || (req.method === 'POST' && seg1 === 'classes')) {
     if (user.role !== 'teacher') return json(res, 403, { error: 'teacher only' });
   }
 
@@ -572,24 +588,171 @@ async function handleApi(req, res, user, route) {
   if (req.method === 'POST' && seg1 === 'assignments' && !seg2) {
     const body = await readBody(req);
     const title = String(body.title || '').trim();
-    const prompt = String(body.prompt || '').trim();
+    const description = String(body.description || '').trim();
+    const purpose = String(body.purpose || '').trim();
+    const requirements = String(body.requirements || '').trim();
     const draftBudget = Math.max(1, Math.min(10, parseInt(body.draftBudget, 10) || 3));
     const valid = new Set(Object.keys(LEVELS));
     const coachingLevels = (Array.isArray(body.coachingLevels) ? body.coachingLevels : [])
       .filter((l) => valid.has(l))
       .slice(0, draftBudget);
-    if (!title || !prompt) return json(res, 400, { error: 'title and prompt required' });
+    if (!title || !description || !purpose || !requirements) {
+      return json(res, 400, { error: 'title, description, purpose, and requirements are required' });
+    }
     if (coachingLevels.length !== draftBudget) return json(res, 400, { error: 'one coaching level per draft slot required' });
+    // No class picker in the creation form yet — an assignment with no
+    // classIds sent defaults to every class this teacher has, so existing
+    // creation flow behaves the same as before classes existed.
+    const allClassIds = col('classes').list((c) => c.teacherId === user.id).map((c) => c.id);
+    const classIds = Array.isArray(body.classIds) && body.classIds.length ? body.classIds : allClassIds;
+    // One due date per draft slot, ascending — the last IS the assignment's
+    // due date (see store.js's schema comment on draftDueDates).
+    const draftDueDates = (Array.isArray(body.draftDueDates) ? body.draftDueDates : []).slice(0, draftBudget);
+    if (draftDueDates.length !== draftBudget || draftDueDates.some((d) => !d || Number.isNaN(new Date(d).getTime()))) {
+      return json(res, 400, { error: 'one due date per draft slot required' });
+    }
+    for (let i = 1; i < draftDueDates.length; i++) {
+      if (new Date(draftDueDates[i]) < new Date(draftDueDates[i - 1])) {
+        return json(res, 400, { error: 'draft due dates must be in ascending order' });
+      }
+    }
     const assignment = col('assignments').add({
       teacherId: user.id,
+      classIds,
       title,
-      prompt,
-      dueDate: body.dueDate || null,
+      description,
+      purpose,
+      requirements,
+      dueDate: draftDueDates[draftDueDates.length - 1],
       draftBudget,
+      draftDueDates,
       coachingLevels,
       createdAt: now(),
     });
     return json(res, 200, assignment);
+  }
+
+  // POST /api/assignments/:id/edit — update an existing assignment (teacher).
+  // Same shape/validation as creation, since the Edit modal reuses that same
+  // form pre-filled. One extra guard creation doesn't need: draftBudget
+  // can't shrink below a student's already-reached checkpoint — cycleIndex
+  // assumes drafts only ever grow out from under existing submissions, not
+  // shrink.
+  if (req.method === 'POST' && seg1 === 'assignments' && seg3 === 'edit') {
+    const assignment = col('assignments').get(seg2);
+    if (!assignment) return json(res, 404, { error: 'assignment not found' });
+    const body = await readBody(req);
+    const title = String(body.title || '').trim();
+    const description = String(body.description || '').trim();
+    const purpose = String(body.purpose || '').trim();
+    const requirements = String(body.requirements || '').trim();
+    const draftBudget = Math.max(1, Math.min(10, parseInt(body.draftBudget, 10) || 3));
+    const valid = new Set(Object.keys(LEVELS));
+    const coachingLevels = (Array.isArray(body.coachingLevels) ? body.coachingLevels : [])
+      .filter((l) => valid.has(l))
+      .slice(0, draftBudget);
+    if (!title || !description || !purpose || !requirements) {
+      return json(res, 400, { error: 'title, description, purpose, and requirements are required' });
+    }
+    if (coachingLevels.length !== draftBudget) return json(res, 400, { error: 'one coaching level per draft slot required' });
+    const draftDueDates = (Array.isArray(body.draftDueDates) ? body.draftDueDates : []).slice(0, draftBudget);
+    if (draftDueDates.length !== draftBudget || draftDueDates.some((d) => !d || Number.isNaN(new Date(d).getTime()))) {
+      return json(res, 400, { error: 'one due date per draft slot required' });
+    }
+    for (let i = 1; i < draftDueDates.length; i++) {
+      if (new Date(draftDueDates[i]) < new Date(draftDueDates[i - 1])) {
+        return json(res, 400, { error: 'draft due dates must be in ascending order' });
+      }
+    }
+    const maxCycle = col('submissions')
+      .list((s) => s.assignmentId === assignment.id)
+      .reduce((max, s) => Math.max(max, s.cycleIndex), -1);
+    if (draftBudget <= maxCycle) {
+      return json(res, 400, { error: `can't reduce draft budget below ${maxCycle + 1} — a student has already submitted that many drafts` });
+    }
+    const classIds = Array.isArray(body.classIds) && body.classIds.length ? body.classIds : assignment.classIds;
+    const noteChanged = typeof body.teacherNote === 'string' && body.teacherNote.trim() !== (assignment.teacherNote || '');
+    col('assignments').update(assignment.id, {
+      title, description, purpose, requirements, classIds,
+      dueDate: draftDueDates[draftDueDates.length - 1],
+      draftBudget, draftDueDates, coachingLevels,
+      teacherNote: typeof body.teacherNote === 'string' ? body.teacherNote.trim().slice(0, 2000) : (assignment.teacherNote || ''),
+      teacherNoteAt: noteChanged ? now() : assignment.teacherNoteAt,
+    });
+    return json(res, 200, col('assignments').get(assignment.id));
+  }
+
+  // POST /api/classes — create a class (teacher). First half of "teacher
+  // creates a class, adds students" — manual roster management for now,
+  // ahead of the documented Google SSO plan (see auth.js's own header
+  // comment for why this POC still has a password path at all).
+  if (req.method === 'POST' && seg1 === 'classes' && !seg2) {
+    const body = await readBody(req);
+    const name = String(body.name || '').trim();
+    if (!name) return json(res, 400, { error: 'class name is required' });
+    const classDoc = col('classes').add({
+      teacherId: user.id,
+      name,
+      studentIds: [],
+      createdAt: now(),
+    });
+    return json(res, 200, classDoc);
+  }
+
+  // POST /api/classes/:id/students — add or remove a student on this
+  // class's roster. Two shapes on one route rather than a second URL: the
+  // minimal router here only destructures three path segments
+  // (`seg1/seg2/seg3`, see that declaration above), so a fourth segment for
+  // a student id on a DELETE-style route isn't reachable without extending
+  // that — branching on the body is simpler than widening the router for
+  // one route.
+  //   { email, displayName } → add. Finds an existing student account by
+  //     email, or provisions a new one. New accounts get the same shared
+  //     dev password every seeded account already uses (`DEV_PASSWORD`) —
+  //     there's no email delivery in this POC to hand a generated one to,
+  //     and no self-serve signup yet; real per-student passwords go away
+  //     entirely once Google SSO lands, per auth.js's own plan.
+  //   { studentId, remove: true } → remove from this class's roster only —
+  //     the account itself isn't deleted, since the student may belong to
+  //     another class.
+  if (req.method === 'POST' && seg1 === 'classes' && seg3 === 'students') {
+    const classDoc = col('classes').get(seg2);
+    if (!classDoc) return json(res, 404, { error: 'class not found' });
+    if (classDoc.teacherId !== user.id) return json(res, 403, { error: 'not your class' });
+    const body = await readBody(req);
+
+    if (body.remove) {
+      const studentIds = (classDoc.studentIds || []).filter((id) => id !== body.studentId);
+      col('classes').update(classDoc.id, { studentIds });
+      return json(res, 200, col('classes').get(classDoc.id));
+    }
+
+    const email = String(body.email || '').trim().toLowerCase();
+    const displayName = String(body.displayName || '').trim();
+    if (!email || !email.includes('@')) return json(res, 400, { error: 'a valid email is required' });
+
+    let student = col('users').list((u) => u.email.toLowerCase() === email)[0];
+    if (student && student.role !== 'student') {
+      return json(res, 400, { error: 'that email belongs to a non-student account' });
+    }
+    if (!student) {
+      if (!displayName) return json(res, 400, { error: 'name is required for a new student' });
+      student = col('users').add({ email, displayName, role: 'student', createdAt: now() });
+      setPassword(student, DEV_PASSWORD);
+    }
+
+    const studentIds = classDoc.studentIds || [];
+    if (!studentIds.includes(student.id)) {
+      col('classes').update(classDoc.id, { studentIds: [...studentIds, student.id] });
+    }
+    // Never the raw user doc past this point — passwordHash/passwordSalt
+    // have no business leaving the server, same sanitization /api/me and
+    // every other user-returning route already applies.
+    const savedStudent = col('users').get(student.id);
+    return json(res, 200, {
+      class: col('classes').get(classDoc.id),
+      student: { id: savedStudent.id, email: savedStudent.email, displayName: savedStudent.displayName },
+    });
   }
 
   // POST /api/assignments/:id/note — set or clear the assignment-wide
@@ -611,12 +774,28 @@ async function handleApi(req, res, user, route) {
   // { assignments, students, classes, submissions }
   if (req.method === 'GET' && seg1 === 'teacher' && seg2 === 'dashboard') {
     const students = col('users').list((u) => u.role === 'student');
+    const classes = col('classes').list();
+    // An assignment seeded/created before classes existed (or omitted at
+    // creation) has no classIds — treat it as visible to every class rather
+    // than to none, so it doesn't silently vanish from the dashboard.
+    const allClassIds = classes.map((c) => c.id);
     const assignments = col('assignments').list().map((a) => ({
       id: a.id,
       name: a.title,
       due: a.dueDate || new Date(new Date(a.createdAt).getTime() + 14 * 86400000).toISOString(),
       status: a.dueDate && new Date(a.dueDate) < new Date() ? 'closed' : 'open',
       draftBudget: a.draftBudget,
+      draftDueDates: a.draftDueDates || null,
+      classIds: a.classIds && a.classIds.length ? a.classIds : allClassIds,
+      // The assignment's own goal — shown to the coach every session
+      // (description/purpose/requirements) and a whole-class rubric-style
+      // reminder (teacherNote, distinct from a per-submission teacherNote).
+      // Neither was ever sent to the teacher dashboard before the Assignment
+      // Detail timeline redesign; both already existed on the assignment record.
+      description: a.description || null,
+      purpose: a.purpose || null,
+      requirements: a.requirements || null,
+      teacherNote: a.teacherNote || null,
     }));
 
     const submissions = {};
@@ -628,15 +807,37 @@ async function handleApi(req, res, user, route) {
           .map((sub) => {
             const analysis = sub.analysisId ? col('analyses').get(sub.analysisId) : null;
             const done = analysis?.status === 'complete';
+            // One session per (student, assignment, cycleIndex) under the
+            // current model (a draft's active session is reused, never
+            // duplicated — see store.js), but a student can open more than
+            // one *conversation* inside that same session (a "new chat"
+            // without submitting). Conversation count is the real proxy for
+            // "did they restart with a fresh context instead of extending
+            // one long thread" — feeds the Assignment Detail timeline's
+            // per-draft usage note.
+            const session = col('sessions').list(
+              (se) => se.assignmentId === a.id && se.studentId === s.id && se.cycleIndex === sub.cycleIndex
+            )[0];
+            const conversationCount = session
+              ? col('conversations').list((c) => c.sessionId === session.id).length
+              : 0;
             return {
               id: sub.id,
               ts: sub.submittedAt,
+              cycleIndex: sub.cycleIndex,
               pq: done ? analysis.tau.PQ : 0,
               su: done ? analysis.tau.SU : 0,
               cs: done ? analysis.tau.CS : 0,
               oc: done ? analysis.tau.OC : 0,
               analysisStatus: analysis?.status || 'missing',
               coachingLevel: analysis?.coachingLevel || null,
+              conversationCount,
+              // Per-submission origin mix (student-born/synthesized/ai-born
+              // counts) — already computed for OC scoring, never surfaced
+              // before now. Feeds the assignment-level provenance aggregate
+              // in dashboard.html; null when provenance tracing didn't run
+              // (regex-fallback path has no provenance data).
+              provenance: done ? (analysis.tau.provenanceCounts || null) : null,
               ...(done && analysis.flags?.length ? { integrityFlags: analysis.flags.map((f) => f.flag) } : {}),
             };
           });
@@ -648,11 +849,10 @@ async function handleApi(req, res, user, route) {
       students: students.map((s) => ({
         id: s.id,
         name: s.displayName,
+        email: s.email,
         initials: s.displayName.split(' ').map((p) => p[0]).join(''),
       })),
-      // Classes aren't in the data model yet (pilot = one class); synthesize
-      // a single class so the dashboard's class layer works unchanged.
-      classes: [{ id: 'class-1', name: 'My Class', studentIds: students.map((s) => s.id) }],
+      classes: classes.map((c) => ({ id: c.id, name: c.name, studentIds: c.studentIds })),
       submissions,
     });
   }

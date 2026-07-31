@@ -37,7 +37,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: var(--tau-track-label);
-  color: var(--tau-ink-faint);
+  color: var(--tau-ink-label);
 }
 
 /* ---------- 2. theme toggle ---------- */
@@ -211,6 +211,15 @@ details[open] > .acard-disclosure-toggle {
 .band-3 { background: var(--tau-band-3-bg); color: var(--tau-band-3-fg); }
 .band-4 { background: var(--tau-band-4-bg); color: var(--tau-band-4-fg); }
 .band-sub { font-size: var(--tau-text-sm); color: var(--tau-ink-faint); }
+
+/* Quiet variant — added 2026-07-29. Same colour + pip as .band-1..4, no chip
+   chrome (fill/inset border). For a dense row (dashboard roster) that
+   already carries a genuine actionable chip beside it — a SAMR band is
+   classification, not something to act on, and giving it the same filled-
+   pill weight as a real alert is what buried the alert in the first place.
+   The pip still carries the colour for at-a-glance scanning; only the
+   background/box-shadow that made it read as equally salient is dropped. */
+.band-plain { background: none; box-shadow: none; padding: 0; }
 
 /* Same SAMR ramp as .band-1..4 above, applied as a border-left accent instead
    of a filled pill — for surfaces that want the level to read as a stripe on
@@ -526,6 +535,18 @@ details[open] > .acard-disclosure-toggle {
 .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--tau-forest); }
 .field-help { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); }
 
+/* New-assignment form — shared by teacher.html's inline panel and
+   dashboard.html's modal (two consumers as of the dashboard modal; moved
+   here from a teacher.html-local rule rather than duplicated). */
+.new-assignment-form { display: flex; flex-direction: column; gap: 10px; }
+.new-assignment-form.new-assignment-form-collapsible { display: none; margin-top: 14px; }
+.new-assignment-form.new-assignment-form-collapsible.open { display: flex; }
+.form-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.form-row label { font-size: 13px; color: var(--tau-ink-soft); }
+.level-selects { display: flex; flex-direction: column; gap: 6px; }
+.draft-slot-row { display: flex; align-items: center; gap: 8px; }
+.draft-slot-label { font-size: 13px; color: var(--tau-ink-soft); width: 52px; flex-shrink: 0; }
+
 .scrim {
   position: fixed;
   inset: 0;
@@ -616,6 +637,9 @@ details[open] > .acard-disclosure-toggle {
 /* The one colour a behavioural "worth a chat" signal is ever allowed —
    never --tau-attention, which is reserved for a real deadline problem. */
 .dot-caution { color: var(--tau-caution); }
+/* The real deadline problem itself — a closed assignment with a student who
+   never submitted. Never used for a behavioural signal; see .dot-caution. */
+.dot-attention { color: var(--tau-attention); }
 
 /* Label/value pair in a tinted, bordered box — a count with what it counts.
    Colour is set by the consumer via style or a chip-* class reused here for
@@ -732,6 +756,17 @@ details[open] > .acard-disclosure-toggle {
 }
 .list-row-action { font-size: var(--tau-text-xs); color: var(--tau-forest); font-weight: 600; flex-shrink: 0; }
 
+/* Bordered/surfaced variant — three near-identical bordered rows on
+   dashboard.html (class drill, assignment summary, submission rows) had
+   reinvented this exact chrome independently before this modifier existed. */
+.list-row-boxed {
+  background: var(--tau-surface);
+  border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-sm);
+  margin-bottom: 6px;
+}
+.list-row-boxed:last-child { margin-bottom: 0; }
+
 /* ---------- 12. global nav ---------- */
 
 /* The one element that's the same on every student screen — index.html's
@@ -760,18 +795,11 @@ details[open] > .acard-disclosure-toggle {
   color: var(--tau-ink);
   flex-shrink: 0;
 }
-.tau-nav-glyph {
-  width: 24px;
-  height: 24px;
-  border-radius: var(--tau-r-sm);
-  background: var(--tau-forest);
-  color: var(--tau-on-forest);
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-  font-weight: 800;
-  font-family: var(--tau-font-mono);
+.tau-nav-logo {
+  height: 22px;
+  width: auto;
   flex-shrink: 0;
+  display: block;
 }
 
 /* Root and mid segments are plain or clickable; the current segment is the
