@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"Project skill available: .claude/skills/product-design-review/SKILL.md — apply it to ANY UI, form, modal, layout, or screen work in this session, not only when explicitly asked for a design review. Lens sequence: information architecture/labeling -> content design -> interaction/UX -> visual design, each citing a source. Also run the two standing checks every time: (1) does every label name the content itself rather than pose a question or describe a system behavior, and (2) is anything required being hidden or collapsed just because it has a computed default.\"}}'"
+          }
+        ]
+      }
+    ]
+  }
+}

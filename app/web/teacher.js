@@ -23,24 +23,8 @@ async function showOverview() {
     <div class="card-lg panel-card">
       <h3 style="display:flex;justify-content:space-between;align-items:center">
         Assignments
-        <button id="btnNewAssignment" class="btn btn-quiet btn-sm">+ New assignment</button>
+        <a href="/dashboard.html" class="btn btn-quiet btn-sm">+ New assignment — in the dashboard</a>
       </h3>
-      <form class="new-assignment-form new-assignment-form-collapsible field" id="newAssignmentForm">
-        <input name="title" placeholder="Title" required>
-        <textarea name="description" rows="3" placeholder="Description — what the task is" required></textarea>
-        <textarea name="purpose" rows="2" placeholder="Purpose — why this matters, what skill it builds" required></textarea>
-        <textarea name="requirements" rows="3" placeholder="Requirements — length, format, sources, what must be included" required></textarea>
-        <div class="form-row">
-          <label>Draft budget <input type="number" name="draftBudget" value="3" min="1" max="10" style="width:60px"></label>
-        </div>
-        <div class="form-row">
-          <label>Due date &amp; coaching per draft — the last row's date is the assignment's final due date:</label>
-          <div class="level-selects" id="levelSelects"></div>
-        </div>
-        <div class="form-row">
-          <button type="submit" class="btn btn-primary">Create assignment</button>
-        </div>
-      </form>
     </div>
     <div id="assignmentCards"></div>`;
 
@@ -70,56 +54,6 @@ async function showOverview() {
   document.querySelectorAll('.roster-row').forEach((row) => {
     row.onclick = () => showStudent(row.dataset.assignment, row.dataset.student);
   });
-
-  // new-assignment form wiring
-  const form = $('newAssignmentForm');
-  const budgetInput = form.elements.draftBudget;
-  // Each draft is its own checkpoint with its own due date — drafts are
-  // submitted in strict sequence (app.js gates the next until the current is
-  // in), so the slot order here IS the order students will move through.
-  // The last slot's due date doubles as the assignment's overall due date
-  // (store.js's draftDueDates[draftBudget-1] === dueDate invariant).
-  function syncLevelSelects() {
-    const n = Math.max(1, Math.min(10, parseInt(budgetInput.value, 10) || 3));
-    const existingLevels = [...$('levelSelects').querySelectorAll('select')].map((s) => s.value);
-    const existingDates  = [...$('levelSelects').querySelectorAll('input[type=date]')].map((i) => i.value);
-    // default fade: full → … → questions → sounding-board
-    $('levelSelects').innerHTML = Array.from({ length: n }, (_, i) => {
-      const isFinal = i === n - 1;
-      const def = existingLevels[i] || (i >= n - 1 && n > 2 ? 'sounding-board' : i >= n - 2 && n > 1 ? 'questions' : 'full');
-      return `<div class="draft-slot-row" data-slot="${i}">
-        <span class="draft-slot-label">${isFinal ? 'Final' : `Draft ${i + 1}`}</span>
-        <input type="date" class="draft-due-input" data-slot="${i}" value="${existingDates[i] || ''}" required>
-        <select class="draft-level-select" data-slot="${i}" title="${isFinal ? 'Final' : `Draft ${i + 1}`}">
-          ${Object.entries(LEVEL_LABEL).map(([v, l]) => `<option value="${v}"${v === def ? ' selected' : ''}>${l}</option>`).join('')}
-        </select>
-      </div>`;
-    }).join('');
-  }
-  syncLevelSelects();
-  budgetInput.oninput = syncLevelSelects;
-  $('btnNewAssignment').onclick = () => form.classList.toggle('open');
-  form.onsubmit = async (e) => {
-    e.preventDefault();
-    const draftDueDates = [...$('levelSelects').querySelectorAll('.draft-due-input')].map((i) => i.value);
-    if (draftDueDates.some((d) => !d)) { alert('Set a due date for every draft.'); return; }
-    for (let i = 1; i < draftDueDates.length; i++) {
-      if (draftDueDates[i] < draftDueDates[i - 1]) { alert('Draft due dates must be in order — each draft due on or after the previous one.'); return; }
-    }
-    await api('/api/assignments', {
-      method: 'POST',
-      body: {
-        title: form.elements.title.value,
-        description: form.elements.description.value,
-        purpose: form.elements.purpose.value,
-        requirements: form.elements.requirements.value,
-        draftBudget: parseInt(budgetInput.value, 10),
-        draftDueDates,
-        coachingLevels: [...$('levelSelects').querySelectorAll('.draft-level-select')].map((s) => s.value),
-      },
-    });
-    showOverview();
-  };
 }
 
 // ---------- student detail ----------

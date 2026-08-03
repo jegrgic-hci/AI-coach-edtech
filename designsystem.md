@@ -33,6 +33,63 @@ invisible to every check except a screenshot.
 
 ---
 
+## Hard Constraints — check every UI decision against this list before implementing
+
+Flat, checkable, no rationale mixed in (rationale for each lives in *Locked decisions* and *Rules
+that constrain design choices* below — cite the matching rule there, don't just cite this list).
+**If a decision isn't traceable to a line here or in those two sections, it's a gap in the system,
+not licence to improvise — say so and ask, don't invent.**
+
+- **MUST** default every page/artifact to light theme, unconditionally. `data-theme="light"` lives
+  in the markup itself, not set by script. **NEVER** add a bare `@media (prefers-color-scheme:
+  dark)` block that overrides `:root` — dark only applies under an explicit `data-theme="dark"`
+  the viewer chose via the toggle, never inherited from the OS.
+- **NEVER** add a sparkline, trend line, or mini line-chart as decoration. A trend value defaults
+  to plain text ("+2 since draft 2") unless a chart there was explicitly requested.
+- Scores display as **1–5 per dimension, 4–20 total. Never a percentage.**
+- Dimension names are fixed: **Prompting Quality, Selective Use, Calibrated Skepticism, Original
+  Contribution.** No synonyms, no rewording per surface.
+- **SAMR is a subtitle, never the primary label.**
+- **Semantic colour (positive/caution/attention) never touches a student's own score.** A level is
+  a position on a path, not a verdict.
+- Forest has exactly **six jobs** (interactive text, primary fills, meter fills, system-message
+  rule, light-theme ground wash, score numerals) **and no others** — no forest-tinted surface fill
+  beyond `--tau-meter-track`. **Sage is fill-only**, never text.
+- **`--tau-tool-info` (blue) is a voice, not a severity tier** — it marks the tool explaining
+  itself (context, synthesis, "here's what you're looking at and why"), orthogonal to the
+  attention/caution/positive/taxonomic hierarchy. **Teacher-role surfaces only** (`dashboard.html`,
+  `teacher.html`) — never on a page a student sees. The moment what it's narrating collapses into
+  an actual tier-worthy fact, that instance takes the matching tier colour instead — tool-info
+  never sits underneath a red or amber finding pretending to be neutral.
+- **Colour is never the only channel** — pair with shape, weight, dash, or text.
+- SAMR band foregrounds step down in lightness 1→4 — **never reorder.**
+- **Alert-tier colour (attention/caution) on a chip must match what the label text itself states.**
+  Never carry an alert through colour alone on a descriptive/positional/taxonomic label.
+- **A surface carries a severity signal exactly once.** If a chip already states "late," the row
+  background doesn't also turn red for it.
+- **A dot is only used when no adjacent text or icon already states the same fact.**
+- **Chip/badge/pill enclosure only when BOTH actionable AND rare in that context.** Otherwise use
+  colour, weight, or an icon — never a filled boundary. "Matches existing chip styling" is not
+  itself a reason to enclose a new value.
+- **Every card/table section meant to be scanned (not read top-to-bottom) gets an `.eyebrow`
+  label**, unless a title one size up already names the group.
+- **Voice is coach, not judge.** No "AI-generated content detected," no "risk" vocabulary, no
+  verdicts. Integrity flags are conversation-starters, teacher-only, **never shown in student
+  view**, no red, no alert iconography.
+- **Origin encoding (idea provenance) is authorship, never quality** — no good-bad colour ramp.
+- **A page sheet may lay a shared component out (margins, grid position); it may never redefine
+  its chrome** (background/border/radius/padding/shadow). If a component doesn't fit, change the
+  component in `components.css` or add a modifier there — not a local override.
+- **`--tau-target: 44px` is a real minimum, not advisory.**
+- **Motion:** `transform`/`opacity` only for movement, never `top`/`left`/`width`/`height`.
+  `--tau-dur-short` + `-standard` easing for state changes (hover/press/toggle); `--tau-dur-medium`
+  + `-decelerate`/`-accelerate` for anything that moves or resizes.
+- **`index.html` is never touched.** All work is `app/` only — revertibility guarantee.
+- Placement: a **value** → `tokens.css`. A **concept rendered on 2+ surfaces** → `components.css`
+  as an atom/molecule. **Layout only, single-surface** → the page's own sheet.
+
+---
+
 ## Source of truth
 
 | Artifact | What it holds |
@@ -160,6 +217,14 @@ second modal (`#dt-modal-overlay`/`#dt-modal`, the drill-through turn-detail pop
 `#turnModal`). `dashboard.html` was already deferred in the session-6 log for being out of scope;
 this doesn't relitigate that.
 
+**Closed 2026-07-28 (see Session log)** — `dashboard.html`'s and `teacher.html`'s chip/roster-row/
+modal duplication audited and largely deduped: a `.list-row-boxed` modifier absorbed the three
+bordered-row reinventions, the flag-explainer modal now composes `.tray-*` instead of a byte-for-
+byte copy, `.stu-chip`/`.chip-dd-btn` and `.arc-badge`/`.reflect-type-badge` merged, `.eyebrow`
+adopted in place of nine local micro-label reinventions, and the button/field vocabularies
+unified onto `.btn`/`.field`. `report.css`'s second modal remains untouched — out of scope for
+that session, not relitigated here either.
+
 ---
 
 ## Locked decisions
@@ -184,6 +249,206 @@ Settled. Don't relitigate without a reason that's changed.
 
 ## Rules that constrain design choices
 
+### Colour hierarchy — added 2026-07-29
+Four tiers, never mixed. Everything below is a name for a hierarchy the token
+set already implied; this session made it explicit and fixed the one place
+implementation had drifted from it.
+
+| Tier | Token | Carries | Never carries |
+|---|---|---|---|
+| **Attention (red)** | `--tau-attention` | Administrative fact only: overdue/missing checkpoint. A binary "past due" state, same register as any app's overdue-invoice red. | Integrity signals, behavioural patterns, or any student score — see *Score display* and the origin-encoding rule below. |
+| **Caution (amber)** | `--tau-caution` | "Worth a chat": integrity flags *and* behavioural patterns, deliberately one shared tier so neither escalates past the other. | Never promoted to red — that would turn a conversation-starter into a verdict, the exact thing the voice rules forbid. |
+| **Positive (green)** | `--tau-positive` | On-track state, final/complete status, positive score change. | — |
+| **Taxonomic (band hues 280/205/242/162)** | `--tau-band-N-fg/bg` | SAMR level, origin chips. Non-evaluative by construction — see *SAMR band foregrounds* and *Origin encoding* below. | Anything ranked good-to-bad; this ramp is a position, not a score. |
+
+**`--tau-tool-info` (blue) sits outside this table — added 2026-07-31, formalised 2026-08-03.**
+It isn't a fifth tier on the same axis as the four above; it answers a different question. The
+table above is *how urgent* — tool-info is *who's talking*: the tool's own generated explanation
+of what a teacher is looking at and why, versus `--tau-auditor` (violet), which marks the
+teacher's own words quoted back to them (see `teacher-dashboard-design.md`, 2026-07-31 session).
+Teacher-role surfaces only (`dashboard.html`, `teacher.html`) — never on a page a student sees,
+and it never carries severity — a tool-info card explaining a pattern doesn't get to skip the red
+or amber that pattern would otherwise earn.
+
+**Worked example: `.teaching-card` / `.teaching-card.positive`** (`dashboard.html`, "How your
+teaching is landing"). Same card shape either way — left-edge rule + tinted background, only the
+colour changes. Default state renders in `--tau-tool-info` blue: the tool narrating a pattern with
+no particular verdict attached. The moment the underlying finding genuinely *is* good news, the
+same card instance switches to forest (`.teaching-card.positive`) instead — because at that point
+it's no longer neutral narration, it's a real "this is going well" signal, which is forest's job
+(score/state), not blue's. Blue never sits underneath a positive, caution, or attention finding
+pretending to be neutral commentary; the card's colour always tracks what it's actually saying.
+
+**A surface must carry a severity signal exactly once — added 2026-07-29.**
+Found in `dashboard.html`'s per-assignment student list: `.class-student-row.missing`
+painted the *entire row* `--tau-attention-bg` whenever a checkpoint was overdue,
+while the "Draft 2/3 · Late" chip inside that same row already stated it in
+`chip-attention` red. At real class size this reads as "everyone is a
+problem" rather than flagging the rows that need a look — a dozen chips
+correctly said "late" in a sea of rows all already red. Removed the row
+background; the chip alone carries the signal, same as any other row. This
+generalizes the existing dot rule (below) from *adjacent indicator repeating
+a label* to *container background repeating a chip it holds* — same failure,
+larger surface. Sort order (missing-first) still does the job of surfacing
+these rows without a colour wash doing it a second time.
+
+### Every card/table section gets an eyebrow — added 2026-07-30
+`.eyebrow` (locked decision, *Micro-label* above) exists but was applied
+inconsistently: `dashboard.html`'s home screen labelled "Classes at a glance"
+but left the behavioral-pattern cards above it headerless, so a teacher
+scanning the page hits an unlabelled stack of cards before reaching the one
+section that does say what it is. Rule going forward: **any card or table
+grouping content the reader is meant to scan, not read top-to-bottom, gets an
+`.eyebrow` naming the group** — the same reasoning as a table's column
+header, applied one level up. Skip it only when the section already has an
+equivalent title one size up (`.report-section-title`, `.pattern-title` on an
+individual card) — the rule is "name the group once," not "stack two labels."
+
+### Light/dark asymmetry: a token can need a per-theme override, not just a per-theme value — added 2026-07-30
+Dark theme's sidebar reads with clear hierarchy; the same markup in light
+theme flattens. Two causes, both instances of the same problem — a single
+colour choice doing a job that reads differently depending which ground it
+sits on:
+
+1. **`.eyebrow` used `--tau-ink-faint`.** On dark theme's near-black ground,
+   even the faintest ink tone still separates cleanly from the background,
+   so it works as a section divider. On white, the same relative tier washes
+   out — a light grey on white has far less headroom than a light grey on
+   charcoal. Fix: added `--tau-ink-label`, a token that exists only to feed
+   `.eyebrow`, resolving to `--tau-ink-soft` in light and `--tau-ink-faint`
+   (unchanged) in dark. One shared class, per-theme value — not a fork of
+   the atom.
+2. **`.sidebar-item.active` signalled selection with `--tau-surface-2`, a
+   neutral grey wash.** In dark theme this looks fine only because
+   `--tau-forest`'s dark-mode value is a bright mint that carries the real
+   signal on its own via the left border and active text colour; the
+   background tint was never doing the work. In light theme `--tau-forest`
+   is a dark, desaturated green much closer in value to body ink, so with
+   the neutral wash removed there was nothing left to mark "this is the
+   active row" beyond a thin border. Fix: the active background is now
+   `color-mix(in oklab, var(--tau-forest) 10%, var(--tau-surface))` — a
+   brand-hue tint rather than a grey one, so the signal is colour-carried
+   and shows up in both themes instead of depending on how far `--tau-forest`
+   happens to sit from `--tau-ink` in a given theme.
+
+**Takeaway:** when a component's hierarchy depends on the *relative* contrast
+between two tokens, check that relationship in both themes independently —
+matching absolute values per theme isn't enough if the gap between them
+compresses in one direction.
+
+### Signal salience budget
+*Restated 2026-07-29 as a principle with a test, not a log of what one
+screenshot needed. The version of this section written earlier the same day
+described a dashboard fix directly — "chip vs label" decided row by row from
+what looked wrong in an image. That's a symptom of not having this section at
+all: without a rule derived from something other than the screen in front of
+you, every new surface re-litigates the same question from scratch. What
+follows is the rule, argued from established interface-design theory, with
+the dashboard and teacher roster as two independent, separately-discovered
+applications of it — not the two places the rule was invented for.*
+
+**Two things are true about enclosure (a chip: a bounded, filled shape)
+regardless of which app renders it:**
+
+1. **Enclosure is processed pre-attentively.** A bounded, filled region is
+   picked out by the visual system before it's read — the same low-level
+   channel that notices motion or a flash of colour (Gestalt figure-ground;
+   Ware, *Information Visualization*, on pre-attentive attributes). Plain
+   text requires reading to register at all. This means enclosing a value is
+   never a neutral styling choice — it is an assignment of scan priority.
+   Every chip on a screen is a standing claim: *look at this one first.*
+2. **A signal is only a signal if it's the exception.** The isolation effect
+   (Von Restorff, 1933) is the empirical version of an intuition every
+   designer already has: a highlighted item draws the eye in proportion to
+   how much it differs from its surroundings. Enclose every value in a row
+   and the effect cancels itself — nothing is exceptional if everything gets
+   the same treatment, and the reader is back to reading every cell in
+   sequence, which is the exact failure a scan-friendly dashboard exists to
+   prevent.
+
+**The test these two facts imply, applicable to any indicator on any
+surface, present or future:**
+
+> A value earns chip/badge/pill enclosure only if **both**:
+> **(a) Actionable** — a viewer might reasonably need to do something in
+> response to it, and
+> **(b) Rare** — most instances of this value's slot will *not* carry this
+> treatment, so its presence stays the exception rather than the norm.
+>
+> If either is false, style with colour, weight, or an icon — never a filled
+> boundary.
+
+A third, harder constraint rides alongside the two above rather than
+replacing them: **colour is never the sole differentiator** (WCAG 1.4.1,
+already a locked rule in this doc — "colour is never the only channel").
+Enclosure is a second channel on top of colour, not a substitute for text
+that states the same fact; a value that fails the test above still needs its
+label to say what it is, same as before.
+
+**Why a small, fixed vocabulary of severities, not a granular scale.** A
+six-rung P0–P5 ladder is the reflex from incident-response tooling, and it
+doesn't transfer here for a reason grounded in two more standard
+heuristics — *consistency & standards* and *recognition rather than recall*
+(Nielsen). A teacher scanning thirty rows needs to recognise what a colour
+means on sight, every time, without holding a lookup table in memory; a
+severity scale only stays recognisable if it's small enough to memorise
+completely. This app holds two alert-worthy rungs — Attention (red) and
+Caution (amber) — and the coach-voice rule (*never a verdict*) already caps
+Caution from escalating into Attention for a behavioural signal. That's not
+a dashboard-specific choice, it's the ceiling this severity vocabulary can
+carry anywhere in the product before a reader has to stop and think instead
+of recognising at a glance.
+
+**Applying the test — two independent instances found this session, not one:**
+
+| Surface | Value | Actionable? | Rare? | Enclosed? |
+|---|---|---|---|---|
+| `dashboard.html` roster | Overdue checkpoint | Yes | Yes (most rows are on time) | **Yes** — `.chip-attention` |
+| `dashboard.html` roster | Integrity flag / behavioural pattern | Yes | Yes (most students are on-track) | **Yes** — `.chip-caution` |
+| `dashboard.html` roster | Draft stage on time, "Final," SAMR band | No | No (the common case in every row) | **No** — plain text; SAMR band keeps its colour pip via `.band-plain`, drops the fill |
+| `teacher.js` student roster | A flagged draft cycle | Yes | Yes (most cycles aren't flagged) | **Yes** — `.chip-caution` |
+| `teacher.js` student roster | An ordinary completed draft cycle | No | No (the common case) | **No** — plain text (`.cycle-label`), was previously enclosed as `.cycle-chip`/`.chip-grey` regardless of flag status |
+| `report.html` hero band | SAMR level on a student's own report | — (informational, not an alert) | **Yes** — it's the one classification shown on the whole view, nothing else in that glance is enclosed | **Yes** — full `.band` chrome is still correct here; rarity holds even though actionability doesn't, because nothing competes with it |
+
+The `report.html` row matters as much as the two fixes: the test doesn't say
+"informational values are never enclosed," it says enclosure has to stay
+rare *in context*. A single hero band with nothing else competing for the
+glance passes the rarity half of the test on its own; the same band repeated
+once per row in a dense roster does not. Same component, same token, two
+different correct answers — because the surrounding context is part of the
+test, not a detail to standardise away.
+
+**Two supporting rules that follow from the same reasoning, not restated
+per-surface:**
+- **An absence of a value is not a value.** `—` (`.no-signal`) or a muted
+  phrase ("Too early to tell") stays bare, muted text regardless of the test
+  above — there is no fact yet to assert, so the actionable/rare question
+  doesn't apply.
+- **A breadcrumb sentence (`content-meta`) never encloses, even for a
+  genuinely actionable value.** `"Due Oct 4 · 3 classes · 45 students · 12
+  missing · Worth a chat"` is read as a sentence, not scanned as a table — a
+  chip between `·` separators fights the sentence structure itself, a
+  failure mode the two-part test doesn't cover because it's about reading
+  mode, not scan priority. Multiple rollups on one line match each other's
+  bare-text treatment for the same reason two adjacent table cells would.
+- **A delta or count nested inside a cell that already has its own chip
+  stays bare text** — the `+3`/`−1` beside a total, or the `${submitted} /
+  ${n}` beside a missing tally. It's secondary to the value it annotates and
+  doesn't need independent scan priority.
+
+**Standing instruction, not a one-time cleanup:** before adding any new chip,
+badge, or filled pill anywhere in this app — `teacher.html`, `report.html`, a
+future screen — run the two-part test above first. "Match the existing chip
+styling for consistency" is not, by itself, a reason to enclose a new value;
+consistency is a property of applying one *test* everywhere, not of making
+every status look like every other status. The reverse audit — walking
+every existing chip in `components.css`'s `.chip-*` family against this test
+surface by surface — has not been done exhaustively; `.stu-chip`/filter
+chips are out of scope by category (they're button-shaped controls a user
+selects, not data values the app is asserting), but every data-bearing chip
+in `report.html` and `teacher.html` beyond the two checked above should be
+assumed unaudited, not assumed correct because it predates this rule.
+
 ### Colour
 - **Forest gets six jobs and no others:** interactive text, primary fills, meter fills, the rule marking a system message, the light-theme ground wash (2026-07-21), and — new the same day — a student's own score numerals (`.report-total-n`, `.dim-val .n`).
 - **Sage is fill-only.** It fails contrast as text.
@@ -192,6 +457,26 @@ Settled. Don't relitigate without a reason that's changed.
 - **Semantic colour (positive/caution/attention) never touches a student's own score.** A level is a position on a path, not a verdict. Semantic is for direction-of-travel and teacher-side signals only.
 - **SAMR band foregrounds step down in lightness 1→4.** Do not reorder — the ramp carries meaning in greyscale and for colour-blind readers on its own.
 - **Colour is never the only channel.** Anything encoded by hue is also encoded by shape, weight, dash, or text.
+- **Alert-tier colour on a chip must match what the chip's own text claims — added 2026-07-28.**
+  `.chip-attention` (and `.chip-caution` used as a "look at me" tint) may only be applied when the
+  label states the actionable fact itself. Never use it to carry an alert through colour alone on
+  an otherwise descriptive/positional/taxonomic label — a checkpoint slot number, a role name, a
+  content type, a lifecycle state, a filter's selected-state. The canonical violation this forbids:
+  `dashboard.html`'s checkpoint chip used to render the plain label `Draft 2/3` in
+  `--tau-attention` red whenever the checkpoint was overdue — the same red a genuine "missing work"
+  flag uses elsewhere, on text that never said "missing" or "overdue." A reader scanning by colour
+  alone couldn't tell a merely-in-progress checkpoint from an alert one; the fix was to put the
+  word back in the label (`Draft 2/3 · Overdue`) so colour reinforces text instead of substituting
+  for it. This generalizes the existing score rule above ("semantic colour never touches a
+  student's own score") from scores to chips generally.
+- **A dot is only used when no adjacent text or icon already states the same fact — added
+  2026-07-28.** `.dot`/`.dot-caution`/`.dot-attention` exist for the rare case where nothing else
+  in the row carries the signal (e.g. a sidebar row with no room for a status word). Where a chip,
+  pill, or line of text already says "Worth a chat" / "Missing" / the pattern name, an adjacent
+  colour-only dot repeating that fact is decoration, not information, and gets removed. This
+  generalizes `dashboard.html`'s own `.sb-shortcut` precedent comment ("the label already states
+  the condition, a colored dot would just repeat it") from a one-off local decision into a
+  system-wide rule.
 
 ### Score display
 Both follow from students seeing the total:
@@ -742,6 +1027,12 @@ the same line in the band and origin blocks, and a naive `^\s*--` reports 21 fal
   `.quote` than a full `.card`, but not a clean fit for either without restructuring its markup),
   and `report.css`'s `.dt-stat-block`/`.dt-verdict-block` (a segmented row sharing a parent's
   border, shaped like `.dims`/`.dim` rather than the freestanding tinted box `.stat-tile` is for).
+  **Correction, 2026-07-28**: that "resolved" was only half true — the *atoms* (`.chip`, `.dot`,
+  `.stat-tile`, `.tray`) landed in `components.css` as claimed, but neither page was actually
+  audited against them; the very next day's Atomic Design taxonomy pass (2026-07-21, above) found
+  and flagged the same duplication again as "Known debt," which sat untouched for another week. See
+  the 2026-07-28 session log entry for the pass that actually rewired both pages onto the shared
+  atoms rather than leaving them defined-but-locally-duplicated.
 
 ---
 
@@ -1434,3 +1725,118 @@ Touches: `app/web/report.html`, `app/web/report.css`, `app/web/report-render.js`
 `app/web/report-boot.js`. Superseded in this same pass: the `.tab-bar`/`.tab-btn`/`.tab-pane`
 rules session 5 wrote for this exact page — worth noting since it's the second time this file's
 tab treatment has been rebuilt from scratch.
+
+**2026-07-27 — `dashboard.html` catches up to the depth/shape pass and the icon system**
+
+Closed the two gaps the 2026-07-22 depth/shape session explicitly logged as "never touched" for
+this file: it was still flat (no `.card`-style elevation anywhere) and still hand-rolling motion
+and glyphs the rest of the app had already standardised. Tokens themselves were already clean from
+session 6 — this pass didn't touch colour.
+
+- **Depth.** Added `box-shadow: var(--tau-shadow)` to `.overview-card`, `.reflection-arc`, and
+  `.tbl-wrap` (the roster table's own container, previously border-only), plus the six inline-
+  styled "card" boxes in `renderOverviewContent()` (the review list, each trend card, the all-clear
+  state, each assignment card, the "no open assignments" empty state, each class-health row) —
+  these had no shared class to promote onto, so the shadow was added as a literal alongside their
+  existing literal background/border/radius rather than forcing a `.card` composition that would
+  have changed their padding and introduced `.card`'s `flex-direction:column;gap` onto content that
+  currently spaces itself with manual margins. Deliberately **not** shadowed: `.sub-row`,
+  `.arc-entry`, `.assignment-summary-row`, `.class-student-row` — these are dense list/row items,
+  the same tier as a table row or `.list-row`, neither of which carries elevation elsewhere in the
+  system either.
+- **Motion.** All eight literal `transition` durations in the page's inline `<style>` block
+  (`0.1s`, `0.15s`, `0.18s`, one bare `all 0.1s`) replaced with `--tau-dur-short` +
+  `--tau-ease-standard`, matching the token pairing every other page already uses for hover/state
+  changes. The modal-overlay fade (`opacity 0.18s ease`) became `--tau-dur-medium` +
+  `--tau-ease-standard` — a scrim toggle is symmetric, not a directional enter/exit, so `-standard`
+  over `-decelerate`/`-accelerate`, but the fade itself reads better at the medium rung than short.
+- **Icons.** Linked `icons.js` (previously not on this page at all, per the icon system's own
+  session-4 note). Replaced both `✕` close buttons (flag modal, side tray) with `iconSVG('close')`
+  — set via a two-line init script since these are static buttons, not JS-templated, mirroring the
+  one place `app.js` already does this for a close control rather than the more common
+  template-string pattern the other four icons use. Replaced both hand-rolled disclosure chevrons
+  (`▸`/`▾` text swapped by JS, and a `::before content` triangle on a native `<details>`) with
+  `iconSVG('expandMore', ...)` plus a `transform: rotate(180deg)` on the open state — the exact
+  mechanism `components.css`'s `.acard-disclosure-icon` already established, just not composed
+  directly since these two triggers aren't `<details>`-based in one case and needed a same-shaped
+  sibling rule in the other. **Left alone, deliberately:** the `←` back-link, `→` in
+  `.list-row-action`/"Report →"/the reflection-arc separator, and the sort-column `↑`/`↓`/`⇅`
+  glyphs — none of these have an icons.js equivalent, and every other page's matching pattern
+  (`.list-row-action`'s "View →", `.back-btn`'s `&larr;` on `teacher.html`) is also still plain
+  text, so leaving them was matching the rest of the app, not skipping work.
+
+Verified with a same-origin iframe driver (fetch-login, then a step list of selector clicks with
+waits between each) across all four tabs, the flag modal, the side tray opened from a real flagged
+submission, and a reflection disclosure opened on real data (Priya Nair, who carries three
+integrity flags) — plus dark theme on the Overview tab. Console clean on every run except the
+driver's own "selector not found" logs when a click target happened to be data-dependent (e.g. the
+first `tr.row-clickable` in sort order having no submissions) — not a page bug. Driver file deleted
+after.
+
+**2026-07-28 (evening) — dashboard.html/teacher.html closed out of "Known debt," two new colour
+rules, alert-colour-on-descriptive-chip fixed**
+
+Prompted by a concrete bug report: `dashboard.html`'s overdue-checkpoint chip rendered the plain
+label `Draft 2/3` in `--tau-attention` red — the identical red a genuine "missing work" chip uses
+elsewhere — with nothing in the text itself saying "missing" or "overdue." A reader scanning by
+colour alone couldn't tell a merely-in-progress checkpoint from an alert one. That's a specific
+case of a rule the system never actually wrote down (it had the analogous rule for scores, not
+chips), and pulling that thread led to the *Atomic Design taxonomy* section's own admission that
+`dashboard.html`/`teacher.html` were explicitly skipped in the 2026-07-21 pass ("Known debt," never
+revisited). A full read-only audit against `components.css` confirmed the gap: page-local
+reinventions of shared chrome, several genuine colour-tier violations beyond the one reported, and
+a colored-dot pattern used as decoration in several places with no adjacent text.
+
+1. **Two new Colour rules** (see *Rules that constrain design choices → Colour* above): alert-tier
+   chip colour must match what the label itself claims, never carry an alert through colour alone
+   on a descriptive/positional/taxonomic label; and a dot is only used when no adjacent text/icon
+   already states the same fact — generalizing `dashboard.html`'s own pre-existing `.sb-shortcut`
+   comment into a system-wide rule.
+2. **Colour-tier violations fixed**, `dashboard.html` + `teacher.html` + `teacher.js`:
+   `checkpointStatus()`'s overdue label now reads `Draft 2/3 · Late` instead of relying on colour
+   alone (fixed-width columns widened to fit); on-time drafts moved off `chip-caution` onto
+   `chip-neutral` (a normal in-progress state isn't a caution); assignment open/closed, reflection
+   type badges, the pattern-card student-count chip, and `teacher.html`'s "Teacher" role chip all
+   moved off borrowed alert/caution tints onto `chip-neutral`; the Change/score-delta columns no
+   longer render a small decline in `chip-attention`/`--tau-attention` (the sign already states the
+   direction; only genuine improvement keeps a semantic colour, per the existing "teacher-side
+   direction-of-travel signals" allowance); `teacher.js`'s cycle chip puts its flag count in visible
+   text instead of a title-only tooltip. **Deliberately left alone**: the roster filter chips
+   (`.stu-chip[data-filter=…].active`, the Patterns dropdown's `.set` state) — their own label text
+   already states the filter's meaning ("Worth a chat," "Missing work," a pattern's own name), so
+   colour there reinforces text rather than substituting for it, the same "redundant, not
+   colour-alone" case the missing-submission-count text already was.
+3. **Decorative dots removed**: the tray header's dot, both `.flagdot` wrappers (an orphaned class,
+   defined nowhere), `.signal-pill-review`'s `::before` circle, `teacher.js`'s `●` glyph, and the
+   sidebar's per-class/per-assignment trailing dots (no replacement — the missing-first sort and
+   the bounded Students shortcut counts already carry that fact elsewhere on the same screen).
+4. **A real bug, not a redesign**: `dashboard.html` silently redefined `components.css`'s
+   `.stat-tile`/`.stat-tile-val`/`.stat-tile-label` by reusing the exact class names (different
+   padding/min-width/font-size/weight) — any future edit to the shared component would have been
+   invisible on Home. Local override deleted; Home now renders from the one definition.
+5. **Known-debt chrome duplication closed**: a `.list-row-boxed` modifier added to
+   `components.css`'s `.list-row` and applied to the three near-identical bordered rows
+   `dashboard.html` had built independently (`.class-student-row`, `.assignment-summary-row`,
+   `.sub-row`); the flag-explainer modal's interior (`.modal-header/-title/-intro/-close/-body`,
+   `.flag-card-section/-body`) rewired onto the exact `.tray-*` classes the side tray two elements
+   below it already used, rather than the byte-for-byte local copy it was; `.stu-chip`/`.chip-dd-btn`
+   and `.arc-badge`/`.reflect-type-badge` (each pair an identical declaration block a few lines
+   apart) merged into one class each; nine local reinventions of the uppercase micro-label
+   (`.sidebar-section`, `.group-label`, `.browse-class-label`, `.drill-panel-header`, `.arc-label`,
+   `.reflect-label`, two inline copies) adopted the existing `.eyebrow` atom, keeping only their own
+   margins local; the sidebar search input and Browse Students' search input gained
+   `min-height: var(--tau-target)` (both were missing the accessibility floor `.field input` already
+   enforces); `.back-link` (a pill duplicating `.btn .btn-quiet` chrome) replaced with `.btn
+   .btn-quiet .btn-sm` at all four header call sites, and the one site applying it to a
+   non-interactive `<span>` (the signed-in teacher's name) got its own minimal `.whoami` class
+   instead of a button class with the interactivity stripped back out; `teacher.html`'s undefined
+   `.back-btn`/`.app-header` classes (rendering unstyled, a real gap, not a style choice) given real
+   rules, and `teacher.js`'s bare buttons plus `.submit-btn` wired onto `.btn`/`.btn-primary`; dead
+   `.overview-card` (zero markup consumers) deleted; a bespoke `8px` card radius on two inline Home
+   blocks and `.reflection-arc`'s outlier `--tau-r-sm` both corrected to the `--tau-r-md` every
+   other instance of this exact chrome already used.
+
+Verified live (`node app/server/index.js`, Playwright, both themes): Home, Browse Students (all
+three class tables), Class detail, Assignment detail + drill panel, the flag-explainer modal, and
+`teacher.html`'s overview/new-assignment-form/student-detail screens. Console clean on every
+screen in both themes.

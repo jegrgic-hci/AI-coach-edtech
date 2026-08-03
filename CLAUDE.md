@@ -11,7 +11,9 @@ This repo holds **two things**. Most current work is in the second.
 
 **For any work on `app/`, read `built-in-chat-plan.md` first — it is the source of truth** for design decisions, phase status, the backlog, and a session log of what each build session did. `app/README.md` is the implementation companion (seams, test accounts, what's built, what isn't).
 
-**For any design, CSS, or UI work in `app/`, also read `designsystem.md`** — locked decisions, colour and voice rules, component inventory, and the implementation plan. The system itself lives in `app/web/tokens.css`. The v7 standalone design-system HTML at the repo root is **superseded**; do not build from it.
+**For any design, CSS, or UI work in `app/`, also read `designsystem.md`** — locked decisions, colour and voice rules, component inventory, and the implementation plan. Start with its **Hard Constraints** section (top of the file, right after the status paragraph) and treat it as blocking: before implementing a visual decision, cite which line in Hard Constraints or *Locked decisions* justifies it. If nothing there covers the case, that's a gap in the system, not licence to improvise — say so and ask instead of inventing a decision and running with it. The system itself lives in `app/web/tokens.css`. The v7 standalone design-system HTML at the repo root is **superseded**; do not build from it.
+
+**For any work on `app/web/dashboard.html` (the teacher triage surface), also read `teacher-dashboard-design.md`** — IA, the flag/signal system, and a session log scoped to that page. Covers `dashboard.html` only, not `teacher.html` (assignment creation, transcripts, notes — see `app/README.md`'s file map for that surface instead).
 
 Run it: `node app/server/index.js` → http://localhost:8787. Everything is behind a login; test accounts are in `app/README.md`.
 

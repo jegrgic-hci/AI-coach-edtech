@@ -535,17 +535,43 @@ details[open] > .acard-disclosure-toggle {
 .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--tau-forest); }
 .field-help { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); }
 
-/* New-assignment form — shared by teacher.html's inline panel and
-   dashboard.html's modal (two consumers as of the dashboard modal; moved
-   here from a teacher.html-local rule rather than duplicated). */
+/* A persistent label for a field whose neighbour is close enough in meaning
+   that a placeholder alone (which vanishes on focus) isn't enough to keep
+   them apart — see product-design-review/references/content-design.md. */
+.micro-label { font-size: var(--tau-text-xs); font-weight: 600; color: var(--tau-ink-soft); display: block; margin-bottom: 5px; }
+.req-mark { color: var(--tau-caution); margin-left: 3px; }
+
+/* The field that names the thing everywhere else in the app refers back to
+   (assignment lists, notifications, the coach) outranks its plain-text
+   siblings — borrows .tray-title's own size/weight convention rather than
+   inventing a new one. See references/content-hierarchy.md layer 3. */
+.title-field { font-size: var(--tau-text-lg); font-weight: 600; }
+
+.eyebrow-row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--tau-s3); }
+.link-btn { font-family: inherit; font-size: var(--tau-text-xs); font-weight: 600; color: var(--tau-forest); background: none; border: none; padding: 0; cursor: pointer; }
+.link-btn:hover { text-decoration: underline; }
+
+/* Lowest-priority, optional content — pulled down in weight to match, so it
+   doesn't compete visually with required fields above it. */
+.eyebrow.deemphasized { color: var(--tau-ink-faint); }
+textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft); }
+
+/* New-assignment form — dashboard.html's modal is the only consumer now;
+   teacher.js's own inline duplicate (the collapsible variant this rule used
+   to also serve) was retired 2026-08-03 in favor of linking to this one. */
 .new-assignment-form { display: flex; flex-direction: column; gap: 10px; }
-.new-assignment-form.new-assignment-form-collapsible { display: none; margin-top: 14px; }
-.new-assignment-form.new-assignment-form-collapsible.open { display: flex; }
 .form-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .form-row label { font-size: 13px; color: var(--tau-ink-soft); }
 .level-selects { display: flex; flex-direction: column; gap: 6px; }
 .draft-slot-row { display: flex; align-items: center; gap: 8px; }
 .draft-slot-label { font-size: 13px; color: var(--tau-ink-soft); width: 52px; flex-shrink: 0; }
+
+/* Containing the due-date/draft-budget/per-draft-rows group makes the
+   causal relationship visible (changing the budget regenerates the rows
+   below it) instead of leaving three loose controls with no visual link —
+   see references/interaction-ux.md, "status visibility for causal
+   relationships". */
+.assign-schedule-panel { background: var(--tau-surface-2); border: 1px solid var(--tau-line); border-radius: var(--tau-r-lg); padding: var(--tau-s4); display: flex; flex-direction: column; gap: var(--tau-s3); }
 
 .scrim {
   position: fixed;
@@ -626,6 +652,10 @@ details[open] > .acard-disclosure-toggle {
 .chip-positive  { background: var(--tau-positive-bg); color: var(--tau-positive); }
 .chip-caution   { background: var(--tau-caution-bg); color: var(--tau-caution); }
 .chip-attention { background: var(--tau-attention-bg); color: var(--tau-attention); }
+/* An aggregate-score observation (e.g. "this class trails the others"), not
+   a behavioural flag or a deadline problem — tool-info, not caution/
+   attention, so it can't outrank either of those on the same row. */
+.chip-tool-info { background: var(--tau-tool-info-bg); color: var(--tau-tool-info); }
 
 /* A filled circle indicator. Colour rides on currentColor so a parent sets
    color: var(--tau-caution) etc. rather than this component making that

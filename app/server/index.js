@@ -282,21 +282,28 @@ async function handleApi(req, res, user, route) {
 
   // GET /api/assignments — list with per-student status
   if (req.method === 'GET' && seg1 === 'assignments' && !seg2) {
-    const assignments = col('assignments').list().map((a) => {
-      const submissions = col('submissions').list((s) => s.assignmentId === a.id && s.studentId === user.id);
-      const active = col('sessions').list((s) => s.assignmentId === a.id && s.studentId === user.id && s.status === 'active')[0];
-      return {
-        id: a.id,
-        title: a.title,
-        description: a.description,
-        purpose: a.purpose,
-        requirements: a.requirements,
-        dueDate: a.dueDate,
-        draftBudget: a.draftBudget,
-        draftsUsed: submissions.length,
-        status: submissions.length >= a.draftBudget ? 'complete' : active ? 'in-progress' : 'not-started',
-      };
-    });
+    // An assignment with no classIds (seeded/created before classes existed)
+    // is visible to everyone; otherwise the student must be in one of the
+    // assignment's classes — without this, every student saw every class's
+    // assignments once a second/third class existed.
+    const myClassIds = new Set(col('classes').list((c) => c.studentIds.includes(user.id)).map((c) => c.id));
+    const assignments = col('assignments')
+      .list((a) => !a.classIds || !a.classIds.length || a.classIds.some((id) => myClassIds.has(id)))
+      .map((a) => {
+        const submissions = col('submissions').list((s) => s.assignmentId === a.id && s.studentId === user.id);
+        const active = col('sessions').list((s) => s.assignmentId === a.id && s.studentId === user.id && s.status === 'active')[0];
+        return {
+          id: a.id,
+          title: a.title,
+          description: a.description,
+          purpose: a.purpose,
+          requirements: a.requirements,
+          dueDate: a.dueDate,
+          draftBudget: a.draftBudget,
+          draftsUsed: submissions.length,
+          status: submissions.length >= a.draftBudget ? 'complete' : active ? 'in-progress' : 'not-started',
+        };
+      });
     return json(res, 200, assignments);
   }
 

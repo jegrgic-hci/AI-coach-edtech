@@ -55,6 +55,13 @@ header .subtitle { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
 }
 .menu-trigger:hover, .menu-trigger[aria-expanded="true"] { background: var(--tau-hover-surface); }
 .menu-trigger[aria-expanded="true"] { border-color: var(--tau-line-strong); }
+/* The "+ Add" trigger — the one primary action in the header — needs
+   .btn-primary's forest fill, but .btn-primary and .menu-trigger are equal
+   specificity, so whichever rule comes later in the cascade would silently
+   win the whole property set. A dedicated modifier avoids that fight. */
+.menu-trigger.menu-trigger-primary { background: var(--tau-forest); border-color: var(--tau-forest); color: var(--tau-on-forest); }
+.menu-trigger.menu-trigger-primary:hover, .menu-trigger.menu-trigger-primary[aria-expanded="true"] { background: var(--tau-forest-lift); border-color: var(--tau-forest-lift); }
+.menu-trigger.menu-trigger-primary .menu-chevron { color: var(--tau-on-forest); opacity: 0.85; }
 .menu-chevron { color: var(--tau-ink-faint); transition: transform var(--tau-dur-short) var(--tau-ease-standard); font-size: 10px; }
 .menu-trigger[aria-expanded="true"] .menu-chevron { transform: rotate(180deg); }
 
@@ -73,12 +80,17 @@ header .subtitle { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
   animation: tau-reveal var(--tau-dur-medium) var(--tau-ease-decelerate);
 }
 .menu-panel[hidden] { display: none; }
-.menu-panel-wide { min-width: 300px; }
 .menu-item {
   display: flex; align-items: flex-start; gap: 10px; width: 100%; text-align: left; padding: 9px 10px;
   border-radius: var(--tau-r-sm); border: none; background: none; font: inherit; font-size: var(--tau-text-sm);
   font-weight: 600; color: var(--tau-ink); cursor: pointer; text-decoration: none;
 }
+/* Author `display: flex` above beats the UA stylesheet's `[hidden] { display:
+   none }`, so a plain `.hidden = true` on a .menu-item silently does nothing
+   without this — same fix .roster-preview[hidden] already needed. Caught by
+   actually testing the New Class success view's two shortcut buttons live,
+   not by reading the code: both stayed visible after being marked done. */
+.menu-item[hidden] { display: none; }
 .menu-item:hover { background: var(--tau-hover-surface); }
 .menu-item .mi-icon { flex-shrink: 0; width: 18px; text-align: center; margin-top: 1px; color: var(--tau-ink-soft); }
 .menu-item .mi-body { display: flex; flex-direction: column; gap: 1px; }
@@ -100,12 +112,6 @@ header .subtitle { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
 .menu-item.theme-toggle { justify-content: space-between; align-items: center; }
 .theme-toggle-icon { margin-left: auto; font-size: 14px; }
 
-.menu-back {
-  display: block; border: none; background: none; font: inherit; font-size: var(--tau-text-xs); font-weight: 700;
-  color: var(--tau-ink-soft); cursor: pointer; padding: 6px 8px 8px; margin: -2px 0 2px;
-}
-.menu-back:hover { color: var(--tau-ink); }
-.menu-form-title { font-size: var(--tau-text-sm); font-weight: 700; padding: 0 8px 8px; }
 .menu-field {
   display: block; font-size: var(--tau-text-xs); font-weight: 700; color: var(--tau-ink-soft);
   padding: 0 8px; margin-bottom: 10px;
@@ -117,18 +123,53 @@ header .subtitle { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
   padding: 7px 9px; min-height: 34px; resize: vertical;
 }
 .menu-field input:focus, .menu-field select:focus, .menu-field textarea:focus { border-color: var(--tau-forest); }
-.menu-form-submit { width: calc(100% - 16px); margin: 4px 8px 6px; }
-.menu-form-submit:disabled { opacity: var(--tau-disabled); cursor: not-allowed; }
 .menu-confirm {
   display: flex; align-items: center; gap: 7px; margin: 2px 4px 8px; padding: 8px 10px; border-radius: var(--tau-r-sm);
   background: var(--tau-positive-bg); color: var(--tau-positive); font-size: var(--tau-text-xs); font-weight: 700;
   animation: tau-reveal var(--tau-dur-medium) var(--tau-ease-decelerate);
 }
 
-/* Points back at the real +New assignment button once an assignment is
-   created from the "New class" success panel, or confirms a save from the
-   header button itself — anchored to newassign-wrap, not a generic toast
-   stack, since there's only ever one at a time. */
+.roadmap-next-hint {
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--tau-line);
+  font-size: var(--tau-text-xs); color: var(--tau-ink-faint); line-height: 1.5;
+}
+
+/* Optional attach panel — New class door's "Students"/"Assignment" sections.
+   Each one is a fully visible field set once open (never a click-through to
+   somewhere else — the assignment fields inside are the same required set
+   New Assignment asks for, not a stub). Collapsed by default since a bare
+   class is a legitimate, complete action on its own; opening one reveals its
+   content with the same tau-reveal entrance every other panel/disclosure in
+   this app already uses, inside a modal that's already sized like every
+   other one (no per-modal width override — see the New class/Add students
+   overlay markup). */
+.attach { border: 1px solid var(--tau-line); border-radius: var(--tau-r-md); margin: 14px 0; overflow: hidden; }
+.attach-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 13px;
+  cursor: pointer; background: var(--tau-surface);
+}
+.attach-head:hover { background: var(--tau-hover-surface); }
+.attach .ah-title { font-size: var(--tau-text-sm); font-weight: 700; display: flex; align-items: center; gap: 7px; }
+.attach .ah-optional {
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--tau-ink-faint);
+  background: var(--tau-surface-2); padding: 2px 6px; border-radius: var(--tau-r-pill);
+}
+.attach .ah-desc { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); margin-top: 1px; }
+.attach .ah-chevron { color: var(--tau-ink-faint); font-size: 11px; transition: transform var(--tau-dur-short) var(--tau-ease-standard); }
+.attach.open .ah-chevron { transform: rotate(180deg); }
+.attach.open .attach-head { border-bottom: 1px solid var(--tau-line); background: var(--tau-surface-2); }
+.attach-body { display: none; padding: 13px; flex-direction: column; gap: 12px; }
+.attach.open .attach-body { display: flex; animation: tau-reveal var(--tau-dur-medium) var(--tau-ease-decelerate); }
+.attach .section-note { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); line-height: 1.5; }
+.attach .field-locked {
+  display: flex; align-items: center; gap: 8px; padding: 8px 11px; border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-sm); background: var(--tau-surface-2); font-size: var(--tau-text-sm); font-weight: 600;
+}
+
+/* Confirms an assignment save, anchored to the "+ Add" trigger (add-wrap)
+   regardless of whether it was opened from there directly or via the "New
+   class" success panel's "Create an assignment" shortcut — not a generic
+   toast stack, since there's only ever one at a time. */
 .assign-toast {
   position: absolute; top: calc(100% + 8px); left: 0; width: 260px; z-index: 45;
   background: var(--tau-surface); border: 1px solid var(--tau-line); border-radius: var(--tau-r-md);
@@ -178,6 +219,20 @@ header .subtitle { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
 }
 .class-check-count { margin-left: auto; font-weight: 400; font-size: var(--tau-text-xs); color: var(--tau-ink-faint); }
 .assign-scope-note { margin: var(--tau-s2) 0 0; font-size: var(--tau-text-xs); color: var(--tau-ink-soft); line-height: 1.5; }
+/* The checklist's own last row — starting a class you don't have yet is a
+   variant of picking one you do, not a separate errand. Dashed border marks
+   it as an action, not another selectable class. */
+.class-check-addnew { cursor: default; border-bottom: none; }
+.class-check-addnew-btn {
+  border: none; background: none; font: inherit; font-weight: 700; font-size: var(--tau-text-sm);
+  color: var(--tau-forest); cursor: pointer; padding: 0; display: flex; align-items: center; gap: 6px;
+}
+.class-check-addnew-active { gap: 8px; }
+.class-check-addnew-active input {
+  flex: 1; min-height: 0; border: 1px solid var(--tau-line-strong); border-radius: var(--tau-r-sm);
+  padding: 5px 8px; font: inherit; font-size: var(--tau-text-sm); background: var(--tau-surface); color: var(--tau-ink);
+}
+.class-check-addnew-active input:focus { border-color: var(--tau-forest); }
 
 /* ── Layout ── */
 .layout {
@@ -209,6 +264,7 @@ header .subtitle { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
   align-items: center;
   gap: var(--tau-s2);
   padding: 9px var(--tau-s4);
+  min-height: var(--tau-target);
   cursor: pointer;
   border-left: 3px solid transparent;
   transition: background var(--tau-dur-short) var(--tau-ease-standard);
@@ -243,6 +299,12 @@ header .subtitle { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
   margin: 2px 0 6px;
 }
 .sidebar-search { padding: var(--tau-s3) var(--tau-s3) 2px; flex-shrink: 0; }
+/* Anchor for the results dropdown — scoped to the input alone, not the whole
+   .sidebar-search block (which also holds the hint text below it). Anchoring
+   to the wider block would resolve top:100% against the hint's bottom edge
+   instead of the input's, leaving the panel visibly detached from the box
+   a teacher is actually typing into. */
+.sidebar-search-anchor { position: relative; }
 .sidebar-search input {
   width: 100%;
   padding: 7px 10px;
@@ -257,11 +319,25 @@ header .subtitle { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
 }
 .sidebar-search input:focus { border-color: var(--tau-forest); }
 .sidebar-search-hint { font-size: 10.5px; color: var(--tau-ink-faint); margin: 5px 2px 6px; }
+.sidebar-search-hint.hidden { display: none; }
+/* Overlay, not reflow — a query used to push Home/Classes/Assignments/
+   Students down the rail on every keystroke (up to ~14 rows worst case).
+   Floating the results over the nav instead (Jakob's Law: this is how every
+   other type-ahead a teacher has used already behaves) keeps the rest of the
+   sidebar exactly where it was while they type. */
+#global-search-results {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 20;
+}
 .sidebar-search-results {
   margin: 0 var(--tau-s3) var(--tau-s2);
   border: 1px solid var(--tau-line-strong);
   border-radius: var(--tau-r-sm);
   background: var(--tau-surface);
+  box-shadow: var(--tau-shadow);
   overflow: hidden;
 }
 .sidebar-search-results .sidebar-item { padding: 8px 10px; }
@@ -541,6 +617,12 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .card-tab { background: none; border: none; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; color: var(--tau-ink-soft); padding: 0 0 9px; margin-bottom: -1px; border-bottom: 2px solid transparent; transition: color var(--tau-dur-short) var(--tau-ease-standard); }
 .card-tab:hover { color: var(--tau-ink); }
 .card-tab.active { color: var(--tau-forest); border-bottom-color: var(--tau-forest); }
+/* Count badge on a tab label — Class overview's Patterns tab, so a teacher
+   knows there's something inside before clicking in. Omitted entirely at
+   zero (renderClassAggregateCard), matching the app's existing
+   omit-inert-zero idiom for .stat-tile rather than showing a dead "0". */
+.card-tab .tab-count { display: inline-flex; font-size: 10.5px; font-weight: 700; background: var(--tau-surface-2); color: var(--tau-ink-soft); border-radius: var(--tau-r-pill); padding: 1px 7px; margin-left: 5px; }
+.card-tab.active .tab-count { background: var(--tau-positive-bg); color: var(--tau-positive); }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
@@ -658,6 +740,13 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    stay bare text too: a chip between "·" separators mid-sentence reads as
    clutter, not signal. */
 .signal-pill-review { flex-shrink: 0; white-space: nowrap; }
+/* 2026-08-03: the count badge for additional true signals beyond the one
+   the pill already names — same caution hue, darker fill so it reads as
+   "more of this" rather than a second, competing alert. */
+.signal-pill-count {
+  display: inline-block; margin-left: 5px; padding: 1px 6px; border-radius: var(--tau-r-pill);
+  font-size: 10px; font-weight: 700; background: color-mix(in oklab, var(--tau-caution) 22%, transparent);
+}
 
 /* ── Roster filter chips: muted by default, full colour only when the
    filter is active — same resting/selected idiom the Patterns dropdown
@@ -704,6 +793,42 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .pattern-try { background: var(--tau-surface-2); border-radius: var(--tau-r-sm); padding: 9px 12px; font-size: 12.5px; color: var(--tau-ink-soft); line-height: 1.5; }
 .pattern-try b { color: var(--tau-ink); }
 .pattern-link { display: inline-block; margin-top: 10px; font-size: 12.5px; font-weight: 600; color: var(--tau-forest); cursor: pointer; }
+
+/* ── Teaching-note cards (Home, "How your teaching is landing") ──
+   Fleet-wide counterpart to the class-tier dimension trend — same
+   dimensionRowsFromCohort() classification, same trend states, just scoped
+   to every class instead of one. Two tiers, not one shape for all four
+   dimensions: a full card is reserved for a dimension with real news (an
+   active trend, a genuine floor, or a split-class finding); everything with
+   nothing to report collapses into a shared quiet line instead of matching
+   chrome — visual weight tracks what's actually being said, and Behavioral
+   patterns/Classes at a glance aren't pushed down the page by four
+   equally-sized cards regardless of content. */
+.teaching-card { border-radius: 0 var(--tau-r-md) var(--tau-r-md) 0; padding: var(--tau-s4) var(--tau-s5); box-shadow: var(--tau-shadow); border: 1px solid var(--tau-line); background: var(--tau-tool-info-bg); border-left: 3px solid var(--tau-tool-info); }
+.teaching-card.positive { background: color-mix(in oklab, var(--tau-forest) 6%, var(--tau-surface)); border-left-color: var(--tau-forest); }
+.teaching-eyebrow { display: flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tau-tool-info); font-family: var(--tau-font-mono); margin-bottom: 10px; }
+.teaching-card.positive .teaching-eyebrow { color: var(--tau-forest); }
+.teaching-headline { font-size: 14.5px; font-weight: 700; margin-bottom: 6px; }
+.teaching-body { font-size: 13px; color: var(--tau-ink-soft); line-height: 1.55; margin: 0 0 10px; }
+.teaching-body b { color: var(--tau-ink); }
+.teaching-body:last-child { margin-bottom: 0; }
+.teaching-outlier { display: flex; gap: 10px; align-items: flex-start; background: var(--tau-surface); border: 1px solid var(--tau-line); border-radius: var(--tau-r-sm); padding: 10px 12px; font-size: 12.5px; color: var(--tau-ink-soft); line-height: 1.5; }
+.teaching-outlier b { color: var(--tau-ink); }
+.teaching-link { display: inline-block; margin-top: 10px; font-size: 12.5px; font-weight: 600; color: var(--tau-tool-info); cursor: pointer; }
+.teaching-card.positive .teaching-link { color: var(--tau-forest); }
+
+/* The quiet tier — no box, no shadow, just a row. Two variants: plain
+   "steady" (mid) and "already strong, holding" (ceiling) — distinguished by
+   glyph AND colour together (never colour alone), so sustained excellence
+   doesn't read identically to a dimension with literally nothing to say. */
+.dim-line { display: flex; align-items: baseline; gap: 8px; padding: 9px 2px; border-bottom: 1px solid var(--tau-line); font-size: 12.5px; }
+.dim-line:last-child { border-bottom: none; }
+.dim-line .glyph { font-size: 10px; flex-shrink: 0; color: var(--tau-ink-faint); }
+.dim-line-name { font-weight: 600; color: var(--tau-ink); flex-shrink: 0; }
+.dim-line-note { color: var(--tau-ink-soft); }
+.dim-line.positive-quiet .glyph { color: var(--tau-forest); }
+.dim-line.positive-quiet .dim-line-note { color: var(--tau-forest); }
+.dim-line-group { border: 1px solid var(--tau-line); border-radius: var(--tau-r-md); background: var(--tau-surface); padding: 2px var(--tau-s4); }
 
 /* ── Filter/search side tray, flag modal ──
    The modal composes .scrim/.confirm for its outer shell and — 2026-07-28 —
@@ -826,76 +951,37 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
 
     <button onclick="openFlagModal()" class="btn btn-quiet btn-sm">Worth a chat, explained</button>
 
-    <div class="menu-wrap" id="newassign-wrap">
-      <button onclick="openNewAssignmentModal()" class="btn btn-primary btn-sm" id="trig-newassign">+ New assignment</button>
-    </div>
-
     <div class="hdr-div"></div>
 
-    <div class="menu-wrap">
-      <button class="menu-trigger" id="trig-manage" aria-haspopup="true" aria-expanded="false" onclick="toggleHeaderMenu('manage', event)">
-        <span aria-hidden="true">⚙</span> Manage <span class="menu-chevron">▾</span>
+    <div class="menu-wrap" id="add-wrap">
+      <button class="menu-trigger menu-trigger-primary" id="trig-manage" aria-haspopup="true" aria-expanded="false" onclick="toggleHeaderMenu('manage', event)">
+        + Add <span class="menu-chevron">▾</span>
       </button>
-      <div class="menu-panel menu-panel-wide" id="panel-manage" hidden role="menu">
-
-        <div id="manage-view-list">
-          <div class="menu-confirm" id="manage-confirm" hidden></div>
-          <button type="button" class="menu-item" onclick="showManageView('newclass')">
-            <span class="mi-icon" aria-hidden="true">🗂</span>
-            <span class="mi-body">New class<span class="mi-desc">Start an empty class — nobody on it yet</span></span>
-          </button>
-          <button type="button" class="menu-item" onclick="showManageView('addstudent')">
-            <span class="mi-icon" aria-hidden="true">👤</span>
-            <span class="mi-body">Add students<span class="mi-desc">Paste a roster onto a class you already made</span></span>
-          </button>
-          <div class="menu-future" aria-disabled="true">
-            <span class="mi-icon" aria-hidden="true">✎</span>
-            <span class="mi-body">Rename or archive a class<span class="mi-desc">Not built yet — logged as a known limitation</span></span>
-          </div>
-          <div class="menu-divider"></div>
-          <div class="menu-footnote">Removing a student, or seeing a class's full roster, happens from that class's own page — open it from the sidebar.</div>
+      <!-- Just a 3-way picker now — each choice opens a full-size modal
+           (same .scrim/.confirm.modal/.tray-* chrome the New assignment,
+           Goal, and per-class roster modals already use) rather than
+           cramming a form into this 240px dropdown. A roster paste or a
+           class-scope decision needs room to read, not a maze of small
+           panels — see teacher-dashboard-design.md, 2026-08-03. -->
+      <div class="menu-panel" id="panel-manage" hidden role="menu">
+        <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openNewAssignmentModal()">
+          <span class="mi-icon" aria-hidden="true">📄</span>
+          <span class="mi-body">New assignment<span class="mi-desc">Title, description, classes — pick or start one</span></span>
+        </button>
+        <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openAddStudentsModal()">
+          <span class="mi-icon" aria-hidden="true">👤</span>
+          <span class="mi-body">Add students<span class="mi-desc">Paste a roster — pick a class or start one</span></span>
+        </button>
+        <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openNewClassModal()">
+          <span class="mi-icon" aria-hidden="true">🗂</span>
+          <span class="mi-body">New class<span class="mi-desc">Start an empty class — nobody on it yet</span></span>
+        </button>
+        <div class="menu-future" aria-disabled="true">
+          <span class="mi-icon" aria-hidden="true">✎</span>
+          <span class="mi-body">Rename or archive a class<span class="mi-desc">Not built yet — logged as a known limitation</span></span>
         </div>
-
-        <div id="manage-view-newclass" hidden>
-          <button type="button" class="menu-back" onclick="showManageView('list')">‹ Manage</button>
-          <div class="menu-form-title">New class</div>
-          <form id="hdrNewClassForm">
-            <label class="menu-field">Class name
-              <input type="text" name="name" id="newclass-name-input" placeholder="e.g. AP Literature — Period 4" required>
-            </label>
-            <button type="submit" class="btn btn-primary btn-sm menu-form-submit">Create class</button>
-          </form>
-        </div>
-
-        <div id="manage-view-newclass-success" hidden>
-          <div class="menu-form-title">✓ <span id="newclass-success-name">Class</span> created</div>
-          <div class="menu-footnote" style="padding-top:0;padding-bottom:10px">
-            Empty for now. An assignment given to this class automatically goes to everyone on it — there's no roster to hand-pick, so students can be added before or after.
-          </div>
-          <button type="button" class="menu-item" onclick="gotoAddStudentsFromSuccess()">
-            <span class="mi-icon" aria-hidden="true">👤</span>
-            <span class="mi-body">Add students<span class="mi-desc">Jump to Add students, this class pre-selected</span></span>
-          </button>
-          <button type="button" class="menu-item" onclick="gotoNewAssignmentFromSuccess()">
-            <span class="mi-icon" aria-hidden="true">📄</span>
-            <span class="mi-body">Create an assignment<span class="mi-desc">Goes to the whole class automatically</span></span>
-          </button>
-          <button type="button" class="btn btn-quiet btn-sm menu-form-submit" onclick="showManageView('list')">Done for now</button>
-        </div>
-
-        <div id="manage-view-addstudent" hidden>
-          <button type="button" class="menu-back" onclick="showManageView('list')">‹ Manage</button>
-          <div class="menu-form-title">Add students</div>
-          <label class="menu-field">Class
-            <select id="hdr-addstudent-class-select" onchange="renderRosterPreview('hdr')"></select>
-          </label>
-          <label class="menu-field">Students <span class="menu-field-optional">one per line — paste a whole roster, or just one</span>
-            <textarea id="hdr-addstudent-roster-input" rows="3" placeholder="Jordan Lee, jordan@school.edu" oninput="renderRosterPreview('hdr')"></textarea>
-          </label>
-          <div class="roster-preview" id="hdr-addstudent-preview" hidden></div>
-          <button type="button" class="btn btn-primary btn-sm menu-form-submit" id="hdr-addstudent-submit" disabled onclick="submitRosterAdd('hdr')">Add students</button>
-        </div>
-
+        <div class="menu-divider"></div>
+        <div class="menu-footnote">Removing a student, or seeing a class's full roster, happens from that class's own page — open it from the sidebar.</div>
       </div>
     </div>
 
@@ -952,7 +1038,7 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
 
 <!-- Class roster modal — view + remove a class's students, reached only from
      that class's own Class View ("Manage roster"), never from the header.
-     Creating a class and adding students both moved to the header's Manage
+     Creating a class and adding students both moved to the header's + Add
      menu (2026-08 header rebuild, see teacher-dashboard-design.md) — this
      modal used to also host that "create a class / pick one" list view, but
      nothing opens it that way any more, so the list view and its New Class
@@ -982,6 +1068,130 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
   </div>
 </div>
 
+<div class="scrim modal-overlay" id="new-class-modal-overlay" onclick="closeNewClassModal(event)">
+  <div class="confirm modal" onclick="event.stopPropagation()">
+    <div class="tray-header">
+      <div style="flex:1;min-width:0">
+        <div class="tray-title">New class</div>
+        <div class="tray-subtitle">Empty at first — an assignment given to this class automatically goes to everyone on it later, no roster to hand-pick.</div>
+      </div>
+      <button class="tray-close" id="new-class-close-btn" onclick="closeNewClassModal()"></button>
+    </div>
+    <div class="tray-body">
+      <div id="new-class-view-form">
+        <form id="hdrNewClassForm" class="field">
+          <label class="menu-field" style="padding:0;margin-bottom:6px">Class name
+            <input type="text" name="name" id="newclass-name-input" placeholder="e.g. AP Literature" required style="min-height:42px;font-size:14.5px">
+          </label>
+
+          <div class="attach" id="newclass-att-students">
+            <div class="attach-head" onclick="toggleAttachPanel('newclass-att-students')">
+              <div>
+                <div class="ah-title">Students <span class="ah-optional">optional</span></div>
+                <div class="ah-desc">Paste a roster now, or add it later</div>
+              </div>
+              <span class="ah-chevron">▾</span>
+            </div>
+            <div class="attach-body">
+              <label class="menu-field" style="padding:0">Students <span class="menu-field-optional">one per line — "Name, email" or just an email</span>
+                <textarea id="newclass-roster-input" rows="4" placeholder="Jordan Lee, jordan@school.edu" oninput="renderRosterPreview('newclass')"></textarea>
+              </label>
+              <div class="roster-preview" id="newclass-roster-preview" hidden></div>
+            </div>
+          </div>
+
+          <div class="attach" id="newclass-att-assignment">
+            <div class="attach-head" onclick="toggleNewClassAssignPanel()">
+              <div>
+                <div class="ah-title">Assignment <span class="ah-optional">optional</span></div>
+                <div class="ah-desc">Create work for this class right away</div>
+              </div>
+              <span class="ah-chevron">▾</span>
+            </div>
+            <div class="attach-body">
+              <div class="field">
+                <div class="eyebrow">Assignment details</div>
+                <label class="micro-label" for="newclass-assign-title">Title</label>
+                <input type="text" id="newclass-assign-title" class="title-field" placeholder="e.g. Rhetorical analysis — Gettysburg Address">
+                <label class="micro-label" for="newclass-assign-description">Description</label>
+                <textarea id="newclass-assign-description" rows="2" placeholder="What the task is"></textarea>
+                <label class="micro-label" for="newclass-assign-purpose">Purpose</label>
+                <textarea id="newclass-assign-purpose" rows="2" placeholder="Why this matters, what skill it builds"></textarea>
+                <div class="field-help">Distinct from Description — this is the "why," shown to students to frame the work.</div>
+                <label class="micro-label" for="newclass-assign-requirements">Requirements</label>
+                <textarea id="newclass-assign-requirements" rows="2" placeholder="Length, format, sources, what must be included"></textarea>
+                <div class="field-help">Fill in a title to turn this on — description, purpose, requirements, and a due date for every draft are then required.</div>
+
+                <div class="eyebrow" style="margin-top:6px">Class</div>
+                <div class="field-locked">🔒 The class you're creating<span class="section-note" style="margin-left:auto;font-weight:400">locked</span></div>
+                <div class="section-note">Add more classes to it later from the assignment's own Edit view.</div>
+
+                <div class="eyebrow" style="margin-top:6px">Drafts &amp; due dates</div>
+                <div class="assign-schedule-panel">
+                  <div class="form-row"><label>Due date <input type="date" id="newclass-assign-due"></label></div>
+                  <div class="form-row"><label>Draft budget <input type="number" id="newclass-assign-budget" value="3" min="1" max="10" style="width:60px"></label></div>
+                  <label class="micro-label" style="margin-top:2px">Per draft — due date &amp; coaching level</label>
+                  <div class="level-selects" id="newclass-assign-levels"></div>
+                </div>
+
+                <div class="eyebrow deemphasized" style="margin-top:6px">Note to yourself <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--tau-ink-faint)">— optional</span></div>
+                <textarea id="newclass-assign-note" rows="2" placeholder="A rubric-style reminder, shown to you, not the coach" class="deemphasized"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="margin-top:10px">Create class</button>
+        </form>
+      </div>
+      <div id="new-class-view-success" hidden>
+        <div class="menu-confirm" style="margin:0 0 18px">✓ <span id="newclass-success-name">Class</span> created<span id="newclass-success-extra"></span></div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button type="button" class="menu-item" id="newclass-success-students-btn" style="border:1px solid var(--tau-line);border-radius:var(--tau-r-md);padding:12px" onclick="gotoAddStudentsFromSuccess()">
+            <span class="mi-icon" aria-hidden="true">👤</span>
+            <span class="mi-body">Add students<span class="mi-desc">Open the roster form, this class pre-selected</span></span>
+          </button>
+          <button type="button" class="menu-item" id="newclass-success-assignment-btn" style="border:1px solid var(--tau-line);border-radius:var(--tau-r-md);padding:12px" onclick="gotoNewAssignmentFromSuccess()">
+            <span class="mi-icon" aria-hidden="true">📄</span>
+            <span class="mi-body">Create an assignment<span class="mi-desc">Goes to the whole class automatically</span></span>
+          </button>
+        </div>
+        <button type="button" class="btn btn-quiet btn-sm" style="margin-top:16px" onclick="closeNewClassModal()">Done for now</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="scrim modal-overlay" id="add-students-modal-overlay" onclick="closeAddStudentsModal(event)">
+  <div class="confirm modal" onclick="event.stopPropagation()">
+    <div class="tray-header">
+      <div style="flex:1;min-width:0">
+        <div class="tray-title">Add students</div>
+        <div class="tray-subtitle">Paste a whole roster or just one — existing accounts are reused, nothing duplicates.</div>
+      </div>
+      <button class="tray-close" id="add-students-close-btn" onclick="closeAddStudentsModal()"></button>
+    </div>
+    <div class="tray-body">
+      <label class="menu-field" style="padding:0;margin-bottom:16px">Students <span class="menu-field-optional">one per line — "Name, email" or just an email</span>
+        <textarea id="hdr-addstudent-roster-input" rows="7" placeholder="Jordan Lee, jordan@school.edu" oninput="renderRosterPreview('hdr')" style="font-size:14px"></textarea>
+      </label>
+      <label class="menu-field" id="hdr-addstudent-class-field" style="padding:0">Class
+        <select id="hdr-addstudent-class-select" onchange="handleAddStudentsClassSelect()" style="min-height:42px;font-size:14.5px"></select>
+        <span class="inline-new-class" id="hdr-addstudent-newclass-row" hidden style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
+          <label class="micro-label" for="hdr-addstudent-newclass-input" style="margin-bottom:0">New class name</label>
+          <span style="display:flex;gap:8px">
+            <input type="text" id="hdr-addstudent-newclass-input" placeholder="e.g. AP Literature" style="flex:1;min-height:34px;font-size:13.5px">
+            <button type="button" class="btn btn-primary btn-sm" onclick="commitAddStudentsNewClass()">Add</button>
+          </span>
+        </span>
+      </label>
+      <div class="roster-preview" id="hdr-addstudent-preview" hidden style="margin-top:12px"></div>
+      <button type="button" class="btn btn-primary" id="hdr-addstudent-submit" disabled onclick="submitRosterAdd('hdr')" style="margin-top:16px">Add students</button>
+      <div class="menu-confirm" id="add-students-confirm" hidden style="margin-top:12px"></div>
+      <div class="roadmap-next-hint">Next, once a roster's in place: assign work from the "+ Add" menu — it goes to everyone on this class automatically, no roster to hand-pick per assignment.</div>
+    </div>
+  </div>
+</div>
+
 <div class="scrim modal-overlay" id="goal-modal-overlay" onclick="closeGoalModal(event)">
   <div class="confirm modal" onclick="event.stopPropagation()">
     <div class="tray-header">
@@ -1006,21 +1216,39 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
     </div>
     <div class="tray-body">
       <form class="new-assignment-form field" id="newAssignmentForm">
-        <div class="form-row"><label style="font-weight:700;font-size:12.5px">Classes</label></div>
+        <div class="eyebrow-row">
+          <span class="eyebrow">Classes</span>
+          <button type="button" class="link-btn" id="assign-selectall-btn" onclick="toggleAllAssignClasses()">Select all</button>
+        </div>
         <div class="class-checklist" id="assign-class-checklist"></div>
         <div class="assign-scope-note" id="assign-scope-note"></div>
-        <input name="title" placeholder="Title" required>
-        <textarea name="description" rows="3" placeholder="Description — what the task is" required></textarea>
-        <textarea name="purpose" rows="2" placeholder="Purpose — why this matters, what skill it builds" required></textarea>
-        <textarea name="requirements" rows="3" placeholder="Requirements — length, format, sources, what must be included" required></textarea>
-        <textarea name="teacherNote" rows="2" placeholder="Note to the whole class (optional) — a rubric-style reminder, shown to you, not the coach"></textarea>
-        <div class="form-row">
-          <label>Draft budget <input type="number" name="draftBudget" value="3" min="1" max="10" style="width:60px"></label>
-        </div>
-        <div class="form-row">
-          <label>Due date &amp; coaching per draft — the last row's date is the assignment's final due date:</label>
+
+        <div class="eyebrow" style="margin-top:6px">Assignment details</div>
+        <label class="micro-label" for="na-title">Title<span class="req-mark">*</span></label>
+        <input name="title" id="na-title" class="title-field" placeholder="e.g. Rhetorical analysis — Gettysburg Address" required>
+        <label class="micro-label" for="na-description">Description<span class="req-mark">*</span></label>
+        <textarea name="description" id="na-description" rows="3" placeholder="What the task is" required></textarea>
+        <label class="micro-label" for="na-purpose">Purpose<span class="req-mark">*</span></label>
+        <textarea name="purpose" id="na-purpose" rows="2" placeholder="Why this matters, what skill it builds" required></textarea>
+        <div class="field-help">Distinct from Description — this is the "why," shown to students to frame the work.</div>
+        <label class="micro-label" for="na-requirements">Requirements<span class="req-mark">*</span></label>
+        <textarea name="requirements" id="na-requirements" rows="3" placeholder="Length, format, sources, what must be included" required></textarea>
+
+        <div class="eyebrow" style="margin-top:6px">Drafts &amp; due dates</div>
+        <div class="assign-schedule-panel">
+          <div class="form-row">
+            <label>Due date <input type="date" name="dueDate" id="na-due-date" required></label>
+          </div>
+          <div class="form-row">
+            <label>Draft budget <input type="number" name="draftBudget" value="3" min="1" max="10" style="width:60px"></label>
+          </div>
+          <label class="micro-label" style="margin-top:2px">Per draft — due date &amp; coaching level<span class="req-mark">*</span></label>
           <div class="level-selects" id="newAssignmentLevelSelects"></div>
         </div>
+
+        <div class="eyebrow deemphasized" style="margin-top:6px">Note to yourself <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--tau-ink-faint)">— optional</span></div>
+        <textarea name="teacherNote" rows="2" placeholder="A rubric-style reminder, shown to you, not the coach" class="deemphasized"></textarea>
+
         <div class="form-row">
           <button type="submit" class="btn btn-primary" id="new-assignment-submit-btn">Create assignment</button>
         </div>
@@ -1326,17 +1554,23 @@ function studentsWithClasses() {
 // scopeIds (optional Set of student ids) narrows the rollup to one class's
 // roster — Class View's own "recurring patterns" card reuses this same
 // detector rather than recomputing the rollup a second way.
+// Scans every attention-tier signal a student has, not just their primary
+// one — a student whose headline signal is a review flag (or a different
+// pattern) still belongs in this pattern's card if they also match it.
 function detectTrends(minCount = 2, scopeIds = null) {
   const groups = {};
   studentsWithClasses()
     .filter(({ student }) => !scopeIds || scopeIds.has(student.id))
     .forEach(({ student, classes }) => {
     const sig = getStudentSignal(student.id);
-    if (sig.status !== 'attention') return;
-    const tid = REASON_TO_TREND[sig.reason];
-    if (!tid) return;
-    if (!groups[tid]) groups[tid] = [];
-    groups[tid].push({ student, classes });
+    const seenTrends = new Set();
+    sig.signals.filter(s => s.tier === 'attention').forEach(s => {
+      const tid = REASON_TO_TREND[s.reason];
+      if (!tid || seenTrends.has(tid)) return;
+      seenTrends.add(tid);
+      if (!groups[tid]) groups[tid] = [];
+      groups[tid].push({ student, classes });
+    });
   });
 
   return Object.entries(groups)
@@ -1371,20 +1605,29 @@ function hasAnyFlag(sid) {
   });
 }
 
+// Collects every true signal rather than stopping at the first match — a
+// student can be genuinely both a review case (an integrity flag) and show
+// a behavioral pattern (declining engagement, low skepticism) at the same
+// time, and the old first-match cascade silently discarded whichever one
+// didn't win. `signals` is priority-ordered (review first, then the
+// original attention priority: declining > passive > low-skepticism >
+// ai-ideas > reflection mismatches); `status`/`reason`/`learnMoreKey` on the
+// returned object mirror signals[0] so every existing call site that only
+// looked at the top signal keeps working unchanged.
 function _computeStudentSignal(studentId, assignmentId) {
   const assignments = assignmentId
     ? [ASSIGNMENTS.find(a => a.id === assignmentId)].filter(Boolean)
     : ASSIGNMENTS;
 
+  const signals = [];
+
   const integrityKeys = [];
   let hasSpikeFlag = false;
-
   assignments.forEach(a => {
     const subs = getSubs(studentId, a.id);
     getIntegrityFlags(subs).forEach(f => { if (!integrityKeys.includes(f)) integrityKeys.push(f); });
     if (checkFlag(subs).length) hasSpikeFlag = true;
   });
-
   if (integrityKeys.length || hasSpikeFlag) {
     const has = k => integrityKeys.includes(k);
     let reason;
@@ -1401,50 +1644,65 @@ function _computeStudentSignal(studentId, assignmentId) {
     } else {
       reason = 'Score jumped sharply between two submissions';
     }
-    return { status: 'review', reason };
+    signals.push({ tier: 'review', reason });
   }
 
+  // Behavioral patterns are computed regardless of whether a review flag
+  // already fired above — otherwise a review-flagged student's other true
+  // patterns are never even calculated, let alone shown.
   const allSubs = assignments.flatMap(a => getSubs(studentId, a.id));
-  if (!allSubs.length) return { status: 'on-track', reason: '' };
+  if (allSubs.length) {
+    const avg = dim => allSubs.reduce((s, sub) => s + sub[dim], 0) / allSubs.length;
+    const avgPQ    = avg('pq');
+    const avgCS    = avg('cs');
+    const avgOC    = avg('oc');
+    const avgTotal = allSubs.reduce((s, sub) => s + total(sub), 0) / allSubs.length;
 
-  const avg = dim => allSubs.reduce((s, sub) => s + sub[dim], 0) / allSubs.length;
-  const avgPQ    = avg('pq');
-  const avgCS    = avg('cs');
-  const avgOC    = avg('oc');
-  const avgTotal = allSubs.reduce((s, sub) => s + total(sub), 0) / allSubs.length;
+    const sorted    = [...allSubs].sort((a, b) => a.ts - b.ts);
+    const declining = sorted.length >= 3 && total(sorted[sorted.length - 1]) < total(sorted[0]) - 2;
 
-  const sorted   = [...allSubs].sort((a, b) => a.ts - b.ts);
-  const declining = sorted.length >= 3 && total(sorted[sorted.length - 1]) < total(sorted[0]) - 2;
+    if (declining) signals.push({ tier: 'attention', reason: 'Engagement declining across recent submissions' });
+    // avgTotal<9 and the CS+PQ combo overlap (the combo is a subset of low
+    // averages), so these two stay mutually exclusive like the original
+    // cascade — declining/ai-ideas/skepticism-only are independent axes and
+    // can all be true alongside either of these.
+    if (avgTotal < 9) {
+      signals.push({ tier: 'attention', reason: 'Passive engagement across all submissions' });
+    } else if (avgCS < 2.5 && avgPQ < 2.5) {
+      signals.push({ tier: 'attention', reason: 'Tends to accept AI responses without questioning' });
+    } else if (avgCS < 2.5) {
+      signals.push({ tier: 'attention', reason: 'Rarely challenges or refines AI suggestions' });
+    }
+    if (avgOC < 2.5) signals.push({ tier: 'attention', reason: 'Most ideas appear AI-initiated' });
 
-  if (declining)              return { status: 'attention', reason: 'Engagement declining across recent submissions' };
-  if (avgTotal < 9)           return { status: 'attention', reason: 'Passive engagement across all submissions' };
-  if (avgCS < 2.5 && avgPQ < 2.5) return { status: 'attention', reason: 'Tends to accept AI responses without questioning' };
-  if (avgCS < 2.5)            return { status: 'attention', reason: 'Rarely challenges or refines AI suggestions' };
-  if (avgOC < 2.5)            return { status: 'attention', reason: 'Most ideas appear AI-initiated' };
-
-  const PUSHBACK_KW    = ['disagreed', 'pushed back', 'challenged', 'wrong', "didn't think", 'questioned', 'asked it to reconsider'];
-  const IMPROVEMENT_KW = ['more skeptical', 'pushed back more', 'more critical', 'less reliant', 'questioned more', 'challenged more'];
-
-  for (const a of assignments) {
-    const subs = getSubs(studentId, a.id);
-    for (let i = 0; i < subs.length; i++) {
-      const sub = subs[i];
-      if (sub.reflectionType === 'full' && sub.reflection) {
-        const challenge = (sub.reflection.challenge || '').toLowerCase();
-        if (sub.cs < 2.5 && PUSHBACK_KW.some(kw => challenge.includes(kw))) {
-          return { status: 'attention', reason: 'Reflection claims pushback the scores don\'t show', learnMoreKey: 'reflection-score-mismatch' };
+    const PUSHBACK_KW    = ['disagreed', 'pushed back', 'challenged', 'wrong', "didn't think", 'questioned', 'asked it to reconsider'];
+    const IMPROVEMENT_KW = ['more skeptical', 'pushed back more', 'more critical', 'less reliant', 'questioned more', 'challenged more'];
+    let sawScoreMismatch = false, sawDeltaMismatch = false;
+    for (const a of assignments) {
+      const subs = getSubs(studentId, a.id);
+      for (let i = 0; i < subs.length; i++) {
+        const sub = subs[i];
+        if (!sawScoreMismatch && sub.reflectionType === 'full' && sub.reflection) {
+          const challenge = (sub.reflection.challenge || '').toLowerCase();
+          if (sub.cs < 2.5 && PUSHBACK_KW.some(kw => challenge.includes(kw))) {
+            signals.push({ tier: 'attention', reason: 'Reflection claims pushback the scores don\'t show', learnMoreKey: 'reflection-score-mismatch' });
+            sawScoreMismatch = true;
+          }
         }
-      }
-      if (i > 0 && sub.reflectionType === 'delta' && sub.reflection) {
-        const delta = (sub.reflection.delta || '').toLowerCase();
-        if (total(sub) <= total(subs[i - 1]) && IMPROVEMENT_KW.some(kw => delta.includes(kw))) {
-          return { status: 'attention', reason: 'Student described improvement but scores didn\'t change', learnMoreKey: 'reflection-delta-mismatch' };
+        if (!sawDeltaMismatch && i > 0 && sub.reflectionType === 'delta' && sub.reflection) {
+          const delta = (sub.reflection.delta || '').toLowerCase();
+          if (total(sub) <= total(subs[i - 1]) && IMPROVEMENT_KW.some(kw => delta.includes(kw))) {
+            signals.push({ tier: 'attention', reason: 'Student described improvement but scores didn\'t change', learnMoreKey: 'reflection-delta-mismatch' });
+            sawDeltaMismatch = true;
+          }
         }
       }
     }
   }
 
-  return { status: 'on-track', reason: '' };
+  if (!signals.length) return { status: 'on-track', reason: '', signals: [] };
+  const primary = signals[0];
+  return { status: primary.tier, reason: primary.reason, learnMoreKey: primary.learnMoreKey, signals };
 }
 
 function getStudentSignal(studentId, assignmentId = null) {
@@ -1458,12 +1716,19 @@ function getStudentSignal(studentId, assignmentId = null) {
 // Both tiers render identically — a behavioral pattern is exactly as much a
 // conversation-starter as a review flag, never a verdict, so it gets the
 // same quiet amber treatment rather than a second, unstyled tier.
+// The roster row still leads with one label for scan speed, but a quiet
+// "+N" carries the fact that more signals are true without escalating the
+// pill's color or adding a second one — the full list lives in the drill
+// panel (renderDrillPanel), not here.
 function signalPill(sig) {
-  if (sig.status === 'review') return `<span class="chip chip-caution signal-pill-review">Worth a chat</span>`;
+  const extra = sig.signals && sig.signals.length > 1
+    ? `<span class="signal-pill-count">+${sig.signals.length - 1}</span>`
+    : '';
+  if (sig.status === 'review') return `<span class="chip chip-caution signal-pill-review">Worth a chat${extra}</span>`;
   if (sig.status === 'attention' && sig.reason) {
     const tid = REASON_TO_TREND[sig.reason];
     const label = tid && TREND_META[tid] ? TREND_META[tid].short : null;
-    if (label) return `<span class="chip chip-caution signal-pill-review">${label}</span>`;
+    if (label) return `<span class="chip chip-caution signal-pill-review">${label}${extra}</span>`;
   }
   return '';
 }
@@ -1583,7 +1848,7 @@ function renderSidebar() {
   // dot rule) — the row's own text carries nothing that names a flag or a
   // missing checkpoint, so a colour-only circle here was decoration with no
   // adjacent text to reinforce. Missing-first sort (below) and the bounded
-  // Students shortcuts (Worth a chat / Missing assignments counts) are the
+  // Students shortcuts (Worth a chat / Missing work counts) are the
   // surfaces that actually carry this information now.
   const classItems = CLASSES.map(c => {
     const students = c.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
@@ -1602,11 +1867,13 @@ function renderSidebar() {
 
   el.innerHTML = `
     <div class="sidebar-search">
-      <input type="text" id="global-search-input" placeholder="Search students, classes, assignments…"
-             oninput="runGlobalSearch(this.value)" value="">
-      <div class="sidebar-search-hint">Type a name — the fast path once a class has more than a few students.</div>
+      <div class="sidebar-search-anchor">
+        <input type="text" id="global-search-input" placeholder="Search students, classes, assignments…"
+               oninput="runGlobalSearch(this.value)" value="">
+        <div id="global-search-results"></div>
+      </div>
+      <div class="sidebar-search-hint" id="global-search-hint">Type a name — the fast path once a class has more than a few students.</div>
     </div>
-    <div id="global-search-results"></div>
     <div class="sidebar-home ${screen === 'home' ? 'active sidebar-item' : 'sidebar-item'}" onclick="goHome()">
       <div class="sidebar-item-name">Home</div>
     </div>
@@ -1637,14 +1904,16 @@ function renderSidebar() {
       <span class="sidebar-item-name">Worth a chat</span><span class="sb-shortcut-count">${reviewCount}</span>
     </div>
     <div class="sidebar-item sb-shortcut ${screen === 'students' && browseFilter === 'missing' ? 'active' : ''}" onclick="gotoStudents('missing')">
-      <span class="sidebar-item-name">Missing assignments</span><span class="sb-shortcut-count">${missingCount}</span>
+      <span class="sidebar-item-name">Missing work</span><span class="sb-shortcut-count">${missingCount}</span>
     </div>
   `;
 }
 
 function runGlobalSearch(q) {
   const box = document.getElementById('global-search-results');
+  const hint = document.getElementById('global-search-hint');
   const query = q.toLowerCase().trim();
+  hint.classList.toggle('hidden', !!query);
   if (!query) { box.innerHTML = ''; return; }
 
   const studentMatches    = STUDENTS.filter(s => s.name.toLowerCase().includes(query)).slice(0, 6);
@@ -1664,11 +1933,102 @@ function runGlobalSearch(q) {
   box.innerHTML = `<div class="sidebar-search-results">${rows}</div>`;
 }
 
+// ── Fleet-tier dimension rollup (Home) ──────────────────────────────────────────
+// One tier above classDimensionTrend()/classAssignmentSeries() — no new
+// cohort-builder needed, since both already just walk whatever (students,
+// assignments) they're handed rather than assuming a single class's scope.
+
+function fleetDimensionTrend() {
+  return classDimensionTrend(STUDENTS, ASSIGNMENTS);
+}
+
+function fleetAssignmentSeries() {
+  return classAssignmentSeries(STUDENTS, ASSIGNMENTS);
+}
+
+// Mirrors classSeriesOutlierNote()'s own "furthest from the mean" index,
+// exposed separately rather than changing that function's return type (a
+// string), so the outlier's assignment id can drive a real link.
+function seriesOutlierIndex(series, key, deltaThresh = 0.3) {
+  if (series.length < 3) return -1;
+  const values = series.map(s => s[key]);
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  let worstIdx = 0;
+  values.forEach((v, i) => { if (Math.abs(v - mean) > Math.abs(values[worstIdx] - mean)) worstIdx = i; });
+  return Math.abs(values[worstIdx] - mean) >= deltaThresh ? worstIdx : -1;
+}
+
+// Renders "How your teaching is landing" — a full card only for a dimension
+// with real news (an active trend, a genuine floor, or a split-class
+// finding); everything else collapses into one shared quiet-line group.
+// Returns '' when there isn't yet enough data (mirrors the "not enough data
+// yet" graceful-degradation idiom used throughout the class/assignment
+// tiers) rather than rendering an empty or misleading section.
+function renderTeachingSection() {
+  const trend = fleetDimensionTrend();
+  if (!trend) return '';
+  const series = fleetAssignmentSeries();
+
+  // Only the row classCoachingNote() would itself call out as the primary
+  // floor finding gets the outlier-assignment callout — the "why" belongs on
+  // the one card already flagged as the watch-item, not invented for others.
+  const floorRow = trend.rows.find(r => r.trend === 'floor' && !r.skewed);
+  const outlierIdx = floorRow ? seriesOutlierIndex(series, floorRow.key) : -1;
+  const outlierNote = outlierIdx >= 0 ? classSeriesOutlierNote(series, floorRow.key, floorRow.label) : null;
+  const outlierAssignment = outlierIdx >= 0 ? series[outlierIdx] : null;
+
+  const blocks = [];
+  let lineRun = [];
+  const flushLines = () => {
+    if (lineRun.length) { blocks.push(`<div class="dim-line-group">${lineRun.join('')}</div>`); lineRun = []; }
+  };
+
+  trend.rows.forEach(row => {
+    const notable = row.skewed || row.trend === 'up' || row.trend === 'down' || row.trend === 'floor';
+    if (!notable) {
+      // 'mid' → plain quiet line; 'ceiling' → quiet-positive line, distinct
+      // by glyph AND colour so sustained excellence doesn't read the same
+      // as a dimension with literally nothing to say.
+      const variant = row.trend === 'ceiling' ? 'positive-quiet' : '';
+      const glyph = row.trend === 'ceiling' ? '✓' : '–';
+      lineRun.push(`<div class="dim-line ${variant}">
+        <span class="glyph">${glyph}</span>
+        <span class="dim-line-name">${row.label}</span>
+        <span class="dim-line-note">${row.note}</span>
+      </div>`);
+      return;
+    }
+    flushLines();
+    const isPositive = row.trend === 'up' && !row.skewed;
+    const cls = isPositive ? 'positive' : '';
+    const eyebrow = isPositive ? '✓ Across your classes' : 'Across your classes';
+    const headline = row.skewed
+      ? `${row.label}'s average looks like progress, but your classes are split`
+      : row.trend === 'up'   ? `${row.label} has improved across your classes`
+      : row.trend === 'down' ? `${row.label} has declined across your classes`
+      : `${row.label} is the dimension your students struggle with most`;
+    const isOutlierRow = floorRow && row.key === floorRow.key && outlierAssignment;
+    const body = `Averaging <b>${row.avgCurr.toFixed(1)} / 5</b> across your classes this month. ${row.note}`;
+    const outlierHtml = isOutlierRow ? `<div class="teaching-outlier"><span>📎</span><span>${outlierNote}</span></div>` : '';
+    const linkHtml = isOutlierRow ? `<span class="teaching-link" onclick="gotoAssignment('${outlierAssignment.id}')">View ${outlierAssignment.label} →</span>` : '';
+    blocks.push(`<div class="teaching-card ${cls}">
+      <div class="teaching-eyebrow">${eyebrow}</div>
+      <div class="teaching-headline">${headline}</div>
+      <p class="teaching-body">${body}</p>
+      ${outlierHtml}
+      ${linkHtml}
+    </div>`);
+  });
+  flushLines();
+
+  return `<div class="eyebrow" style="margin-bottom:8px">How your teaching is landing</div>
+  <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:var(--tau-s6)">${blocks.join('')}</div>`;
+}
+
 // ── Home ──────────────────────────────────────────────────────────────────────
 
 function renderHome() {
   const trends = detectTrends(2);
-  const openAssign = ASSIGNMENTS.filter(a => a.status === 'open');
   const missingIds = new Set(ASSIGNMENTS.flatMap(a => studentsFor(a).filter(s => hasMissingCheckpoint(a, s.id)).map(s => s.id)));
   const reviewCount = STUDENTS.filter(s => getStudentSignal(s.id).status === 'review').length;
 
@@ -1680,13 +2040,34 @@ function renderHome() {
     </div>`;
   }
 
+  // Home-only rollup, one level above the per-class views classAvgTotal()
+  // was built for — same source data, just compared across every class at
+  // once instead of read one class at a time. Feeds laggingClasses below,
+  // which the Classes at a glance pill uses per-row (see its own comment) —
+  // aiBornPct/classProvenanceMix isn't consumed here any more since the
+  // fleet-wide "AI-born drift" stat tile this used to feed was retired.
+  const classSummaries = CLASSES.map(cls => {
+    const students = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
+    const assignments = ASSIGNMENTS.filter(a => classesFor(a).some(c => c.id === cls.id));
+    return { cls, avgTotal: classAvgTotal(students, assignments) };
+  });
+
+  const validAvgs = classSummaries.filter(c => c.avgTotal != null);
+  const rosterAvg = validAvgs.length ? validAvgs.reduce((s, c) => s + c.avgTotal, 0) / validAvgs.length : null;
+  // 1.5 of 16 possible points (4-20 scale) — a real gap, not the noise two
+  // classes' averages always show against each other. Feeds the Classes at a
+  // glance pill below, not a stat tile — a tile whose count is >1 but whose
+  // click only ever opens one class was a real bug (see session notes).
+  const laggingClasses = (rosterAvg != null && validAvgs.length >= 2)
+    ? validAvgs.filter(c => c.avgTotal <= rosterAvg - 1.5).sort((a, b) => a.avgTotal - b.avgTotal)
+    : [];
+
   const tiles = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">
     ${statTile(reviewCount, reviewCount ? 'Worth a chat' : 'No signals', reviewCount ? 'var(--tau-caution)' : 'var(--tau-positive)', reviewCount ? 'var(--tau-caution-bg)' : 'var(--tau-positive-bg)', "gotoStudents('review')")}
-    ${statTile(trends.length, `Behavioral pattern${trends.length !== 1 ? 's' : ''}`, 'var(--tau-band-3-fg)', 'var(--tau-band-3-bg)', null)}
     ${missingIds.size ? statTile(missingIds.size, 'Missing work', 'var(--tau-attention)', 'var(--tau-attention-bg)', "gotoStudents('missing')") : ''}
-    ${statTile(openAssign.length, `Open assignment${openAssign.length !== 1 ? 's' : ''}`, 'var(--tau-ink-soft)', 'var(--tau-surface)', null)}
-    ${statTile(STUDENTS.length, 'Students', 'var(--tau-ink-soft)', 'var(--tau-surface)', "gotoStudents('all')")}
   </div>`;
+
+  const teachingSection = renderTeachingSection();
 
   const patternCards = trends.map(({ id, students, meta }) => {
     const classCounts = CLASSES.map(cls => {
@@ -1725,12 +2106,22 @@ function renderHome() {
     ${CLASSES.map(cls => {
       const students  = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
       const flagCount = students.filter(s => getStudentSignal(s.id).status === 'review').length;
+      const isLagging = laggingClasses.some(c => c.cls.id === cls.id);
+      // One pill per row, priority-ordered — same fix getStudentSignal() got
+      // 2026-08-03 (every true signal, roster pill shows the top one plus a
+      // quiet +N). Worth a chat outranks the aggregate-score flag; a class
+      // that's both gets a +1 rather than two stacked badges.
+      const pill = flagCount
+        ? `<span class="chip chip-caution signal-pill-review">${flagCount} worth a chat${isLagging ? '<span class="signal-pill-count">+1</span>' : ''}</span>`
+        : isLagging
+          ? `<span class="chip chip-tool-info">Avg. below your other classes</span>`
+          : `<span class="chip chip-positive">✓ On track</span>`;
       return `<div style="background:var(--tau-surface);border:1px solid var(--tau-line);border-radius:var(--tau-r-md);padding:11px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;box-shadow:var(--tau-shadow)" onclick="gotoClass('${cls.id}')">
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:600">${cls.name}</div>
           <div style="font-size:11px;color:var(--tau-ink-soft);margin-top:1px">${students.length} student${students.length !== 1 ? 's' : ''}</div>
         </div>
-        ${flagCount ? `<span class="chip chip-caution signal-pill-review">${flagCount} worth a chat</span>` : `<span class="chip chip-positive">✓ On track</span>`}
+        ${pill}
       </div>`;
     }).join('')}
   </div>`;
@@ -1743,6 +2134,7 @@ function renderHome() {
       <div class="content-meta">${date}</div>
     </div>
     ${tiles}
+    ${teachingSection}
     ${patternsSection}
     ${classesSection}
   `;
@@ -1788,7 +2180,7 @@ function browseRosterMatches(student) {
   if (q && !student.name.toLowerCase().includes(q)) return false;
   if (browsePattern) {
     const sig = getStudentSignal(student.id);
-    return sig.status === 'attention' && REASON_TO_TREND[sig.reason] === browsePattern;
+    return sig.signals.some(s => s.tier === 'attention' && REASON_TO_TREND[s.reason] === browsePattern);
   }
   if (browseFilter === 'review')   return getStudentSignal(student.id).status === 'review';
   if (browseFilter === 'missing')  return ASSIGNMENTS.some(a => studentsFor(a).includes(student) && hasMissingCheckpoint(a, student.id));
@@ -1926,7 +2318,7 @@ function dimensionRowsFromCohort(cohort) {
     else if (avgCurr >= 4) trend = 'ceiling';
     else trend = 'mid';
 
-    return { key, label, trend, skewed, note: dimensionTrendNote(trend, skewed, n) };
+    return { key, label, trend, skewed, avgCurr, note: dimensionTrendNote(trend, skewed, n) };
   });
 }
 
@@ -2034,6 +2426,26 @@ function classProvenanceMix(students, assignments) {
   };
 }
 
+// Same "latest completed submission per student" snapshot classProvenanceMix
+// uses, averaged on total() instead of provenance — the Home "Class needs
+// attention" tile's cross-class comparison, one level up from
+// classDimensionTrend()'s single-class view.
+function classAvgTotal(students, assignments) {
+  let sum = 0, n = 0;
+  students.forEach(s => {
+    const subs = assignments
+      .flatMap(a => getSubs(s.id, a.id))
+      .filter(sub => sub.analysisStatus === 'complete')
+      .sort((a, b) => a.ts - b.ts);
+    const latest = subs[subs.length - 1];
+    if (!latest) return;
+    sum += total(latest);
+    n++;
+  });
+  return n ? sum / n : null;
+}
+
+
 // Same templated shape as assignmentCoachingNote() — floor/skewed/ceiling,
 // at most one of each — with "checkpoint" reworded to "assignment" since
 // this tier's next unit of progression is a whole assignment, not a draft.
@@ -2052,43 +2464,71 @@ function classCoachingNote(trend) {
 // Recurring cross-assignment patterns + dimension trend + idea-origin mix,
 // scoped to this one class — "how is the class progressing" before the
 // per-assignment table below answers "which assignment is driving that."
-function renderClassAggregateCard(students, assignments, missingCount, flagCount) {
+// Rebuilt into three tabs (Overview / Patterns / Trends) — the card had
+// grown to five stacked blocks (stat row, coaching note, patterns, dimension
+// trend, origin mix) once the full-term arc chart below was added, which
+// read as one long scroll rather than three different questions ("is this
+// class okay," "what patterns are showing up," "how has it moved over
+// time"). Idea-origin mix stays in Overview per direct instruction, not
+// folded into Trends even though it's also a "where things stand" read.
+// Reuses the exact .card-tabs/.tab-panel component
+// renderFinalAssignmentSummaryContent() already established, not a second
+// tab idiom invented for this card.
+function renderClassAggregateCard(cid, students, assignments, missingCount, flagCount) {
   const patterns = detectTrends(2, new Set(students.map(s => s.id)));
   const trend  = classDimensionTrend(students, assignments);
   const origin = classProvenanceMix(students, assignments);
   const note   = classCoachingNote(trend);
+  const series = classAssignmentSeries(students, assignments);
 
   const statTile = (value, label, color, bg, onclick) => `<div class="stat-tile${onclick ? ' stat-tile-clickable' : ''}" style="background:${bg};border:1px solid ${color}"${onclick ? ` onclick="${onclick}"` : ''}>
     <div class="stat-tile-val" style="color:${color}">${value}</div>
     <div class="stat-tile-label" style="color:${color}">${label}</div>
   </div>`;
 
-  const statRow = `<div class="agg-stat-row">
-    ${statTile(students.length, 'Students', 'var(--tau-ink-soft)', 'var(--tau-surface)')}
-    ${missingCount ? statTile(missingCount, 'Missing a checkpoint', 'var(--tau-attention)', 'var(--tau-attention-bg)', `event.stopPropagation();gotoStudents('missing')`) : ''}
+  // Students isn't repeated here — the content-header's meta line
+  // (renderClassDetail) already states "N students" one line above this
+  // card, so a third copy of the same count in the stat row would be the
+  // exact duplication the Home stat row was just cut down for.
+  const statRow = (missingCount || flagCount) ? `<div class="agg-stat-row">
+    ${missingCount ? statTile(missingCount, 'Missing work', 'var(--tau-attention)', 'var(--tau-attention-bg)', `event.stopPropagation();gotoStudents('missing')`) : ''}
     ${flagCount ? statTile(flagCount, 'Worth a chat', 'var(--tau-caution)', 'var(--tau-caution-bg)', `event.stopPropagation();gotoStudents('review')`) : ''}
-  </div>`;
+  </div>` : '';
 
-  const patternsBlock = patterns.length ? `
-    <div class="agg-block-lbl">Recurring patterns across assignments</div>
-    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:var(--tau-s4)">
+  const noteBlock = note ? `<div class="teach-note stacked"><span class="eyebrow-lbl">${iconSVG('chat')}Coaching note</span>${note}</div>` : '';
+
+  const originBlock = origin ? `
+    <div class="agg-block-lbl">Where this class's ideas are coming from right now</div>
+    <div class="origin-mix">
+      <span class="origin-pill" style="background:var(--tau-origin-you-bg)"><span class="origin-dot" style="background:var(--tau-origin-you)"></span>Student-born ${origin.studentBornPct}%</span>
+      <span class="origin-pill" style="background:var(--tau-origin-together-bg)"><span class="origin-dot" style="background:var(--tau-origin-together)"></span>Synthesized ${origin.synthesizedPct}%</span>
+      <span class="origin-pill" style="background:var(--tau-origin-coach-bg)"><span class="origin-dot" style="background:var(--tau-ink-faint)"></span>AI-born ${origin.aiBornPct}%</span>
+    </div>` : '';
+
+  const overviewPanel = `${statRow}${noteBlock}${originBlock}`;
+
+  const patternsPanel = patterns.length ? `
+    <div style="display:flex;flex-direction:column;gap:12px">
       ${patterns.map(({ id, students: pStudents, meta }) => `<div class="pattern-card">
         <div class="pattern-head"><span class="pattern-title">${meta.label}</span><span class="chip chip-neutral">${pStudents.length} student${pStudents.length !== 1 ? 's' : ''}</span></div>
         <div class="pattern-try"><b>What to try:</b> ${meta.whatToTry}</div>
         <span class="pattern-link" onclick="event.stopPropagation();gotoStudents('pattern', '${id}')">View the ${pStudents.length} student${pStudents.length !== 1 ? 's' : ''} →</span>
       </div>`).join('')}
-    </div>` : '';
+    </div>` : `<p class="agg-sample-note">No recurring patterns across this class's assignments yet.</p>`;
 
   const TREND_LABEL = { up: 'Trending up', down: 'Trending down', floor: 'Flat (floor)', ceiling: 'Flat (ceiling)', mid: 'Flat' };
-  const trendBlock = trend ? `
-    <div class="agg-block-lbl">Dimension trend, across this class's assignments</div>
-    <p class="agg-sample-note">Based on the ${trend.n} student${trend.n !== 1 ? 's' : ''} who've completed two or more assignments so far.</p>
+  // Fallback for <3 closed assignments — the same 2-point pairwise badge
+  // this card always showed, before there's enough data for the arc below
+  // to mean anything (see classSeriesOutlierNote's own >=3 guard).
+  const fallbackTrend = trend ? `
+    <div class="agg-block-lbl">Dimension trend, most recent two assignments</div>
+    <p class="agg-sample-note">Based on the ${trend.n} student${trend.n !== 1 ? 's' : ''} who've completed two or more assignments so far. A full-term chart needs three closed assignments — this class isn't there yet.</p>
     <div class="dim-head">
       <span class="c-name">Dimension</span>
       <span class="c-trend">Trend</span>
       <span class="c-note">Note</span>
     </div>
-    <div class="dim-panel" style="margin-bottom:var(--tau-s4)">
+    <div class="dim-panel">
       ${trend.rows.map(r => `<div class="dim-row">
         <div class="dim-name">${r.label}</div>
         <div class="dim-badge ${r.trend}">${TREND_LABEL[r.trend]}</div>
@@ -2097,19 +2537,40 @@ function renderClassAggregateCard(students, assignments, missingCount, flagCount
     </div>`
     : `<p class="agg-sample-note">Not enough data yet — no student has completed two assignments.</p>`;
 
-  const originBlock = origin ? `
-    <div class="agg-block-lbl">Where this class's ideas are coming from right now</div>
-    <div class="origin-mix" style="margin-bottom:var(--tau-s4)">
-      <span class="origin-pill" style="background:var(--tau-origin-you-bg)"><span class="origin-dot" style="background:var(--tau-origin-you)"></span>Student-born ${origin.studentBornPct}%</span>
-      <span class="origin-pill" style="background:var(--tau-origin-together-bg)"><span class="origin-dot" style="background:var(--tau-origin-together)"></span>Synthesized ${origin.synthesizedPct}%</span>
-      <span class="origin-pill" style="background:var(--tau-origin-coach-bg)"><span class="origin-dot" style="background:var(--tau-ink-faint)"></span>AI-born ${origin.aiBornPct}%</span>
-    </div>` : '';
+  const metric = classMetric[cid] || 'tau';
+  const trendsPanel = series.length >= 3 ? (() => {
+    const isTotal = metric === 'tau';
+    const metricDef = FINAL_METRICS.find(m => m.key === metric);
+    const chart = svgLineChart({
+      points: finalMetricSeriesPoints(series, metric),
+      yMin: isTotal ? 0 : 1, yMax: isTotal ? 20 : 5,
+      yTicks: isTotal ? [0, 5, 10, 15, 20] : [1, 2, 3, 4, 5],
+      color: 'var(--tau-tool-info)',
+      valueFmt: isTotal ? v => `${v.toFixed(1)}/20` : v => v.toFixed(1),
+    });
+    const outlier = isTotal
+      ? classSeriesOutlierNote(series, 'totalAvg', 'TAU score', { deltaThresh: 1.2, fmt: v => `${v.toFixed(1)}/20` })
+      : classSeriesOutlierNote(series, metric, metricDef.label);
+    return `
+      <p class="agg-sample-note">One point per closed assignment — hover or tab to a point for its exact value.</p>
+      <div class="metric-chips" role="group" aria-label="Select a dimension">
+        ${FINAL_METRICS.map(m => `<button class="metric-chip ${metric === m.key ? 'active' : ''}" onclick="event.stopPropagation();setClassMetric('${cid}','${m.key}')">${m.label}</button>`).join('')}
+      </div>
+      ${chart}
+      ${outlier ? `<div class="teach-note stacked" style="margin-top:var(--tau-s4)"><span class="eyebrow-lbl">${iconSVG('chat')}Worth flagging</span>${outlier}</div>` : ''}`;
+  })() : fallbackTrend;
 
-  const noteBlock = note ? `<div class="teach-note stacked"><span class="eyebrow-lbl">${iconSVG('chat')}Coaching note</span>${note}</div>` : '';
+  const tab = classTab[cid] || 'overview';
+  const panels = { overview: overviewPanel, patterns: patternsPanel, trends: trendsPanel };
 
   return `<div class="overview-card">
-    <div class="overview-eyebrow">Class overview — progression across assignments</div>
-    ${statRow}${noteBlock}${patternsBlock}${trendBlock}${originBlock}
+    <div class="overview-eyebrow">Class overview — progression across the term</div>
+    <div class="card-tabs" role="tablist" aria-label="Class overview sections">
+      <button class="card-tab ${tab === 'overview' ? 'active' : ''}" onclick="event.stopPropagation();setClassTab('${cid}','overview')" role="tab" aria-selected="${tab === 'overview'}">Overview</button>
+      <button class="card-tab ${tab === 'patterns' ? 'active' : ''}" onclick="event.stopPropagation();setClassTab('${cid}','patterns')" role="tab" aria-selected="${tab === 'patterns'}">Patterns${patterns.length ? ` <span class="tab-count">${patterns.length}</span>` : ''}</button>
+      <button class="card-tab ${tab === 'trends' ? 'active' : ''}" onclick="event.stopPropagation();setClassTab('${cid}','trends')" role="tab" aria-selected="${tab === 'trends'}">Trends</button>
+    </div>
+    <div class="tab-panel active">${panels[tab]}</div>
   </div>`;
 }
 
@@ -2186,15 +2647,13 @@ function renderClassDetail(cid) {
 
   return `
     <div class="content-header">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
         <div class="content-title">${cls.name}</div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:8px">
         <button class="btn btn-quiet btn-sm" onclick="openRosterModal('${cls.id}')">Manage roster</button>
       </div>
       <div class="content-meta" style="margin-top:8px">${metaParts.join(' · ')}</div>
     </div>
-    ${renderClassAggregateCard(students, assignments, missingIds.size, totalFlags)}
+    ${renderClassAggregateCard(cid, students, assignments, missingIds.size, totalFlags)}
     ${renderClassAssignmentGroup('Open', open, students)}
     ${renderClassAssignmentGroup('Closed', closed, students)}
   `;
@@ -2449,6 +2908,20 @@ function setFinalTab(aid, tab) {
 }
 function setFinalMetric(aid, metric) {
   finalMetric[aid] = metric;
+  renderContent();
+}
+
+// Class overview card's own tab/chip state, keyed by class id — mirrors
+// finalTab/finalMetric's shape one tier up (renderClassAggregateCard).
+let classTab    = {};
+let classMetric = {};
+
+function setClassTab(cid, tab) {
+  classTab[cid] = tab;
+  renderContent();
+}
+function setClassMetric(cid, metric) {
+  classMetric[cid] = metric;
   renderContent();
 }
 
@@ -2750,7 +3223,7 @@ function renderAssignmentAggregateContent(a, students) {
 
   const statRow = `<div class="agg-stat-row">
     ${statTile(students.length, 'Students', 'var(--tau-ink-soft)', 'var(--tau-surface)')}
-    ${missingTotal ? statTile(missingTotal, 'Missing a checkpoint', 'var(--tau-attention)', 'var(--tau-attention-bg)', `event.stopPropagation();gotoStudents('missing')`) : ''}
+    ${missingTotal ? statTile(missingTotal, 'Missing work', 'var(--tau-attention)', 'var(--tau-attention-bg)', `event.stopPropagation();gotoStudents('missing')`) : ''}
     ${flagTotal ? statTile(flagTotal, 'Worth a chat', 'var(--tau-caution)', 'var(--tau-caution-bg)', `event.stopPropagation();gotoStudents('review')`) : ''}
   </div>`;
 
@@ -2841,14 +3314,60 @@ function assignmentDraftSeries(a, students) {
 // opts lets the TAU total (0-20 scale) reuse this against different
 // thresholds than a dimension (1-5 scale) rather than needing a second copy.
 function seriesArcNote(series, key, label, opts = {}) {
-  const { deltaThresh = 0.3, floor = 2, ceiling = 4, fmt = v => v.toFixed(1) } = opts;
+  const { deltaThresh = 0.3, floor = 2, ceiling = 4, fmt = v => v.toFixed(1), scope = 'the assignment' } = opts;
   const first = series[0][key], last = series[series.length - 1][key];
   const delta = last - first;
-  if (delta >= deltaThresh)  return `${label} rose across the assignment (${fmt(first)} → ${fmt(last)}).`;
-  if (delta <= -deltaThresh) return `${label} fell across the assignment (${fmt(first)} → ${fmt(last)}) — worth a look before the next one.`;
+  if (delta >= deltaThresh)  return `${label} rose across ${scope} (${fmt(first)} → ${fmt(last)}).`;
+  if (delta <= -deltaThresh) return `${label} fell across ${scope} (${fmt(first)} → ${fmt(last)}) — worth a look before the next one.`;
   if (last <= floor)         return `${label} stayed low and flat throughout (avg ${fmt(last)}) — worth addressing directly.`;
   if (last >= ceiling)       return `${label} stayed high and consistent throughout (avg ${fmt(last)}).`;
-  return `${label} held steady across the assignment (avg ${fmt(last)}).`;
+  return `${label} held steady across ${scope} (avg ${fmt(last)}).`;
+}
+
+// One point per *closed* assignment (classAssignmentSequence() order), each
+// averaging every student's own latest completed submission on that
+// assignment — the class-tier counterpart to assignmentDraftSeries(), same
+// "skip an assignment with zero completed subs, never interpolate" rule.
+function classAssignmentSeries(students, assignments) {
+  return classAssignmentSequence(assignments)
+    .filter(a => a.status === 'closed')
+    .map(a => {
+      const subs = students
+        .map(s => {
+          const complete = getSubs(s.id, a.id).filter(sub => sub.analysisStatus === 'complete');
+          return complete.length ? complete[complete.length - 1] : null;
+        })
+        .filter(Boolean);
+      if (!subs.length) return null;
+      const avg = key => subs.reduce((sum, s) => sum + s[key], 0) / subs.length;
+      return {
+        id: a.id, label: a.name,
+        n: subs.length,
+        totalAvg: subs.reduce((sum, s) => sum + total(s), 0) / subs.length,
+        pq: avg('pq'), su: avg('su'), cs: avg('cs'), oc: avg('oc'),
+      };
+    })
+    .filter(Boolean);
+}
+
+// Names the single assignment that swung furthest from the series' own mean
+// — the "was this a real trend or one hard assignment" check discussed
+// alongside the arc chart. Reuses seriesArcNote()'s own deltaThresh so this
+// only fires on a swing large enough to already register as "rose/fell"
+// there — a flat term never gets a callout invented for it.
+function classSeriesOutlierNote(series, key, label, opts = {}) {
+  const { deltaThresh = 0.3, fmt = v => v.toFixed(1) } = opts;
+  if (series.length < 3) return null;
+  const values = series.map(s => s[key]);
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  let worstIdx = 0;
+  values.forEach((v, i) => { if (Math.abs(v - mean) > Math.abs(values[worstIdx] - mean)) worstIdx = i; });
+  const deviation = values[worstIdx] - mean;
+  if (Math.abs(deviation) < deltaThresh) return null;
+  const rest = values.filter((_, i) => i !== worstIdx);
+  const restAvg = rest.reduce((a, b) => a + b, 0) / rest.length;
+  const direction = deviation < 0 ? 'below' : 'above';
+  return `${series[worstIdx].label} is the outlier — ${label} averaged ${fmt(values[worstIdx])}, well ${direction} the ${fmt(restAvg)} average the other ${rest.length} assignment${rest.length !== 1 ? 's' : ''} hold${rest.length !== 1 ? '' : 's'}. The rest sit in a steadier band, so this reads as one assignment, not a term-long shift.`;
 }
 
 // TAU-score metric definition, standing in for `total` the same way
@@ -2952,7 +3471,7 @@ function renderFinalOverviewTab(a, students, series) {
   return `
     <div class="agg-stat-row">
       <div class="draft-stat"><div class="draft-stat-val">${last.totalAvg.toFixed(1)} / 20 ${bandChip(last.totalAvg, true)}</div><div class="draft-stat-label">Avg. TAU score</div></div>
-      ${missingTotal ? statTile(missingTotal, 'Missing a checkpoint', 'var(--tau-attention)', 'var(--tau-attention-bg)', `event.stopPropagation();gotoStudents('missing')`) : ''}
+      ${missingTotal ? statTile(missingTotal, 'Missing work', 'var(--tau-attention)', 'var(--tau-attention-bg)', `event.stopPropagation();gotoStudents('missing')`) : ''}
       ${flagTotal ? statTile(flagTotal, 'Worth a chat', 'var(--tau-caution)', 'var(--tau-caution-bg)', `event.stopPropagation();gotoStudents('review')`) : ''}
     </div>
     <div class="agg-block-lbl">Avg. dimension score, final draft</div>
@@ -3286,11 +3805,18 @@ function renderDrillPanel(subs, label, sig, ctx) {
     </div>`;
   }).join('');
 
-  const learnMoreLink = sig && sig.learnMoreKey
-    ? ` <a class="flag-learn-more" onclick="openFlagTray('${sig.learnMoreKey}');event.stopPropagation()">Learn more</a>`
-    : '';
-  const engagementNote = sig && sig.status === 'attention' && sig.reason
-    ? `<div style="padding:8px 14px;font-size:11px;color:var(--tau-ink-soft);border-top:1px solid var(--tau-line)">${sig.reason}${learnMoreLink}</div>`
+  // Every attention-tier signal renders here, not just the primary one —
+  // when status is 'review' the flagged submissions above already carry
+  // that story per-row, so this is genuinely "also true, also worth
+  // knowing" rather than restating the headline reason a second time.
+  const attentionSignals = sig && sig.signals ? sig.signals.filter(s => s.tier === 'attention') : [];
+  const engagementNote = attentionSignals.length
+    ? `<div style="padding:8px 14px;border-top:1px solid var(--tau-line)">
+         ${sig.status === 'review' ? '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--tau-ink-faint);margin-bottom:5px">Also noticed</div>' : ''}
+         <ul class="note-list" style="font-size:11px;color:var(--tau-ink-soft)">
+           ${attentionSignals.map(s => `<li>${s.reason}${s.learnMoreKey ? ` <a class="flag-learn-more" onclick="openFlagTray('${s.learnMoreKey}');event.stopPropagation()">Learn more</a>` : ''}</li>`).join('')}
+         </ul>
+       </div>`
     : '';
 
   const convLink = ctx
@@ -3390,9 +3916,13 @@ function gotoClass(cid) {
   // The timeline can render several closed assignments' Final Summary cards
   // at once now (renderClassAssignmentCard) — reset so a fresh visit starts
   // every one of them on Overview, same "start clean" convention
-  // gotoAssignment() already follows for its own copy of this state.
+  // gotoAssignment() already follows for its own copy of this state. The
+  // class overview card's own tab/chip state resets alongside it for the
+  // same reason.
   finalTab = {};
   finalMetric = {};
+  classTab = {};
+  classMetric = {};
   render();
 }
 
@@ -3556,6 +4086,36 @@ function naSyncLevelSelects() {
   const existingLevels = [...container.querySelectorAll('select')].map(s => s.value);
   const existingDates  = [...container.querySelectorAll('input[type=date]')].map(i => i.value);
   container.innerHTML = naLevelSelectsHtml(n, existingDates, existingLevels);
+  naApplyDueDateDefaults();
+}
+
+// The single "Due date" field is the common-case input; per-draft dates
+// live inside the "Customize schedule" disclosure and stay auto-spaced
+// (weekly, back from the due date) until a teacher edits one directly —
+// `naDraftDatesDirty` flips true on that first manual edit and this stops
+// overwriting anything from then on, for this modal open.
+let naDraftDatesDirty = false;
+
+function naDueDateSpacedDefaults(dueDateStr, n) {
+  if (!dueDateStr) return Array(n).fill('');
+  // Local calendar-date arithmetic only — an <input type="date"> value has
+  // no timezone of its own, and round-tripping through toISOString() (UTC)
+  // shifts the date back a day for anyone in a positive UTC-offset zone.
+  const [y, m, d] = dueDateStr.split('-').map(Number);
+  const base = new Date(y, m - 1, d);
+  return Array.from({ length: n }, (_, i) => {
+    const dt = new Date(base);
+    dt.setDate(dt.getDate() - (n - 1 - i) * 7);
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+  });
+}
+
+function naApplyDueDateDefaults() {
+  if (naDraftDatesDirty) return;
+  const due  = document.getElementById('na-due-date').value;
+  const rows = [...document.getElementById('newAssignmentLevelSelects').querySelectorAll('.draft-due-input')];
+  const dates = naDueDateSpacedDefaults(due, rows.length);
+  rows.forEach((input, i) => { input.value = dates[i]; });
 }
 
 // Classes checklist — the real fix this rebuild made to this form. The
@@ -3569,12 +4129,7 @@ function naSyncLevelSelects() {
 // gotoNewAssignmentFromSuccess()).
 function renderAssignClassChecklist(preselect) {
   const box = document.getElementById('assign-class-checklist');
-  if (!CLASSES.length) {
-    box.innerHTML = `<div class="menu-footnote" style="padding:10px 12px">No classes yet — create one from the header's Manage menu first.</div>`;
-    document.getElementById('assign-scope-note').textContent = '';
-    return;
-  }
-  box.innerHTML = CLASSES.map(c => {
+  const rows = CLASSES.map(c => {
     const n = (c.studentIds || []).length;
     const checked = preselect ? preselect.includes(c.id) : true;
     return `<label class="class-check">
@@ -3582,7 +4137,45 @@ function renderAssignClassChecklist(preselect) {
       ${esc(c.name)} <span class="class-check-count">${n} student${n !== 1 ? 's' : ''}</span>
     </label>`;
   }).join('');
+  box.innerHTML = rows + `
+    <div class="class-check class-check-addnew" id="assign-addnew-row">
+      <button type="button" class="class-check-addnew-btn" onclick="revealAssignNewClassInput()">+ New class</button>
+    </div>`;
   updateAssignScopeNote();
+}
+
+// The checklist's own last row, not a separate button elsewhere — starting a
+// class you don't have yet is a variant of picking one you do, not a
+// different task (teacher-dashboard-design.md, 2026-08-implement). Turns
+// into a name field in place; committing creates the class and checks it
+// alongside whatever else was already checked.
+function revealAssignNewClassInput() {
+  const row = document.getElementById('assign-addnew-row');
+  if (!row) return;
+  row.classList.add('class-check-addnew-active');
+  row.innerHTML = `
+    <input type="text" id="assign-addnew-input" placeholder="Class name">
+    <button type="button" class="btn btn-primary btn-sm" onclick="commitAssignNewClass()">Add</button>`;
+  const input = document.getElementById('assign-addnew-input');
+  input.focus();
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); commitAssignNewClass(); } });
+}
+
+async function commitAssignNewClass() {
+  const input = document.getElementById('assign-addnew-input');
+  const name = input.value.trim();
+  if (!name) { input.focus(); return; }
+  let created;
+  try {
+    created = await api('/api/classes', { method: 'POST', body: { name } });
+  } catch (err) {
+    alert(err.message || 'Could not create this class.');
+    return;
+  }
+  await loadDashboardData();
+  renderSidebar();
+  const checkedIds = [...document.querySelectorAll('#assign-class-checklist input[type=checkbox]:checked')].map(b => b.value);
+  renderAssignClassChecklist([...checkedIds, created.id]);
 }
 
 function updateAssignScopeNote() {
@@ -3599,6 +4192,17 @@ function updateAssignScopeNote() {
   note.style.color = 'var(--tau-ink-soft)';
 }
 
+// One click to check/uncheck every class — a teacher assigning to most or
+// all of their classes shouldn't have to click each one individually
+// (Hick's Law: fewer decisions for the common case). Toggles based on
+// current state: all-checked -> clears; anything else -> checks all.
+function toggleAllAssignClasses() {
+  const boxes = [...document.querySelectorAll('#assign-class-checklist input[type=checkbox]')];
+  const allChecked = boxes.every(b => b.checked);
+  boxes.forEach(b => { b.checked = !allChecked; });
+  updateAssignScopeNote();
+}
+
 // Set by gotoNewAssignmentFromSuccess() to scope the checklist to one
 // just-created class; cleared once consumed so a later generic open (the
 // header's own + New assignment button) doesn't inherit a stale scope.
@@ -3612,6 +4216,7 @@ function openNewAssignmentModal() {
   document.getElementById('newAssignmentForm').reset();
   renderAssignClassChecklist(pendingAssignClassIds);
   pendingAssignClassIds = null;
+  naDraftDatesDirty = false;
   naSyncLevelSelects();
   document.getElementById('new-assignment-modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -3636,15 +4241,16 @@ function openEditAssignmentModal(aid) {
   form.elements.requirements.value = a.requirements || '';
   form.elements.teacherNote.value = a.teacherNote || '';
   form.elements.draftBudget.value = a.draftBudget || 1;
+  // draftDueDates may be full ISO datetimes (seed.js computes them as Date
+  // objects) — an <input type="date"> only accepts a bare YYYY-MM-DD value,
+  // so slice off the time component before pre-filling.
+  const editDates = (a.draftDueDates || []).map(d => new Date(d).toISOString().slice(0, 10));
   document.getElementById('newAssignmentLevelSelects').innerHTML =
-    naLevelSelectsHtml(
-      a.draftBudget || 1,
-      // draftDueDates may be full ISO datetimes (seed.js computes them as
-      // Date objects) — an <input type="date"> only accepts a bare
-      // YYYY-MM-DD value, so slice off the time component before pre-filling.
-      (a.draftDueDates || []).map(d => new Date(d).toISOString().slice(0, 10)),
-      a.coachingLevels || []
-    );
+    naLevelSelectsHtml(a.draftBudget || 1, editDates, a.coachingLevels || []);
+  // An existing assignment's per-draft dates are already deliberate — never
+  // let the due-date auto-spacing below silently rewrite them.
+  naDraftDatesDirty = true;
+  document.getElementById('na-due-date').value = editDates[editDates.length - 1] || '';
   document.getElementById('new-assignment-modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -3656,13 +4262,20 @@ function closeNewAssignmentModal(e) {
 }
 
 document.getElementById('newAssignmentForm').elements.draftBudget.oninput = naSyncLevelSelects;
+document.getElementById('na-due-date').oninput = naApplyDueDateDefaults;
+// Delegated so it survives naSyncLevelSelects()/naLevelSelectsHtml() replacing
+// the rows wholesale on every budget change or modal open.
+document.getElementById('newAssignmentLevelSelects').addEventListener('input', (e) => {
+  if (e.target.classList.contains('draft-due-input')) naDraftDatesDirty = true;
+});
 document.getElementById('newAssignmentForm').onsubmit = async (e) => {
   e.preventDefault();
   const form = e.target;
   const classIds = [...document.querySelectorAll('#assign-class-checklist input[type=checkbox]:checked')].map(b => b.value);
   if (!classIds.length) { alert('Choose at least one class — an assignment needs somewhere to go.'); return; }
+  if (!document.getElementById('na-due-date').value) { alert('Set a due date.'); return; }
   const draftDueDates = [...document.getElementById('newAssignmentLevelSelects').querySelectorAll('.draft-due-input')].map(i => i.value);
-  if (draftDueDates.some(d => !d)) { alert('Set a due date for every draft.'); return; }
+  if (draftDueDates.some(d => !d)) { alert('Set a due date for every draft — open "Customize schedule & coaching" to check them.'); return; }
   for (let i = 1; i < draftDueDates.length; i++) {
     if (draftDueDates[i] < draftDueDates[i - 1]) { alert('Draft due dates must be in order — each draft due on or after the previous one.'); return; }
   }
@@ -3700,8 +4313,8 @@ document.getElementById('newAssignmentForm').onsubmit = async (e) => {
 };
 
 function flashAssignToast(html) {
-  const wrap = document.getElementById('newassign-wrap');
-  const trig = document.getElementById('trig-newassign');
+  const wrap = document.getElementById('add-wrap');
+  const trig = document.getElementById('trig-manage');
   const old = wrap.querySelector('.assign-toast');
   if (old) old.remove();
   const toast = document.createElement('div');
@@ -3790,15 +4403,20 @@ async function removeStudentFromClass(studentId) {
 // `scope` selects which DOM ids to read/write: 'hdr' (header's Manage menu,
 // has its own Class <select>) or 'roster' (this modal, always scoped to
 // activeRosterClassId, no select of its own).
+// 'newclass' has no submit id of its own — the roster there submits as part
+// of the whole New Class form (see hdrNewClassForm's onsubmit), not its own
+// button, so renderRosterPreview() below only touches ids.submit when one
+// exists.
 const ROSTER_SCOPES = {
-  hdr:    { input: 'hdr-addstudent-roster-input',    preview: 'hdr-addstudent-preview',    submit: 'hdr-addstudent-submit' },
-  roster: { input: 'roster-addstudent-roster-input', preview: 'roster-addstudent-preview', submit: 'roster-addstudent-submit' },
+  hdr:      { input: 'hdr-addstudent-roster-input',    preview: 'hdr-addstudent-preview',    submit: 'hdr-addstudent-submit' },
+  roster:   { input: 'roster-addstudent-roster-input', preview: 'roster-addstudent-preview', submit: 'roster-addstudent-submit' },
+  newclass: { input: 'newclass-roster-input',          preview: 'newclass-roster-preview',   submit: null },
 };
 
 function rosterScopeClassId(scope) {
   if (scope === 'roster') return activeRosterClassId;
   const sel = document.getElementById('hdr-addstudent-class-select');
-  return sel && sel.value ? sel.value : null;
+  return sel && sel.value && sel.value !== '__new__' ? sel.value : null;
 }
 
 function parseRosterLine(raw) {
@@ -3853,9 +4471,11 @@ function renderRosterPreview(scope) {
     preview.hidden = false;
     preview.innerHTML = rows.map(rosterRowHtml).join('');
   }
-  const validCount = rows.filter(r => r.status === 'new' || r.status === 'existing').length;
-  submit.disabled = !validCount || !rosterScopeClassId(scope);
-  submit.textContent = validCount ? `Add ${validCount} student${validCount !== 1 ? 's' : ''}` : 'Add students';
+  if (submit) {
+    const validCount = rows.filter(r => r.status === 'new' || r.status === 'existing').length;
+    submit.disabled = !validCount || !rosterScopeClassId(scope);
+    submit.textContent = validCount ? `Add ${validCount} student${validCount !== 1 ? 's' : ''}` : 'Add students';
+  }
 }
 
 // Sequential, not Promise.all — each call reads-modifies-writes the same
@@ -3890,9 +4510,7 @@ async function submitRosterAdd(scope) {
     refreshRosterModal();
     submit.disabled = true;
   } else {
-    populateHeaderClassSelect();
-    showManageView('list');
-    flashManageConfirm(`✓ ${added} student${added !== 1 ? 's' : ''} added`);
+    flashConfirm('add-students-confirm', `✓ ${added} student${added !== 1 ? 's' : ''} added — paste more, or close when done.`);
   }
 }
 
@@ -3918,44 +4536,160 @@ function toggleHeaderMenu(which, e) {
   closeAllHeaderMenus();
   panelEl.hidden = !willOpen;
   document.getElementById(trigger).setAttribute('aria-expanded', String(willOpen));
-  if (willOpen && which === 'manage') {
-    showManageView('list');
-    populateHeaderClassSelect();
-  }
 }
 
 document.addEventListener('click', closeAllHeaderMenus);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllHeaderMenus(); });
 document.querySelectorAll('.menu-panel').forEach((p) => p.addEventListener('click', (e) => e.stopPropagation()));
 
-const MANAGE_VIEWS = ['list', 'newclass', 'newclass-success', 'addstudent'];
-function showManageView(name) {
-  MANAGE_VIEWS.forEach((v) => { document.getElementById(`manage-view-${v}`).hidden = v !== name; });
-}
-
-function flashManageConfirm(text) {
-  const el = document.getElementById('manage-confirm');
+function flashConfirm(elId, text) {
+  const el = document.getElementById(elId);
   el.textContent = text;
   el.hidden = false;
   window.clearTimeout(el._t);
   el._t = window.setTimeout(() => { el.hidden = true; }, 1800);
 }
 
+// ── New class / Add students modals ─────────────────────────────────────────
+// Full-size, same .scrim/.confirm.modal/.tray-* chrome as New assignment and
+// the per-class roster modal — the "+ Add" dropdown itself only ever holds a
+// 3-item picker now; picking one opens a real modal with room for a roster
+// paste or a class-scope decision, not a cramped 240px panel (2026-08-03).
+// All three add-flow modals now share one width (the base .modal rule, same
+// as New Assignment) rather than each carrying its own inline max-width —
+// New Class briefly grew/shrank between a 440px and 640px override with a
+// FLIP-transform animation on toggling the Assignment panel, which was
+// simpler to look at than to justify: three different modal widths for what
+// is, from a teacher's chair, one consistent kind of thing (a form in an
+// overlay). One width, used everywhere this app already asks for one,
+// beats a bespoke resize animation that only one modal ever needed.
+function toggleAttachPanel(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+// Reveal motion still happens — .attach.open .attach-body already runs
+// tau-reveal (opacity + translateY, the same entrance this app already uses
+// for a menu panel or a disclosure opening) whenever a panel's content
+// mounts, so "content appears" still isn't a hard jump, just no width change
+// to also animate now that every modal is one size.
+function toggleNewClassAssignPanel() {
+  const panel = document.getElementById('newclass-att-assignment');
+  const opening = !panel.classList.contains('open');
+  panel.classList.toggle('open');
+  if (opening) ncSyncLevelSelects();
+}
+
+// Mirrors naSyncLevelSelects()/naApplyDueDateDefaults() (New Assignment
+// modal) for the embedded copy of the same field set inside New Class's
+// Assignment panel — same naLevelSelectsHtml()/naDueDateSpacedDefaults()
+// pure helpers, its own dirty flag since it's a separate form.
+let ncAssignDraftDatesDirty = false;
+
+function ncSyncLevelSelects() {
+  const budgetInput = document.getElementById('newclass-assign-budget');
+  const n = Math.max(1, Math.min(10, parseInt(budgetInput.value, 10) || 3));
+  const container = document.getElementById('newclass-assign-levels');
+  const existingLevels = [...container.querySelectorAll('select')].map(s => s.value);
+  const existingDates  = [...container.querySelectorAll('input[type=date]')].map(i => i.value);
+  container.innerHTML = naLevelSelectsHtml(n, existingDates, existingLevels);
+  ncApplyDueDateDefaults();
+}
+
+function ncApplyDueDateDefaults() {
+  if (ncAssignDraftDatesDirty) return;
+  const due = document.getElementById('newclass-assign-due').value;
+  const rows = [...document.getElementById('newclass-assign-levels').querySelectorAll('.draft-due-input')];
+  const dates = naDueDateSpacedDefaults(due, rows.length);
+  rows.forEach((input, i) => { input.value = dates[i]; });
+}
+
+document.getElementById('newclass-assign-budget').oninput = ncSyncLevelSelects;
+document.getElementById('newclass-assign-due').oninput = ncApplyDueDateDefaults;
+document.getElementById('newclass-assign-levels').addEventListener('input', (e) => {
+  if (e.target.classList.contains('draft-due-input')) ncAssignDraftDatesDirty = true;
+});
+
+function resetNewClassAttachPanels() {
+  document.getElementById('newclass-att-students').classList.remove('open');
+  document.getElementById('newclass-att-assignment').classList.remove('open');
+  document.getElementById('newclass-roster-input').value = '';
+  document.getElementById('newclass-roster-preview').hidden = true;
+  document.getElementById('newclass-roster-preview').innerHTML = '';
+  document.getElementById('newclass-assign-title').value = '';
+  document.getElementById('newclass-assign-description').value = '';
+  document.getElementById('newclass-assign-purpose').value = '';
+  document.getElementById('newclass-assign-requirements').value = '';
+  document.getElementById('newclass-assign-note').value = '';
+  document.getElementById('newclass-assign-due').value = '';
+  document.getElementById('newclass-assign-budget').value = 3;
+  document.getElementById('newclass-assign-levels').innerHTML = '';
+  ncAssignDraftDatesDirty = false;
+  document.getElementById('newclass-success-students-btn').hidden = false;
+  document.getElementById('newclass-success-assignment-btn').hidden = false;
+}
+
+function openNewClassModal() {
+  document.getElementById('hdrNewClassForm').reset();
+  resetNewClassAttachPanels();
+  document.getElementById('new-class-view-form').hidden = false;
+  document.getElementById('new-class-view-success').hidden = true;
+  document.getElementById('new-class-modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('newclass-name-input').focus();
+}
+
+function closeNewClassModal(e) {
+  if (e && e.target !== document.getElementById('new-class-modal-overlay')) return;
+  document.getElementById('new-class-modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function openAddStudentsModal() {
+  populateHeaderClassSelect();
+  document.getElementById('hdr-addstudent-roster-input').value = '';
+  document.getElementById('hdr-addstudent-preview').hidden = true;
+  document.getElementById('hdr-addstudent-preview').innerHTML = '';
+  document.getElementById('add-students-confirm').hidden = true;
+  renderRosterPreview('hdr');
+  document.getElementById('add-students-modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAddStudentsModal(e) {
+  if (e && e.target !== document.getElementById('add-students-modal-overlay')) return;
+  document.getElementById('add-students-modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
 function populateHeaderClassSelect() {
   const sel = document.getElementById('hdr-addstudent-class-select');
   const prev = sel.value;
-  sel.innerHTML = '<option value="">Choose a class…</option>' + CLASSES.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  sel.innerHTML = '<option value="">Choose a class…</option>'
+    + CLASSES.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('')
+    + '<option value="__new__">+ New class…</option>';
+  document.getElementById('hdr-addstudent-newclass-row').hidden = true;
   if (CLASSES.some(c => c.id === prev)) sel.value = prev;
 }
 
-// Set once a class is created, so the success panel's two shortcuts know
-// which class to pre-scope into — cleared as soon as either is used.
-let pendingNewClassId = null;
+// "+ New class…" is the select's own last option, same instinct as the New
+// Assignment checklist's own "+ New class" row — starting a class you don't
+// have is a variant of picking one, not a detour to a different modal.
+function handleAddStudentsClassSelect() {
+  const sel = document.getElementById('hdr-addstudent-class-select');
+  const row = document.getElementById('hdr-addstudent-newclass-row');
+  if (sel.value === '__new__') {
+    row.hidden = false;
+    document.getElementById('hdr-addstudent-newclass-input').focus();
+  } else {
+    row.hidden = true;
+  }
+  renderRosterPreview('hdr');
+}
 
-document.getElementById('hdrNewClassForm').onsubmit = async (e) => {
-  e.preventDefault();
-  const form = e.target;
-  const name = form.elements.name.value;
+async function commitAddStudentsNewClass() {
+  const input = document.getElementById('hdr-addstudent-newclass-input');
+  const name = input.value.trim();
+  if (!name) { input.focus(); return; }
   let created;
   try {
     created = await api('/api/classes', { method: 'POST', body: { name } });
@@ -3963,26 +4697,114 @@ document.getElementById('hdrNewClassForm').onsubmit = async (e) => {
     alert(err.message || 'Could not create this class.');
     return;
   }
-  form.reset();
   await loadDashboardData();
   renderSidebar();
   populateHeaderClassSelect();
+  document.getElementById('hdr-addstudent-class-select').value = created.id;
+  document.getElementById('hdr-addstudent-newclass-row').hidden = true;
+  input.value = '';
+  renderRosterPreview('hdr');
+}
+
+// Set once a class is created, so the success panel's two shortcuts know
+// which class to pre-scope into — cleared as soon as either is used.
+let pendingNewClassId = null;
+
+// One submit does everything open in the form — the class, plus whichever
+// of the two optional attach panels have anything in them, in that order
+// (roster then assignment, since a fresh assignment's own scope note reads
+// naturally once the roster it's about to reach already exists). Validated
+// before anything is created: an assignment with a title but a missing
+// required field shouldn't leave a class-and-roster half-done and just the
+// assignment silently dropped.
+document.getElementById('hdrNewClassForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const name = form.elements.name.value.trim();
+  if (!name) return;
+
+  const assignTitle = document.getElementById('newclass-assign-title').value.trim();
+  let assignBody = null;
+  if (assignTitle) {
+    const description = document.getElementById('newclass-assign-description').value.trim();
+    const purpose = document.getElementById('newclass-assign-purpose').value.trim();
+    const requirements = document.getElementById('newclass-assign-requirements').value.trim();
+    const draftDueDates = [...document.getElementById('newclass-assign-levels').querySelectorAll('.draft-due-input')].map(i => i.value);
+    const coachingLevels = [...document.getElementById('newclass-assign-levels').querySelectorAll('.draft-level-select')].map(s => s.value);
+    if (!description || !purpose || !requirements || !draftDueDates.length || draftDueDates.some(d => !d)) {
+      alert('The assignment needs a description, purpose, requirements, and a due date for every draft — fill those in, or close the Assignment panel and add work to this class later.');
+      return;
+    }
+    assignBody = {
+      title: assignTitle, description, purpose, requirements,
+      teacherNote: document.getElementById('newclass-assign-note').value.trim(),
+      draftBudget: parseInt(document.getElementById('newclass-assign-budget').value, 10),
+      draftDueDates, coachingLevels,
+    };
+  }
+
+  const rosterRows = classifyRoster(document.getElementById('newclass-roster-input').value.split('\n'))
+    .filter(r => r.status === 'new' || r.status === 'existing');
+
+  const submitBtn = form.querySelector('button[type=submit]');
+  submitBtn.disabled = true;
+  let created;
+  try {
+    created = await api('/api/classes', { method: 'POST', body: { name } });
+  } catch (err) {
+    alert(err.message || 'Could not create this class.');
+    submitBtn.disabled = false;
+    return;
+  }
+
+  let studentsAdded = 0;
+  for (const row of rosterRows) {
+    try {
+      await api(`/api/classes/${created.id}/students`, { method: 'POST', body: { email: row.email, displayName: row.name } });
+      studentsAdded++;
+    } catch (err) {
+      console.error(`Could not add ${row.email}: ${err.message}`);
+    }
+  }
+
+  let assignmentCreated = null;
+  if (assignBody) {
+    try {
+      assignmentCreated = await api('/api/assignments', { method: 'POST', body: { ...assignBody, classIds: [created.id] } });
+    } catch (err) {
+      alert(err.message || 'Class created, but the assignment could not be saved — add it separately from the "+ Add" menu.');
+    }
+  }
+
+  form.reset();
+  resetNewClassAttachPanels();
+  submitBtn.disabled = false;
+  await loadDashboardData();
+  renderSidebar();
   pendingNewClassId = created.id;
   document.getElementById('newclass-success-name').textContent = created.name;
-  showManageView('newclass-success');
+  const extras = [];
+  if (studentsAdded) extras.push(`${studentsAdded} student${studentsAdded !== 1 ? 's' : ''} added`);
+  if (assignmentCreated) extras.push(`"${assignmentCreated.title}" assigned`);
+  document.getElementById('newclass-success-extra').textContent = extras.length ? ` — ${extras.join(', ')}` : '';
+  document.getElementById('newclass-success-students-btn').hidden = studentsAdded > 0;
+  document.getElementById('newclass-success-assignment-btn').hidden = !!assignmentCreated;
+  document.getElementById('new-class-view-form').hidden = true;
+  document.getElementById('new-class-view-success').hidden = false;
 };
 
 function gotoAddStudentsFromSuccess() {
+  closeNewClassModal();
+  openAddStudentsModal();
   document.getElementById('hdr-addstudent-class-select').value = pendingNewClassId || '';
   pendingNewClassId = null;
-  showManageView('addstudent');
   renderRosterPreview('hdr');
 }
 
 function gotoNewAssignmentFromSuccess() {
   pendingAssignClassIds = pendingNewClassId ? [pendingNewClassId] : null;
   pendingNewClassId = null;
-  closeAllHeaderMenus();
+  closeNewClassModal();
   openNewAssignmentModal();
 }
 
@@ -3993,6 +4815,8 @@ document.getElementById('tray-close-btn').innerHTML  = iconSVG('close');
 document.getElementById('new-assignment-close-btn').innerHTML = iconSVG('close');
 document.getElementById('goal-modal-close-btn').innerHTML = iconSVG('close');
 document.getElementById('roster-modal-close-btn').innerHTML = iconSVG('close');
+document.getElementById('new-class-close-btn').innerHTML = iconSVG('close');
+document.getElementById('add-students-close-btn').innerHTML = iconSVG('close');
 
 api('/api/me').then((me) => {
   document.getElementById('whoami').textContent = me.displayName;

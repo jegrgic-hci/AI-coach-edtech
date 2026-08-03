@@ -13,7 +13,9 @@ const { col } = require('./store');
 const { setPassword } = require('./auth');
 const { enrich, scoreTAU } = require('./analysis');
 const {
-  DEV_PASSWORD, STUDENTS, CLASSES, ASSIGNMENTS, ELECTIVE_ASSIGNMENT, GUIDE_ASSIGNMENT, TRANSCRIPTS,
+  DEV_PASSWORD, STUDENTS, CLASSES, ASSIGNMENTS, ELECTIVE_ASSIGNMENT,
+  ENGLISH_EXTRA_ASSIGNMENT, LIT_EXTRA_ASSIGNMENT, GUIDE_ASSIGNMENT,
+  OPEN_ASSIGNMENTS, OPEN_ASSIGNMENT_STATE, TRANSCRIPTS,
   ESSAYS, PROVENANCE, FLAGS, SNAPSHOTS, TEACHER_NOTES, OPEN_TEACHER_NOTES,
 } = require('./seed-data');
 
@@ -262,103 +264,135 @@ function seed() {
     const studentIds = spec.studentEmails.map((e) => studentByEmail[e].id);
     classByName[spec.name] = upsertClass(teacher.id, spec, studentIds);
   }
-  const mainClassId = classByName['Period 4 — English 10'].id;
-  const electiveClassId = classByName['Period 2 — Journalism Elective'].id;
+  const mainClassId = classByName['English 10'].id;
+  const electiveClassId = classByName['Journalism Elective'].id;
+  const litClassId = classByName['American Literature'].id;
+  const allClassIds = [mainClassId, electiveClassId, litClassId];
 
-  const openAssignment = upsertAssignment(teacher.id, ASSIGNMENTS.open, 10, [mainClassId]);
-  const pastAssignment = upsertAssignment(teacher.id, ASSIGNMENTS.past, 45, [mainClassId]);
+  // Past and bike-guide are both closed assignments shared by every class —
+  // scoped to all three, unlike the open assignments below which are
+  // deliberately one-per-class (see OPEN_ASSIGNMENTS/OPEN_ASSIGNMENT_STATE).
+  const pastAssignment = upsertAssignment(teacher.id, ASSIGNMENTS.past, 45, allClassIds);
+  const guideAssignment = upsertAssignment(teacher.id, GUIDE_ASSIGNMENT, 50, allClassIds);
   const electiveAssignment = upsertAssignment(teacher.id, ELECTIVE_ASSIGNMENT, 5, [electiveClassId]);
+  // English 10 and American Literature's own third closed assignment — same
+  // "one class, one student, one cycle" shape as electiveAssignment above, so
+  // both classes clear the class-tier dimension arc's 3-closed-assignment
+  // floor instead of only Journalism Elective ever showing that chart.
+  const englishExtraAssignment = upsertAssignment(teacher.id, ENGLISH_EXTRA_ASSIGNMENT, 9, [mainClassId]);
+  const litExtraAssignment = upsertAssignment(teacher.id, LIT_EXTRA_ASSIGNMENT, 9, [litClassId]);
+  const openAssignmentByClassKey = {
+    class1: upsertAssignment(teacher.id, OPEN_ASSIGNMENTS.class1, 10, [mainClassId]),
+    class2: upsertAssignment(teacher.id, OPEN_ASSIGNMENTS.class2, 10, [electiveClassId]),
+    class3: upsertAssignment(teacher.id, OPEN_ASSIGNMENTS.class3, 10, [litClassId]),
+  };
+
+  const hasSubmission = (studentId, assignmentId) =>
+    col('submissions').list((s) => s.studentId === studentId && s.assignmentId === assignmentId).length > 0;
+  const hasSession = (studentId, assignmentId) =>
+    col('sessions').list((s) => s.studentId === studentId && s.assignmentId === assignmentId).length > 0;
 
   // Gives the elective assignment (and the multi-class Maya belongs to) real
   // submitted data, rather than an assignment that only ever shows empty rows.
-  if (col('submissions').list((s) => s.studentId === studentByEmail['maya@school.dev'].id && s.assignmentId === electiveAssignment.id).length === 0) {
+  if (!hasSubmission(studentByEmail['maya@school.dev'].id, electiveAssignment.id)) {
     seedCycle({
       student: studentByEmail['maya@school.dev'], assignment: electiveAssignment, tier: 'strong', cycleIndex: 0, daysAgo: 1,
+    });
+  }
+
+  // English 10 and American Literature's own extra closed assignment, each
+  // seeded from a 'flat' student's second-draft transcript rather than
+  // reusing 'strong'/cycle 0 like the elective one above — gives the new
+  // three-point arc a real dip to show instead of three flat, similar
+  // scores, so the outlier callout has something genuine to name.
+  if (!hasSubmission(studentByEmail['sam@school.dev'].id, englishExtraAssignment.id)) {
+    seedCycle({
+      student: studentByEmail['sam@school.dev'], assignment: englishExtraAssignment, tier: 'flat', cycleIndex: 1, daysAgo: 8,
+    });
+  }
+  if (!hasSubmission(studentByEmail['elena@school.dev'].id, litExtraAssignment.id)) {
+    seedCycle({
+      student: studentByEmail['elena@school.dev'], assignment: litExtraAssignment, tier: 'flat', cycleIndex: 1, daysAgo: 8,
     });
   }
 
   for (const spec of STUDENTS) {
     const student = studentByEmail[spec.email];
 
-    // Only seed history for a student who has none — re-running must not
-    // duplicate a student's drafts.
-    const already = col('submissions').list((s) => s.studentId === student.id).length > 0;
-    const hasSession = col('sessions').list((s) => s.studentId === student.id).length > 0;
-    if (already || hasSession) continue;
-
-    const pastDrafts = spec.pastDrafts === undefined ? ASSIGNMENTS.past.draftBudget : spec.pastDrafts;
-    let lastSubmission = null;
-    for (let cycle = 0; cycle < pastDrafts; cycle++) {
-      lastSubmission = seedCycle({
-        student,
-        assignment: pastAssignment,
-        tier: spec.tier,
-        cycleIndex: cycle,
-        // 34, 26, 18 days ago for a three-draft arc.
-        daysAgo: 34 - cycle * 8,
-      });
+    // Closed multi-draft assignment: every student gets the full three-draft
+    // arc for their tier. This one is done and graded everywhere — the
+    // demo's state variety (in-progress, pending, error, not-started) lives
+    // in the open assignments below instead.
+    if (!hasSubmission(student.id, pastAssignment.id) && !hasSession(student.id, pastAssignment.id)) {
+      let lastSubmission = null;
+      for (let cycle = 0; cycle < ASSIGNMENTS.past.draftBudget; cycle++) {
+        lastSubmission = seedCycle({
+          student,
+          assignment: pastAssignment,
+          tier: spec.tier,
+          cycleIndex: cycle,
+          // 34, 26, 18 days ago for a three-draft arc.
+          daysAgo: 34 - cycle * 8,
+        });
+      }
+      if (lastSubmission && TEACHER_NOTES[spec.email]) {
+        col('submissions').update(lastSubmission.id, {
+          teacherNote: TEACHER_NOTES[spec.email],
+          teacherNoteAt: ts(16),
+        });
+      }
     }
 
-    if (lastSubmission && TEACHER_NOTES[spec.email]) {
-      col('submissions').update(lastSubmission.id, {
-        teacherNote: TEACHER_NOTES[spec.email],
-        teacherNoteAt: ts(16),
-      });
-    }
-
-    let lastOpenSubmission = null;
-    for (let cycle = 0; cycle < spec.openAssignmentDrafts; cycle++) {
-      lastOpenSubmission = seedCycle({
-        student,
-        assignment: openAssignment,
-        tier: spec.tier,
-        cycleIndex: cycle,
-        daysAgo: 6 - cycle * 3,
-      });
-    }
-
-    if (lastOpenSubmission && OPEN_TEACHER_NOTES[spec.email]) {
-      col('submissions').update(lastOpenSubmission.id, {
-        teacherNote: OPEN_TEACHER_NOTES[spec.email],
-        teacherNoteAt: ts(2),
-      });
-    }
-
-    // The demo class otherwise only ever shows "submitted, scored" and "not
-    // started" — every other draft-row state needs at least one student who
-    // actually lands in it.
-    if (spec.email === 'maya@school.dev') {
-      // Draft 2 (her current cycle) has real activity but nothing sent in
-      // yet — the row reads "In progress" with a Continue button, not a
-      // status inherited from draft 1.
-      seedActiveDraft({
-        student, assignment: openAssignment, tier: spec.tier, cycleIndex: 1, daysAgo: 1,
-      });
-    }
-    if (spec.email === 'priya@school.dev') {
-      seedIncompleteCycle({
-        student, assignment: openAssignment, tier: spec.tier, cycleIndex: 0, daysAgo: 0.1, status: 'pending',
-      });
-    }
-    if (spec.email === 'luis@school.dev') {
-      seedIncompleteCycle({
-        student, assignment: openAssignment, tier: spec.tier, cycleIndex: 0, daysAgo: 1, status: 'error',
-        error: 'Groq 500: internal_server_error',
-      });
+    // Closed bike-guide assignment: the same real transcript/essay cloned
+    // onto every student regardless of tier, so every roster row is fully
+    // scored instead of leaving most of them blank.
+    if (!hasSubmission(student.id, guideAssignment.id)) {
+      seedCycle({ student, assignment: guideAssignment, tier: 'bikeguide', cycleIndex: 0, daysAgo: 3 });
     }
   }
 
-  // One-off real transcript (bicycle maintenance guide, document co-creation
-  // rather than a Socratic coach cycle) — kept outside the tier loop above
-  // since it doesn't fit the open/past assignment shape. Its own class, not
-  // left unscoped: an unscoped assignment defaults to "every class" (see
-  // classesFor() in dashboard.html), which would otherwise plant a false
-  // "missing" row for this one-off on every real class's roster.
-  const guideStudent = upsertUser({ email: 'jamie@school.dev', displayName: 'Jamie Okafor', role: 'student' });
-  const guideClass = upsertClass(teacher.id, { name: 'Guide Workshop' }, [guideStudent.id]);
-  const guideAssignment = upsertAssignment(teacher.id, GUIDE_ASSIGNMENT, 5, [guideClass.id]);
-  if (col('submissions').list((s) => s.studentId === guideStudent.id).length === 0) {
-    seedCycle({ student: guideStudent, assignment: guideAssignment, tier: 'bikeguide', cycleIndex: 0, daysAgo: 3 });
+  // Open assignments: one per class, each seeded to a different draft stage
+  // (see OPEN_ASSIGNMENT_STATE) so the demo shows a class early in an
+  // assignment, a class midway, and a class on its final draft side by side —
+  // plus deliberate per-student variety (in-progress, pending, error,
+  // not-started) rather than every row reading "submitted, scored."
+  for (const classKey of Object.keys(OPEN_ASSIGNMENT_STATE)) {
+    const assignment = openAssignmentByClassKey[classKey];
+    const spec = OPEN_ASSIGNMENTS[classKey];
+    for (const row of OPEN_ASSIGNMENT_STATE[classKey]) {
+      const student = studentByEmail[row.email];
+      const studentSpec = STUDENTS.find((s) => s.email === row.email);
+      if (hasSubmission(student.id, assignment.id) || hasSession(student.id, assignment.id)) continue;
+
+      let lastSubmission = null;
+      for (let cycle = 0; cycle < row.drafts; cycle++) {
+        lastSubmission = seedCycle({
+          student, assignment, tier: studentSpec.tier, cycleIndex: cycle, daysAgo: spec.draftSubmittedDaysAgo[cycle],
+        });
+      }
+      if (lastSubmission && OPEN_TEACHER_NOTES[row.email]) {
+        col('submissions').update(lastSubmission.id, {
+          teacherNote: OPEN_TEACHER_NOTES[row.email],
+          teacherNoteAt: ts(2),
+        });
+      }
+
+      // Draft in progress but not yet submitted — the row reads "In
+      // progress" with a Continue button rather than a status inherited
+      // from the last completed draft.
+      if (row.active !== undefined) {
+        seedActiveDraft({ student, assignment, tier: studentSpec.tier, cycleIndex: row.active, daysAgo: 1 });
+      }
+      // Submitted but the analysis hasn't resolved yet ('pending') or failed
+      // ('error') — the draft-row ledger's other two states besides scored
+      // and not-started.
+      if (row.incomplete) {
+        seedIncompleteCycle({
+          student, assignment, tier: studentSpec.tier, cycleIndex: row.incomplete.cycleIndex,
+          daysAgo: 0.1, status: row.incomplete.status, error: row.incomplete.error,
+        });
+      }
+    }
   }
 
   // Users left over from earlier hand-testing predate passwords. Give them the

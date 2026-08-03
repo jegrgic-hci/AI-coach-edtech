@@ -3,13 +3,15 @@ const $ = (id) => document.getElementById(id);
 // POC convenience only. These are dev fixtures, not a directory — the seed
 // creates them and there is no endpoint that enumerates users.
 const TEST_ACCOUNTS = [
-  { email: 'maya@school.dev', note: 'student — strong arc, teacher note' },
-  { email: 'devon@school.dev', note: 'student — flat arc, teacher note' },
-  { email: 'priya@school.dev', note: 'student — integrity flags (teacher-only)' },
-  { email: 'luis@school.dev', note: 'student — mid-assignment' },
-  { email: 'sam@school.dev', note: 'student — no history yet' },
-  { email: 'jamie@school.dev', note: 'student — real transcript (bike guide, 44 turns)' },
-  { email: 'teacher@school.dev', note: 'teacher — dashboard + roster' },
+  { email: 'maya@school.dev', note: 'student — English 10, strong arc, on open draft 1 (scored)' },
+  { email: 'devon@school.dev', note: 'student — English 10, flat arc, open draft 1 in progress' },
+  { email: 'priya@school.dev', note: 'student — English 10, integrity flags, open draft 1 pending analysis' },
+  { email: 'luis@school.dev', note: 'student — English 10, open draft 1 analysis errored' },
+  { email: 'sam@school.dev', note: 'student — English 10, no history on the open assignment yet' },
+  { email: 'jamie@school.dev', note: 'student — American Literature, open assignment complete (all 3 drafts)' },
+  { email: 'elena@school.dev', note: 'student — American Literature, on the final open draft (in progress)' },
+  { email: 'marcus@school.dev', note: 'student — American Literature, integrity flags, open assignment complete' },
+  { email: 'teacher@school.dev', note: 'teacher — dashboard + roster across all 3 classes' },
 ];
 
 function renderTestAccounts() {

@@ -10,23 +10,34 @@
 
 const DEV_PASSWORD = 'coach1234';
 
+// tier drives every general-purpose assignment (the closed multi-draft one
+// and each class's open one) via TRANSCRIPTS/ESSAYS/PROVENANCE/SNAPSHOTS
+// below. It's independent of the bike-guide assignment, which is the same
+// fixed real transcript for every student regardless of tier.
 const STUDENTS = [
-  { email: 'maya@school.dev', displayName: 'Maya Rodriguez', tier: 'strong', openAssignmentDrafts: 1 },
-  { email: 'devon@school.dev', displayName: 'Devon Clarke', tier: 'flat', openAssignmentDrafts: 0 },
-  { email: 'priya@school.dev', displayName: 'Priya Nair', tier: 'flagged', openAssignmentDrafts: 0 },
-  { email: 'luis@school.dev', displayName: 'Luis Ferreira', tier: 'strong', pastDrafts: 1, openAssignmentDrafts: 0 },
-  { email: 'sam@school.dev', displayName: 'Sam Whitfield', tier: 'flat', pastDrafts: 0, openAssignmentDrafts: 0 },
+  { email: 'maya@school.dev', displayName: 'Maya Rodriguez', tier: 'strong' },
+  { email: 'devon@school.dev', displayName: 'Devon Clarke', tier: 'flat' },
+  { email: 'priya@school.dev', displayName: 'Priya Nair', tier: 'flagged' },
+  { email: 'luis@school.dev', displayName: 'Luis Ferreira', tier: 'strong' },
+  { email: 'sam@school.dev', displayName: 'Sam Whitfield', tier: 'flat' },
+  { email: 'jamie@school.dev', displayName: 'Jamie Okafor', tier: 'strong' },
+  { email: 'elena@school.dev', displayName: 'Elena Vasquez', tier: 'flat' },
+  { email: 'marcus@school.dev', displayName: 'Marcus Webb', tier: 'flagged' },
 ];
 
 // Classes aren't assignment-scoped by accident — a teacher can teach the same
 // course to more than one section, and a student can be in more than one of a
 // teacher's classes at once (e.g. a core class plus an elective). The pilot
-// cohort above is the main class; the elective below reuses two of the same
+// cohort above is the main class; the elective reuses two of the same
 // students so the dashboard's multi-class Student view has a real case to
-// show, not a hypothetical one.
+// show, not a hypothetical one. The third class exists so the open-assignment
+// demo can show three classes at three different draft stages side by side
+// (see OPEN_ASSIGNMENT_STATE below) — that needs at least three separate
+// rosters, not just a third assignment on an existing one.
 const CLASSES = [
-  { name: 'Period 4 — English 10', studentEmails: STUDENTS.map((s) => s.email) },
-  { name: 'Period 2 — Journalism Elective', studentEmails: ['maya@school.dev', 'devon@school.dev'] },
+  { name: 'English 10', studentEmails: ['maya@school.dev', 'devon@school.dev', 'priya@school.dev', 'luis@school.dev', 'sam@school.dev'] },
+  { name: 'Journalism Elective', studentEmails: ['maya@school.dev', 'devon@school.dev'] },
+  { name: 'American Literature', studentEmails: ['jamie@school.dev', 'elena@school.dev', 'marcus@school.dev'] },
 ];
 
 const ELECTIVE_ASSIGNMENT = {
@@ -39,11 +50,41 @@ const ELECTIVE_ASSIGNMENT = {
   draftDueInDays: [-3],
 };
 
+// A third closed, single-draft assignment for English 10 and American
+// Literature — same minimal shape as ELECTIVE_ASSIGNMENT above (one class,
+// one student, one cycle), added so both classes clear the class-tier
+// dimension arc's own 3-closed-assignment floor (teacher-dashboard-design.md,
+// "Class overview card rebuilt into three tabs, plus a full-term arc") the
+// same way Journalism Elective already does via ELECTIVE_ASSIGNMENT. Without
+// this, those two classes only ever have two closed assignments and never
+// exercise the chart.
+const ENGLISH_EXTRA_ASSIGNMENT = {
+  title: 'Poetry explication: sound and meaning',
+  description: 'Explicate a short poem, connecting a specific sound or structural choice to its effect on meaning.',
+  purpose: 'Practice close reading — building an argument from textual evidence rather than paraphrase.',
+  requirements: '400–600 words. Quote directly from the poem at least three times. Connect at least one formal choice (meter, rhyme, line break) to meaning.',
+  draftBudget: 1,
+  coachingLevels: ['full'],
+  draftDueInDays: [-7],
+};
+
+const LIT_EXTRA_ASSIGNMENT = {
+  title: 'Historical context essay',
+  description: 'Explain how a specific historical event or movement shaped the themes of a novel studied this term.',
+  purpose: 'Practice connecting a literary text to its historical moment rather than reading it in isolation.',
+  requirements: '500–700 words. Name the specific historical event or movement. Tie at least two textual details to it directly.',
+  draftBudget: 1,
+  coachingLevels: ['full'],
+  draftDueInDays: [-7],
+};
+
 // A real Claude.ai transcript (document co-creation, not the Socratic-coach
 // shape the other tiers assume) — kept separate from STUDENTS/TRANSCRIPTS'
-// tier loop and seeded as a single one-off cycle in seed.js.
+// tier loop. Seeded once as a single cycle, then cloned onto every student in
+// every class, so this closed assignment reads as fully scored everywhere
+// instead of leaving most roster rows blank.
 const GUIDE_ASSIGNMENT = {
-  title: 'Bicycle maintenance guide (real transcript demo)',
+  title: 'Bicycle maintenance guide',
   description: 'Write a conversational guide to road bike maintenance covering every system.',
   purpose: 'Translate technical knowledge into a form someone else could actually follow and present.',
   requirements: '1000 words. Usable as an oral presentation. Include references.',
@@ -54,23 +95,82 @@ const GUIDE_ASSIGNMENT = {
   draftDueInDays: [-1],
 };
 
-const ASSIGNMENTS = {
-  open: {
+// Three separate open-assignment specs, one per class, each staged at a
+// different point in its draft cycle — the demo's whole point is to show a
+// teacher what "early in an assignment," "midway," and "wrapping up" each
+// look like on the dashboard, side by side. See OPEN_ASSIGNMENT_STATE for the
+// per-student draft counts that realize each stage.
+const OPEN_ASSIGNMENTS = {
+  // English 10: on draft 1.
+  class1: {
     title: 'Persuasive essay: school start times',
     description: 'Write a persuasive essay arguing whether your school should move to a later start time.',
     purpose: 'Build the skill of taking a position and defending it with evidence rather than just asserting it.',
     requirements: '600–900 words. Take a clear position. Support it with at least three distinct reasons. Address one counterargument. Cite evidence for your claims.',
     draftBudget: 3,
     coachingLevels: ['full', 'questions', 'sounding-board'],
-    // -1/2/8 rather than all-future — the demo class needs at least one
-    // draft slot to actually read as overdue (Devon's draft 1) alongside the
-    // due-soon (Maya's draft 2) and calm (draft 3) tones, not just three
-    // shades of "later."
-    draftDueInDays: [-1, 2, 8],
+    // Draft 1 due yesterday — the class is squarely inside draft 1 right now.
+    draftDueInDays: [-1, 6, 13],
+    // Days-ago each already-submitted draft went in, paired with draftDueInDays
+    // above so submissions land before their due date rather than at an
+    // arbitrary offset.
+    draftSubmittedDaysAgo: [2],
     // Assignment-wide, not about any one draft — demonstrates the rubric-
     // style disclosure on the assignment card, distinct from a per-draft note.
     teacherNote: "A reminder for the whole class on this one: your counterargument has to be a real position someone could hold, not a strawman you set up to knock down. I'll be checking for that specifically.",
   },
+  // Journalism Elective: on draft 2.
+  class2: {
+    title: 'Feature article: an issue affecting your school',
+    description: 'Report and write a feature article on an issue affecting students at your school, for publication in the school paper.',
+    purpose: 'Practice grounding an argument in reporting — sourced claims a reader can check, not just an asserted position.',
+    requirements: '500–800 words. Attribute every factual claim to a source. Include at least one direct quote.',
+    draftBudget: 3,
+    coachingLevels: ['full', 'questions', 'sounding-board'],
+    // Draft 1 well past, draft 2 due yesterday — the class is squarely inside draft 2.
+    draftDueInDays: [-10, -1, 6],
+    draftSubmittedDaysAgo: [9, 2],
+  },
+  // American Literature: on the final draft.
+  class3: {
+    title: 'Personal essay: a moment that changed your thinking',
+    description: 'Write a personal essay about a specific moment that changed how you thought about something.',
+    purpose: 'Practice showing a change in thinking through a concrete scene rather than asserting that it happened.',
+    requirements: '600–900 words. Ground the change in one specific, concrete moment. Show what you thought before and after.',
+    draftBudget: 3,
+    coachingLevels: ['full', 'questions', 'sounding-board'],
+    // Drafts 1 and 2 well past, draft 3 due in 2 days — the class is on the
+    // final draft, and it has to still be due in the future or the
+    // assignment reads as closed (status is derived from dueDate vs. now).
+    draftDueInDays: [-20, -10, 2],
+    draftSubmittedDaysAgo: [19, 9, 2],
+  },
+};
+
+// Per-student state on each class's open assignment — deliberate variety
+// (submitted-and-scored, in-progress, pending analysis, errored, not
+// started) rather than one shape repeated, so the demo shows a teacher the
+// full range of states a draft-row can be in, not just "done" everywhere.
+const OPEN_ASSIGNMENT_STATE = {
+  class1: [
+    { email: 'maya@school.dev', drafts: 1 },
+    { email: 'devon@school.dev', drafts: 0, active: 0 },
+    { email: 'priya@school.dev', drafts: 0, incomplete: { cycleIndex: 0, status: 'pending' } },
+    { email: 'luis@school.dev', drafts: 0, incomplete: { cycleIndex: 0, status: 'error', error: 'Groq 500: internal_server_error' } },
+    { email: 'sam@school.dev', drafts: 0 },
+  ],
+  class2: [
+    { email: 'maya@school.dev', drafts: 2 },
+    { email: 'devon@school.dev', drafts: 1, active: 1 },
+  ],
+  class3: [
+    { email: 'jamie@school.dev', drafts: 3 },
+    { email: 'elena@school.dev', drafts: 2, active: 2 },
+    { email: 'marcus@school.dev', drafts: 3 },
+  ],
+};
+
+const ASSIGNMENTS = {
   past: {
     title: 'Rhetorical analysis: a speech that changed something',
     description: 'Choose a speech that produced a measurable change and analyse how it worked rhetorically.',
@@ -597,7 +697,11 @@ module.exports = {
   CLASSES,
   ASSIGNMENTS,
   ELECTIVE_ASSIGNMENT,
+  ENGLISH_EXTRA_ASSIGNMENT,
+  LIT_EXTRA_ASSIGNMENT,
   GUIDE_ASSIGNMENT,
+  OPEN_ASSIGNMENTS,
+  OPEN_ASSIGNMENT_STATE,
   TRANSCRIPTS,
   ESSAYS,
   PROVENANCE,

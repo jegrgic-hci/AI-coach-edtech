@@ -16,12 +16,17 @@ Everything is behind a login. The seed creates a demo class — **password `coac
 
 | Email | Who |
 |---|---|
-| `maya@school.dev` | student — strong arc (12 → 18 → 20), teacher note, mid-way through a second assignment |
-| `devon@school.dev` | student — flat arc (5 → 6 → 8), teacher note, one genuinely original idea in the last draft |
-| `priya@school.dev` | student — high-fluency drafts carrying three integrity flags (teacher-only) |
-| `luis@school.dev` | student — mid-assignment |
-| `sam@school.dev` | student — no history yet (empty-state check) |
-| `teacher@school.dev` | teacher — dashboard, roster, notes |
+| `maya@school.dev` | student — English 10 + Journalism Elective, strong arc, teacher notes, on the open assignment's draft 1 |
+| `devon@school.dev` | student — English 10 + Journalism Elective, flat arc, teacher note, open draft 1 in progress |
+| `priya@school.dev` | student — English 10, high-fluency drafts carrying integrity flags (teacher-only), open draft 1 pending analysis |
+| `luis@school.dev` | student — English 10, open draft 1 analysis errored |
+| `sam@school.dev` | student — English 10, no history on the open assignment yet (empty-state check) |
+| `jamie@school.dev` | student — American Literature, open assignment complete (all 3 drafts scored) |
+| `elena@school.dev` | student — American Literature, on the open assignment's final draft (in progress) |
+| `marcus@school.dev` | student — American Literature, integrity flags, open assignment complete |
+| `teacher@school.dev` | teacher — dashboard, roster, notes across all 3 classes |
+
+Three classes, each with its own open assignment staged at a different point (English 10 on draft 1, Journalism Elective on draft 2, American Literature on the final draft) — plus two closed assignments shared by every class: a 3-draft rhetorical-analysis cycle and a real 44-turn bicycle-maintenance-guide transcript (Claude.ai document co-creation, not a Socratic coach session), cloned onto every student so every roster row is fully scored.
 
 The demo analyses are pre-baked from hand-labeled transcripts in `server/seed-data.js`, run through the real `enrich()`/`scoreTAU()` — so scores stay consistent with the formulas and **no LLM call or Groq key is needed to browse reports**. A key is only needed to actually chat or submit a new draft.
 
@@ -53,7 +58,7 @@ Collections documented at the top of `server/store.js` — shaped as the future 
 - **Draft report page** (`web/report.html`): the CTA's full results presentation ported verbatim — SAMR hero, score summary grid, interactive Agency Chart (d3, patterns, tooltips, turn modal), My Session dashboard, Idea Origins (essay heatmap + concept inventory), Pattern Guide. `report.css`/`report-render.js` are extracted copies of the CTA's style block and render section (source ranges: index.html 8–1137, 2027–2091, 2516–3929, 4589–4602); `report-boot.js` is the API adapter. Full disclosure at the submission marker only (revised 2026-07-16) — never live during a session; integrity flags stripped from student responses, teachers see them (decided server-side from the signed-in user's role)
 - 429 retry with backoff in `llm.js` (Groq free-tier TPM) + `POST /api/submissions/:id/reanalyze` retry path with a Retry button on the report page
 
-- **Teacher triage dashboard** (`web/dashboard.html`): the existing `teacher-dashboard.html` ported whole (guide first, detail on demand — overview/class/assignment/student tabs, two-tier flag system, side tray, flag detection modal); its mock generator replaced by `/api/teacher/dashboard`, which serves the exact mock shape from real data. Drill panels link into the detail layer: per-submission "Report →" (teacher-mode report) and "Conversation view →" (`teacher.html#student/:aid/:sid`). Classes synthesized as one "My Class" until the data model grows them
+- **Teacher triage dashboard** (`web/dashboard.html`): the existing `teacher-dashboard.html` ported whole (guide first, detail on demand — overview/class/assignment/student tabs, two-tier flag system, side tray, flag detection modal); its mock generator replaced by `/api/teacher/dashboard`, which serves the exact mock shape from real data. Drill panels link into the detail layer: per-submission "Report →" (teacher-mode report) and "Conversation view →" (`teacher.html#student/:aid/:sid`). Reflects the real `classes` collection now — a class tab per class, not a synthesized "My Class"
 - **Teacher detail layer** (`web/teacher.html`): assignment creation (prompt, due date, draft budget, coaching level per slot with default-fade prefill), roster with per-cycle TAU/SAMR chips + flag markers, student detail view — trajectory strip (growth across the fade), conversation-ready moments (first turns, best challenge, pushback, unchallenged AI-born concepts), snapshots verbatim, integrity signals, full transcripts with turn labels/meta-turns/superseded turns/events interleaved, teacher note per submission (shown to the student on their report). Report page shows the integrity flags panel with misfire disclosure when a teacher is signed in
 
 - **Login + student account view** (`web/login.html`, `web/api.js`): every `/api/*` route requires a session; a 401 lands on the login page from any surface. The student home (`web/index.html`) shows current work with the coaching level for the next draft, past assignments with per-draft score chips linking to their reports, a teacher-note badge, and a sparkline of TAU total across submitted drafts (hidden below two points). Dimensions are named in student language on this surface, not by acronym. The Google SSO button is present but disabled — Phase A fills it in
@@ -65,4 +70,4 @@ Collections documented at the top of `server/store.js` — shaped as the future 
 - UI events (copy/regenerate/edit) folded into TAU scoring — logged and stored in `analysis.eventCounts`, not yet weighted (kept parity with CTA formulas)
 - Per-student daily token budget + rate limiting (needed before any real deployment)
 - GCP wiring (Phases A/D). The dev login is a **stand-in**: passwords are not the plan for minors — Phase A replaces `auth.js` with domain-restricted Google SSO
-- Real classes/enrolment. Every assignment is still visible to every student; the dashboard synthesizes one "My Class"
+- Real class enrolment now exists (`classes` collection, assignments scoped by `classIds`) — see the seed for the current 3-class demo shape
