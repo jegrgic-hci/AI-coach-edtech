@@ -87,12 +87,38 @@ Known and accepted while passwords remain: an admin who resets a teacher's passw
 
 ## Deployment (Cloud Run)
 
+**Push to `main` and it deploys.** The `deploy-main` Cloud Build trigger
+(us-central1) watches the GitHub repo and runs `../cloudbuild.yaml`: build,
+push, `gcloud run deploy`. About two minutes end to end.
+
+Images are tagged with the commit SHA, so a running revision maps back to
+exactly one commit — check with:
+
+```
+gcloud run services describe cta --region=us-central1 \
+  --format="value(spec.template.spec.containers[0].image)"
+```
+
+The build runs as `cta-build@cta-pilot-dev.iam.gserviceaccount.com`, which holds
+`roles/run.developer` and `roles/logging.logWriter` on the project,
+`roles/artifactregistry.writer` on the `cta` repo only, and
+`roles/iam.serviceAccountUser` on `cta-run@` only. It cannot reach Firestore or
+Vertex — deploying and running are separate identities on purpose.
+
+`cloudbuild.yaml` passes no `--allow-unauthenticated` either way, so an ordinary
+deploy leaves the service's IAM policy (public, see below) untouched.
+
+Manual deploy, for when the trigger is the thing that's broken:
+
 ```
 gcloud run deploy cta --source . --region us-central1 \
   --service-account=cta-run@cta-pilot-dev.iam.gserviceaccount.com \
-  --set-env-vars=NODE_ENV=production,GCP_PROJECT_ID=cta-pilot-dev,GCP_LOCATION=global \
-  --no-allow-unauthenticated
+  --set-env-vars=NODE_ENV=production,GCP_PROJECT_ID=cta-pilot-dev,GCP_LOCATION=global
 ```
+
+Note this uploads the **working directory**, not a commit — which is how
+revision `cta-00001-qbf` came to correspond to no commit that existed anywhere.
+Prefer the trigger.
 
 Live and **public** at `https://cta-714032495709.us-central1.run.app` (opened 2026-08-06). Anyone can reach the login page and sign in with the demo accounts above — deliberate, because every record in that project is fabricated.
 
