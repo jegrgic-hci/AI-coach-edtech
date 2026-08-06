@@ -20,6 +20,7 @@ const {
 } = require('./seed-data');
 
 const TEACHER_EMAIL = 'teacher@school.dev';
+const ADMIN_EMAIL = 'admin@school.dev';
 
 // Backdated so the growth strip has a real time axis instead of everything
 // landing in the same second.
@@ -30,18 +31,18 @@ const ts = (daysAgo) => new Date(Date.now() - daysAgo * DAY).toISOString();
 // days ago, tsOffset(3) is 3 days from now.
 const tsOffset = (days) => new Date(Date.now() + days * DAY).toISOString();
 
-function upsertUser({ email, displayName, role }) {
-  let user = col('users').list((u) => u.email === email)[0];
+async function upsertUser({ email, displayName, role }) {
+  let user = (await col('users').list({ email }))[0];
   if (!user) {
-    user = col('users').add({ email, displayName, role, createdAt: ts(60) });
+    user = await col('users').add({ email, displayName, role, createdAt: ts(60) });
   }
-  if (user.displayName !== displayName) user = col('users').update(user.id, { displayName });
-  if (!user.passwordHash) user = setPassword(user, DEV_PASSWORD);
+  if (user.displayName !== displayName) user = await col('users').update(user.id, { displayName });
+  if (!user.passwordHash) user = await setPassword(user, DEV_PASSWORD);
   return user;
 }
 
-function upsertAssignment(teacherId, spec, daysAgo, classIds) {
-  const existing = col('assignments').list((a) => a.title === spec.title)[0];
+async function upsertAssignment(teacherId, spec, daysAgo, classIds) {
+  const existing = (await col('assignments').list({ title: spec.title }))[0];
   // draftDueDates[i] is when draft i+1 is due; the last entry doubles as the
   // assignment's own final due date — the rule is the final draft's due date
   // *is* the assignment's due date, not a separate value to keep in sync.
@@ -62,7 +63,7 @@ function upsertAssignment(teacherId, spec, daysAgo, classIds) {
     if (!existing.classIds) patch.classIds = classIds;
     return col('assignments').update(existing.id, patch);
   }
-  return col('assignments').add({
+  return await col('assignments').add({
     teacherId,
     classIds,
     title: spec.title,
@@ -78,8 +79,8 @@ function upsertAssignment(teacherId, spec, daysAgo, classIds) {
   });
 }
 
-function upsertClass(teacherId, spec, studentIds) {
-  const existing = col('classes').list((c) => c.name === spec.name)[0];
+async function upsertClass(teacherId, spec, studentIds) {
+  const existing = (await col('classes').list({ name: spec.name }))[0];
   if (existing) {
     // Membership can grow as students are seeded — keep it current rather
     // than freezing whatever the first run happened to create.
@@ -93,10 +94,10 @@ function upsertClass(teacherId, spec, studentIds) {
 
 // Writes one completed revision cycle: session + conversation + turns +
 // submission + a derived analysis. Returns the submission.
-function seedCycle({ student, assignment, tier, cycleIndex, daysAgo }) {
+async function seedCycle({ student, assignment, tier, cycleIndex, daysAgo }) {
   const transcript = TRANSCRIPTS[tier][cycleIndex];
 
-  const session = col('sessions').add({
+  const session = await col('sessions').add({
     assignmentId: assignment.id,
     studentId: student.id,
     cycleIndex,
@@ -106,7 +107,7 @@ function seedCycle({ student, assignment, tier, cycleIndex, daysAgo }) {
     submittedAt: ts(daysAgo),
   });
 
-  const conversation = col('conversations').add({
+  const conversation = await col('conversations').add({
     sessionId: session.id,
     title: transcript.title,
     createdAt: ts(daysAgo + 2),
@@ -116,9 +117,10 @@ function seedCycle({ student, assignment, tier, cycleIndex, daysAgo }) {
 
   const labelMap = {};
   let studentIdx = 0;
-  const turns = transcript.turns.map((turn, i) => {
+  const turns = [];
+  for (const [i, turn] of transcript.turns.entries()) {
     if (turn.role === 'student') labelMap[studentIdx++] = { label: turn.label };
-    return col('turns').add({
+    turns.push(await col('turns').add({
       conversationId: conversation.id,
       role: turn.role,
       text: turn.text,
@@ -126,14 +128,14 @@ function seedCycle({ student, assignment, tier, cycleIndex, daysAgo }) {
       // timeline renders in a sensible order.
       createdAt: new Date(Date.now() - (daysAgo + 2) * DAY + i * 4 * 60000).toISOString(),
       meta: {},
-    });
-  });
+    }));
+  }
 
   const classified = enrich([{ conversation, turns }], labelMap);
   const provenance = PROVENANCE[tier][cycleIndex];
   const tau = scoreTAU(classified, provenance);
 
-  const submission = col('submissions').add({
+  const submission = await col('submissions').add({
     sessionId: session.id,
     assignmentId: assignment.id,
     studentId: student.id,
@@ -143,7 +145,7 @@ function seedCycle({ student, assignment, tier, cycleIndex, daysAgo }) {
     analysisId: null,
   });
 
-  const analysis = col('analyses').add({
+  const analysis = await col('analyses').add({
     submissionId: submission.id,
     status: 'complete',
     createdAt: ts(daysAgo),
@@ -156,7 +158,7 @@ function seedCycle({ student, assignment, tier, cycleIndex, daysAgo }) {
     classified,
     eventCounts: {},
   });
-  col('submissions').update(submission.id, { analysisId: analysis.id });
+  await col('submissions').update(submission.id, { analysisId: analysis.id });
 
   return submission;
 }
@@ -165,10 +167,10 @@ function seedCycle({ student, assignment, tier, cycleIndex, daysAgo }) {
 // analyzing) or 'error' (failed). No tau, no provenance: the draft-row ledger
 // only ever shows these as a status word and a detail line, never a score, so
 // there is nothing downstream that needs the real scoring pipeline here.
-function seedIncompleteCycle({ student, assignment, tier, cycleIndex, daysAgo, status, error }) {
+async function seedIncompleteCycle({ student, assignment, tier, cycleIndex, daysAgo, status, error }) {
   const transcript = TRANSCRIPTS[tier][cycleIndex];
 
-  const session = col('sessions').add({
+  const session = await col('sessions').add({
     assignmentId: assignment.id,
     studentId: student.id,
     cycleIndex,
@@ -178,7 +180,7 @@ function seedIncompleteCycle({ student, assignment, tier, cycleIndex, daysAgo, s
     submittedAt: ts(daysAgo),
   });
 
-  const conversation = col('conversations').add({
+  const conversation = await col('conversations').add({
     sessionId: session.id,
     title: transcript.title,
     createdAt: ts(daysAgo + 2),
@@ -186,15 +188,17 @@ function seedIncompleteCycle({ student, assignment, tier, cycleIndex, daysAgo, s
     locked: true,
   });
 
-  transcript.turns.forEach((turn, i) => col('turns').add({
-    conversationId: conversation.id,
-    role: turn.role,
-    text: turn.text,
-    createdAt: new Date(Date.now() - (daysAgo + 2) * DAY + i * 4 * 60000).toISOString(),
-    meta: {},
-  }));
+  for (const [i, turn] of transcript.turns.entries()) {
+    await col('turns').add({
+      conversationId: conversation.id,
+      role: turn.role,
+      text: turn.text,
+      createdAt: new Date(Date.now() - (daysAgo + 2) * DAY + i * 4 * 60000).toISOString(),
+      meta: {},
+    });
+  }
 
-  const submission = col('submissions').add({
+  const submission = await col('submissions').add({
     sessionId: session.id,
     assignmentId: assignment.id,
     studentId: student.id,
@@ -204,13 +208,13 @@ function seedIncompleteCycle({ student, assignment, tier, cycleIndex, daysAgo, s
     analysisId: null,
   });
 
-  const analysis = col('analyses').add({
+  const analysis = await col('analyses').add({
     submissionId: submission.id,
     status,
     createdAt: ts(daysAgo),
     ...(status === 'error' ? { error } : {}),
   });
-  col('submissions').update(submission.id, { analysisId: analysis.id });
+  await col('submissions').update(submission.id, { analysisId: analysis.id });
 
   return submission;
 }
@@ -219,10 +223,10 @@ function seedIncompleteCycle({ student, assignment, tier, cycleIndex, daysAgo, s
 // but nothing sent to the teacher yet, so the row reads "In progress" with a
 // Continue button rather than "Submitted." No submission record at all: that
 // is what distinguishes this from every other seeded state.
-function seedActiveDraft({ student, assignment, tier, cycleIndex, daysAgo }) {
+async function seedActiveDraft({ student, assignment, tier, cycleIndex, daysAgo }) {
   const transcript = TRANSCRIPTS[tier][cycleIndex];
 
-  const session = col('sessions').add({
+  const session = await col('sessions').add({
     assignmentId: assignment.id,
     studentId: student.id,
     cycleIndex,
@@ -231,7 +235,7 @@ function seedActiveDraft({ student, assignment, tier, cycleIndex, daysAgo }) {
     startedAt: ts(daysAgo),
   });
 
-  const conversation = col('conversations').add({
+  const conversation = await col('conversations').add({
     sessionId: session.id,
     title: transcript.title,
     createdAt: ts(daysAgo),
@@ -239,30 +243,43 @@ function seedActiveDraft({ student, assignment, tier, cycleIndex, daysAgo }) {
     locked: false,
   });
 
-  transcript.turns.forEach((turn, i) => col('turns').add({
-    conversationId: conversation.id,
-    role: turn.role,
-    text: turn.text,
-    createdAt: new Date(Date.now() - daysAgo * DAY + i * 4 * 60000).toISOString(),
-    meta: {},
-  }));
+  for (const [i, turn] of transcript.turns.entries()) {
+    await col('turns').add({
+      conversationId: conversation.id,
+      role: turn.role,
+      text: turn.text,
+      createdAt: new Date(Date.now() - daysAgo * DAY + i * 4 * 60000).toISOString(),
+      meta: {},
+    });
+  }
 
   return session;
 }
 
-function seed() {
-  const teacher = upsertUser({ email: TEACHER_EMAIL, displayName: 'Ms. Karim', role: 'teacher' });
+async function seed() {
+  // The demo seed writes ten accounts that all share one published password
+  // and fabricated student transcripts. Reaching production with either would
+  // be severe, so this refuses rather than trusting anyone to remember.
+  if (process.env.NODE_ENV === 'production') {
+    console.log('seed: skipped (NODE_ENV=production)');
+    return;
+  }
+
+  const teacher = await upsertUser({ email: TEACHER_EMAIL, displayName: 'Ms. Karim', role: 'teacher' });
+  // The admin tier: adds teachers, reads aggregate product metrics. Owns no
+  // class and no assignment, so it needs no wiring into anything below.
+  await upsertUser({ email: ADMIN_EMAIL, displayName: 'Dana Okoye', role: 'admin' });
 
   // Users first, so class membership (which is by studentId) can be built
   // before any assignment or class record needs it.
   const studentByEmail = {};
   for (const spec of STUDENTS) {
-    studentByEmail[spec.email] = upsertUser({ email: spec.email, displayName: spec.displayName, role: 'student' });
+    studentByEmail[spec.email] = await upsertUser({ email: spec.email, displayName: spec.displayName, role: 'student' });
   }
   const classByName = {};
   for (const spec of CLASSES) {
     const studentIds = spec.studentEmails.map((e) => studentByEmail[e].id);
-    classByName[spec.name] = upsertClass(teacher.id, spec, studentIds);
+    classByName[spec.name] = await upsertClass(teacher.id, spec, studentIds);
   }
   const mainClassId = classByName['English 10'].id;
   const electiveClassId = classByName['Journalism Elective'].id;
@@ -272,30 +289,30 @@ function seed() {
   // Past and bike-guide are both closed assignments shared by every class —
   // scoped to all three, unlike the open assignments below which are
   // deliberately one-per-class (see OPEN_ASSIGNMENTS/OPEN_ASSIGNMENT_STATE).
-  const pastAssignment = upsertAssignment(teacher.id, ASSIGNMENTS.past, 45, allClassIds);
-  const guideAssignment = upsertAssignment(teacher.id, GUIDE_ASSIGNMENT, 50, allClassIds);
-  const electiveAssignment = upsertAssignment(teacher.id, ELECTIVE_ASSIGNMENT, 5, [electiveClassId]);
+  const pastAssignment = await upsertAssignment(teacher.id, ASSIGNMENTS.past, 45, allClassIds);
+  const guideAssignment = await upsertAssignment(teacher.id, GUIDE_ASSIGNMENT, 50, allClassIds);
+  const electiveAssignment = await upsertAssignment(teacher.id, ELECTIVE_ASSIGNMENT, 5, [electiveClassId]);
   // English 10 and American Literature's own third closed assignment — same
   // "one class, one student, one cycle" shape as electiveAssignment above, so
   // both classes clear the class-tier dimension arc's 3-closed-assignment
   // floor instead of only Journalism Elective ever showing that chart.
-  const englishExtraAssignment = upsertAssignment(teacher.id, ENGLISH_EXTRA_ASSIGNMENT, 9, [mainClassId]);
-  const litExtraAssignment = upsertAssignment(teacher.id, LIT_EXTRA_ASSIGNMENT, 9, [litClassId]);
+  const englishExtraAssignment = await upsertAssignment(teacher.id, ENGLISH_EXTRA_ASSIGNMENT, 9, [mainClassId]);
+  const litExtraAssignment = await upsertAssignment(teacher.id, LIT_EXTRA_ASSIGNMENT, 9, [litClassId]);
   const openAssignmentByClassKey = {
-    class1: upsertAssignment(teacher.id, OPEN_ASSIGNMENTS.class1, 10, [mainClassId]),
-    class2: upsertAssignment(teacher.id, OPEN_ASSIGNMENTS.class2, 10, [electiveClassId]),
-    class3: upsertAssignment(teacher.id, OPEN_ASSIGNMENTS.class3, 10, [litClassId]),
+    class1: await upsertAssignment(teacher.id, OPEN_ASSIGNMENTS.class1, 10, [mainClassId]),
+    class2: await upsertAssignment(teacher.id, OPEN_ASSIGNMENTS.class2, 10, [electiveClassId]),
+    class3: await upsertAssignment(teacher.id, OPEN_ASSIGNMENTS.class3, 10, [litClassId]),
   };
 
-  const hasSubmission = (studentId, assignmentId) =>
-    col('submissions').list((s) => s.studentId === studentId && s.assignmentId === assignmentId).length > 0;
-  const hasSession = (studentId, assignmentId) =>
-    col('sessions').list((s) => s.studentId === studentId && s.assignmentId === assignmentId).length > 0;
+  const hasSubmission = async (studentId, assignmentId) =>
+    (await col('submissions').list({ studentId, assignmentId })).length > 0;
+  const hasSession = async (studentId, assignmentId) =>
+    (await col('sessions').list({ studentId, assignmentId })).length > 0;
 
   // Gives the elective assignment (and the multi-class Maya belongs to) real
   // submitted data, rather than an assignment that only ever shows empty rows.
-  if (!hasSubmission(studentByEmail['maya@school.dev'].id, electiveAssignment.id)) {
-    seedCycle({
+  if (!await hasSubmission(studentByEmail['maya@school.dev'].id, electiveAssignment.id)) {
+    await seedCycle({
       student: studentByEmail['maya@school.dev'], assignment: electiveAssignment, tier: 'strong', cycleIndex: 0, daysAgo: 1,
     });
   }
@@ -305,13 +322,13 @@ function seed() {
   // reusing 'strong'/cycle 0 like the elective one above — gives the new
   // three-point arc a real dip to show instead of three flat, similar
   // scores, so the outlier callout has something genuine to name.
-  if (!hasSubmission(studentByEmail['sam@school.dev'].id, englishExtraAssignment.id)) {
-    seedCycle({
+  if (!await hasSubmission(studentByEmail['sam@school.dev'].id, englishExtraAssignment.id)) {
+    await seedCycle({
       student: studentByEmail['sam@school.dev'], assignment: englishExtraAssignment, tier: 'flat', cycleIndex: 1, daysAgo: 8,
     });
   }
-  if (!hasSubmission(studentByEmail['elena@school.dev'].id, litExtraAssignment.id)) {
-    seedCycle({
+  if (!await hasSubmission(studentByEmail['elena@school.dev'].id, litExtraAssignment.id)) {
+    await seedCycle({
       student: studentByEmail['elena@school.dev'], assignment: litExtraAssignment, tier: 'flat', cycleIndex: 1, daysAgo: 8,
     });
   }
@@ -323,10 +340,10 @@ function seed() {
     // arc for their tier. This one is done and graded everywhere — the
     // demo's state variety (in-progress, pending, error, not-started) lives
     // in the open assignments below instead.
-    if (!hasSubmission(student.id, pastAssignment.id) && !hasSession(student.id, pastAssignment.id)) {
+    if (!await hasSubmission(student.id, pastAssignment.id) && !await hasSession(student.id, pastAssignment.id)) {
       let lastSubmission = null;
       for (let cycle = 0; cycle < ASSIGNMENTS.past.draftBudget; cycle++) {
-        lastSubmission = seedCycle({
+        lastSubmission = await seedCycle({
           student,
           assignment: pastAssignment,
           tier: spec.tier,
@@ -336,7 +353,7 @@ function seed() {
         });
       }
       if (lastSubmission && TEACHER_NOTES[spec.email]) {
-        col('submissions').update(lastSubmission.id, {
+        await col('submissions').update(lastSubmission.id, {
           teacherNote: TEACHER_NOTES[spec.email],
           teacherNoteAt: ts(16),
         });
@@ -346,8 +363,8 @@ function seed() {
     // Closed bike-guide assignment: the same real transcript/essay cloned
     // onto every student regardless of tier, so every roster row is fully
     // scored instead of leaving most of them blank.
-    if (!hasSubmission(student.id, guideAssignment.id)) {
-      seedCycle({ student, assignment: guideAssignment, tier: 'bikeguide', cycleIndex: 0, daysAgo: 3 });
+    if (!await hasSubmission(student.id, guideAssignment.id)) {
+      await seedCycle({ student, assignment: guideAssignment, tier: 'bikeguide', cycleIndex: 0, daysAgo: 3 });
     }
   }
 
@@ -362,16 +379,16 @@ function seed() {
     for (const row of OPEN_ASSIGNMENT_STATE[classKey]) {
       const student = studentByEmail[row.email];
       const studentSpec = STUDENTS.find((s) => s.email === row.email);
-      if (hasSubmission(student.id, assignment.id) || hasSession(student.id, assignment.id)) continue;
+      if (await hasSubmission(student.id, assignment.id) || await hasSession(student.id, assignment.id)) continue;
 
       let lastSubmission = null;
       for (let cycle = 0; cycle < row.drafts; cycle++) {
-        lastSubmission = seedCycle({
+        lastSubmission = await seedCycle({
           student, assignment, tier: studentSpec.tier, cycleIndex: cycle, daysAgo: spec.draftSubmittedDaysAgo[cycle],
         });
       }
       if (lastSubmission && OPEN_TEACHER_NOTES[row.email]) {
-        col('submissions').update(lastSubmission.id, {
+        await col('submissions').update(lastSubmission.id, {
           teacherNote: OPEN_TEACHER_NOTES[row.email],
           teacherNoteAt: ts(2),
         });
@@ -381,13 +398,13 @@ function seed() {
       // progress" with a Continue button rather than a status inherited
       // from the last completed draft.
       if (row.active !== undefined) {
-        seedActiveDraft({ student, assignment, tier: studentSpec.tier, cycleIndex: row.active, daysAgo: 1 });
+        await seedActiveDraft({ student, assignment, tier: studentSpec.tier, cycleIndex: row.active, daysAgo: 1 });
       }
       // Submitted but the analysis hasn't resolved yet ('pending') or failed
       // ('error') — the draft-row ledger's other two states besides scored
       // and not-started.
       if (row.incomplete) {
-        seedIncompleteCycle({
+        await seedIncompleteCycle({
           student, assignment, tier: studentSpec.tier, cycleIndex: row.incomplete.cycleIndex,
           daysAgo: 0.1, status: row.incomplete.status, error: row.incomplete.error,
         });
@@ -397,7 +414,8 @@ function seed() {
 
   // Users left over from earlier hand-testing predate passwords. Give them the
   // dev password too rather than stranding them out of their own data.
-  for (const u of col('users').list((u) => !u.passwordHash)) setPassword(u, DEV_PASSWORD);
+  // Not an equality query — `users` is small and bounded, so a scan is fine.
+  for (const u of await col('users').list((u) => !u.passwordHash)) await setPassword(u, DEV_PASSWORD);
 }
 
 module.exports = { seed };

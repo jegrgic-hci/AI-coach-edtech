@@ -30,6 +30,22 @@
     return res.json();
   }
 
+  // Product telemetry: fire-and-forget record that someone opened a content
+  // area. Never awaited and never allowed to throw — a metrics write must not
+  // be able to break the interaction it is measuring, and a 401 here must not
+  // bounce the page to login mid-click (hence raw fetch, not api()).
+  //
+  // Call this on explicit opens only — a tab click, a panel open, a jump-nav
+  // click. Not on render, and not from a scroll handler: a scrollspy fires
+  // continuously and would drown every deliberate signal in the ranking.
+  function logUse(surface, area) {
+    fetch('/api/usage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ surface, area }),
+    }).catch(() => {});
+  }
+
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     location.href = '/login.html';
@@ -118,6 +134,7 @@
   }
 
   window.api = api;
+  window.logUse = logUse;
   window.logout = logout;
   window.mountAccountChip = mountAccountChip;
   window.requireLogin = toLogin;

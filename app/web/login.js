@@ -12,6 +12,7 @@ const TEST_ACCOUNTS = [
   { email: 'elena@school.dev', note: 'student — American Literature, on the final open draft (in progress)' },
   { email: 'marcus@school.dev', note: 'student — American Literature, integrity flags, open assignment complete' },
   { email: 'teacher@school.dev', note: 'teacher — dashboard + roster across all 3 classes' },
+  { email: 'admin@school.dev', note: 'administrator — teacher accounts + product metrics' },
 ];
 
 function renderTestAccounts() {
@@ -36,14 +37,18 @@ function renderTestAccounts() {
   }
 }
 
+const ROLE_HOMES = { teacher: '/dashboard.html', admin: '/admin.html', student: '/index.html' };
+
 function landingFor(role) {
-  const roleHome = role === 'teacher' ? '/dashboard.html' : '/index.html';
+  const roleHome = ROLE_HOMES[role] || ROLE_HOMES.student;
   const next = new URLSearchParams(location.search).get('next');
   // Only honour same-origin relative paths — never redirect to an absolute URL
-  // supplied in the query string. A teacher bounced off the student app's
-  // index.html (401 -> ?next=/index.html) should still land on their own
-  // dashboard, not back on the page that rejected them.
-  if (next && next.startsWith('/') && !next.startsWith('//') && next !== '/index.html') {
+  // supplied in the query string. And never honour a `next` that is some
+  // *other* role's home: someone bounced off a page they can't read (401 ->
+  // ?next=/dashboard.html) should land on their own home, not be sent back to
+  // the page that rejected them to be rejected again.
+  const otherRoleHome = Object.values(ROLE_HOMES).some((h) => h === next && h !== roleHome);
+  if (next && next.startsWith('/') && !next.startsWith('//') && !otherRoleHome) {
     return next;
   }
   return roleHome;

@@ -1,0 +1,24 @@
+// Deny everything, deliberately.
+//
+// The architecture is fully server-mediated: every client call goes through
+// /api/* on Cloud Run, and the Admin SDK bypasses rules entirely. No browser
+// ever holds a Firestore handle, so there is no legitimate request for these
+// rules to allow. `teacherScope()` and canReadSubmission() in the app are the
+// real permission system.
+//
+// This is a lock on a door nobody uses — which is exactly why it belongs here.
+// Registering a Firebase web app later would otherwise hand out a client API
+// key against a database whose rules had never been decided.
+//
+// Deployed 2026-08-05 via the firebaserules API. If this file changes, it must
+// be released again — editing it here alone changes nothing.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

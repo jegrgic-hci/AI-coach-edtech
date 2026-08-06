@@ -30,10 +30,260 @@ What this buys the design:
 | **Google SSO, domain-restricted** (Firebase Auth) | No passwords for minors (COPPA/FERPA); free tier |
 | **Cloud Run scale-to-zero** | $0 idle; no `min-instances` (cold starts acceptable at pilot scale) |
 | **Every turn persisted server-side as sent** | Eliminates loss/truncation/copy-paste failures at the root; integrity record |
+| **One Firestore database per school** (2026-08-05) | Isolation is structural, not disciplinary. A missing `where schoolId` returns *another school's students* — silent and plausible-looking; a wrong database name returns nothing. We already shipped that bug class once (`teacherScope()`, 2026-08-04). Also makes per-school export and deletion single operations, which is what the DPA's return-or-destroy clause will require |
+| **School resolved from email domain, never client-asserted** (2026-08-05) | Same principle as server-derived roles: identity and tenancy are both derived from the verified Google ID token, so neither can be spoofed |
+| **`platform-admin` cannot read into any school** (2026-08-05) | Extends the existing "admin is not a super-teacher" rule one level up. No impersonation, deliberately — onboarding failures are configuration failures, visible in the registry without ever opening a school's database. The absolute guarantee is worth more in procurement than it costs in support |
 
 **Two external gates (district IT, pursue in parallel with build):**
 1. Is Vertex AI enabled in a GCP project (not just the Gemini Workspace app)?
 2. Will they sign a DPA covering the Cloud Run + Firestore + Vertex flow?
+
+---
+
+## Multi-School Architecture (settled 2026-08-05)
+
+The tool serves more than one school from one running instance. Everything school-specific is
+resolved configuration, never a constant — which is also what keeps the three deployment models
+below a config value rather than a code branch.
+
+### Deployment models
+
+| Model | Data at rest | Inference | Operated by | Status |
+|---|---|---|---|---|
+| **1 — SaaS** | Our Firestore | Our Vertex | Us | **Default** |
+| **2 — BYO-inference** | Our Firestore | *School's* Vertex project | Us | Supported; a config value per school |
+| **3 — In-district** | School's Firestore | School's Vertex | School IT | Code stays capable of it; not offered |
+
+Model 2 exists because the fear being sold against is not "where is the database" — it is *"is an AI
+company reading my students' work."* Pointing inference at the district's own Vertex project answers
+that precisely: prompts cross into Google under **their** DPA, billing lands in **their** console,
+and we still operate and support the app. Most of model 3's political value at almost none of its
+operational cost. Model 2 requires one IAM grant on their side (`roles/aiplatform.user` for our
+service account) — which is a selling point, since it lets them see and cap our usage themselves.
+
+Model 3 is deliberately not offered. It costs the most and almost no K-12 district wants to run
+infrastructure. Its real price is invisible until it bites: **no access to the data the product
+improves on** — no transcripts to tune classification prompts against, no visibility into failed
+analyses, `admin.html` telemetry dark for that district. Backlog #9 was only findable because we
+could read real transcripts. If a district ever insists, the contractual answer is a carve-out for
+anonymised aggregate telemetry, designed while the `usage` write path is being built.
+
+### Who configures what — policy vs plumbing (settled 2026-08-05)
+
+A school admin configures **policy**, never **plumbing**. Two independent reasons, both hard:
+
+- **Liability does not transfer through a UI.** Under FERPA the school is the controller and we are a
+  vendor acting under their direction; that is created by a signed contract between organizations, not
+  by an admin ticking a confirmation box. The danger is not that the checkbox fails to protect us — it
+  is that it makes us *think* we are protected, so we build differently and find out late.
+- **Config that routes data is a security boundary.** If a school admin can change the Vertex project,
+  a compromised school-admin account redirects every student prompt to an attacker's GCP project. If
+  they can add a domain, they can add `gmail.com`. These are exfiltration channels wearing dropdowns.
+
+| Platform admin sets (at provisioning, under contract) | School admin sets (self-serve, genuinely theirs) |
+|---|---|
+| Vertex project / deployment model | Which teachers exist |
+| Email domains | Default coaching fade pattern |
+| Firestore database | **Whether integrity flags are surfaced at all** |
+| Maximum retention window | Retention *within* the contracted maximum |
+| | Whether students see their own reports; term boundaries |
+
+The rule of thumb: **give them every switch that reduces what the tool does or retains** — flags off,
+shorter retention, reports hidden. Those can only fail safe. Some districts hold that anything
+resembling cheating detection does not belong in a classroom tool; that is a real policy call and it is
+theirs.
+
+Real shared responsibility comes from three mechanisms, none of them a settings page: the **signed
+DPA**, **model 2's IAM grant** (they grant, see, cap, audit, and revoke our access in their own
+console), and a **counter-signed verification gate** stored against the school — "we both checked,"
+not "you agreed so it's on you."
+
+Note the pitch inverts favourably: *"compliance is configured by us, under the agreement we signed with
+you"* is what a district wants to hear. They are not seeking configuration authority; they are seeking
+assurance that someone competent already handled it.
+
+### Building for 1 and 2 while staying capable of 3 (settled 2026-08-05)
+
+**Build the app as if it will run somewhere we cannot see.** Models 1 and 2 are then the case where
+"somewhere" happens to be our project. Six rules, each free-if-early and expensive-to-impossible if
+retrofitted:
+
+1. **Config from environment only; nothing school-specific in the image.** `resolveSchool()` returns
+   the same shape whether it read a multi-school registry or a single env-provided config, so a
+   single-tenant deploy is a different variable, not a different code path.
+2. **Never log student content.** Turn text and essay text must not reach logs — log IDs, error codes,
+   token counts, latencies. This is what makes `roles/logging.viewer` safe to accept in someone else's
+   project, and therefore what makes model 3 debuggable at all. **Concrete instance already in the
+   code:** `llm.js` throws `` `Groq ${res.status}: ${body.slice(0, 300)}` `` — provider error bodies
+   routinely echo the offending request, so that line can put prompt content into a log. Carry the
+   status and an error code, not the body. Also correct for models 1 and 2: a support engineer reading
+   production logs should not be reading a fifteen-year-old's essay.
+3. **No call-home dependency.** The container boots and runs on its own config, its own database, and a
+   Vertex endpoint — nothing else. No licence check, no remotely-fetched prompt templates, no runtime
+   feature flags. Prompts stay in `coach.js` / `analysis.js` in the image. This is the easiest rule to
+   break by accident and the one that forecloses model 3 by construction.
+4. **Schema versioning.** A `_meta` doc per database carries a schema version; the app migrates forward
+   on boot and **refuses to start against a version newer than the code**. Forward-only and idempotent
+   (the seed already is). Without this, schools drift and nothing can tell what is running.
+5. **One image, many deployments.** Byte-identical regardless of where it runs. No build-time config,
+   no per-customer builds.
+6. **Telemetry pushes out, never pulls in.** The `usage` aggregate push is fire-and-forget,
+   failure-tolerant, and disableable; with it off the app behaves identically. Content never leaves.
+
+**Provision our own infrastructure with Terraform from day one.** If we click through Cloud Run and
+Firestore setup by hand we have no artifact to hand a district; if it is Terraform, the model-3 bundle
+*is* that same Terraform with different variables. This is the one that is free only if done first.
+
+If model 3 is ever sold, the deploy shape is **customer-owned project, vendor-operated deploy**: they
+grant our CI `roles/run.admin` in their project — and deliberately **no Firestore data role** — so we
+can ship code and genuinely cannot read a transcript. The same policy/plumbing line as above, drawn in
+IAM instead of a settings page, and enforced by Google rather than by our good intentions. They revoke
+it unilaterally, in their own console.
+
+### The identity chain
+
+A person never asserts who they are or which school they belong to. Both are derived, in order:
+
+```
+Google ID token  →  verified email
+      ↓
+email domain     →  school                (reject if no match)
+      ↓
+school           →  Firestore database    (cannot physically reach another)
+      ↓
+user doc         →  role                  (never from the client)
+      ↓
+role + ownership →  visible data          (teacherScope(), unchanged)
+```
+
+Five independent gates; a failure in one does not cascade. This is the sequence to hand district IT.
+
+### The schools registry — the only global collection
+
+Read *before* the school is known, so it lives outside every school's database. Carries no student
+data:
+
+```
+schools  { id, name,
+           domains: ['riverside.k12.us', 'stu.riverside.k12.us'],
+           firestoreDb, gcpProject, location,
+           status: 'draft' | 'active' | 'suspended' | 'closed',
+           createdAt }
+```
+
+`domains` is a list because districts routinely split staff and student domains — a missed domain
+locks out everyone on it, and it is the most common day-one failure.
+
+### Roles
+
+The current `admin` conflates two different people and must split:
+
+| Role | Scope | Can see |
+|---|---|---|
+| `student` | Own work | Their reports; never flags |
+| `teacher` | Own classes, within their school | Their students, transcripts, flags |
+| `school-admin` | One school | Teacher accounts, aggregate metrics — **no student names, transcripts, or flags** |
+| `platform-admin` | Us | Schools registry, cross-school aggregates — **no route into any school's data** |
+
+`school-admin` is today's `admin` with a school attached. `platform-admin` is new and is *not* a
+super-school-admin, for the same reason `admin` is not a super-teacher.
+
+### School lifecycle
+
+| State | Sign-in | Data | Use |
+|---|---|---|---|
+| `draft` | Blocked | None | Configured during procurement, pre-DPA |
+| `active` | Open | Live | Normal |
+| `suspended` | Blocked | Retained | Non-payment, incident, summer |
+| `closed` | Blocked | Export + deletion pending | Contract ended |
+
+`suspended` vs `closed` is the load-bearing distinction — one is reversible and keeps the data, the
+other starts a deletion clock. Conflating them means either deleting a district's records or
+retaining them past contract.
+
+---
+
+## School Onboarding (settled 2026-08-05)
+
+Two separate onboardings. Only the first is new — levels 2–4 are already built and need school-scoping.
+
+| Who | Creates | Surface |
+|---|---|---|
+| **Platform admin (us)** | Schools, each school's first admin | A script (`provision-school.js`), not a UI |
+| **School admin** | Teachers | `admin.html`, school-scoped |
+| **Teacher** | Classes, students (by email), assignments | `teacher.html` |
+| **Student** | Nothing — signs in and works | — |
+
+Each level creates only the level below. Nobody promotes themselves; role is always assigned.
+
+**Students are added by teachers, by email** — not auto-provisioned on domain match. It matches the
+existing class model (a class holds a student list), keeps the population to the pilot cohort rather
+than every student in the district, and 24 emails typed once is nothing. A teacher-entered email
+creates a placeholder; first sign-in with that address links it and lands the student in the class.
+
+**Script, not UI, for the first several schools.** The flow will change shape within three schools,
+and a self-serve surface built now is built against guesses. The `platform-admin` surface needs
+exactly two things for the pilot: list schools, and cross-school aggregate health.
+
+### Intake — collected before anything is provisioned
+
+| Field | Blocks | Gotcha |
+|---|---|---|
+| Email domains (all of them) | SSO restriction + school resolution | Staff/student split is common; a missed domain locks out everyone on it |
+| Deployment model (1 or 2) | `gcpProject` | Model 2 needs their project ID + IAM grant |
+| First school-admin (name, email) | Nobody can create teachers without one | Must be on a declared domain |
+| Workspace SSO status | Whether sign-in works at all | Many districts block third-party OAuth by default — five minutes on their side, but the most common launch-day failure |
+| Retention + deletion terms | Offboarding | Whatever the DPA says has to be technically true |
+
+### Provisioning sequence
+
+```
+DPA signed ─────────────────────┐
+                                ↓
+  create school record  →  create Firestore database
+                                ↓
+  register domains in Firebase Auth (SSO restriction)
+                                ↓
+  [model 2 only] district grants our service account
+                 roles/aiplatform.user in their project
+                                ↓
+  create first school-admin  →  invite
+                                ↓
+                        VERIFICATION GATE
+                                ↓
+                    school self-serves from here
+```
+
+A school may sit in `draft` before the DPA is signed — configuration is not student data. That is what
+allows demo and setup *during* procurement instead of after it.
+
+### Verification gate — run before any student signs in
+
+Also the artifact handed to district IT:
+
+- [ ] Sign-in succeeds from **each** declared domain
+- [ ] Sign-in from a non-declared domain is rejected
+- [ ] A teacher in this school cannot load another school's roster (isolation proof, run explicitly)
+- [ ] One full cycle: chat → submit → analysis → report renders with scores
+- [ ] Integrity flags absent from the student payload, present for the teacher
+- [ ] Per-student token budget and rate limit live
+- [ ] Billing alert configured (model 2: pointed at *their* console)
+
+The token budget is therefore an onboarding gate, not deferrable hardening.
+
+### Offboarding — designed now, not at contract end
+
+Per-database isolation makes it cheap: **export = dump one database; delete = drop one database**,
+with no risk of catching another school's records. Two decisions still open: the export format
+(teachers will want readable reports and transcripts, not raw JSON) and how long `closed` sits before
+deletion actually runs.
+
+### The non-technical half
+
+Onboarding steps with owners and dates, not documentation that exists somewhere. Backlog #6 (teacher
+enablement), #5 (practice assignment — ungraded, burns off tool novelty, protects the baseline), and
+#7 (flag misfire disclosure) are all onboarding deliverables. A teacher's first encounter with
+`unnatural-fluency` on an ELL student's draft will define their trust in the entire instrument.
 
 ---
 
@@ -49,6 +299,26 @@ What this buys the design:
 
 **Budget ceiling to quote: $30–50** (2× headroom over worst case). Per student: ~$1–3/semester at next-gen model prices.
 
+**Re-baselined 2026-08-05 against live Vertex pricing** (the table above assumed ~$0.10/$0.40 per
+MTok; current Gemini 3.1 Flash-Lite is $0.25/$1.50, 3.5 Flash $1.50/$9.00). Bottom-up from the real
+call sites — chat resends full history per turn (~78% of all input tokens), plus 3 analysis calls and
+~1.5 auditor calls per draft — a **24-student, 4-assignment, 3-draft semester is ~56K input / 7.6K
+output tokens per draft, 288 drafts, ≈16M input / 2.2M output total**:
+
+| Setup | Semester |
+|---|---|
+| All on 3.1 Flash-Lite | ~$7 |
+| Chat on Flash-Lite, analysis on 3.5 Flash | ~$18 |
+| Same, analysis submitted to the Batch tier (50% off) | **~$11 — recommended** |
+| All on 3.5 Flash | ~$44 |
+
+Analysis is already async post-submit, so the Batch tier is nearly free money. Infrastructure stays
+~$0 (288 cycles ≈ 8K turn writes across a whole semester against a 20K writes/**day** free
+allowance), though Vertex requires Blaze billing. **The "under $50 per classroom per semester" claim
+in the stakeholder summary survives at nearly double the class size it was written for** — but only
+with `thinkingBudget` capped: Gemini 3.x models think by default and thinking bills as output, which
+turns a $15 semester into ~$120. That guardrail is the single highest-leverage line in the migration.
+
 **Guardrails (build these into v1, not later):**
 - `thinkingBudget: 0` for chat; capped for analysis (thinking tokens bill as output — the classic 8× surprise)
 - `maxOutputTokens` ~500 on chat
@@ -59,6 +329,80 @@ What this buys the design:
 - Teacher dashboard uses one-shot reads, not realtime listeners
 
 Cost note: unlimited conversations *reduce* cost — context is resent per turn, so input tokens grow ~quadratically with conversation length; several focused chats < one monolith. Gemini implicit caching cuts real input costs further (not counted above).
+
+**How much that quadratic actually bites (2026-08-05):** the same 40 coach replies in a day cost
+**352K tokens (~11¢) as one conversation, 106K (~4¢) as four, 65K (~3¢) as eight** — a 5.4× swing on
+conversation shape alone. Message 1 costs ~460 input tokens; message 40 costs ~16,400, because it pays
+to re-read messages 1–39. This is not a marginal effect and it drives the cap design below.
+
+### Usage caps — two tiers (settled 2026-08-05)
+
+The cap is **not a cost control** at pilot scale. The most extravagant plausible student day costs
+about eleven cents; the cap exists to catch a bug, a loop, or scripted abuse, which look nothing like
+40 replies — they look like 40,000. So be generous: the cost of generosity is cents, the cost of
+stinginess is a student locked out of their homework at 9pm.
+
+| Tier | Unit | Value | Purpose | Visible to |
+|---|---|---|---|---|
+| **Soft** | Coach replies/day | ~40 | Comprehensible, fair, warns and stops cleanly | Student + teacher |
+| **Hard** | Input tokens/day | ~1M | Backstop for bugs and abuse only; should page us | Nobody |
+
+**Replies, not tokens, for the student-facing limit.** A token cap gives two identically-behaved
+students wildly different allowances — one working in a single long thread gets ~12 replies, one who
+starts fresh per topic gets 40+. Unfair, unexplainable, and it penalises exactly the student most
+immersed in one line of thinking. Tokens still bound the hard tier, which is where the leeway goes:
+3× above the worst realistic case, so a real student never reaches it and anything that does is broken.
+
+Four behavioural rules, which matter more than the numbers:
+
+1. **Check at the turn boundary, never mid-stream.** Refuse to *start* a reply without budget for a
+   whole one. A conversation that ends cleanly reads completely differently from one that dies
+   mid-sentence.
+2. **Warn at ~80%** — "about 8 messages left today." Nobody meets a limit they couldn't see coming.
+3. **Submitting a draft is never blocked.** Analysis budget is reserved separately from chat budget.
+   A student who chatted a lot and then cannot submit — or submits and gets no report — is the one
+   failure that would actually damage trust in the tool.
+4. **Teachers can grant more**, one button on the student's row. The escape valve is what lets the
+   limit be set sensibly rather than defensively.
+
+### Cost measurement (Phase D deliverable, settled 2026-08-05)
+
+One row per LLM call, in its own collection — same reasoning that keeps `usage` out of `events`.
+`usage` answers "which parts of the tool get opened"; this answers "what did that cost."
+
+```
+llmCalls  { id, ts, schoolId, studentId, assignmentId, submissionId,
+            purpose: 'chat' | 'auditor' | 'classify' | 'provenance' | 'snapshot',
+            model, inputTokens, cachedInputTokens, outputTokens, thinkingTokens,
+            latencyMs }
+```
+
+`purpose` is what makes it useful — it says whether chat or analysis drives cost, which is the lever
+we would actually pull. Estimate says chat is ~78% of input; real data confirms or overturns it.
+
+**Store tokens, never dollars.** Prices change — Gemini's have moved 2.5–4× since the table above was
+written. Dollar amounts make history incomparable and make "what would last semester have cost at
+today's prices?" or "what if analysis moved to Batch?" unanswerable. Keep a versioned price table in
+config and derive cost at read time; that turns the log into a model we can run scenarios against.
+
+**Two sources of truth, reconciled monthly.** `llmCalls` gives *attribution* (which student, school,
+purpose); GCP billing export gives *actual dollars*. Ours will run slightly under (retries, failed
+calls, caching). Divergence beyond a few percent means our accounting has a hole.
+
+**Watch the distribution, not the average.** Pricing per seat at the mean loses money on the tail. The
+numbers that matter are p50 / p90 / max student, and specifically whether the heaviest student is 2×
+the median or 20×. The 5.4× conversation-shape swing above suggests the tail is real.
+
+**What this is for — and what it is not.** At ~50–75¢ per student per semester, infrastructure cost
+will not set the price; a district paying even $5/student/year leaves ~90% gross margin. Pricing is
+driven by value, not cost. So this system has exactly three jobs: **catch anomalies** before the bill
+does, **substantiate the "under $50 per classroom" claim** with real data (a procurement asset), and
+**detect when the assumption breaks** — a model price change or an unpredicted usage pattern. Build it
+accurate enough for those three. It is not a billing engine.
+
+Surfaces in the `platform-admin` view: cost per school, per-student distribution, chat-vs-analysis
+split, trend. Model 2 schools need a per-school report too, since the cost lands on *their* Google bill
+and they will ask what drove it.
 
 ---
 
@@ -157,21 +501,44 @@ Lean: teacher note attached to a submission, visible to the student beside their
 6. **Teacher enablement curriculum** — reading the instrument, pattern literacy, annotated exemplars, conference craft, flag literacy (incl. ELL/IEP misfire profiles), dial pedagogy, student framing. `teacher-guide.md` is the seed; pilot teacher co-authors
 7. **Flag misfire disclosure** — unnatural-fluency / stylistic-inconsistency have false-positive profiles for ELL (translators) and IEP accommodations; side tray discloses per flag
 8. **Build-time check** — scoring must reward sparse-but-excellent usage profiles (TAU formulas are ratio-based so quality-density should win; verify with a gifted-student sample log)
-9. **PQ is partly measuring vocabulary echo** — `responsive` is set by `isResponsiveToAI()` (turn-initial discourse markers, or ≥2 shared words >5 chars with the prior AI turn) and runs on the regex path *even when Groq is available* — only `label` comes from the LLM. So a student who paraphrases instead of parroting scores lower on PQ than one who echoes the coach's wording, which inverts what PQ is specified to measure. Surfaced 2026-07-19 while building seed transcripts: honestly-written strong transcripts scored PQ 1–2 across the board. Fold into Phase D when the calls move to Vertex — responsiveness is an LLM judgement, not a lexical one
+9. ~~**PQ is partly measuring vocabulary echo**~~ — **closed 2026-08-05.** The lexical `isResponsiveToAI()` test is gone; the classifier now receives the preceding coach turn and judges responsiveness by meaning, so paraphrase no longer scores below parroting. Fixing it exposed a larger validity problem: responsiveness runs at 75–82% in *every* condition tested, including with no coach at all, so PQ now reads 5 almost everywhere. **All dimension definition and validity work now lives in `tau-dimensions.md`**, split out on 2026-08-05 so it does not entangle the migration
 
 ---
 
-## Build Phases (unstarted)
+## Build Phases
+
+**State as of 2026-08-06:** B, C, C2, E, F built. **D (Vertex) and B' (Firestore) done; deployed to
+Cloud Run and public.** A is most of the way — caps, cost accounting, least-privilege service account
+and Firestore rules are in; rate limiting and SSO are not. G unstarted.
 
 **Build strategy (2026-07-16): local-first.** Phases B+C built now against dev seams in `app/` (dev password auth / Groq / JSON store shaped as Firestore); Phases A+D become seam swaps once the GCP project + DPA exist. See `app/README.md`.
 
-- [ ] **Phase A — Backend skeleton:** Cloud Run proxy (auth-gated, rate-limited, token budgets) + Firebase Auth (Google SSO, domain-restricted). *Dev stand-in running: node server + real per-user login (email/password, scrypt, HttpOnly session cookie) behind the same `auth.js` seam — every `/api/*` route now requires a session and role is server-derived, so the swap to SSO is one file. **Passwords are a POC stand-in, not the plan for minors.** Still missing: rate limiting, per-student token budgets, the SSO itself*
-- [x] **Phase B — Data model:** collections (users/roles, assignments, sessions, conversations, turns, submissions, analyses, events) implemented Firestore-shaped in `app/server/store.js`; append-only turns with `meta.supersedes`. *Remaining: Firestore security rules at swap time*
+**Migration order (revised 2026-08-05, followed 2026-08-05/06 — D, B' and the deploy are done):
+D → B' → A → deploy, not A → D.** The LLM swap is the only
+one carrying real unknowns — whether Gemini Flash-Lite matches `llama-3.3-70b-versatile` on
+classification and provenance, and whether `extractJSON()` survives a different model's output habits.
+Find that out first, locally, while the JSON store and dev login still work and iteration is instant.
+Firestore and Firebase Auth are mechanical by comparison: you already know what they will do.
+
+**Firestore swap is bigger than "mechanical."** The `col()` API mirrors Firestore's *shape*, but it is
+**synchronous** and Firestore is not — 153 call sites (106 in `index.js` alone) each need `await`.
+Most sit inside handlers that are already `async`; the fiddly ones are `col().list()` nested inside
+synchronous callbacks (`.filter()` predicates, sort comparators), which need restructuring rather than
+an `await`. Budget a focused day plus a careful review pass.
+
+**Firestore security rules are smaller than Phase B assumes.** The architecture is fully
+server-mediated — every client call goes through `/api/*`, and the Admin SDK bypasses rules entirely.
+The correct rule set is `allow read, write: if false;`. Browsers never touch Firestore directly, so
+`teacherScope()` remains the real permission system and rules are a lock on the back door.
+
+- [~] **Phase A — Backend skeleton:** Cloud Run proxy (auth-gated, rate-limited, token budgets) + Firebase Auth (Google SSO, domain-restricted). *Dev stand-in running: node server + real per-user login (email/password, scrypt, HttpOnly session cookie) behind the same `auth.js` seam — every `/api/*` route now requires a session and role is server-derived, so the swap to SSO is one file. **Passwords are a POC stand-in, not the plan for minors.** Admin-created teacher accounts and per-request suspension landed 2026-08-04. **Two-tier usage caps built and verified 2026-08-05** (`app/server/budget.js`) — all four behavioural rules tested, including that a chat-blocked student can still submit and get a report. **Deployed to Cloud Run 2026-08-06** on a least-privilege service account (`aiplatform.user` + `datastore.user` only), public, with the password path hardened (see the security session-log entry). Still missing: **rate limiting** (now the only unblocked item, and more pressing since the endpoint is public — the sole throttle today is on failed logins) and **the SSO itself**, which stays blocked on a pilot school's domains and their IT approval*
+- [x] **Phase B — Data model:** collections (users/roles, assignments, sessions, conversations, turns, submissions, analyses, events, usage) **now running on real Firestore (swapped 2026-08-05)**; append-only turns with `meta.supersedes`. Three roles (`student`/`teacher`/`admin`) plus `users.status` for suspension. 1,373 documents migrated with ids preserved via `app/server/migrate-to-firestore.js`. **Firestore security rules deployed 2026-08-06** (`firestore.rules`, deny-all — there were none at all before, since the database was created via `gcloud` rather than the Firebase console). Three collections added since: `llmCalls`, `budgetGrants`, `loginFailures`. *Remaining: a pass to convert the surviving full-collection `list(predicate)` scans to queries as data grows — they are commented at each call site with why equality can't express them*
 - [x] **Phase C — Chat UI:** conversation sidebar, streaming, episode handling, Evaluate button (auditor voice), submit flow with confirmation friction; event logging (copy/regenerate/edit/stop/evaluate/episode) from day one. *Remaining: polish passes as real use reveals gaps*
 - [x] **Phase C2 — Student account view:** login page (Google SSO button present, disabled until Phase A) and a student home showing current work with the coaching level for the next draft, past assignments with per-draft score chips linking to their reports, teacher-note badges, and a growth sparkline across submitted drafts. Score dimensions are named in student language here rather than by acronym; no class comparison or ranking. Demo class of 5 students with pre-baked analyses in `app/server/seed-data.js`
-- [ ] **Phase D — Vertex migration:** the 3 analysis calls (turn classification, provenance, embeddings) from Groq to Vertex Gemini; coach + auditor system prompts per coaching level
+- [~] **Phase D — Vertex migration (now first — see migration order above):** **done 2026-08-05** — `llm.js` on Vertex Gemini via ADC (no API key, zero dependencies), all 3 analysis calls migrated and verified against the seeded baseline, `school.js` landed, `thinkingBudget: 0` everywhere (capping analysis turned out to be impossible — see the session log), Groq 429 loop deleted, provider error bodies no longer reachable from the throw, and `extractJSON()` hardened with structural JSON output. **`llmCalls` cost measurement landed 2026-08-05** (one row per call, tokens never dollars). **Backlog #9 closed** — and the larger PQ validity problem it exposed now lives in `tau-dimensions.md`, not here. *Remaining: coach + auditor system prompts per coaching level; a versioned price table (deferred until the platform-admin cost view reads these rows); embeddings (CTA Call 3) were never ported, so that call moves with the divergence chart rather than this swap; and a systematic Flash-Lite vs 3.5 Flash comparison on provenance*
 - [x] **Phase E — Submission pipeline:** bundle cycle conversations + essay → analysis (classification, provenance+flags, TAU ported from CTA) → snapshot narrative → storage; student draft report with full TAU disclosure, flags teacher-only. *Remaining: divergence chart embeddings, delta provenance, event-derived scoring signals*
 - [x] **Phase F — Teacher dashboard integration:** assignment creation (prompt, budget, dial with default-fade prefill), roster with per-cycle TAU chips + flag markers, student conversation view (trajectory strip, conversation-ready moments, snapshots verbatim, transcripts in teacher mode with events inline), teacher note per submission surfaced on the student's report. Triage dashboard ported from `teacher-dashboard.html` (real data via `/api/teacher/dashboard`, mock shape preserved) with drill-down links into the detail layer. *Remaining: real classes in the data model (one synthesized class for pilot), class-level instructional view (backlog #3)*
+- [ ] **Phase G — Multi-school (new 2026-08-05):** `school.js` seam (resolve email domain → school config); `schools` registry as the one global collection; role split (`admin` → `school-admin` + `platform-admin`); one Firestore database per school; `provision-school.js`; verification-gate checklist; export/delete path. **Contains a latent leak to close:** the `/api/admin/overview` counts (search `index.js` for `role: 'student'` — around the `scale` and `audienceSize` blocks) count *every* user in the database with no school scope. Correct with one school; the identical bug class as the 2026-08-04 `teacherScope()` fix and the 2026-08-05 `canReadSubmission()` fix the moment there are two. **Both of those were found by testing cross-tenant access rather than reading code — do the same here before trusting it.** Line numbers deliberately omitted: they have moved twice already. Per-school Firestore databases replace the old `app/data/<schoolId>/` idea, which died with the JSON store
 - [ ] **Parallel:** district IT gates (Vertex project? DPA?)
 
 ---
@@ -190,6 +557,233 @@ Lean: teacher note attached to a submission, visible to the student beside their
 
 ## Session Log
 
+- **2026-08-06 — Deployed to Cloud Run, with the two open security items closed first.** The app runs
+  at `https://cta-714032495709.us-central1.run.app`, **not publicly reachable** — deployed
+  `--no-allow-unauthenticated`, so Cloud Run IAM 403s anonymous callers and the app's own session
+  layer still 401s even an IAM-authenticated one. Two independent gates, verified separately.
+
+  **Least privilege:** a dedicated `cta-run` service account holding exactly `roles/aiplatform.user`
+  and `roles/datastore.user`. Worth pinning explicitly rather than accepting the default — the compute
+  service account Cloud Run would otherwise have used carries `roles/editor`.
+
+  **Firestore rules deployed** (`firestore.rules`, deny-all). There were none at all beforehand: the
+  database was created through `gcloud` rather than the Firebase console, so no ruleset was ever
+  attached and IAM was the only thing standing between the data and a client SDK. Nothing legitimate
+  is denied — no browser holds a Firestore handle — but registering a Firebase web app later can no
+  longer hand out a client key against a database whose rules were never decided. Note the rules file
+  is inert on its own; changing it requires re-releasing through the firebaserules API.
+
+  **The metadata-server credential path finally ran.** `llm.js` was written months ahead of any
+  deploy to fall through to Cloud Run's metadata server when no ADC file exists; that branch had
+  never executed. It works: streaming coach replies came back through Vertex on the deployed
+  instance, and an `llmCalls` row landed with real token counts. Config moved to environment
+  variables at the same time, since `config.json` is gitignored and deliberately excluded from the
+  image — there is now no credential and no config file inside the container at all.
+
+  **Opened to the public the same day**, on the basis that every record in `cta-pilot-dev` is
+  fabricated and the project is disposable. Two properties make that defensible: the session layer
+  still gates `/api/*` (removing Cloud Run's IAM gate removed a layer, not the only one), and the
+  usage caps bound spend to about a dollar a day even if strangers max all ten demo accounts — the
+  cap work paying for itself, since a public demo would otherwise have been an open tab on the Vertex
+  bill. **The standing rule this creates: `cta-pilot-dev` must never hold real student data while a
+  password published in this repo signs into it.** A real pilot gets its own project, which the setup
+  doc already assumes.
+
+- **2026-08-05 — Security audit of the password path. One real vulnerability found.** Any teacher
+  account could read any student's report, essay, full 88-turn transcript and **integrity flags** by
+  submission id. The three `/api/submissions/:id/*` routes checked `role === 'teacher'` but never
+  *whose* student — they reach the same data the roster routes reach, but by a different door, and
+  `teacherScope()` was only ever applied to the roster door. Invisible while the seed created exactly
+  one teacher; live from 2026-08-04, when admins gained the ability to create a second. **Found by
+  creating a second teacher and trying it, not by reading the code** — which is the lesson worth
+  keeping: the isolation guarantee in the design docs was not the isolation the code enforced.
+  Verification gate should include the cross-teacher probe explicitly, since it already does for
+  rosters but that is not where the hole was.
+
+  Password hardening, all of it stand-in work that SSO eventually deletes: scrypt N raised to 2^16
+  with per-user params and upgrade-on-login (so the work factor can rise again without a reset);
+  session tokens stored hashed rather than plaintext; logout deletes rather than expires; 7-day
+  sessions; `Secure` cookie under `NODE_ENV=production`; equal work burned on unknown emails to close
+  the enumeration timing oracle; 10-failures-per-account throttle.
+
+  **Lockout is per-account and never per-IP, and that is a school-specific decision.** Built it with
+  an IP throttle first, then watched an unrelated student with the correct password get refused,
+  because every device in a school shares one NAT address — an IP lockout locks out the class.
+  Spraying is logged (25+ distinct accounts from one address) rather than blocked.
+
+  Production guards added because the demo seed writes ten accounts sharing one published password:
+  the seed refuses to run under `NODE_ENV=production`, and admin-created accounts get a random temp
+  password there instead of the dev constant. Accepted and logged, not fixed: an admin who resets a
+  teacher's password can sign in as them.
+
+- **2026-08-05 — Cost accounting + usage caps (Phase D leftover and half of Phase A).** `llmCalls` now
+  records one row per Vertex call — purpose, model, input/cached/output/thinking tokens, latency,
+  `billsTo`, and attribution down to the submission. Confirmed first that streaming replies report
+  usage (several chunks carry `usageMetadata`; the last holds the totals), since chat is ~78% of
+  estimated input and an unmeasurable chat path would have made the whole log pointless. Tokens only,
+  never dollars. The versioned price table is deliberately **not** built yet: nothing reads these rows
+  until the platform-admin cost view exists, and the urgent half was the recording, which cannot be
+  reconstructed later.
+
+  `budget.js` implements the two-tier cap. All four behavioural rules are built and each was tested,
+  not just written: the check happens **before the student's turn is persisted**, so a refused message
+  does not strand a question in the transcript with no answer; the 80% warning arrives as an SSE
+  `notice` on the reply that crosses it; a teacher grant is one POST and takes effect immediately;
+  and **a chat-blocked student can still submit and get a full report** — verified by exhausting the
+  cap, submitting, and watching all three analysis calls run and complete. Regenerate and Evaluate
+  draw on the same budget, since both are Vertex calls and Evaluate is available at every coaching
+  level, which makes it the easiest loop to spin if it were free.
+
+  Grants are additive and expire daily. The hard tier (1M input tokens/day) logs loudly and phrases
+  itself as our fault, not the student's — reaching it means a bug or abuse, never homework.
+
+- **2026-08-05 — Firestore swap (Phase B', same session as the Vertex swap).** `store.js` now talks to
+  real Firestore in `cta-pilot-dev`. The plan's "153 call sites" estimate was exact. Decision taken:
+  **`firebase-admin` via npm**, ending the zero-npm-dependency property. The alternative — a REST
+  client reusing the ADC token minting from `llm.js` — meant hand-writing Firestore's typed-value
+  encoder, queries, pagination, transactions and retries underneath the collection holding student
+  records. Wrong place to spend that property; the browser side stays dependency-free.
+
+  **The plan called this "mechanical" and it mostly was, but three things were not.** First, a literal
+  translation of `list(predicate)` reads the entire collection and filters in memory — acceptable for
+  `users`, ruinous for `turns`, which holds every message ever sent and is billed per document read.
+  `list()` now takes an equality object that compiles to `where()`; hot paths use it, and the
+  predicates that survive are the ones equality genuinely cannot express. Second, and the real
+  hazard: `await col('x').list(...).sort(...)` is valid syntax that calls `.sort()` on a Promise.
+  36 chains needed parenthesising, none of which a syntax check would have caught — and the same trap
+  bit the helpers that became async (`await teacherScope(user).students` reads a property off the
+  Promise). Third, `.some()`/`.map()`/`.filter()` bodies cannot await, so they became loops; the
+  `.some()` conversions kept their early `break` so read counts did not change.
+
+  Approach that worked: add `await` to *every* store call mechanically, then let `node --check` find
+  each enclosing function that had to become async. Over-applying `await` fails loudly; under-applying
+  it fails silently. Then an explicit audit of every async function's call sites, since the parser has
+  nothing to say about a missing await.
+
+  Verified end to end against migrated data: login, student home, assignment list, conversation
+  create, streaming coach reply, submit → analysis → report, teacher dashboard, teacher transcript
+  route, and the role-scoped disclosure boundary (integrity flags present for the teacher, absent for
+  the student). Boot is now ~20s because the idempotent seed does a network round-trip per check.
+
+  Still open: security rules, and `app/data/*.json` is now stale — read by nothing, kept only as the
+  snapshot `migrate-to-firestore.js` replays.
+
+- **2026-08-05 — GCP setup + the Vertex swap itself (Phase D, part 1).** Project `cta-pilot-dev` is
+  live: billing linked, five APIs on, Firestore in `us-central1` (Native, delete protection off —
+  fine for dev, must be on for a school's project), budget alert at $25. `gcp-setup.md` was rewritten
+  against what actually happened, since roughly half its steps failed as written — macOS ships Python
+  3.9 and gcloud needs 3.10+, project display names reject punctuation, and the ADC consent screen
+  hides a checkbox whose omission produces a "web authentication problem" error that names the wrong
+  cause.
+
+  **`llm.js` now runs on Vertex Gemini with no API key anywhere** — ADC in dev, the metadata server on
+  Cloud Run, same code path. Zero dependencies: minting an access token from the refresh token is ~25
+  lines of `fetch`, so the no-build-step constraint survives the migration and `google-auth-library`
+  never enters the tree. `school.js` landed alongside it, as planned, so the "which project does this
+  bill to" question exists before Firestore makes it async. The Groq 429 loop is gone, and provider
+  error bodies no longer reach the throw — `index.js` pipes `err.message` straight to the browser over
+  SSE, so that throw was a request-echo waiting to happen.
+
+  **Two planned decisions were overturned by measurement, both about thinking.** `thinkingBudget` is
+  advisory, not a cap: 3.5 Flash asked for 512 spent 777. And thinking is drawn from
+  `maxOutputTokens`, so a 300-token analysis budget with 512 of thinking returned one token and a
+  truncation. "Capped for analysis" is therefore not a thing that exists — the choice is 0 or
+  uncapped, and uncapped is the ~$120 semester. Everything now runs `gemini-3.1-flash-lite` with
+  thinking off, model overridable from `config.json`. With thinking off, 3.5 Flash's 6× price buys
+  nothing measurable; it mislabeled a turn Flash-Lite got right. Small sample — a real provenance
+  comparison against the seed transcripts is still owed.
+
+  **`extractJSON()` did survive, but only after a fix** — the plan flagged it as an unknown and it
+  was right. All three analysis calls now use `responseMimeType: application/json`, and the parser
+  parses the whole body first, falling back to a brace-balanced scan that stops at the *matching*
+  close. The old greedy `/\{[\s\S]*\}/` spanned first-brace to last-brace, which broke intermittently
+  when Gemini emitted a complete object followed by a second one, and would also have broken on a
+  brace inside a string — a latent bug the provider swap merely exposed.
+
+  Verified end to end against the real pipeline on Maya's 88-turn seeded session: three consecutive
+  runs at TAU 12–13 against the hand-labeled baseline of 13, stable labels and provenance, ~8.7s.
+  Streaming, stop-mid-generation, and the coach persona all confirmed through the actual HTTP server.
+  Still open in Phase D: the `llmCalls` cost collection, backlog #9 (PQ), and coach/auditor prompts
+  per coaching level.
+
+- **2026-08-05 — Migration planning session (no code).** Decided to pull the trigger on Vertex/Firebase
+  and, in the course of costing it, settled the multi-school architecture the migration has to carry.
+  Four outcomes, all recorded above rather than here: (1) **cost re-baselined** against live Vertex
+  pricing, which has roughly 2.5–4× since the original table — bottom-up from the actual call sites, a
+  24-student semester lands at ~$11–18 on a Flash-Lite chat / batched-Flash analysis split, so the
+  public "under $50 per classroom" claim survives at nearly double the class size, contingent entirely
+  on capping `thinkingBudget`. (2) **Migration order inverted** to D → B' → A → deploy: the LLM swap is
+  the only step with unknowns, so it goes first while iteration is still instant; Firestore's swap is
+  also bigger than the docs implied (153 synchronous `col()` call sites), and its security rules are
+  smaller (server-mediated architecture means `allow read, write: if false`). (3) **Anthropic
+  compared and declined** — Claude for Teachers (July 2026) ships FERPA-aligned K-12 terms but is a
+  chat product for individual educators, not API access, and Haiku 4.5 would cost about the same as
+  Gemini; the deciding factor is that Firestore/Cloud Run/Auth stay on Google regardless, so splitting
+  inference to a second vendor doubles the DPA surface for no gain. Vertex stands. (4) **Multi-school
+  designed end to end** — deployment models 1/2/3, the identity chain, the schools registry, the
+  `admin` → `school-admin` + `platform-admin` split, per-school databases, and the onboarding ladder
+  (we create schools + first admin by script; school admins create teachers; teachers create classes,
+  students by email, and assignments). Two things fell out that were not on any list: the
+  `/api/admin/*` routes carry a **latent cross-school leak** — the same unscoped-query bug fixed for
+  teachers on 2026-08-04, one level up, currently invisible because there is one school — and
+  **offboarding needs designing now**, since the DPA's return-or-destroy clause becomes a contractual
+  promise about code that does not exist yet. Per-school databases make both cheap. Deliberately
+  rejected: `platform-admin` impersonation of a school admin (kills the absolute guarantee for support
+  friction that configuration visibility already covers), and model 3 as an offering. New file
+  `app/gcp-setup.md` holds the Phase 0 setup, rewritten mid-session for a non-specialist reader
+  (expected output per step, a glossary, a troubleshooting table, budget alert moved ahead of any
+  possible spend). Also settled late in the session: **policy vs plumbing** (a school admin configures
+  what the tool does for them, never where data flows or who gets in — liability does not transfer
+  through a UI, and a routing setting is an exfiltration channel wearing a dropdown); **six rules that
+  keep model 3 reachable** while building 1 and 2, of which two are free-now/impossible-later (config
+  from environment only, never log student content — with a live instance already in `llm.js`); a
+  **two-tier usage cap** (soft = replies, hard = tokens, because the same 40 replies span 65K–352K
+  tokens depending on conversation shape, so a token cap would give identically-behaved students
+  wildly different allowances); and **cost measurement** via a new `llmCalls` collection storing tokens
+  rather than dollars, so history stays re-priceable when Google moves prices again. Nothing under
+  `app/server/` touched yet.
+- **2026-08-04 — Admin role + administration surface; per-teacher scoping fixed.** Third role added
+  (`admin`), so the operating model finally has its first step: **admin creates teachers → each
+  teacher builds their own workspace**. Previously teachers existed only because `seed.js` made
+  them. New `web/admin.html`: *Teachers* (create / edit / reset password / suspend — never delete,
+  since a teacher owns classes, assignments and submission history), *Content areas*, *Student work
+  patterns*. Suspension is checked in `authenticate()` per request, not just at login, so it ends a
+  tab already open rather than waiting out a 30-day cookie.
+  **Admin is deliberately not a super-teacher** — the teacher gate still requires `role === 'teacher'`,
+  so every teacher route 403s for an admin, and `/api/admin/overview` was written to carry no student
+  name, transcript, essay, or integrity flag. That boundary is what keeps the "flags are teacher-only"
+  guarantee true once a role above teacher exists; verified by asserting those strings are absent from
+  the payload, not just by reading the code.
+  **The security fix this required:** `/api/teacher/dashboard` and `/api/teacher/assignments` listed
+  *every* student and class in the install (`col('users').list(u => u.role === 'student')`,
+  `col('classes').list()`), and the student-detail, assignment-edit, assignment-note and
+  submission-note routes had no ownership check whatsoever. Invisible while the seed created exactly
+  one teacher; a straight cross-teacher leak of rosters, scores and integrity flags the moment an
+  admin can create a second. Now all funnel through `teacherScope()`. Proven by diffing the demo
+  teacher's full dashboard response before and after (byte-identical once timestamps are normalised —
+  a pure security fix, zero behaviour change) and by creating a second teacher in a real browser and
+  confirming an empty workspace plus a 403 on a hand-forged read of another teacher's student.
+  **On metrics, the brief was explicitly not analytics** — *"less concerned with usage metrics and
+  more what content should be prioritised"* — so the surface answers "which parts earn attention and
+  which are ignored." New `usage` collection, kept separate from `events` (the append-only integrity
+  record feeding TAU; product telemetry has no business in it), written only for explicit opens
+  against a server-side allowlist. **Areas that render inline with no open of their own were dropped
+  from the allowlist rather than logged** — trajectory strip, ready moments, snapshots, integrity
+  signals — because a count attached to them would have been a count of page loads wearing a
+  section's name. *Student work patterns* needs no instrumentation at all: conversations per draft,
+  Evaluate uptake, completion rate and analysis health all come from records the pipeline already
+  persists, so that block is complete on day one while the ranking above it is still filling up.
+  Two design corrections caught by running it rather than reading it: bars were first scaled to the
+  busiest row, which rendered every tied row full-width and read as "heavily used" when it meant "one
+  person, once" — rescaled to reach against the real population (`audienceSize`), which also made the
+  numbers actionable ("1 of 8 students"); and the per-row value then wrapped mid-phrase, fixed by
+  dropping the noun the section note already supplies. Verified in Chromium across all three roles:
+  real clicks produced real ranked rows, full teacher lifecycle exercised through the UI (add,
+  duplicate-email refusal, suspend → live session 401s → reactivate → 200), zero console errors, zero
+  horizontal overflow at 1440/900/700, light and dark both checked by screenshot. Known pre-existing
+  gap left alone: the shared `.account-signout` control is 27px tall against the system's 44px
+  minimum — it ships on all five pages and belongs to `components.css`, so fixing it from this page's
+  sheet would violate the placement rule.
 - **2026-07-26 (WIP, uncommitted)** — Report information architecture rebuilt: the three tab panes (My Session / Agency Chart / Who's Driving) are now permanently-visible sections instead of hidden panes, with a new sticky jump nav between the hero and the sections (five buttons, click-to-scroll, scrollspy) so a student always has a map of the report and a way back to any part of it without re-clicking through tabs. The hero stays pinned at the top unchanged; a mini score chip (`score/20 · band label`) docks into the same sticky nav bar — rather than opening a second sticky element — once the hero scrolls out of view, so the score stays glanceable at any scroll depth without spending permanent vertical space on a second copy of it. Follow-up in the same session: the five section labels are now a dedicated `.report-section-title` (bigger, ink-coloured) instead of the small uppercase `.eyebrow` micro-label, and all five sections were standardised onto `.card-lg` so the title sits at the same offset in every section — two of them had been on plain `.card`'s smaller padding, which was the actual "position inconsistent" bug. Full design rationale and the exact CSS/JS mechanics are logged in `designsystem.md`'s own session log (2026-07-26 entry) rather than duplicated here. Verified server-side (login, submissions list, report endpoint all 200 with real data); **not yet verified in an actual browser** — no headless-browser tool was available in this environment — and **not yet committed**, so treat this as WIP until a session closes it out with a commit.
 - **2026-07-19 (build session 7)** — Student home redesigned for content hierarchy. Diagnosis: the page had no primary action (every assignment card carried an identical button, and the largest text was an uninformative greeting), scores were unreadable (`Draft 1 · 12` with the scale and SAMR band hidden in a `title` tooltip), the teacher note — the only human message on the page — sat as a small badge on the lowest section, and `snapshot.growthMoves` was never surfaced outside the report. New order is **one action → one human message → one thing to improve → trend → history**: a hero for the single assignment to open next (soonest deadline, then work already underway; eyebrow states *why* it's shown, and the coaching level is spelled out in behavior rather than named), a full-width teacher-note panel, a last-draft panel with score over 20 + SAMR + a plain-language read + four named dimension bars + the growth move, then compact rows for other work, the existing sparkline, and compact completed cards. Server: `/api/student/home` now returns `growthMove`, `teacherNote` text, `assignmentTitle` per draft and `nextCoachNote` per assignment (no new disclosure — flags stay unselected, note text already served by the report route). Verified headless against all five demo students; two bugs caught only by running against real seed data — the hero tie-break pointed a mid-draft student at an untouched assignment, and the eyebrow read "No due date" (the seed sets none). **Then widened to two columns** on the objection that a narrow single column reads as a feed. The substantive problem behind that: vertical rank was the only encoding, so ranks 4–6 sat below the fold on a Chromebook — a hierarchy half of which is invisible. Fixed with an asymmetric grid (main `minmax(0,1fr)` capped at 680px for reading measure, since the note and growth-move blocks are prose and break past ~70ch; 320px rail for glanceable status: other work, growth, completed). Rail cards drop their shadow so they read as context, not rival actions. DOM order is rank order, so the ≤960px collapse needs no reordering — it caps the grid (not just the main column) at 680 and centers, and restores row layouts where the width returns. `.no-rail` collapses the gutter when a student has no history. Priya's entire page now fits above the fold at 1440×900.
 - **2026-07-19 (build session 7b)** — Student home restructured again, to the three-chunk model: **permanent left rail (identity + progress) as the dashboard's fixed ground; current assignments as the main content, all of them, ordered by due date; past assignments as a review-only archive.** This retired the "hero" from 7a — singling out one assignment was the wrong call once every open assignment gets a card with its own internal hierarchy: due/status eyebrow → title → state (draft N of M as pips, open conversations + last worked) → what the coaching level actually does → that assignment's own last growth move → teacher note if any → action + submitted-draft chips → prompt. The per-assignment framing also fixed a scoping bug in 7a, where the growth move shown was the globally-most-recent one rather than the one belonging to the assignment being opened. Server adds `conversationCount` / `lastActiveAt` per current assignment. **Progress viz reworked** per the dataviz skill: one hero figure (the total, ≥48px, exactly one per view), meters whose unfilled track is a lighter step of the same ramp, and per-dimension deltas. Two honesty fixes — the trend is drawn as **one polyline per assignment with a dashed split rule** rather than one continuous line (the scores are not a single trajectory; a connected line asserts that opening a new essay at 12 after finishing one at 20 is a regression), and the headline delta is **withheld across assignments**, shown only against a previous draft of the same one. Also corrected the SAMR ramp from a four-hue rainbow (slate/blue/green/purple) to one blue hue light→dark, since SAMR is an ordered scale — hue rides a border rule, the label stays ink so it never fails contrast. Verified headless at 1440 and 900 (rail collapses to a three-block horizontal stat band) across maya/devon/priya/sam.

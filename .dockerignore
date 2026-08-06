@@ -1,0 +1,20 @@
+# Secrets and local state must never enter the image.
+config.json
+app/data/
+.env
+.env.*
+
+node_modules/
+.git/
+.gitignore
+
+# The single-file CTA and all planning docs — not part of the service.
+index.html
+teacher-dashboard.html
+*.md
+old/
+.claude/
+.vscode/
+.idea/
+.DS_Store
+*.log

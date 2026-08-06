@@ -1,15 +1,17 @@
-// Path B dev server. Zero dependencies — node:http, SSE for streaming.
-// Prod shape: this becomes the Cloud Run proxy; auth/llm/store seams swap to
-// Firebase Auth / Vertex / Firestore without touching route logic.
+// Path B dev server. node:http, SSE for streaming; one dependency
+// (firebase-admin, via store.js).
+// Prod shape: this becomes the Cloud Run proxy. The llm and store seams are
+// already on Vertex and Firestore; auth is the last one still a dev stand-in.
 
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { col } = require('./store');
-const { authenticate, login, logout, sessionCookie, clearedCookie, tokenFrom, setPassword } = require('./auth');
+const { authenticate, login, logout, sessionCookie, clearedCookie, tokenFrom, setPassword, newTempPassword } = require('./auth');
 const { streamChat, MAX_EVAL_TOKENS } = require('./llm');
 const { LEVELS, coachMessages, auditorMessages } = require('./coach');
 const { runAnalysis } = require('./analysis');
+const { checkChatBudget, grantExtraReplies, usageToday, grantedToday, SOFT_REPLIES_PER_DAY } = require('./budget');
 const { seed } = require('./seed');
 const { DEV_PASSWORD } = require('./seed-data');
 
@@ -38,6 +40,15 @@ function now() {
   return new Date().toISOString();
 }
 
+// Behind Cloud Run the socket address is the load balancer, so the client is
+// the first hop in X-Forwarded-For. Only ever used to throttle failed logins —
+// a spoofed value costs the spoofer their own throttle bucket, nothing more.
+function clientIp(req) {
+  const fwd = req.headers['x-forwarded-for'];
+  if (fwd) return String(fwd).split(',')[0].trim();
+  return req.socket?.remoteAddress || null;
+}
+
 // Turns are append-only: an edit or regeneration appends a new turn whose
 // meta.supersedes lists the turn ids it replaces. "Live" = not superseded.
 function liveTurns(turns) {
@@ -45,14 +56,14 @@ function liveTurns(turns) {
   return turns.filter((t) => !dead.has(t.id));
 }
 
-function conversationTurns(conversationId) {
-  return col('turns')
-    .list((t) => t.conversationId === conversationId)
+async function conversationTurns(conversationId) {
+  return (await col('turns')
+    .list((t) => t.conversationId === conversationId))
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
-function logEvent(user, { type, sessionId, conversationId, meta }) {
-  col('events').add({
+async function logEvent(user, { type, sessionId, conversationId, meta }) {
+  await col('events').add({
     studentId: user.id,
     sessionId: sessionId || null,
     conversationId: conversationId || null,
@@ -62,12 +73,225 @@ function logEvent(user, { type, sessionId, conversationId, meta }) {
   });
 }
 
-function sessionFor(conversation) {
-  return col('sessions').get(conversation.sessionId);
+// What one teacher is allowed to see: their own classes, the students enrolled
+// in them, and their own assignments — nothing else.
+//
+// Both teacher read routes used to skip this entirely (`col('users').list(u =>
+// u.role === 'student')`, `col('classes').list()`), which was invisible while
+// the seed created exactly one teacher. It stops being invisible the moment an
+// admin can create a second one: teacher B would have read teacher A's whole
+// roster, including per-student integrity flags that the design guarantees are
+// scoped to the student's own teacher.
+async function teacherScope(user) {
+  const classes = await col('classes').list((c) => c.teacherId === user.id);
+  const classIds = classes.map((c) => c.id);
+  const enrolled = new Set(classes.flatMap((c) => c.studentIds || []));
+  const students = await col('users').list((u) => u.role === 'student' && enrolled.has(u.id));
+  const assignments = await col('assignments').list((a) => a.teacherId === user.id);
+  return { classes, classIds, students, assignments };
 }
 
-function assignmentFor(session) {
-  return col('assignments').get(session.assignmentId);
+// Being a teacher is not a key to every student — only to your own.
+//
+// The roster routes have always gone through teacherScope(). The three
+// /api/submissions/:id/* routes read the same student data by a different
+// door and checked only `role === 'teacher'`, so any teacher account could
+// read any student's essay, transcript and integrity flags given an id.
+// Invisible while the seed made exactly one teacher; reachable from the day
+// an admin could create a second one (2026-08-04). Found by testing it
+// 2026-08-05, not by reading the code.
+async function canReadSubmission(user, submission) {
+  if (submission.studentId === user.id) return true;
+  if (user.role !== 'teacher') return false;
+  return (await teacherScope(user)).students.some((s) => s.id === submission.studentId);
+}
+
+// ---------- product telemetry ----------
+
+// The allowlist for POST /api/usage, and the label map the admin surface
+// renders — kept together so a new content area is named once, on the server,
+// rather than in an allowlist here and a label table in admin.html that drift.
+//
+// An "area" is a chunk of content a person deliberately opens, not a page:
+// what this data has to answer is "which parts of the tool earn attention and
+// which are ignored", which is a question about content, not about traffic.
+const USAGE_SURFACES = {
+  dashboard: {
+    label: 'Teacher dashboard',
+    audience: 'teacher',
+    areas: {
+      home: 'Home',
+      'class-tab': 'Class view',
+      'assignment-tab': 'Assignment view',
+      'student-tab': 'Student view',
+      'browse-assignments': 'Browse assignments',
+      'browse-students': 'Browse students',
+      'drill-panel': 'Drill-down panel',
+      'flag-modal': 'Flag explainer',
+      'patterns-worth-noticing': 'Patterns worth noticing',
+      'teaching-landing': 'How your teaching is landing',
+      'add-class': 'New class',
+      'add-students': 'Add students',
+      'add-assignment': 'New assignment',
+    },
+  },
+  'teacher-detail': {
+    label: 'Student detail',
+    audience: 'teacher',
+    areas: {
+      'student-detail': 'Student overview',
+      transcript: 'Full transcript',
+      'full-report': 'Full report',
+    },
+  },
+  // Named for the five jump-nav buttons a reader actually clicks, using their
+  // on-screen labels verbatim. The trajectory strip, ready moments, snapshots
+  // and integrity-signals blocks are deliberately absent: they render inline
+  // with no open of their own, so any count attached to them would be a count
+  // of page loads wearing a section's name.
+  report: {
+    label: 'Draft report',
+    audience: 'both',
+    areas: {
+      overview: 'Overview',
+      'my-session': 'My Session',
+      'agency-chart': 'Agency Chart',
+      'whos-driving': "Who's Driving",
+      'next-time': 'Next Time',
+    },
+  },
+  'student-home': {
+    label: 'Student home',
+    audience: 'student',
+    areas: {
+      'open-assignment': 'Open an assignment',
+      'past-report': 'Past draft report',
+    },
+  },
+  workspace: {
+    label: 'Coach workspace',
+    audience: 'student',
+    areas: {
+      'new-conversation': 'New conversation',
+      evaluate: 'Evaluate',
+      submit: 'Submit draft',
+    },
+  },
+};
+
+// Ranked by distinct people first, opens second. For a "what should we build
+// next" decision, reach beats volume: one teacher opening a tab forty times
+// should not outrank a panel eleven people each opened once.
+//
+// Every allowlisted area is emitted, including the ones with zero opens — an
+// area nobody has ever opened is the most actionable row on the page, and
+// dropping empty rows would hide exactly that finding.
+function rankContentAreas(usage) {
+  const seen = {};
+  for (const u of usage) {
+    if (!USAGE_SURFACES[u.surface]?.areas[u.area]) continue; // allowlist changed since the row was written
+    const key = `${u.surface}/${u.area}`;
+    (seen[key] = seen[key] || { people: new Set(), opens: 0 }).people.add(u.userId);
+    seen[key].opens++;
+  }
+
+  const out = { teacher: [], student: [] };
+  for (const [surface, spec] of Object.entries(USAGE_SURFACES)) {
+    for (const [area, areaLabel] of Object.entries(spec.areas)) {
+      const hit = seen[`${surface}/${area}`];
+      const row = {
+        surface,
+        surfaceLabel: spec.label,
+        area,
+        areaLabel,
+        people: hit ? hit.people.size : 0,
+        opens: hit ? hit.opens : 0,
+      };
+      if (spec.audience !== 'student') out.teacher.push({ ...row });
+      if (spec.audience !== 'teacher') out.student.push({ ...row });
+    }
+  }
+  const rank = (a, b) => b.people - a.people || b.opens - a.opens || a.areaLabel.localeCompare(b.areaLabel);
+  out.teacher.sort(rank);
+  out.student.sort(rank);
+  return out;
+}
+
+function median(nums) {
+  if (!nums.length) return null;
+  const s = [...nums].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : Math.round(((s[mid - 1] + s[mid]) / 2) * 10) / 10;
+}
+
+// How students actually work the tool. Every figure here comes from records
+// the pipeline already persists — no instrumentation needed and none used, so
+// this block is fully populated from day one while the ranking above is still
+// filling up.
+async function studentPatterns() {
+  const sessions = await col('sessions').list();
+  const events = await col('events').list();
+  const submissions = await col('submissions').list();
+
+  const convsPerSession = [];
+  const turnsPerConv = [];
+  let sessionsWithEvaluate = 0;
+  const evaluateSessions = new Set(events.filter((e) => e.type === 'evaluate').map((e) => e.sessionId));
+  const episodesPerSession = [];
+
+  for (const s of sessions) {
+    const convs = await col('conversations').list((c) => c.sessionId === s.id);
+    convsPerSession.push(convs.length);
+    for (const c of convs) {
+      turnsPerConv.push(liveTurns(await conversationTurns(c.id)).filter((t) => t.role === 'student').length);
+    }
+    if (evaluateSessions.has(s.id)) sessionsWithEvaluate++;
+    episodesPerSession.push(events.filter((e) => e.sessionId === s.id && e.type === 'episode-resume').length);
+  }
+
+  // Expected drafts = every enrolled student × their assignment's draft budget.
+  // A student in two classes that both got the same assignment is counted once
+  // for it, which is why this walks a Set of ids rather than summing sizes.
+  let expectedDrafts = 0;
+  for (const a of await col('assignments').list()) {
+    const enrolled = new Set(
+      (await col('classes')
+        .list((c) => (a.classIds || []).includes(c.id)))
+        .flatMap((c) => c.studentIds || [])
+    );
+    expectedDrafts += enrolled.size * (a.draftBudget || 1);
+  }
+
+  const eventCounts = {};
+  for (const e of events) eventCounts[e.type] = (eventCounts[e.type] || 0) + 1;
+
+  const analysisCounts = { complete: 0, error: 0, pending: 0 };
+  for (const sub of submissions) {
+    const status = sub.analysisId ? await col('analyses').get(sub.analysisId)?.status : null;
+    if (status === 'complete') analysisCounts.complete++;
+    else if (status === 'error') analysisCounts.error++;
+    else analysisCounts.pending++;
+  }
+
+  return {
+    sessions: sessions.length,
+    conversationsPerDraft: median(convsPerSession),
+    studentTurnsPerConversation: median(turnsPerConv),
+    evaluateShare: sessions.length ? Math.round((sessionsWithEvaluate / sessions.length) * 100) : null,
+    resumesPerDraft: median(episodesPerSession),
+    draftsSubmitted: submissions.length,
+    draftsExpected: expectedDrafts,
+    eventCounts,
+    analysisCounts,
+  };
+}
+
+async function sessionFor(conversation) {
+  return await col('sessions').get(conversation.sessionId);
+}
+
+async function assignmentFor(session) {
+  return await col('assignments').get(session.assignmentId);
 }
 
 // Composes the three teacher-authored fields into the one string the
@@ -95,8 +319,10 @@ function sseSend(res, event, data) {
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
-async function streamReply({ res, user, conversation, messages, role, maxTokens, replyMeta }) {
+async function streamReply({ res, user, conversation, assignment, messages, role, maxTokens, replyMeta, budget }) {
   sseHead(res);
+  // Rule 2: warn before the wall, on the reply that crosses 80%.
+  if (budget?.warning) sseSend(res, 'notice', budget.warning);
   const controller = new AbortController();
   let finished = false;
   res.on('close', () => { if (!finished) controller.abort(); });
@@ -109,6 +335,14 @@ async function streamReply({ res, user, conversation, messages, role, maxTokens,
       maxTokens,
       signal: controller.signal,
       onToken: (token) => sseSend(res, 'token', token),
+      // 'coach' and 'auditor' are separate purposes in llmCalls: they are
+      // different products with different cost shapes, and folding them
+      // together would hide which one drives spend.
+      meta: {
+        studentId: user.id,
+        assignmentId: assignment?.id || null,
+        purpose: role === 'auditor' ? 'auditor' : 'chat',
+      },
     });
   } catch (err) {
     errored = true;
@@ -120,17 +354,17 @@ async function streamReply({ res, user, conversation, messages, role, maxTokens,
   // Persist whatever the student actually saw — including partial text from a
   // stopped generation. Nothing persisted on hard error with no output.
   if (!errored && (text || !stopped)) {
-    turn = col('turns').add({
+    turn = await col('turns').add({
       conversationId: conversation.id,
       role,
       text,
       createdAt: now(),
       meta: { ...replyMeta, ...(stopped ? { stopped: true } : {}) },
     });
-    col('conversations').update(conversation.id, { lastActiveAt: now() });
+    await col('conversations').update(conversation.id, { lastActiveAt: now() });
   }
   if (stopped) {
-    logEvent(user, { type: 'stop', sessionId: conversation.sessionId, conversationId: conversation.id, meta: { turnId: turn?.id } });
+    await logEvent(user, { type: 'stop', sessionId: conversation.sessionId, conversationId: conversation.id, meta: { turnId: turn?.id } });
   }
 
   finished = true;
@@ -146,7 +380,14 @@ async function streamReply({ res, user, conversation, messages, role, maxTokens,
 async function handleAuth(req, res, route) {
   if (req.method === 'POST' && route === '/api/auth/login') {
     const body = await readBody(req);
-    const result = login(body.email, body.password);
+    const result = await login(body.email, body.password, clientIp(req));
+    // Lockout is told plainly — hiding it just makes a locked-out student
+    // retry faster and blame themselves. It leaks nothing: reaching it
+    // already required ten failures.
+    if (result?.lockedOut) {
+      json(res, 429, { error: 'Too many sign-in attempts. Wait 15 minutes and try again.' });
+      return true;
+    }
     // One generic message for both unknown-email and wrong-password: don't
     // let the login form enumerate who has an account.
     if (!result) {
@@ -163,7 +404,7 @@ async function handleAuth(req, res, route) {
 
   if (req.method === 'POST' && route === '/api/auth/logout') {
     const token = tokenFrom(req);
-    if (token) logout(token);
+    if (token) await logout(token);
     res.writeHead(200, { 'Content-Type': 'application/json', 'Set-Cookie': clearedCookie() });
     res.end(JSON.stringify({ ok: true }));
     return true;
@@ -175,7 +416,7 @@ async function handleAuth(req, res, route) {
 // ---------- routes ----------
 
 async function handleApi(req, res, user, route) {
-  const [, , seg1, seg2, seg3] = route.split('/'); // /api/<seg1>/<seg2>/<seg3>
+  const [, , seg1, seg2, seg3, seg4] = route.split('/'); // /api/<seg1>/<seg2>/<seg3>/<seg4>
 
   // GET /api/me — never spread the raw user doc; it carries the password hash
   if (req.method === 'GET' && seg1 === 'me' && !seg2) {
@@ -193,16 +434,30 @@ async function handleApi(req, res, user, route) {
     const past = [];
     const trend = [];
 
-    for (const a of col('assignments').list()) {
-      const submissions = col('submissions')
-        .list((s) => s.assignmentId === a.id && s.studentId === user.id)
+    // Same rule as /api/assignments: an assignment with no classIds (seeded/
+    // created before classes existed) is visible to everyone; otherwise the
+    // student must be in one of its classes. This endpoint had drifted from
+    // that rule — it listed every assignment unfiltered — so a student in one
+    // class could see and even open another class's assignments.
+    const myClasses = await col('classes').list((c) => c.studentIds.includes(user.id));
+    const myClassIds = new Set(myClasses.map((c) => c.id));
+    const classNameById = new Map(myClasses.map((c) => [c.id, c.name]));
+    const classNameFor = (a) => {
+      if (!a.classIds || !a.classIds.length) return null;
+      return classNameById.get(a.classIds[0]) || null;
+    };
+
+    for (const a of await col('assignments')
+      .list((a) => !a.classIds || !a.classIds.length || a.classIds.some((id) => myClassIds.has(id)))) {
+      const submissions = (await col('submissions').list({ assignmentId: a.id, studentId: user.id }))
         .sort((x, y) => x.cycleIndex - y.cycleIndex);
 
-      const drafts = submissions.map((sub) => {
-        const analysis = sub.analysisId ? col('analyses').get(sub.analysisId) : null;
+      const drafts = [];
+      for (const sub of submissions) {
+        const analysis = sub.analysisId ? await col('analyses').get(sub.analysisId) : null;
         const complete = analysis?.status === 'complete';
         if (complete) trend.push({ submittedAt: sub.submittedAt, totalScore: analysis.tau.totalScore });
-        return {
+        drafts.push({
           submissionId: sub.id,
           cycleIndex: sub.cycleIndex,
           submittedAt: sub.submittedAt,
@@ -222,24 +477,23 @@ async function handleApi(req, res, user, route) {
           teacherNote: sub.teacherNote || null,
           teacherNoteAt: sub.teacherNoteAt || null,
           assignmentTitle: a.title,
-        };
-      });
+        });
+      }
 
       const done = submissions.length >= a.draftBudget;
-      const active = col('sessions').list(
-        (s) => s.assignmentId === a.id && s.studentId === user.id && s.status === 'active'
-      )[0];
+      const active = (await col('sessions')
+        .list({ assignmentId: a.id, studentId: user.id, status: 'active' }))[0];
 
       if (done) {
         past.push({
-          id: a.id, title: a.title, dueDate: a.dueDate, draftDueDates: a.draftDueDates,
-          draftBudget: a.draftBudget, drafts,
+          id: a.id, title: a.title, className: classNameFor(a), dueDate: a.dueDate,
+          draftDueDates: a.draftDueDates, draftBudget: a.draftBudget, drafts,
         });
       } else {
         // Live conversations in the open session — "where you left off" is part
         // of the card's hierarchy, not something to rediscover by opening it.
         const openConvs = active
-          ? col('conversations').list((c) => c.sessionId === active.id)
+          ? await col('conversations').list({ sessionId: active.id })
           : [];
         const lastActiveAt = openConvs.length
           ? openConvs.map((c) => c.lastActiveAt || c.createdAt).sort().pop()
@@ -247,12 +501,19 @@ async function handleApi(req, res, user, route) {
         // The current draft's own state — distinct from the assignment's overall
         // state. A submission on draft 1 does not make draft 2 "in progress": it
         // is only in progress once the student has actually sent a message.
-        const hasActivity = openConvs.some(
-          (c) => col('turns').list((t) => t.conversationId === c.id).length > 0
-        );
+        // Was openConvs.some(...) — a predicate cannot await. Short-circuits on
+        // the first hit exactly as .some() did, so the read count is unchanged.
+        let hasActivity = false;
+        for (const c of openConvs) {
+          if ((await col('turns').list({ conversationId: c.id })).length > 0) {
+            hasActivity = true;
+            break;
+          }
+        }
         current.push({
           id: a.id,
           title: a.title,
+          className: classNameFor(a),
           description: a.description,
           purpose: a.purpose,
           requirements: a.requirements,
@@ -272,11 +533,15 @@ async function handleApi(req, res, user, route) {
     }
 
     trend.sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
+    // The soft cap is student-visible by design — a limit nobody can see is a
+    // limit that arrives as a failure. The hard tier is deliberately absent.
+    const budget = await checkChatBudget(user.id);
     return json(res, 200, {
       student: { displayName: user.displayName, email: user.email },
       current,
       past,
       trend,
+      budget: { used: budget.used ?? budget.limit, limit: budget.limit, remaining: budget.remaining },
     });
   }
 
@@ -286,39 +551,49 @@ async function handleApi(req, res, user, route) {
     // is visible to everyone; otherwise the student must be in one of the
     // assignment's classes — without this, every student saw every class's
     // assignments once a second/third class existed.
-    const myClassIds = new Set(col('classes').list((c) => c.studentIds.includes(user.id)).map((c) => c.id));
-    const assignments = col('assignments')
-      .list((a) => !a.classIds || !a.classIds.length || a.classIds.some((id) => myClassIds.has(id)))
-      .map((a) => {
-        const submissions = col('submissions').list((s) => s.assignmentId === a.id && s.studentId === user.id);
-        const active = col('sessions').list((s) => s.assignmentId === a.id && s.studentId === user.id && s.status === 'active')[0];
-        return {
-          id: a.id,
-          title: a.title,
-          description: a.description,
-          purpose: a.purpose,
-          requirements: a.requirements,
-          dueDate: a.dueDate,
-          draftBudget: a.draftBudget,
-          draftsUsed: submissions.length,
-          status: submissions.length >= a.draftBudget ? 'complete' : active ? 'in-progress' : 'not-started',
-        };
+    const myClassIds = new Set((await col('classes').list((c) => c.studentIds.includes(user.id))).map((c) => c.id));
+    const visible = await col('assignments')
+      .list((a) => !a.classIds || !a.classIds.length || a.classIds.some((id) => myClassIds.has(id)));
+    const assignments = [];
+    for (const a of visible) {
+      const submissions = await col('submissions').list({ assignmentId: a.id, studentId: user.id });
+      const active = (await col('sessions')
+        .list({ assignmentId: a.id, studentId: user.id, status: 'active' }))[0];
+      assignments.push({
+        id: a.id,
+        title: a.title,
+        description: a.description,
+        purpose: a.purpose,
+        requirements: a.requirements,
+        dueDate: a.dueDate,
+        draftBudget: a.draftBudget,
+        draftsUsed: submissions.length,
+        status: submissions.length >= a.draftBudget ? 'complete' : active ? 'in-progress' : 'not-started',
       });
+    }
     return json(res, 200, assignments);
   }
 
   // POST /api/assignments/:id/open — get-or-create the active session (cycle)
   if (req.method === 'POST' && seg1 === 'assignments' && seg3 === 'open') {
-    const assignment = col('assignments').get(seg2);
+    const assignment = await col('assignments').get(seg2);
     if (!assignment) return json(res, 404, { error: 'assignment not found' });
 
-    const submissions = col('submissions').list((s) => s.assignmentId === assignment.id && s.studentId === user.id);
-    let session = col('sessions').list((s) => s.assignmentId === assignment.id && s.studentId === user.id && s.status === 'active')[0];
+    // Same class-membership rule as /api/student/home — without it a student
+    // could open (and chat on) an assignment from a class they aren't in.
+    if (assignment.classIds && assignment.classIds.length) {
+      const inClass = (await col('classes').list((c) => c.studentIds.includes(user.id)))
+        .some((c) => assignment.classIds.includes(c.id));
+      if (!inClass) return json(res, 403, { error: 'not your class' });
+    }
+
+    const submissions = await col('submissions').list((s) => s.assignmentId === assignment.id && s.studentId === user.id);
+    let session = (await col('sessions').list((s) => s.assignmentId === assignment.id && s.studentId === user.id && s.status === 'active'))[0];
 
     if (!session && submissions.length < assignment.draftBudget) {
       const cycleIndex = submissions.length;
       const levels = assignment.coachingLevels;
-      session = col('sessions').add({
+      session = await col('sessions').add({
         assignmentId: assignment.id,
         studentId: user.id,
         cycleIndex,
@@ -331,24 +606,29 @@ async function handleApi(req, res, user, route) {
 
     // Submitted conversations stay readable (input-locked), so send every
     // cycle's conversations, newest session first.
-    const sessions = col('sessions')
-      .list((s) => s.assignmentId === assignment.id && s.studentId === user.id)
+    const sessions = (await col('sessions')
+      .list({ assignmentId: assignment.id, studentId: user.id }))
       .sort((a, b) => b.cycleIndex - a.cycleIndex);
-    const conversations = sessions.flatMap((s) =>
-      col('conversations')
-        .list((c) => c.sessionId === s.id)
+    const conversations = [];
+    for (const s of sessions) {
+      const convs = (await col('conversations').list({ sessionId: s.id }))
         .sort((a, b) => b.lastActiveAt.localeCompare(a.lastActiveAt))
-        .map((c) => ({ ...c, cycleIndex: s.cycleIndex }))
-    );
+        .map((c) => ({ ...c, cycleIndex: s.cycleIndex }));
+      conversations.push(...convs);
+    }
 
     // Same "has the student actually done anything on this draft yet" signal
     // as the home view — a session existing (or an empty first conversation)
     // isn't activity; a sent message is.
-    const hasActivity = session
-      ? conversations
-          .filter((c) => c.cycleIndex === session.cycleIndex)
-          .some((c) => col('turns').list((t) => t.conversationId === c.id).length > 0)
-      : false;
+    let hasActivity = false;
+    if (session) {
+      for (const c of conversations.filter((c) => c.cycleIndex === session.cycleIndex)) {
+        if ((await col('turns').list({ conversationId: c.id })).length > 0) {
+          hasActivity = true;
+          break;
+        }
+      }
+    }
 
     return json(res, 200, {
       assignment,
@@ -365,10 +645,10 @@ async function handleApi(req, res, user, route) {
   // POST /api/conversations { sessionId, title? }
   if (req.method === 'POST' && seg1 === 'conversations' && !seg2) {
     const body = await readBody(req);
-    const session = col('sessions').get(body.sessionId);
+    const session = await col('sessions').get(body.sessionId);
     if (!session || session.studentId !== user.id) return json(res, 404, { error: 'session not found' });
     if (session.status !== 'active') return json(res, 409, { error: 'session is submitted' });
-    const conversation = col('conversations').add({
+    const conversation = await col('conversations').add({
       sessionId: session.id,
       title: body.title || 'New conversation',
       createdAt: now(),
@@ -379,17 +659,17 @@ async function handleApi(req, res, user, route) {
   }
 
   if (seg1 === 'conversations' && seg2) {
-    const conversation = col('conversations').get(seg2);
+    const conversation = await col('conversations').get(seg2);
     if (!conversation) return json(res, 404, { error: 'conversation not found' });
-    const session = sessionFor(conversation);
+    const session = await sessionFor(conversation);
     if (session.studentId !== user.id) return json(res, 403, { error: 'forbidden' });
-    const assignment = assignmentFor(session);
+    const assignment = await assignmentFor(session);
 
     // GET /api/conversations/:id
     if (req.method === 'GET' && !seg3) {
       return json(res, 200, {
         conversation,
-        turns: liveTurns(conversationTurns(conversation.id)),
+        turns: liveTurns(await conversationTurns(conversation.id)),
         coachingLevel: session.coachingLevel,
         locked: conversation.locked,
       });
@@ -398,7 +678,7 @@ async function handleApi(req, res, user, route) {
     // POST /api/conversations/:id/rename — rename ok, delete deliberately absent
     if (req.method === 'POST' && seg3 === 'rename') {
       const body = await readBody(req);
-      col('conversations').update(conversation.id, { title: String(body.title || '').slice(0, 80) || conversation.title });
+      await col('conversations').update(conversation.id, { title: String(body.title || '').slice(0, 80) || conversation.title });
       return json(res, 200, { ok: true });
     }
 
@@ -410,7 +690,13 @@ async function handleApi(req, res, user, route) {
       const text = String(body.text || '').trim();
       if (!text) return json(res, 400, { error: 'empty message' });
 
-      const prior = liveTurns(conversationTurns(conversation.id));
+      // Rule 1: refuse to *start* a reply without budget for a whole one.
+      // Checked before the student's turn is persisted, so a refused message
+      // does not leave a question sitting in the transcript with no answer.
+      const budget = await checkChatBudget(user.id);
+      if (!budget.allowed) return json(res, 429, { error: budget.message, budget: { remaining: 0, limit: budget.limit } });
+
+      const prior = liveTurns(await conversationTurns(conversation.id));
       const supersedes = [];
       if (body.editOfTurnId) {
         // Editing replaces the old student turn AND the coach reply that
@@ -418,10 +704,10 @@ async function handleApi(req, res, user, route) {
         const idx = prior.findIndex((t) => t.id === body.editOfTurnId);
         if (idx === -1 || prior[idx].role !== 'student') return json(res, 400, { error: 'bad editOfTurnId' });
         supersedes.push(...prior.slice(idx).map((t) => t.id));
-        logEvent(user, { type: 'edit', sessionId: session.id, conversationId: conversation.id, meta: { editOf: body.editOfTurnId } });
+        await logEvent(user, { type: 'edit', sessionId: session.id, conversationId: conversation.id, meta: { editOf: body.editOfTurnId } });
       }
 
-      const studentTurn = col('turns').add({
+      const studentTurn = await col('turns').add({
         conversationId: conversation.id,
         role: 'student',
         text,
@@ -429,12 +715,13 @@ async function handleApi(req, res, user, route) {
         meta: supersedes.length ? { supersedes, editOf: body.editOfTurnId } : {},
       });
 
-      const turns = liveTurns(conversationTurns(conversation.id));
+      const turns = liveTurns(await conversationTurns(conversation.id));
       const messages = coachMessages({ level: session.coachingLevel, assignmentPrompt: assignmentBrief(assignment), turns });
       return streamReply({
-        res, user, conversation, messages,
+        res, user, conversation, assignment, messages,
         role: 'coach',
         replyMeta: { inReplyTo: studentTurn.id },
+        budget,
       });
     }
 
@@ -442,17 +729,21 @@ async function handleApi(req, res, user, route) {
     if (req.method === 'POST' && seg3 === 'regenerate') {
       // Auditor meta-turns don't block regeneration — the target is the last
       // coach turn in the real conversation.
-      const turns = liveTurns(conversationTurns(conversation.id)).filter((t) => !t.meta?.metaTurn);
+      const turns = liveTurns(await conversationTurns(conversation.id)).filter((t) => !t.meta?.metaTurn);
       const last = turns[turns.length - 1];
       if (!last || last.role !== 'coach') return json(res, 400, { error: 'nothing to regenerate' });
-      logEvent(user, { type: 'regenerate', sessionId: session.id, conversationId: conversation.id, meta: { turnId: last.id } });
+      // A regeneration is a coach reply and costs the same as one.
+      const budget = await checkChatBudget(user.id);
+      if (!budget.allowed) return json(res, 429, { error: budget.message, budget: { remaining: 0, limit: budget.limit } });
+      await logEvent(user, { type: 'regenerate', sessionId: session.id, conversationId: conversation.id, meta: { turnId: last.id } });
 
       const context = turns.slice(0, -1);
       const messages = coachMessages({ level: session.coachingLevel, assignmentPrompt: assignmentBrief(assignment), turns: context });
       return streamReply({
-        res, user, conversation, messages,
+        res, user, conversation, assignment, messages,
         role: 'coach',
         replyMeta: { supersedes: [last.id], regenerated: true },
+        budget,
       });
     }
 
@@ -460,14 +751,20 @@ async function handleApi(req, res, user, route) {
     // Exchange is a meta-turn (excluded from TAU); the invocation itself is
     // the metacognitive signal.
     if (req.method === 'POST' && seg3 === 'evaluate') {
-      logEvent(user, { type: 'evaluate', sessionId: session.id, conversationId: conversation.id });
-      const turns = liveTurns(conversationTurns(conversation.id));
+      // The auditor is a Vertex call like any other, so it draws on the same
+      // daily budget — Evaluate is available at every coaching level, which
+      // makes it an easy loop to spin if it were free.
+      const budget = await checkChatBudget(user.id);
+      if (!budget.allowed) return json(res, 429, { error: budget.message, budget: { remaining: 0, limit: budget.limit } });
+      await logEvent(user, { type: 'evaluate', sessionId: session.id, conversationId: conversation.id });
+      const turns = liveTurns(await conversationTurns(conversation.id));
       const messages = auditorMessages({ assignmentPrompt: assignmentBrief(assignment), turns });
       return streamReply({
-        res, user, conversation, messages,
+        res, user, conversation, assignment, messages,
         role: 'auditor',
         maxTokens: MAX_EVAL_TOKENS,
         replyMeta: { metaTurn: true },
+        budget,
       });
     }
   }
@@ -475,18 +772,18 @@ async function handleApi(req, res, user, route) {
   // POST /api/sessions/:id/submit { essayText } — the hard marker: locks every
   // conversation in the cycle and bundles ALL of them (no selective evidence).
   if (req.method === 'POST' && seg1 === 'sessions' && seg3 === 'submit') {
-    const session = col('sessions').get(seg2);
+    const session = await col('sessions').get(seg2);
     if (!session || session.studentId !== user.id) return json(res, 404, { error: 'session not found' });
     if (session.status !== 'active') return json(res, 409, { error: 'already submitted' });
     const body = await readBody(req);
     const essayText = String(body.essayText || '').trim();
     if (!essayText) return json(res, 400, { error: 'essay draft required' });
 
-    for (const c of col('conversations').list((c) => c.sessionId === session.id)) {
-      col('conversations').update(c.id, { locked: true });
+    for (const c of await col('conversations').list((c) => c.sessionId === session.id)) {
+      await col('conversations').update(c.id, { locked: true });
     }
-    col('sessions').update(session.id, { status: 'submitted', submittedAt: now() });
-    const submission = col('submissions').add({
+    await col('sessions').update(session.id, { status: 'submitted', submittedAt: now() });
+    const submission = await col('submissions').add({
       sessionId: session.id,
       assignmentId: session.assignmentId,
       studentId: user.id,
@@ -498,15 +795,15 @@ async function handleApi(req, res, user, route) {
     // Analysis runs async — the submit response returns immediately and the
     // report page polls until the analysis completes.
     runAnalysis(submission.id).catch((err) => console.error(err));
-    return json(res, 200, { submission: col('submissions').get(submission.id) });
+    return json(res, 200, { submission: await col('submissions').get(submission.id) });
   }
 
   // POST /api/submissions/:id/reanalyze — retry path for failed analyses
   if (req.method === 'POST' && seg1 === 'submissions' && seg3 === 'reanalyze') {
-    const submission = col('submissions').get(seg2);
+    const submission = await col('submissions').get(seg2);
     if (!submission) return json(res, 404, { error: 'submission not found' });
-    if (submission.studentId !== user.id && user.role !== 'teacher') return json(res, 403, { error: 'forbidden' });
-    const existing = submission.analysisId && col('analyses').get(submission.analysisId);
+    if (!await canReadSubmission(user, submission)) return json(res, 403, { error: 'forbidden' });
+    const existing = submission.analysisId && await col('analyses').get(submission.analysisId);
     if (existing && existing.status === 'pending') return json(res, 409, { error: 'analysis already running' });
     runAnalysis(submission.id).catch((err) => console.error(err));
     return json(res, 200, { ok: true });
@@ -515,33 +812,37 @@ async function handleApi(req, res, user, route) {
   // GET /api/submissions?assignmentId=…
   if (req.method === 'GET' && seg1 === 'submissions' && !seg2) {
     const assignmentId = new URL(req.url, 'http://x').searchParams.get('assignmentId');
-    const submissions = col('submissions')
-      .list((s) => s.studentId === user.id && (!assignmentId || s.assignmentId === assignmentId))
-      .sort((a, b) => a.cycleIndex - b.cycleIndex)
-      .map((s) => {
-        const analysis = s.analysisId ? col('analyses').get(s.analysisId) : null;
-        const complete = analysis?.status === 'complete';
-        return {
-          id: s.id,
-          cycleIndex: s.cycleIndex,
-          submittedAt: s.submittedAt,
-          analysisStatus: analysis?.status || null,
-          // Score summary only — flags stay teacher-only, enforced by never selecting them.
-          tau: complete ? { totalScore: analysis.tau.totalScore, SAMR: analysis.tau.SAMR } : null,
-        };
+    const rows = (await col('submissions')
+      .list(assignmentId ? { studentId: user.id, assignmentId } : { studentId: user.id }))
+      .sort((a, b) => a.cycleIndex - b.cycleIndex);
+    const submissions = [];
+    for (const s of rows) {
+      const analysis = s.analysisId ? await col('analyses').get(s.analysisId) : null;
+      const complete = analysis?.status === 'complete';
+      submissions.push({
+        id: s.id,
+        cycleIndex: s.cycleIndex,
+        submittedAt: s.submittedAt,
+        analysisStatus: analysis?.status || null,
+        // Score summary only — flags stay teacher-only, enforced by never selecting them.
+        tau: complete ? { totalScore: analysis.tau.totalScore, SAMR: analysis.tau.SAMR } : null,
       });
+    }
     return json(res, 200, submissions);
   }
 
   // GET /api/submissions/:id/report — full TAU disclosure at the draft
   // marker (revised 2026-07-16). Integrity flags remain teacher-only.
   if (req.method === 'GET' && seg1 === 'submissions' && seg3 === 'report') {
-    const submission = col('submissions').get(seg2);
+    const submission = await col('submissions').get(seg2);
     if (!submission) return json(res, 404, { error: 'submission not found' });
+    if (!await canReadSubmission(user, submission)) return json(res, 403, { error: 'forbidden' });
+    // Only after ownership is established does role decide what is disclosed —
+    // the flags branch below must never be reached by a teacher who has no
+    // claim on this student.
     const isTeacher = user.role === 'teacher';
-    if (!isTeacher && submission.studentId !== user.id) return json(res, 403, { error: 'forbidden' });
 
-    const analysis = submission.analysisId ? col('analyses').get(submission.analysisId) : null;
+    const analysis = submission.analysisId ? await col('analyses').get(submission.analysisId) : null;
     const report = analysis && {
       ...analysis,
       ...(isTeacher ? {} : { flags: undefined }),
@@ -550,7 +851,7 @@ async function handleApi(req, res, user, route) {
     // The nav's breadcrumb and its "Conversation" toggle both need to name
     // and link back to the assignment this draft belongs to — neither was
     // on the wire before the shared nav existed.
-    const assignment = col('assignments').get(submission.assignmentId);
+    const assignment = await col('assignments').get(submission.assignmentId);
 
     return json(res, 200, {
       submission: {
@@ -572,17 +873,163 @@ async function handleApi(req, res, user, route) {
   // this is a history a student reads front to back, not a live sidebar
   // surfacing the most recent thread first.
   if (req.method === 'GET' && seg1 === 'submissions' && seg3 === 'conversations') {
-    const submission = col('submissions').get(seg2);
+    const submission = await col('submissions').get(seg2);
     if (!submission) return json(res, 404, { error: 'submission not found' });
-    const isTeacher = user.role === 'teacher';
-    if (!isTeacher && submission.studentId !== user.id) return json(res, 403, { error: 'forbidden' });
+    if (!await canReadSubmission(user, submission)) return json(res, 403, { error: 'forbidden' });
 
-    const conversations = col('conversations')
-      .list((c) => c.sessionId === submission.sessionId)
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-      .map((c) => ({ ...c, turns: liveTurns(conversationTurns(c.id)) }));
+    const convRows = (await col('conversations').list({ sessionId: submission.sessionId }))
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    const conversations = [];
+    for (const c of convRows) {
+      conversations.push({ ...c, turns: liveTurns(await conversationTurns(c.id)) });
+    }
 
     return json(res, 200, { conversations });
+  }
+
+  // POST /api/usage — product telemetry: which content areas actually get
+  // opened. Any signed-in role writes here; only an admin ever reads it back,
+  // and only as aggregates.
+  //
+  // The surface/area pair must be on USAGE_SURFACES. Without that allowlist a
+  // client could write arbitrary strings straight into the ranking that
+  // decides what gets built next — the one thing this data is for.
+  if (req.method === 'POST' && seg1 === 'usage' && !seg2) {
+    const body = await readBody(req);
+    const surface = USAGE_SURFACES[body.surface];
+    if (!surface || !surface.areas[body.area]) return json(res, 400, { error: 'unknown surface or area' });
+    await col('usage').add({
+      userId: user.id,
+      role: user.role,
+      surface: body.surface,
+      area: body.area,
+      ts: now(),
+    });
+    return json(res, 200, { ok: true });
+  }
+
+  // ---------- admin routes ----------
+
+  if (seg1 === 'admin') {
+    if (user.role !== 'admin') return json(res, 403, { error: 'admin only' });
+  }
+
+  // GET /api/admin/overview — everything admin.html needs in one call, same
+  // one-shot pattern as /api/teacher/dashboard.
+  //
+  // Aggregates only, by design: no student name, no transcript, no essay, no
+  // integrity flag ever appears in this payload. An admin creates and suspends
+  // teacher accounts and reads what the tool is being used for — the student's
+  // work stays between the student and their own teacher.
+  if (req.method === 'GET' && seg1 === 'admin' && seg2 === 'overview') {
+    const usage = await col('usage').list();
+    const lastActive = {};
+    for (const u of usage) {
+      if (!lastActive[u.userId] || u.ts > lastActive[u.userId]) lastActive[u.userId] = u.ts;
+    }
+
+    const teacherDocs = (await col('users').list({ role: 'teacher' }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+    const teachers = [];
+    for (const t of teacherDocs) {
+      const classes = await col('classes').list({ teacherId: t.id });
+      teachers.push({
+        id: t.id,
+        displayName: t.displayName,
+        email: t.email,
+        status: t.status === 'suspended' ? 'suspended' : 'active',
+        classCount: classes.length,
+        studentCount: new Set(classes.flatMap((c) => c.studentIds || [])).size,
+        assignmentCount: (await col('assignments').list({ teacherId: t.id })).length,
+        lastActiveAt: lastActive[t.id] || null,
+      });
+    }
+
+    return json(res, 200, {
+      teachers,
+      scale: {
+        teachers: teachers.length,
+        students: (await col('users').list({ role: 'student' })).length,
+        classes: (await col('classes').list()).length,
+        assignments: (await col('assignments').list()).length,
+        submissions: (await col('submissions').list()).length,
+      },
+      contentAreas: rankContentAreas(usage),
+      // Denominators for the reach bars: "3 of 8 students opened this" is a
+      // fact worth acting on; "this bar is as long as the longest other bar"
+      // is not, and at low volume it reads as "heavily used" when it only
+      // means everything is tied.
+      audienceSize: {
+        teacher: teachers.filter((t) => t.status === 'active').length,
+        student: (await col('users').list((u) => u.role === 'student' && u.status !== 'suspended')).length,
+      },
+      usageSince: usage.reduce((min, u) => (!min || u.ts < min ? u.ts : min), null),
+      studentPatterns: await studentPatterns(),
+    });
+  }
+
+  // POST /api/admin/teachers — create a teacher account. Same
+  // find-or-provision shape as adding a student to a class, and the same
+  // DEV_PASSWORD stand-in: there is no mail path in this POC to deliver a
+  // generated one, and per-account passwords go away entirely at the Google
+  // SSO swap (see auth.js).
+  if (req.method === 'POST' && seg1 === 'admin' && seg2 === 'teachers' && !seg3) {
+    const body = await readBody(req);
+    const email = String(body.email || '').trim().toLowerCase();
+    const displayName = String(body.displayName || '').trim();
+    if (!displayName) return json(res, 400, { error: 'name is required' });
+    if (!email || !email.includes('@')) return json(res, 400, { error: 'a valid email is required' });
+    if ((await col('users').list((u) => u.email.toLowerCase() === email))[0]) {
+      return json(res, 400, { error: 'an account with that email already exists' });
+    }
+    const teacher = await col('users').add({ email, displayName, role: 'teacher', status: 'active', createdAt: now() });
+    const tempPassword = newTempPassword(DEV_PASSWORD);
+    await setPassword(teacher, tempPassword);
+    return json(res, 200, { id: teacher.id, email, displayName, tempPassword });
+  }
+
+  // POST /api/admin/teachers/:id/... — three small lifecycle actions on one
+  // teacher. Each re-checks role: 'teacher' so an admin can't accidentally
+  // rename or suspend a student (or themselves) through this route.
+  if (req.method === 'POST' && seg1 === 'admin' && seg2 === 'teachers' && seg3) {
+    const parts = route.split('/'); // /api/admin/teachers/:id/<action>
+    const teacher = await col('users').get(parts[4]);
+    const action = parts[5];
+    if (!teacher || teacher.role !== 'teacher') return json(res, 404, { error: 'teacher not found' });
+
+    if (action === 'edit') {
+      const body = await readBody(req);
+      const displayName = String(body.displayName || '').trim();
+      const email = String(body.email || '').trim().toLowerCase();
+      if (!displayName) return json(res, 400, { error: 'name is required' });
+      if (!email || !email.includes('@')) return json(res, 400, { error: 'a valid email is required' });
+      const clash = (await col('users').list((u) => u.email.toLowerCase() === email && u.id !== teacher.id))[0];
+      if (clash) return json(res, 400, { error: 'another account already uses that email' });
+      await col('users').update(teacher.id, { displayName, email });
+      return json(res, 200, { ok: true });
+    }
+
+    // Suspend, never delete. A teacher owns classes, assignments, and every
+    // submission made against them — deleting the account orphans all of it
+    // and breaks every teacherId lookup that reads it back.
+    if (action === 'status') {
+      const body = await readBody(req);
+      const status = body.status === 'suspended' ? 'suspended' : 'active';
+      await col('users').update(teacher.id, { status });
+      return json(res, 200, { ok: true, status });
+    }
+
+    if (action === 'reset-password') {
+      const tempPassword = newTempPassword(DEV_PASSWORD);
+      await setPassword(teacher, tempPassword);
+      // An admin resetting a teacher's password can then sign in as them.
+      // Acceptable for teacher accounts an admin already administers, but it
+      // is logged so the action is never invisible.
+      console.warn('[auth] password reset: admin', user.id, '→ teacher', teacher.id);
+      return json(res, 200, { ok: true, tempPassword });
+    }
+
+    return json(res, 404, { error: 'not found' });
   }
 
   // ---------- teacher routes ----------
@@ -610,7 +1057,7 @@ async function handleApi(req, res, user, route) {
     // No class picker in the creation form yet — an assignment with no
     // classIds sent defaults to every class this teacher has, so existing
     // creation flow behaves the same as before classes existed.
-    const allClassIds = col('classes').list((c) => c.teacherId === user.id).map((c) => c.id);
+    const allClassIds = (await col('classes').list((c) => c.teacherId === user.id)).map((c) => c.id);
     const classIds = Array.isArray(body.classIds) && body.classIds.length ? body.classIds : allClassIds;
     // One due date per draft slot, ascending — the last IS the assignment's
     // due date (see store.js's schema comment on draftDueDates).
@@ -623,7 +1070,7 @@ async function handleApi(req, res, user, route) {
         return json(res, 400, { error: 'draft due dates must be in ascending order' });
       }
     }
-    const assignment = col('assignments').add({
+    const assignment = await col('assignments').add({
       teacherId: user.id,
       classIds,
       title,
@@ -646,8 +1093,9 @@ async function handleApi(req, res, user, route) {
   // assumes drafts only ever grow out from under existing submissions, not
   // shrink.
   if (req.method === 'POST' && seg1 === 'assignments' && seg3 === 'edit') {
-    const assignment = col('assignments').get(seg2);
+    const assignment = await col('assignments').get(seg2);
     if (!assignment) return json(res, 404, { error: 'assignment not found' });
+    if (assignment.teacherId !== user.id) return json(res, 403, { error: 'not your assignment' });
     const body = await readBody(req);
     const title = String(body.title || '').trim();
     const description = String(body.description || '').trim();
@@ -671,22 +1119,22 @@ async function handleApi(req, res, user, route) {
         return json(res, 400, { error: 'draft due dates must be in ascending order' });
       }
     }
-    const maxCycle = col('submissions')
-      .list((s) => s.assignmentId === assignment.id)
+    const maxCycle = (await col('submissions')
+      .list((s) => s.assignmentId === assignment.id))
       .reduce((max, s) => Math.max(max, s.cycleIndex), -1);
     if (draftBudget <= maxCycle) {
       return json(res, 400, { error: `can't reduce draft budget below ${maxCycle + 1} — a student has already submitted that many drafts` });
     }
     const classIds = Array.isArray(body.classIds) && body.classIds.length ? body.classIds : assignment.classIds;
     const noteChanged = typeof body.teacherNote === 'string' && body.teacherNote.trim() !== (assignment.teacherNote || '');
-    col('assignments').update(assignment.id, {
+    await col('assignments').update(assignment.id, {
       title, description, purpose, requirements, classIds,
       dueDate: draftDueDates[draftDueDates.length - 1],
       draftBudget, draftDueDates, coachingLevels,
       teacherNote: typeof body.teacherNote === 'string' ? body.teacherNote.trim().slice(0, 2000) : (assignment.teacherNote || ''),
       teacherNoteAt: noteChanged ? now() : assignment.teacherNoteAt,
     });
-    return json(res, 200, col('assignments').get(assignment.id));
+    return json(res, 200, await col('assignments').get(assignment.id));
   }
 
   // POST /api/classes — create a class (teacher). First half of "teacher
@@ -697,7 +1145,7 @@ async function handleApi(req, res, user, route) {
     const body = await readBody(req);
     const name = String(body.name || '').trim();
     if (!name) return json(res, 400, { error: 'class name is required' });
-    const classDoc = col('classes').add({
+    const classDoc = await col('classes').add({
       teacherId: user.id,
       name,
       studentIds: [],
@@ -723,41 +1171,41 @@ async function handleApi(req, res, user, route) {
   //     the account itself isn't deleted, since the student may belong to
   //     another class.
   if (req.method === 'POST' && seg1 === 'classes' && seg3 === 'students') {
-    const classDoc = col('classes').get(seg2);
+    const classDoc = await col('classes').get(seg2);
     if (!classDoc) return json(res, 404, { error: 'class not found' });
     if (classDoc.teacherId !== user.id) return json(res, 403, { error: 'not your class' });
     const body = await readBody(req);
 
     if (body.remove) {
       const studentIds = (classDoc.studentIds || []).filter((id) => id !== body.studentId);
-      col('classes').update(classDoc.id, { studentIds });
-      return json(res, 200, col('classes').get(classDoc.id));
+      await col('classes').update(classDoc.id, { studentIds });
+      return json(res, 200, await col('classes').get(classDoc.id));
     }
 
     const email = String(body.email || '').trim().toLowerCase();
     const displayName = String(body.displayName || '').trim();
     if (!email || !email.includes('@')) return json(res, 400, { error: 'a valid email is required' });
 
-    let student = col('users').list((u) => u.email.toLowerCase() === email)[0];
+    let student = (await col('users').list((u) => u.email.toLowerCase() === email))[0];
     if (student && student.role !== 'student') {
       return json(res, 400, { error: 'that email belongs to a non-student account' });
     }
     if (!student) {
       if (!displayName) return json(res, 400, { error: 'name is required for a new student' });
-      student = col('users').add({ email, displayName, role: 'student', createdAt: now() });
-      setPassword(student, DEV_PASSWORD);
+      student = await col('users').add({ email, displayName, role: 'student', createdAt: now() });
+      await setPassword(student, newTempPassword(DEV_PASSWORD));
     }
 
     const studentIds = classDoc.studentIds || [];
     if (!studentIds.includes(student.id)) {
-      col('classes').update(classDoc.id, { studentIds: [...studentIds, student.id] });
+      await col('classes').update(classDoc.id, { studentIds: [...studentIds, student.id] });
     }
     // Never the raw user doc past this point — passwordHash/passwordSalt
     // have no business leaving the server, same sanitization /api/me and
     // every other user-returning route already applies.
-    const savedStudent = col('users').get(student.id);
+    const savedStudent = await col('users').get(student.id);
     return json(res, 200, {
-      class: col('classes').get(classDoc.id),
+      class: await col('classes').get(classDoc.id),
       student: { id: savedStudent.id, email: savedStudent.email, displayName: savedStudent.displayName },
     });
   }
@@ -766,10 +1214,11 @@ async function handleApi(req, res, user, route) {
   // teacher note (distinct from a per-submission note: this one isn't tied
   // to any single draft's report, so it lives on the assignment record).
   if (req.method === 'POST' && seg1 === 'assignments' && seg3 === 'note') {
-    const assignment = col('assignments').get(seg2);
+    const assignment = await col('assignments').get(seg2);
     if (!assignment) return json(res, 404, { error: 'assignment not found' });
+    if (assignment.teacherId !== user.id) return json(res, 403, { error: 'not your assignment' });
     const body = await readBody(req);
-    col('assignments').update(assignment.id, {
+    await col('assignments').update(assignment.id, {
       teacherNote: String(body.text || '').trim().slice(0, 2000),
       teacherNoteAt: now(),
     });
@@ -780,13 +1229,13 @@ async function handleApi(req, res, user, route) {
   // (dashboard.html) in the exact shape its mock generator produced:
   // { assignments, students, classes, submissions }
   if (req.method === 'GET' && seg1 === 'teacher' && seg2 === 'dashboard') {
-    const students = col('users').list((u) => u.role === 'student');
-    const classes = col('classes').list();
+    const { students, classes, classIds: allClassIds, assignments: ownAssignments } = await teacherScope(user);
     // An assignment seeded/created before classes existed (or omitted at
     // creation) has no classIds — treat it as visible to every class rather
-    // than to none, so it doesn't silently vanish from the dashboard.
-    const allClassIds = classes.map((c) => c.id);
-    const assignments = col('assignments').list().map((a) => ({
+    // than to none, so it doesn't silently vanish from the dashboard. "Every
+    // class" now means every class *this teacher owns*, not every class in the
+    // install.
+    const assignments = ownAssignments.map((a) => ({
       id: a.id,
       name: a.title,
       due: a.dueDate || new Date(new Date(a.createdAt).getTime() + 14 * 86400000).toISOString(),
@@ -808,11 +1257,11 @@ async function handleApi(req, res, user, route) {
     const submissions = {};
     for (const s of students) {
       for (const a of assignments) {
-        submissions[`${s.id}_${a.id}`] = col('submissions')
-          .list((sub) => sub.studentId === s.id && sub.assignmentId === a.id)
-          .sort((x, y) => x.cycleIndex - y.cycleIndex)
-          .map((sub) => {
-            const analysis = sub.analysisId ? col('analyses').get(sub.analysisId) : null;
+        const subRows = (await col('submissions').list({ studentId: s.id, assignmentId: a.id }))
+          .sort((x, y) => x.cycleIndex - y.cycleIndex);
+        const subOut = [];
+        for (const sub of subRows) {
+            const analysis = sub.analysisId ? await col('analyses').get(sub.analysisId) : null;
             const done = analysis?.status === 'complete';
             // One session per (student, assignment, cycleIndex) under the
             // current model (a draft's active session is reused, never
@@ -822,13 +1271,12 @@ async function handleApi(req, res, user, route) {
             // "did they restart with a fresh context instead of extending
             // one long thread" — feeds the Assignment Detail timeline's
             // per-draft usage note.
-            const session = col('sessions').list(
-              (se) => se.assignmentId === a.id && se.studentId === s.id && se.cycleIndex === sub.cycleIndex
-            )[0];
+            const session = (await col('sessions')
+              .list({ assignmentId: a.id, studentId: s.id, cycleIndex: sub.cycleIndex }))[0];
             const conversationCount = session
-              ? col('conversations').list((c) => c.sessionId === session.id).length
+              ? (await col('conversations').list({ sessionId: session.id })).length
               : 0;
-            return {
+            subOut.push({
               id: sub.id,
               ts: sub.submittedAt,
               cycleIndex: sub.cycleIndex,
@@ -846,8 +1294,9 @@ async function handleApi(req, res, user, route) {
               // (regex-fallback path has no provenance data).
               provenance: done ? (analysis.tau.provenanceCounts || null) : null,
               ...(done && analysis.flags?.length ? { integrityFlags: analysis.flags.map((f) => f.flag) } : {}),
-            };
-          });
+            });
+        }
+        submissions[`${s.id}_${a.id}`] = subOut;
       }
     }
 
@@ -866,35 +1315,39 @@ async function handleApi(req, res, user, route) {
 
   // GET /api/teacher/assignments — all assignments with roster summary
   if (req.method === 'GET' && seg1 === 'teacher' && seg2 === 'assignments' && !seg3) {
-    const students = col('users').list((u) => u.role === 'student');
-    const assignments = col('assignments').list().map((a) => ({
-      ...a,
-      roster: students.map((s) => {
-        const submissions = col('submissions')
-          .list((sub) => sub.assignmentId === a.id && sub.studentId === s.id)
+    const { students, assignments: ownAssignments } = await teacherScope(user);
+    const assignments = [];
+    for (const a of ownAssignments) {
+      const roster = [];
+      for (const s of students) {
+        const submissions = (await col('submissions').list({ assignmentId: a.id, studentId: s.id }))
           .sort((x, y) => x.cycleIndex - y.cycleIndex);
-        const active = col('sessions').list((se) => se.assignmentId === a.id && se.studentId === s.id && se.status === 'active')[0];
-        return {
+        const active = (await col('sessions')
+          .list({ assignmentId: a.id, studentId: s.id, status: 'active' }))[0];
+        const cycles = [];
+        for (const sub of submissions) {
+          const analysis = sub.analysisId ? await col('analyses').get(sub.analysisId) : null;
+          cycles.push({
+            submissionId: sub.id,
+            cycleIndex: sub.cycleIndex,
+            submittedAt: sub.submittedAt,
+            analysisStatus: analysis?.status || null,
+            tau: analysis?.status === 'complete' ? { PQ: analysis.tau.PQ, SU: analysis.tau.SU, CS: analysis.tau.CS, OC: analysis.tau.OC, totalScore: analysis.tau.totalScore, SAMR: analysis.tau.SAMR } : null,
+            coachingLevel: analysis?.coachingLevel || null,
+            flagCount: analysis?.flags?.length || 0,
+            hasNote: !!sub.teacherNote,
+          });
+        }
+        roster.push({
           studentId: s.id,
           displayName: s.displayName,
           email: s.email,
           activeSession: !!active,
-          cycles: submissions.map((sub) => {
-            const analysis = sub.analysisId ? col('analyses').get(sub.analysisId) : null;
-            return {
-              submissionId: sub.id,
-              cycleIndex: sub.cycleIndex,
-              submittedAt: sub.submittedAt,
-              analysisStatus: analysis?.status || null,
-              tau: analysis?.status === 'complete' ? { PQ: analysis.tau.PQ, SU: analysis.tau.SU, CS: analysis.tau.CS, OC: analysis.tau.OC, totalScore: analysis.tau.totalScore, SAMR: analysis.tau.SAMR } : null,
-              coachingLevel: analysis?.coachingLevel || null,
-              flagCount: analysis?.flags?.length || 0,
-              hasNote: !!sub.teacherNote,
-            };
-          }),
-        };
-      }),
-    }));
+          cycles,
+        });
+      }
+      assignments.push({ ...a, roster });
+    }
     return json(res, 200, assignments);
   }
 
@@ -906,47 +1359,77 @@ async function handleApi(req, res, user, route) {
     const parts = route.split('/');
     const aid = parts[4];
     const sid = parts[6];
-    const assignment = col('assignments').get(aid);
-    const student = col('users').get(sid);
+    const assignment = await col('assignments').get(aid);
+    const student = await col('users').get(sid);
     if (!assignment || !student) return json(res, 404, { error: 'not found' });
+    // This route returns full transcripts and integrity flags, so ownership is
+    // checked on both axes — the assignment must be this teacher's, and the
+    // student must be on one of this teacher's rosters. Without it, a teacher
+    // who guessed an id could read another teacher's student.
+    const scope = await teacherScope(user);
+    if (assignment.teacherId !== user.id || !scope.students.some((s) => s.id === sid)) {
+      return json(res, 403, { error: 'not your student' });
+    }
 
-    const sessions = col('sessions')
-      .list((s) => s.assignmentId === aid && s.studentId === sid)
-      .sort((a, b) => a.cycleIndex - b.cycleIndex)
-      .map((session) => {
-        const conversations = col('conversations')
-          .list((c) => c.sessionId === session.id)
-          .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-          .map((conv) => {
-            const turns = conversationTurns(conv.id);
-            const dead = new Set(turns.flatMap((t) => t.meta?.supersedes || []));
-            return {
-              ...conv,
-              turns: turns.map((t) => ({
-                ...t,
-                superseded: dead.has(t.id),
-                metaTurn: !!t.meta?.metaTurn,
-              })),
-            };
-          });
-        const events = col('events')
-          .list((e) => e.sessionId === session.id)
-          .sort((a, b) => a.ts.localeCompare(b.ts));
-        const submission = col('submissions').list((s) => s.sessionId === session.id)[0] || null;
-        const analysis = submission?.analysisId ? col('analyses').get(submission.analysisId) : null;
-        return { session, conversations, events, submission, analysis };
-      });
+    const sessionRows = (await col('sessions').list({ assignmentId: aid, studentId: sid }))
+      .sort((a, b) => a.cycleIndex - b.cycleIndex);
+    const sessions = [];
+    for (const session of sessionRows) {
+      const convRows = (await col('conversations').list({ sessionId: session.id }))
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+      const conversations = [];
+      for (const conv of convRows) {
+        const turns = await conversationTurns(conv.id);
+        const dead = new Set(turns.flatMap((t) => t.meta?.supersedes || []));
+        conversations.push({
+          ...conv,
+          turns: turns.map((t) => ({
+            ...t,
+            superseded: dead.has(t.id),
+            metaTurn: !!t.meta?.metaTurn,
+          })),
+        });
+      }
+      const events = (await col('events').list({ sessionId: session.id }))
+        .sort((a, b) => a.ts.localeCompare(b.ts));
+      const submission = (await col('submissions').list({ sessionId: session.id }))[0] || null;
+      const analysis = submission?.analysisId ? await col('analyses').get(submission.analysisId) : null;
+      sessions.push({ session, conversations, events, submission, analysis });
+    }
 
     return json(res, 200, { assignment, student, sessions });
+  }
+
+  // POST /api/teacher/students/:id/grant-replies — rule 4, the escape valve.
+  // The limit can only be set generously if a teacher can lift it in one
+  // click when a student hits it mid-homework.
+  if (req.method === 'POST' && seg1 === 'teacher' && seg2 === 'students' && seg4 === 'grant-replies') {
+    if (user.role !== 'teacher') return json(res, 403, { error: 'forbidden' });
+    if (!(await teacherScope(user)).students.some((s) => s.id === seg3)) {
+      return json(res, 403, { error: 'not your student' });
+    }
+    const body = await readBody(req);
+    const extraReplies = Math.min(Math.max(parseInt(body.extraReplies, 10) || 20, 1), 200);
+    await grantExtraReplies({ studentId: seg3, teacherId: user.id, extraReplies });
+    const [used, granted] = await Promise.all([usageToday(seg3), grantedToday(seg3)]);
+    return json(res, 200, {
+      ok: true,
+      limit: SOFT_REPLIES_PER_DAY + granted,
+      used: used.replies,
+      remaining: Math.max(0, SOFT_REPLIES_PER_DAY + granted - used.replies),
+    });
   }
 
   // POST /api/submissions/:id/note — teacher note, shown to the student
   // beside their snapshot (auditor's read + human read side by side)
   if (req.method === 'POST' && seg1 === 'submissions' && seg3 === 'note') {
-    const submission = col('submissions').get(seg2);
+    const submission = await col('submissions').get(seg2);
     if (!submission) return json(res, 404, { error: 'submission not found' });
+    if (!(await teacherScope(user)).students.some((s) => s.id === submission.studentId)) {
+      return json(res, 403, { error: 'not your student' });
+    }
     const body = await readBody(req);
-    col('submissions').update(submission.id, {
+    await col('submissions').update(submission.id, {
       teacherNote: String(body.text || '').trim().slice(0, 2000),
       teacherNoteAt: now(),
     });
@@ -958,7 +1441,7 @@ async function handleApi(req, res, user, route) {
     const body = await readBody(req);
     const allowed = ['copy', 'episode-save', 'episode-resume'];
     if (!allowed.includes(body.type)) return json(res, 400, { error: 'bad event type' });
-    logEvent(user, body);
+    await logEvent(user, body);
     return json(res, 200, { ok: true });
   }
 
@@ -982,9 +1465,9 @@ function serveStatic(req, res, route) {
 
 // ---------- boot ----------
 
-seed();
-
-http.createServer(async (req, res) => {
+// Seeding is a write to Firestore now, so it has to finish before the first
+// request rather than racing it — the JSON store made this look synchronous.
+const server = http.createServer(async (req, res) => {
   // Outside the try this takes the process down: a request for '//' parses as
   // protocol-relative with an empty host and throws. Crawlers and browsers do
   // send it, so an unguarded parse here is a one-request denial of service.
@@ -998,7 +1481,7 @@ http.createServer(async (req, res) => {
   try {
     if (route.startsWith('/api/')) {
       if (await handleAuth(req, res, route)) return;
-      const user = authenticate(req);
+      const user = await authenticate(req);
       if (!user) return json(res, 401, { error: 'not signed in' });
       await handleApi(req, res, user, route);
     } else {
@@ -1009,6 +1492,13 @@ http.createServer(async (req, res) => {
     if (!res.headersSent) json(res, 500, { error: err.message });
     else res.end();
   }
-}).listen(PORT, () => {
-  console.log(`CTA dev server: http://localhost:${PORT}`);
 });
+
+seed()
+  .then(() => {
+    server.listen(PORT, () => console.log(`CTA dev server: http://localhost:${PORT}`));
+  })
+  .catch((err) => {
+    console.error('seed failed — not starting the server:', err);
+    process.exit(1);
+  });

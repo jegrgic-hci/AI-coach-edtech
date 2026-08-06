@@ -111,13 +111,14 @@ async function readSSE(res, { onToken }) {
 
 // ---------- student home ----------
 
-// Student-facing names. The acronyms are for the teacher surfaces; a student
-// reading their own work should see what the dimension actually means.
+// Fixed dimension names — designsystem.md Hard Constraints: "No synonyms, no
+// rewording per surface." Same names the report page uses (report-render.js),
+// so a student's own vocabulary doesn't change between the rail and their report.
 const DIMENSION_NAMES = {
-  PQ: 'How you questioned',
-  SU: 'What you did with answers',
-  CS: 'How you pushed back',
-  OC: 'How much was yours',
+  PQ: 'Prompting Quality',
+  SU: 'Selective Use',
+  CS: 'Calibrated Skepticism',
+  OC: 'Original Contribution',
 };
 
 // What each dimension actually tracks — shown before there's any history to
@@ -306,7 +307,7 @@ function draftRow(cycleIndex, status, opts = {}) {
     // until hovered — no better than what this replaced.
     const link = el('button', 'btn btn-quiet btn-sm');
     link.innerHTML = `${iconSVG('description')} View report`;
-    link.onclick = () => showReport(reportId);
+    link.onclick = () => { logUse('student-home', 'past-report'); showReport(reportId); };
     body.append(link);
   } else if (status.detail) {
     body.append(el('span', 'draft-row-detail', status.detail));
@@ -363,7 +364,7 @@ function draftChip(draft) {
     note.innerHTML = iconSVG('chat');
     chip.append(note);
   }
-  chip.onclick = () => showReport(draft.submissionId);
+  chip.onclick = () => { logUse('student-home', 'past-report'); showReport(draft.submissionId); };
   return chip;
 }
 
@@ -518,6 +519,12 @@ function currentCard(a) {
   if (CARD_EDGE_CLASS[eyebrow.tone]) card.classList.add(CARD_EDGE_CLASS[eyebrow.tone]);
 
   const top = el('div', 'acard-top');
+  // Null for an assignment predating the classes model (visible to everyone) —
+  // nothing to name in that case.
+  if (a.className) {
+    top.append(el('span', 'acard-class', a.className));
+    top.append(el('span', 'acard-sep', '·'));
+  }
   top.append(el('span', `acard-due acard-due-${eyebrow.tone}`, eyebrow.text));
   const titleRow = el('div', 'acard-title-row');
   titleRow.append(el('h3', 'acard-title', a.title));
@@ -597,8 +604,10 @@ function pastCard(a) {
     head.append(outcome);
   }
   card.append(head);
-  card.append(el('p', 'pcard-meta',
-    `${a.drafts.length} draft${a.drafts.length === 1 ? '' : 's'} submitted`));
+  const meta = a.className
+    ? `${a.className} · ${a.drafts.length} draft${a.drafts.length === 1 ? '' : 's'} submitted`
+    : `${a.drafts.length} draft${a.drafts.length === 1 ? '' : 's'} submitted`;
+  card.append(el('p', 'pcard-meta', meta));
 
   // A note's presence is the chip's own ✉ marker (draftChip) — the chip
   // already opens the report on click, which is where the note itself reads.
@@ -636,6 +645,7 @@ async function showAssignments() {
 // ---------- workspace ----------
 
 async function openAssignment(id) {
+  logUse('student-home', 'open-assignment');
   const data = await api(`/api/assignments/${id}/open`, { method: 'POST' });
   state.assignment = data.assignment;
   state.session = data.session;
@@ -975,6 +985,7 @@ async function sendMessage() {
   // The server row (and the sidebar entry) doesn't exist until this first
   // send — see startNewSession().
   if (!state.conv.id) {
+    logUse('workspace', 'new-conversation');
     const conv = await api('/api/conversations', { method: 'POST', body: { sessionId: state.session.id } });
     state.conv = { ...conv, cycleIndex: state.session.cycleIndex };
     state.conversations.unshift(state.conv);
@@ -1021,6 +1032,7 @@ $('btnRegenerate').onclick = () => {
 
 $('btnEvaluate').onclick = () => {
   if (!state.streaming && state.conv) {
+    logUse('workspace', 'evaluate');
     streamAction(`/api/conversations/${state.conv.id}/evaluate`, null, 'auditor');
   }
 };
@@ -1074,6 +1086,99 @@ async function openFromReportLink(assignmentId, cycleIndex) {
 
 // ---------- submit flow ----------
 
+let uploadedText = '';
+
+const UPLOAD_DROP_DEFAULT = 'Drop your file here, or <span class="link-btn">browse</span>';
+
+function resetDraftUpload() {
+  uploadedText = '';
+  $('draftFile').value = '';
+  $('uploadError').classList.add('hidden');
+  $('uploadRemoveRow').classList.add('hidden');
+  $('uploadDrop').classList.remove('has-file');
+  $('uploadDropLabel').innerHTML = UPLOAD_DROP_DEFAULT;
+  $('essayText').value = '';
+  $('draftUpload').classList.remove('hidden');
+  $('draftPaste').classList.add('hidden');
+  updateSubmitEnabled();
+}
+
+function updateSubmitEnabled() {
+  const active = $('draftPaste').classList.contains('hidden') ? uploadedText : $('essayText').value.trim();
+  $('btnConfirmSubmit').disabled = !active;
+}
+
+function showUploadError(msg) {
+  uploadedText = '';
+  $('draftFile').value = '';
+  $('uploadDrop').classList.remove('has-file');
+  $('uploadRemoveRow').classList.add('hidden');
+  $('uploadDropLabel').innerHTML = UPLOAD_DROP_DEFAULT;
+  $('uploadError').textContent = msg;
+  $('uploadError').classList.remove('hidden');
+  updateSubmitEnabled();
+}
+
+async function handleDraftFile(file) {
+  $('uploadError').classList.add('hidden');
+  const name = file.name || '';
+  const ext = name.toLowerCase().slice(name.lastIndexOf('.'));
+  if (ext !== '.docx' && ext !== '.txt') {
+    showUploadError(`Can't read a ${ext || 'this'} file — try .docx or .txt, or paste your draft instead.`);
+    return;
+  }
+  try {
+    if (ext === '.txt') {
+      uploadedText = (await file.text()).trim();
+    } else {
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      uploadedText = result.value.trim();
+    }
+    if (!uploadedText) {
+      showUploadError("That file looks empty — try pasting your draft instead.");
+      return;
+    }
+    $('uploadDrop').classList.add('has-file');
+    $('uploadDropLabel').textContent = name;
+    $('uploadRemoveRow').classList.remove('hidden');
+  } catch (err) {
+    showUploadError("Couldn't read that file — try pasting your draft instead.");
+  }
+  updateSubmitEnabled();
+}
+
+$('btnRemoveFile').onclick = () => resetDraftUpload();
+
+$('draftFile').onchange = (e) => {
+  const file = e.target.files[0];
+  if (file) handleDraftFile(file);
+};
+
+$('uploadDrop').ondragover = (e) => { e.preventDefault(); $('uploadDrop').classList.add('drag-over'); };
+$('uploadDrop').ondragleave = () => $('uploadDrop').classList.remove('drag-over');
+$('uploadDrop').ondrop = (e) => {
+  e.preventDefault();
+  $('uploadDrop').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleDraftFile(file);
+};
+
+$('btnSwitchToPaste').onclick = () => {
+  $('draftUpload').classList.add('hidden');
+  $('draftPaste').classList.remove('hidden');
+  $('essayText').focus();
+  updateSubmitEnabled();
+};
+
+$('btnSwitchToUpload').onclick = () => {
+  $('draftPaste').classList.add('hidden');
+  $('draftUpload').classList.remove('hidden');
+  updateSubmitEnabled();
+};
+
+$('essayText').oninput = updateSubmitEnabled;
+
 $('btnSubmit').onclick = () => {
   if (!state.session) return;
   const used = state.session.cycleIndex;
@@ -1084,28 +1189,25 @@ $('btnSubmit').onclick = () => {
   warning.append(el('li', null,
     `All ${convCount} of this draft's session${convCount === 1 ? '' : 's'} lock and go to your teacher with your draft.`));
   warning.append(el('li', null, `This uses draft ${used + 1} of ${budget}.`));
-  $('essayText').value = '';
+  resetDraftUpload();
   $('submitModal').classList.remove('hidden');
 };
 
 $('btnCancelSubmit').onclick = () => $('submitModal').classList.add('hidden');
 
 $('btnConfirmSubmit').onclick = async () => {
-  const essayText = $('essayText').value.trim();
-  if (!essayText) {
-    alert('Paste your draft first — the submission bundles your sessions with the essay.');
-    return;
-  }
+  const essayText = $('draftPaste').classList.contains('hidden') ? uploadedText : $('essayText').value.trim();
+  if (!essayText) return;
   $('btnConfirmSubmit').disabled = true;
   try {
+    logUse('workspace', 'submit');
     const { submission } = await api(`/api/sessions/${state.session.id}/submit`, { method: 'POST', body: { essayText } });
     $('submitModal').classList.add('hidden');
     // Straight to the draft report — full disclosure at the submission marker
     await showReport(submission.id);
   } catch (err) {
     alert(err.message);
-  } finally {
-    $('btnConfirmSubmit').disabled = false;
+    updateSubmitEnabled();
   }
 };
 

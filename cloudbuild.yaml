@@ -1,0 +1,52 @@
+# Push-to-deploy for the app/ service. Fires from a Cloud Build trigger on the
+# GitHub repo; see app/README.md's Deployment section for the manual equivalent.
+#
+# Images are tagged with $COMMIT_SHA, so every Cloud Run revision maps back to
+# exactly one commit. That is the property the old `--source .` deploys did not
+# have: they uploaded the working directory, so a live revision could
+# correspond to no commit at all.
+
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_IMAGE}:$COMMIT_SHA
+      - -t
+      - ${_IMAGE}:latest
+      - .
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: [push, --all-tags, '${_IMAGE}']
+
+  # Env vars are repeated in full because --set-env-vars replaces the whole set
+  # rather than merging. Dropping one here silently unconfigures the service.
+  #
+  # No --allow-unauthenticated / --no-allow-unauthenticated: the service's IAM
+  # policy (allUsers → run.invoker, deliberate, see app/README.md) is managed
+  # separately and must not be churned by an ordinary deploy.
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - cta
+      - --image=${_IMAGE}:$COMMIT_SHA
+      - --region=us-central1
+      - --service-account=cta-run@cta-pilot-dev.iam.gserviceaccount.com
+      - --set-env-vars=NODE_ENV=production,GCP_PROJECT_ID=cta-pilot-dev,GCP_LOCATION=global
+      - --max-instances=20
+
+substitutions:
+  _IMAGE: us-central1-docker.pkg.dev/cta-pilot-dev/cta/cta
+
+images:
+  - '${_IMAGE}:$COMMIT_SHA'
+  - '${_IMAGE}:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8

@@ -122,6 +122,7 @@ function renderTimeline(conv, events) {
 }
 
 async function showStudent(assignmentId, studentId) {
+  logUse('teacher-detail', 'student-detail');
   const { assignment, student, sessions } = await api(`/api/teacher/assignments/${assignmentId}/students/${studentId}`);
   $('viewOverview').classList.add('hidden');
   $('viewStudent').classList.remove('hidden');
@@ -141,7 +142,7 @@ async function showStudent(assignmentId, studentId) {
         ${done ? `
           <div class="samr">${analysis.tau.SAMR} · ${analysis.tau.totalScore}/20</div>
           <div class="dim-line">PQ ${analysis.tau.PQ} · SU ${analysis.tau.SU} · CS ${analysis.tau.CS} · OC ${analysis.tau.OC}</div>
-          <a href="/report.html?id=${submission.id}&role=teacher" target="_blank">Full report →</a>
+          <a href="/report.html?id=${submission.id}&role=teacher" target="_blank" onclick="logUse('teacher-detail','full-report')">Full report →</a>
         ` : `<div class="dim-line">analysis: ${analysis?.status || 'missing'}</div>`}
       </div>`;
     }).join('');
@@ -190,7 +191,7 @@ async function showStudent(assignmentId, studentId) {
 
     html += `<div class="eyebrow">Transcript${conversations.length !== 1 ? `s (${conversations.length} sessions)` : ''}</div>`;
     for (const conv of conversations) {
-      html += `<details class="transcript"><summary>${esc(conv.title)} · ${conv.turns.filter((t) => !t.superseded && !t.metaTurn).length} turns</summary>
+      html += `<details class="transcript" ontoggle="if(this.open)logUse('teacher-detail','transcript')"><summary>${esc(conv.title)} · ${conv.turns.filter((t) => !t.superseded && !t.metaTurn).length} turns</summary>
         ${renderTimeline(conv, events)}</details>`;
     }
 

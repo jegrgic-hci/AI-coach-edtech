@@ -326,6 +326,27 @@ button:hover { border-color: var(--tau-forest); }
    this is only the essay textarea's own styling. */
 #essayText { font: inherit; border: 1px solid var(--tau-line); border-radius: var(--tau-r-md); padding: 10px 14px; resize: vertical; }
 
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+.upload-drop {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 96px; padding: 16px; text-align: center;
+  border: 1px dashed var(--tau-line); border-radius: var(--tau-r-md);
+  background: var(--tau-surface-2); color: var(--tau-ink-soft);
+  font-size: var(--tau-text-md); cursor: pointer;
+  transition: background var(--tau-dur-short) var(--tau-ease-standard),
+              border-color var(--tau-dur-short) var(--tau-ease-standard);
+}
+.upload-drop:hover, .upload-drop.drag-over { background: var(--tau-surface); border-color: var(--tau-forest); }
+.upload-drop.has-file { text-align: left; color: var(--tau-ink); }
+
+.upload-error { font-size: var(--tau-text-sm); color: var(--tau-attention); }
+.upload-switch { margin-top: 2px; }
+#draftUpload, #draftPaste { display: flex; flex-direction: column; gap: 10px; }
+
 /* ---------- login ---------- */
 
 .login-body { overflow: hidden; background: var(--tau-surface-2); }
@@ -583,6 +604,8 @@ button:hover { border-color: var(--tau-forest); }
 .acard-due-calm { color: var(--tau-ink-soft); }
 .acard-due-soon { color: var(--tau-caution); }
 .acard-due-late { color: var(--tau-attention); }
+.acard-class { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--tau-ink-soft); }
+.acard-sep { color: var(--tau-line-strong); font-size: 11px; }
 .acard-title-row { display: flex; align-items: center; justify-content: space-between; gap: var(--tau-s3); margin-top: 5px; }
 .acard-title { font-size: 20px; letter-spacing: -0.015em; }
 .acard-rubric-btn { flex-shrink: 0; }

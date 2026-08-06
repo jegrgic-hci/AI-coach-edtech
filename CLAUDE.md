@@ -13,9 +13,13 @@ This repo holds **two things**. Most current work is in the second.
 
 **For any design, CSS, or UI work in `app/`, also read `designsystem.md`** — locked decisions, colour and voice rules, component inventory, and the implementation plan. Start with its **Hard Constraints** section (top of the file, right after the status paragraph) and treat it as blocking: before implementing a visual decision, cite which line in Hard Constraints or *Locked decisions* justifies it. If nothing there covers the case, that's a gap in the system, not licence to improvise — say so and ask instead of inventing a decision and running with it. The system itself lives in `app/web/tokens.css`. The v7 standalone design-system HTML at the repo root is **superseded**; do not build from it.
 
+**For any work on the TAU dimensions — scoring formulas, `scoreTAU`, the classification labels, or whether a dimension measures what it claims — read `tau-dimensions.md`.** It owns dimension definitions, rubrics, and validity evidence; `built-in-chat-plan.md` owns everything else. Both edit `app/server/analysis.js`, which is the one place they overlap. **PQ is currently known not to discriminate** — do not treat its scores as meaningful without reading that file first.
+
 **For any work on `app/web/dashboard.html` (the teacher triage surface), also read `teacher-dashboard-design.md`** — IA, the flag/signal system, and a session log scoped to that page. Covers `dashboard.html` only, not `teacher.html` (assignment creation, transcripts, notes — see `app/README.md`'s file map for that surface instead).
 
-Run it: `node app/server/index.js` → http://localhost:8787. Everything is behind a login; test accounts are in `app/README.md`.
+Run it: `npm install` once, then `npm start` → http://localhost:8787. Everything is behind a login; test accounts are in `app/README.md`. **Requires GCP credentials** (`gcloud auth application-default login`) — the app runs on Vertex and Firestore, not on local files. `app/gcp-setup.md` is the setup walkthrough.
+
+Also deployed: **https://cta-714032495709.us-central1.run.app** (public, demo data only). `app/data/*.json` is a dead snapshot — the live store is Firestore in `cta-pilot-dev`.
 
 ---
 

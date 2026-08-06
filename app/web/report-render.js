@@ -1600,9 +1600,22 @@ function renderJumpScore(scores) {
   const hero = document.getElementById("samrHero");
   if (!jump || !hero) return;
 
+  // The jump-nav click is the one honest "opened this section" signal on this
+  // page. The scrollspy below deliberately doesn't log: it fires continuously
+  // while scrolling, so counting it would report scroll depth as intent.
+  const USAGE_AREA_BY_TARGET = {
+    summaryPanel: "overview",
+    tabReflect: "my-session",
+    tabChart: "agency-chart",
+    tabDriving: "whos-driving",
+    growthMovesPanel: "next-time",
+  };
+
   const buttons = Array.from(jump.querySelectorAll(".report-jump-btn"));
   buttons.forEach(btn => {
     btn.addEventListener("click", () => {
+      const area = USAGE_AREA_BY_TARGET[btn.dataset.target];
+      if (area) logUse("report", area);
       document.getElementById(btn.dataset.target)?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   });

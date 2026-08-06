@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Writing Coach</title>
+<title>Tau Thinking</title>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -20,7 +20,7 @@
      workspace views, and report.html, all fill the same shell rather than
      each inventing their own header. -->
 <header class="tau-nav" id="tauNav">
-  <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="TAU">Coach</span>
+  <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="Tau">Thinking</span>
   <nav class="tau-nav-crumbs" id="navCrumbs"></nav>
   <span class="tau-nav-fill"></span>
   <span class="tau-nav-local hidden" id="navLocal"></span>
@@ -116,22 +116,39 @@
 </div>
 
 <!-- Submit modal — the shared .scrim/.confirm dialog (components.css),
-     widened via .confirm-lg for the essay textarea. -->
+     widened via .confirm-lg for the draft upload/paste area. -->
 <div class="scrim hidden" id="submitModal">
   <div class="confirm confirm-lg">
     <h4>Submit draft</h4>
     <ul id="submitWarning"></ul>
-    <p>Paste your current essay draft from Google Docs:</p>
-    <textarea id="essayText" rows="12" placeholder="Paste your full draft here…"></textarea>
+
+    <div id="draftUpload">
+      <p>Upload your draft (.docx or .txt):</p>
+      <label class="upload-drop" id="uploadDrop" for="draftFile">
+        <span id="uploadDropLabel">Drop your file here, or <span class="link-btn">browse</span></span>
+      </label>
+      <input type="file" id="draftFile" accept=".docx,.txt" class="visually-hidden">
+      <p class="upload-switch hidden" id="uploadRemoveRow"><button class="link-btn" id="btnRemoveFile" type="button">Remove file</button></p>
+      <p class="upload-error hidden" id="uploadError"></p>
+      <p class="upload-switch"><button class="link-btn" id="btnSwitchToPaste" type="button">Or paste text instead</button></p>
+    </div>
+
+    <div id="draftPaste" class="hidden">
+      <p>Paste your current essay draft from Google Docs:</p>
+      <textarea id="essayText" rows="12" placeholder="Paste your full draft here…"></textarea>
+      <p class="upload-switch"><button class="link-btn" id="btnSwitchToUpload" type="button">Or upload a file instead</button></p>
+    </div>
+
     <div class="confirm-acts">
       <button id="btnCancelSubmit">Cancel</button>
-      <button id="btnConfirmSubmit" class="submit-btn">Submit — this ends my session</button>
+      <button id="btnConfirmSubmit" class="submit-btn" disabled>Submit — this ends my session</button>
     </div>
   </div>
 </div>
 
 <script src="api.js"></script>
 <script src="icons.js"></script>
+<script src="vendor/mammoth.browser.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

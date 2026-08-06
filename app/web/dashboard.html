@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teacher Dashboard — Critical Thinking Auditor</title>
+<title>Teacher Dashboard — Tau Thinking</title>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -37,7 +37,6 @@ header {
   flex-shrink: 0;
 }
 header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.2px; }
-header .subtitle { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
 /* ── Header utility menus (Manage / Account) ──────────────────────────────
    Two dropdowns replace what used to be five flat, equal-weight buttons —
    see teacher-dashboard-design.md's header session log for the reasoning.
@@ -943,9 +942,8 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
 <body>
 
 <header>
-  <img class="tau-nav-logo" src="assets/logo-mark.png" alt="TAU">
-  <h1>Critical Thinking Auditor</h1>
-  <span class="subtitle">Teacher Dashboard</span>
+  <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="Tau">Thinking</span>
+  <h1>Teacher Dashboard</h1>
 
   <div style="margin-left:auto;display:flex;align-items:center;gap:var(--tau-s2)">
 
@@ -1942,6 +1940,35 @@ function fleetDimensionTrend() {
   return classDimensionTrend(STUDENTS, ASSIGNMENTS);
 }
 
+// "How your teaching is landing" is the one Home section whose rows rarely
+// move day to day, which is exactly why a real move is easy to miss —
+// nothing else on the row visually distinguishes "same as last time" from
+// "changed since you last looked." Snapshot is read once at page load, so
+// a badge set on the first render of a session stays put for the rest of
+// that session rather than clearing itself the instant renderHome() re-runs.
+const TEACHING_SNAPSHOT_KEY = 'tau-teaching-snapshot';
+let TEACHING_SNAPSHOT_PREV = null;
+try { TEACHING_SNAPSHOT_PREV = JSON.parse(localStorage.getItem(TEACHING_SNAPSHOT_KEY)); } catch (e) { TEACHING_SNAPSHOT_PREV = null; }
+
+function teachingRowSignature(row) {
+  return `${row.trend}|${row.skewed}|${Math.round(row.avgCurr * 10)}`;
+}
+
+// null on the very first-ever visit (no baseline to compare against) so
+// nothing gets marked "Updated" before there's something to be updated
+// relative to.
+function teachingRowChanged(row) {
+  if (!TEACHING_SNAPSHOT_PREV) return false;
+  const prevSig = TEACHING_SNAPSHOT_PREV[row.key];
+  return prevSig !== undefined && prevSig !== teachingRowSignature(row);
+}
+
+function saveTeachingSnapshot(rows) {
+  const snapshot = {};
+  rows.forEach(row => { snapshot[row.key] = teachingRowSignature(row); });
+  try { localStorage.setItem(TEACHING_SNAPSHOT_KEY, JSON.stringify(snapshot)); } catch (e) {}
+}
+
 function fleetAssignmentSeries() {
   return classAssignmentSeries(STUDENTS, ASSIGNMENTS);
 }
@@ -1984,6 +2011,7 @@ function renderTeachingSection() {
   };
 
   trend.rows.forEach(row => {
+    const changed = teachingRowChanged(row);
     const notable = row.skewed || row.trend === 'up' || row.trend === 'down' || row.trend === 'floor';
     if (!notable) {
       // 'mid' → plain quiet line; 'ceiling' → quiet-positive line, distinct
@@ -1994,14 +2022,14 @@ function renderTeachingSection() {
       lineRun.push(`<div class="dim-line ${variant}">
         <span class="glyph">${glyph}</span>
         <span class="dim-line-name">${row.label}</span>
-        <span class="dim-line-note">${row.note}</span>
+        <span class="dim-line-note">${row.note}${changed ? ' · <b>Updated</b>' : ''}</span>
       </div>`);
       return;
     }
     flushLines();
     const isPositive = row.trend === 'up' && !row.skewed;
     const cls = isPositive ? 'positive' : '';
-    const eyebrow = isPositive ? '✓ Across your classes' : 'Across your classes';
+    const eyebrow = (isPositive ? '✓ Across your classes' : 'Across your classes') + (changed ? ' · <b>Updated</b>' : '');
     const headline = row.skewed
       ? `${row.label}'s average looks like progress, but your classes are split`
       : row.trend === 'up'   ? `${row.label} has improved across your classes`
@@ -2010,7 +2038,7 @@ function renderTeachingSection() {
     const isOutlierRow = floorRow && row.key === floorRow.key && outlierAssignment;
     const body = `Averaging <b>${row.avgCurr.toFixed(1)} / 5</b> across your classes this month. ${row.note}`;
     const outlierHtml = isOutlierRow ? `<div class="teaching-outlier"><span>📎</span><span>${outlierNote}</span></div>` : '';
-    const linkHtml = isOutlierRow ? `<span class="teaching-link" onclick="gotoAssignment('${outlierAssignment.id}')">View ${outlierAssignment.label} →</span>` : '';
+    const linkHtml = isOutlierRow ? `<span class="teaching-link" onclick="logUse('dashboard','teaching-landing');gotoAssignment('${outlierAssignment.id}')">View ${outlierAssignment.label} →</span>` : '';
     blocks.push(`<div class="teaching-card ${cls}">
       <div class="teaching-eyebrow">${eyebrow}</div>
       <div class="teaching-headline">${headline}</div>
@@ -2020,6 +2048,7 @@ function renderTeachingSection() {
     </div>`);
   });
   flushLines();
+  saveTeachingSnapshot(trend.rows);
 
   return `<div class="eyebrow" style="margin-bottom:8px">How your teaching is landing</div>
   <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:var(--tau-s6)">${blocks.join('')}</div>`;
@@ -2079,7 +2108,7 @@ function renderHome() {
       <div class="pattern-sub">${classCounts}</div>
       <p class="pattern-body"><b>What this looks like:</b> ${meta.what}</p>
       <div class="pattern-try"><b>What to try:</b> ${meta.whatToTry}</div>
-      <span class="pattern-link" onclick="gotoStudents('pattern', '${id}')">View the ${students.length} student${students.length !== 1 ? 's' : ''} →</span>
+      <span class="pattern-link" onclick="logUse('dashboard','patterns-worth-noticing');gotoStudents('pattern', '${id}')">View the ${students.length} student${students.length !== 1 ? 's' : ''} →</span>
     </div>`;
   }).join('');
 
@@ -2134,8 +2163,8 @@ function renderHome() {
       <div class="content-meta">${date}</div>
     </div>
     ${tiles}
-    ${teachingSection}
     ${patternsSection}
+    ${teachingSection}
     ${classesSection}
   `;
 }
@@ -3893,7 +3922,26 @@ function sortBrowseStudents(students, clsId) {
 
 // ── Router ────────────────────────────────────────────────────────────────────
 
+// Which content area each screen is, for the product-metrics log. Logged from
+// renderContent because that's the one choke point every navigation passes
+// through — but only when `screen` actually changes, since renderContent also
+// re-runs for in-screen state (a drill toggle, a tab switch) and counting
+// those as "opened the Class view again" would make the ranking meaningless.
+const USAGE_AREA_BY_SCREEN = {
+  home: 'home',
+  class: 'class-tab',
+  assignment: 'assignment-tab',
+  student: 'student-tab',
+  assignments: 'browse-assignments',
+  students: 'browse-students',
+};
+let lastLoggedScreen = null;
+
 function renderContent() {
+  if (screen !== lastLoggedScreen) {
+    lastLoggedScreen = screen;
+    if (USAGE_AREA_BY_SCREEN[screen]) logUse('dashboard', USAGE_AREA_BY_SCREEN[screen]);
+  }
   const el = document.getElementById('content');
   if      (screen === 'home')        el.innerHTML = renderHome();
   else if (screen === 'class')       el.innerHTML = renderClassDetail(activeClass);
@@ -3953,6 +4001,7 @@ function gotoStudentFromClass(sid) {
 
 function toggleStudentDrill(key) {
   expandedInStudent = expandedInStudent === key ? null : key;
+  if (expandedInStudent) logUse('dashboard', 'drill-panel'); // opens only — a close isn't a use
   renderContent();
 }
 
@@ -4014,6 +4063,7 @@ const FLAG_TYPES = {
 };
 
 function openFlagModal() {
+  logUse('dashboard', 'flag-modal');
   const body = document.getElementById('flag-modal-body');
   body.innerHTML = Object.entries(FLAG_META).map(([key, f]) => {
     const type    = FLAG_TYPES[key] || 'integrity';
@@ -4209,6 +4259,7 @@ function toggleAllAssignClasses() {
 let pendingAssignClassIds = null;
 
 function openNewAssignmentModal() {
+  logUse('dashboard', 'add-assignment');
   editingAssignmentId = null;
   document.getElementById('new-assignment-title').textContent = 'New assignment';
   document.getElementById('new-assignment-subtitle').textContent = 'Choose which classes get it — every student on them is assigned automatically, no roster to pick.';
@@ -4629,6 +4680,7 @@ function resetNewClassAttachPanels() {
 }
 
 function openNewClassModal() {
+  logUse('dashboard', 'add-class');
   document.getElementById('hdrNewClassForm').reset();
   resetNewClassAttachPanels();
   document.getElementById('new-class-view-form').hidden = false;
@@ -4645,6 +4697,7 @@ function closeNewClassModal(e) {
 }
 
 function openAddStudentsModal() {
+  logUse('dashboard', 'add-students');
   populateHeaderClassSelect();
   document.getElementById('hdr-addstudent-roster-input').value = '';
   document.getElementById('hdr-addstudent-preview').hidden = true;

@@ -16,15 +16,13 @@ const AI_TURN_MAX_CHARS = 400;
 // One flat, chronological turn list across all cycle conversations.
 // Meta-turns (auditor) and superseded turns are excluded — same rule the
 // coach context uses. Conversation boundaries kept for enrichment.
-function gatherCycle(session) {
-  const conversations = col('conversations')
-    .list((c) => c.sessionId === session.id)
+async function gatherCycle(session) {
+  const conversations = (await col('conversations').list({ sessionId: session.id }))
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
   const bundle = [];
   for (const conv of conversations) {
-    const turns = col('turns')
-      .list((t) => t.conversationId === conv.id)
+    const turns = (await col('turns').list({ conversationId: conv.id }))
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     const dead = new Set(turns.flatMap((t) => t.meta?.supersedes || []));
     const live = turns.filter((t) => !dead.has(t.id) && !t.meta?.metaTurn && t.role !== 'auditor');
@@ -36,6 +34,8 @@ function gatherCycle(session) {
 // ---------- turn classification (CTA Call 1) ----------
 
 const CLASSIFY_PROMPT = (listed) => `Classify each student turn from an AI-assisted writing session.
+
+Each item shows what the coach said immediately before, then the student turn to classify.
 
 Labels and what they mean:
 - claim: student asserts their own position, thesis, or argument
@@ -50,30 +50,87 @@ Labels and what they mean:
 - challenge: student probes AI reasoning, asks for evidence or justification
 - pivot: student explicitly shifts to a new topic
 
+Also judge "responsive" for each turn: does the student engage with the substance of what the coach just said — answering it, building on it, disagreeing with it, or deliberately redirecting it?
+
+- Judge meaning, not wording. A student who restates the coach's point in their own words IS responsive. A student who reuses the coach's vocabulary while ignoring what it was for is NOT.
+- A turn that ignores the coach's turn and starts somewhere unrelated is not responsive.
+- If the item shows no preceding coach turn, responsive is false.
+
 Turns to classify:
 ${listed}
 
-Return ONLY a JSON array: [{"turnIndex": 0, "label": "challenge", "confidence": 0.9}, ...]`;
+Return ONLY a JSON array: [{"turnIndex": 0, "label": "challenge", "responsive": true, "confidence": 0.9}, ...]`;
 
+// Calls run with responseMimeType: application/json, so the whole body should
+// parse. The scan below is the fallback, and it stops at the *matching* close
+// rather than the last one in the string: Gemini occasionally emits a complete
+// object followed by a second one, and a greedy match turns that into a syntax
+// error at the join. Seen intermittently on the snapshot call, 2026-08-05.
 function extractJSON(raw, kind) {
-  const match = raw.match(kind === 'array' ? /\[[\s\S]*\]/ : /\{[\s\S]*\}/);
-  if (!match) throw new Error(`No JSON ${kind} in LLM response`);
-  return JSON.parse(match[0]);
+  const text = raw.trim();
+  try {
+    return JSON.parse(text);
+  } catch {
+    // fall through to the scan
+  }
+
+  const [open, close] = kind === 'array' ? ['[', ']'] : ['{', '}'];
+  const start = text.indexOf(open);
+  if (start === -1) throw new Error(`No JSON ${kind} in LLM response`);
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (escaped) { escaped = false; continue; }
+    if (ch === '\\') { escaped = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === open) depth++;
+    else if (ch === close && --depth === 0) return JSON.parse(text.slice(start, i + 1));
+  }
+  throw new Error(`Truncated JSON ${kind} in LLM response`);
 }
 
-async function classifyStudentTurns(studentTurns) {
+// Student turns paired with the coach turn they follow, in the same order
+// enrich() walks them so turnIndex lines up. Responsiveness cannot be judged
+// without this pairing — the classifier used to see student turns alone, which
+// is why the signal fell back to a lexical guess.
+function studentTurnsWithContext(bundle) {
+  const paired = [];
+  for (const { turns } of bundle) {
+    let priorCoach = null;
+    for (const turn of turns) {
+      if (turn.role === 'student') paired.push({ turn, priorCoach });
+      else priorCoach = turn.text;
+    }
+  }
+  return paired;
+}
+
+async function classifyStudentTurns(paired, meta) {
   const map = {};
   const chunks = [];
-  for (let i = 0; i < studentTurns.length; i += CLASSIFY_CHUNK_SIZE) {
-    chunks.push({ turns: studentTurns.slice(i, i + CLASSIFY_CHUNK_SIZE), offset: i });
+  for (let i = 0; i < paired.length; i += CLASSIFY_CHUNK_SIZE) {
+    chunks.push({ items: paired.slice(i, i + CLASSIFY_CHUNK_SIZE), offset: i });
   }
   const results = await Promise.all(
-    chunks.map(async ({ turns, offset }) => {
-      const listed = turns.map((t, i) => `[${offset + i}] ${t.text}`).join('\n\n');
+    chunks.map(async ({ items, offset }) => {
+      const listed = items
+        .map(({ turn, priorCoach }, i) => {
+          const context = priorCoach
+            ? `COACH: ${priorCoach.slice(0, AI_TURN_MAX_CHARS)}${priorCoach.length > AI_TURN_MAX_CHARS ? '…' : ''}`
+            : 'COACH: (nothing — this turn opens the conversation)';
+          return `[${offset + i}]\n${context}\nSTUDENT: ${turn.text}`;
+        })
+        .join('\n\n');
       const raw = await complete({
         messages: [{ role: 'user', content: CLASSIFY_PROMPT(listed) }],
         temperature: 0.1,
-        maxTokens: 100 + turns.length * 30,
+        json: true,
+        meta: { ...meta, purpose: 'classify' },
+        maxTokens: 100 + items.length * 40,
       });
       return extractJSON(raw, 'array');
     })
@@ -84,17 +141,19 @@ async function classifyStudentTurns(studentTurns) {
 
 // ---------- context enrichment (ported from CTA classifyAllTurns pass 2) ----------
 
-const RESPONSIVE_MARKERS = /^(but|so|actually|wait|however|that.?s|i see|ok so|right so|i (think|feel|believe|disagree|agree)|what about|that (makes|doesn.?t)|hmm|hm\b)/i;
-
-function isResponsiveToAI(text, priorAIText) {
-  if (!priorAIText) return false;
-  if (RESPONSIVE_MARKERS.test(text.trim())) return true;
-  const aiWords = new Set(
-    priorAIText.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/).filter((w) => w.length > 5)
-  );
-  const studentWords = text.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/).filter((w) => w.length > 5);
-  return studentWords.filter((w) => aiWords.has(w)).length >= 2;
-}
+// Responsiveness is the classifier's judgement (see CLASSIFY_PROMPT). It used
+// to be a lexical test — turn-initial discourse markers, or ≥2 shared words
+// longer than 5 characters with the prior coach turn — which measured whether a
+// student echoed the coach's vocabulary, the opposite of what PQ is specified
+// to measure. Paraphrasing scored lower than parroting. Measured on the seed
+// transcripts 2026-08-05, it fired on 0 of 12 turns for two of the four tiers.
+//
+// These four labels are *definitionally* about the coach's previous turn — you
+// cannot reject, refine, validate or challenge nothing. They stand in when no
+// classifier judgement is available, which is the dev seed's path: it builds
+// demo analyses from hand-labeled transcripts without an LLM call. The fallback
+// deliberately claims no more than the labels already assert.
+const RESPONSIVE_BY_LABEL = new Set(['rejection', 'refinement', 'validation', 'challenge']);
 
 // Enrichment stays within conversation boundaries — a "followup" in a
 // different conversation is not a followup.
@@ -115,7 +174,9 @@ function enrich(bundle, labelMap) {
         followedBy: null,
       };
       if (isStudent) {
-        entry.label = labelMap[studentIdx]?.label || 'narrative';
+        const judged = labelMap[studentIdx];
+        entry.label = judged?.label || 'narrative';
+        entry.judgedResponsive = typeof judged?.responsive === 'boolean' ? judged.responsive : null;
         studentIdx++;
       }
       return entry;
@@ -128,7 +189,12 @@ function enrich(bundle, labelMap) {
       for (let j = i - 1; j >= 0; j--) {
         if (convTurns[j].role === 'ai') { priorAI = convTurns[j].text; break; }
       }
-      t.responsive = isResponsiveToAI(t.text, priorAI);
+      // Structural, and it outranks the classifier: a turn that opens a
+      // conversation has nothing to be responsive to, whatever the model said.
+      t.responsive = priorAI
+        ? (t.judgedResponsive ?? RESPONSIVE_BY_LABEL.has(t.label))
+        : false;
+      delete t.judgedResponsive;
       for (let j = i + 1; j < convTurns.length; j++) {
         if (convTurns[j].role === 'student') { t.followedBy = convTurns[j].label; break; }
       }
@@ -169,7 +235,7 @@ Each flag: {"flag": "...", "evidence": "one sentence citing the specific moment"
 
 Return ONLY valid JSON: {"concepts": [...], "flags": [...]}. No explanation.`;
 
-async function traceProvenance(classified, essayText) {
+async function traceProvenance(classified, essayText, meta) {
   const chatLog = classified
     .map((t) => {
       const text = t.role === 'student' ? t.text : t.text.slice(0, AI_TURN_MAX_CHARS) + (t.text.length > AI_TURN_MAX_CHARS ? '…' : '');
@@ -180,6 +246,8 @@ async function traceProvenance(classified, essayText) {
   const raw = await complete({
     messages: [{ role: 'user', content: PROVENANCE_PROMPT(chatLog, essayText) }],
     temperature: 0.2,
+    json: true,
+    meta: { ...meta, purpose: 'provenance' },
     maxTokens: 3000,
   });
   const parsed = extractJSON(raw, 'object');
@@ -303,13 +371,15 @@ Return ONLY valid JSON:
 
 Rules: 2-3 strengths (fewer if the conversation was very short), 1-2 growth moves. Quotes must be real student turns, not coach turns. Warm, direct, specific. Never mention grades or essay quality.`;
 
-async function generateSnapshot({ classified, tau, nextLevelLabel }) {
+async function generateSnapshot({ classified, tau, nextLevelLabel, meta }) {
   const transcript = classified
     .map((t) => `${t.role === 'student' ? 'Student' : 'Coach'}: ${t.text.slice(0, 300)}`)
     .join('\n');
   const raw = await complete({
     messages: [{ role: 'user', content: SNAPSHOT_PROMPT({ transcript, tau, nextLevelLabel }) }],
     temperature: 0.4,
+    json: true,
+    meta: { ...meta, purpose: 'snapshot' },
     maxTokens: 700,
   });
   return extractJSON(raw, 'object');
@@ -320,26 +390,33 @@ async function generateSnapshot({ classified, tau, nextLevelLabel }) {
 const LEVEL_LABELS = { full: 'full coach', questions: 'questions-only', 'sounding-board': 'sounding board' };
 
 async function runAnalysis(submissionId) {
-  const submission = col('submissions').get(submissionId);
-  const session = col('sessions').get(submission.sessionId);
-  const assignment = col('assignments').get(submission.assignmentId);
+  const submission = await col('submissions').get(submissionId);
+  const session = await col('sessions').get(submission.sessionId);
+  const assignment = await col('assignments').get(submission.assignmentId);
 
-  const analysis = col('analyses').add({
+  const analysis = await col('analyses').add({
     submissionId,
     status: 'pending',
     createdAt: new Date().toISOString(),
   });
-  col('submissions').update(submissionId, { analysisId: analysis.id });
+  await col('submissions').update(submissionId, { analysisId: analysis.id });
+
+  // Attribution for every LLM call this run makes — which student, which
+  // assignment, which submission. Recorded in llmCalls; see llm.js.
+  const meta = {
+    studentId: session.studentId,
+    assignmentId: submission.assignmentId,
+    submissionId,
+  };
 
   try {
-    const bundle = gatherCycle(session);
-    const allTurns = bundle.flatMap((b) => b.turns);
-    const studentTurns = allTurns.filter((t) => t.role === 'student');
+    const bundle = await gatherCycle(session);
+    const paired = studentTurnsWithContext(bundle);
 
-    const labelMap = studentTurns.length ? await classifyStudentTurns(studentTurns) : {};
+    const labelMap = paired.length ? await classifyStudentTurns(paired, meta) : {};
     const classified = enrich(bundle, labelMap);
 
-    const { concepts, flags } = await traceProvenance(classified, submission.essayText);
+    const { concepts, flags } = await traceProvenance(classified, submission.essayText, meta);
     const tau = scoreTAU(classified, concepts);
 
     const nextLevel = assignment.coachingLevels[session.cycleIndex + 1];
@@ -347,16 +424,17 @@ async function runAnalysis(submissionId) {
       classified,
       tau,
       nextLevelLabel: nextLevel ? LEVEL_LABELS[nextLevel] : null,
+      meta,
     });
 
     // Cycle activity from the event log — stored for display/teacher view;
     // not folded into scoring yet (parity with the CTA formulas).
     const eventCounts = {};
-    for (const e of col('events').list((e) => e.sessionId === session.id)) {
+    for (const e of await col('events').list({ sessionId: session.id })) {
       eventCounts[e.type] = (eventCounts[e.type] || 0) + 1;
     }
 
-    col('analyses').update(analysis.id, {
+    await col('analyses').update(analysis.id, {
       status: 'complete',
       tau,
       provenance: concepts,
@@ -371,7 +449,7 @@ async function runAnalysis(submissionId) {
     });
   } catch (err) {
     console.error('analysis failed:', err);
-    col('analyses').update(analysis.id, { status: 'error', error: err.message });
+    await col('analyses').update(analysis.id, { status: 'error', error: err.message });
   }
   return analysis.id;
 }

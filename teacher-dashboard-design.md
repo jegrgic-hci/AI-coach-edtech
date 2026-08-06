@@ -93,6 +93,12 @@ below); everything here is either a count, an aggregate, or a link into a filter
 assignments, total students. Clicking "Worth a chat" or "Missing work" opens Browse Students
 pre-filtered; the other tiles are informational only.
 
+**Section order (2026-08-04): tiles → Patterns worth noticing → How your teaching is landing →
+Classes at a glance.** Patterns moved above the teaching-landing section because it's the one most
+likely to need action today (per-student, time-sensitive); the teaching-landing section is a fleet-
+wide dimension rollup that rarely moves week to week, so it reads better as context underneath the
+thing worth acting on first, not competing with it for the top of the page.
+
 ### Patterns worth noticing
 
 A cross-student rollup of the four behavioral pattern types (`TREND_META`/`REASON_TO_TREND`:
@@ -2227,3 +2233,16 @@ tab from before this session's edits landed, not a live bug. What *did* come out
 was real, though: *"why don't we just use the same modal size... this would be way simpler and more
 consistent"* — the width-inconsistency question behind the bug report was legitimate even though the
 specific screenshot wasn't reproducible, and is the fix recorded in the correction above.
+
+**2026-08-04 — Home section reorder + "Updated" marker for the teaching-landing section.** Patterns
+worth noticing moved above How your teaching is landing (see the *Home* section entry above for the
+reasoning). Separately, that section's rows almost never change week to week, which was making it easy
+to skim past even on the rare week something did move — so each row's `trend`/`skewed`/`avgCurr` is now
+snapshotted to `localStorage` (`tau-teaching-snapshot`) at render time; a row whose signature differs
+from the snapshot taken at the *start* of the current page session (not re-diffed on every in-session
+re-render, so the marker doesn't clear itself the instant the teacher clicks elsewhere and back) gets a
+plain-text "· **Updated**" appended after its existing note/eyebrow — no new chip, no new colour,
+deliberately not enclosed in a pill per the Hard Constraint that a chip needs to be both actionable and
+rare in context; this is neither, it's a freshness marker on an already-actionable card. First-ever
+visit (no stored snapshot yet) marks nothing, since there's no prior state to have changed from.
+`teachingRowSignature`/`teachingRowChanged`/`saveTeachingSnapshot` in `dashboard.html`.
