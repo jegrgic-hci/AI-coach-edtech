@@ -6,8 +6,11 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { col } = require('./store');
-const { authenticate, login, logout, sessionCookie, clearedCookie, tokenFrom, setPassword, newTempPassword, DEMO_MODE, DEV_PASSWORD } = require('./auth');
+const { authenticate, isSuspended, login, logout, sessionCookie, clearedCookie, tokenFrom, inspectCredentialToken, redeemCredentialToken, DEMO_MODE, DEV_PASSWORD } = require('./auth');
+const { sendInvite, sendReset } = require('./invites');
+const { volume: mailVolume, settings: mailSettings } = require('./mail');
 const { streamChat, modelFor, MAX_EVAL_TOKENS } = require('./llm');
 const { LEVELS, coachMessages, auditorMessages } = require('./coach');
 const { runAnalysis } = require('./analysis');
@@ -518,11 +521,125 @@ async function handleAuth(req, res, route) {
     return true;
   }
 
+  // Names the account a set-password link belongs to. Not an access check —
+  // the page gate has already refused a bad token — so it exists only so
+  // someone holding a forwarded or stale link can see which account they are
+  // about to change before they change it.
+  if (req.method === 'GET' && route === '/api/auth/invite') {
+    const t = new URL(req.url, 'http://x').searchParams.get('t');
+    const found = await inspectCredentialToken(t);
+    if (!found.ok) {
+      json(res, 400, { error: 'That link is no longer valid.' });
+      return true;
+    }
+    json(res, 200, { email: found.user.email, displayName: found.user.displayName, purpose: found.purpose });
+    return true;
+  }
+
+  if (req.method === 'POST' && route === '/api/auth/set-password') {
+    const body = await readBody(req);
+    const result = await redeemCredentialToken(body.token, body.password, clientIp(req));
+
+    if (!result.ok && result.reason === 'password') {
+      json(res, 400, { error: result.message });
+      return true;
+    }
+    if (!result.ok) {
+      json(res, 400, { error: 'That link has expired or has already been used. Ask for a new one from the sign-in page.' });
+      return true;
+    }
+
+    await recordAdminEvent(result.user, result.purpose === 'invite' ? 'invite-accepted' : 'reset-completed', result.user);
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Set-Cookie': sessionCookie(result.token) });
+    res.end(JSON.stringify({ id: result.user.id, displayName: result.user.displayName, role: result.user.role }));
+    return true;
+  }
+
+  // Always answers 200 with the same body, whether or not the address has an
+  // account. The client shows fixed wording for the same reason: this is the
+  // one endpoint anyone can call about an address they do not own, so it must
+  // not become a way to ask "does this student go here?".
+  if (req.method === 'POST' && route === '/api/auth/request-reset') {
+    const body = await readBody(req);
+    const email = String(body.email || '').trim().toLowerCase();
+    const user = email ? (await col('users').list((u) => u.email.toLowerCase() === email))[0] : null;
+
+    if (user && !isSuspended(user)) {
+      // Throttled on the address rather than the requester: the cost being
+      // controlled is mail sent to a person who did not ask for it (and a
+      // finite daily send allowance), neither of which depends on who asked.
+      const recent = (await col('emailSends').list({ to: user.email }))
+        .filter((s) => s.purpose === 'reset' && s.sentAt >= new Date(Date.now() - 3600000).toISOString());
+      if (recent.length >= 3) {
+        console.warn('[auth] reset requests throttled for', user.email);
+      } else {
+        await sendReset(user);
+      }
+    } else if (email) {
+      // Logged, never written to adminEvents: an audit row naming an address
+      // with no account would turn the log into an enumeration oracle for
+      // whoever reads it later, and let anyone fill it with invented strings.
+      console.warn('[auth] reset requested for an address with no active account');
+    }
+
+    json(res, 200, { ok: true });
+    return true;
+  }
+
   if (req.method === 'POST' && route === '/api/auth/logout') {
     const token = tokenFrom(req);
     if (token) await logout(token);
     res.writeHead(200, { 'Content-Type': 'application/json', 'Set-Cookie': clearedCookie() });
     res.end(JSON.stringify({ ok: true }));
+    return true;
+  }
+
+  // Delivery callbacks from SMTP2GO. The send API answers 200 the moment it
+  // *accepts* a message, which is not delivery — a hard bounce, a full
+  // mailbox, or a school filter rejection arrives minutes later over SMTP.
+  // That gap is the whole of "my students never got their email", so without
+  // this route the question is unanswerable from inside the app.
+  //
+  // Authenticated by a shared secret in a header, which the provider's webhook
+  // config supports — a secret in the path would otherwise be copied into
+  // every access log and referrer along the way.
+  //
+  // Constant-time compared, and the route may only ever annotate an existing
+  // send record: never create a user, never mutate one, never consume a token.
+  // So even a leaked secret buys nothing but a false delivery status on a row.
+  if (req.method === 'POST' && route === '/api/webhooks/smtp2go') {
+    const secret = mailSettings().webhookSecret;
+    const supplied = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    const a = Buffer.from(supplied);
+    const b = Buffer.from(secret || '');
+    if (!secret || a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+      json(res, 404, { error: 'not found' });
+      return true;
+    }
+
+    const body = await readBody(req).catch(() => ({}));
+    const messageId = body.email_id || body.message_id || body.sendid || null;
+    const event = String(body.event || body.type || '').toLowerCase();
+    const record = messageId ? (await col('emailSends').list({ providerMessageId: messageId }))[0] : null;
+
+    // 200 even when nothing matched: a provider that gets an error retries,
+    // and there is nothing to retry for an event about a message this install
+    // has no record of.
+    if (record && event) {
+      const status = event.includes('bounce') ? 'bounced'
+        : event.includes('spam') || event.includes('complain') ? 'spam'
+        : event.includes('deliver') ? 'delivered'
+        : event.includes('defer') ? 'deferred' : null;
+      if (status) {
+        await col('emailSends').update(record.id, {
+          deliveryStatus: status,
+          deliveryDetail: String(body.reason || body.detail || '').slice(0, 300) || null,
+          deliveryAt: now(),
+        });
+      }
+    }
+
+    json(res, 200, { ok: true });
     return true;
   }
 
@@ -1243,6 +1360,29 @@ async function handleApi(req, res, user, route) {
 
     const teacherDocs = teacherDocsRaw.sort((a, b) => a.displayName.localeCompare(b.displayName));
 
+    // The most recent message sent to each account, so a roster row can answer
+    // "they say they never got it" without anyone opening the provider's
+    // dashboard — which on this plan only retains five days anyway. One read
+    // for the whole page rather than one per row.
+    const latestSend = {};
+    for (const s of await col('emailSends').list()) {
+      if (!s.userId) continue;
+      if (!latestSend[s.userId] || s.sentAt > latestSend[s.userId].sentAt) latestSend[s.userId] = s;
+    }
+    const sendSummary = (id) => {
+      const s = latestSend[id];
+      if (!s) return null;
+      // The address is carried from the send record, not joined from the user:
+      // a mistyped address that was later corrected still has to show the one
+      // the message actually went to, or the commonest cause of "no email
+      // arrived" becomes the one thing the screen hides.
+      return {
+        to: s.to, purpose: s.purpose, sentAt: s.sentAt,
+        accepted: s.accepted, failureReason: s.failureReason,
+        deliveryStatus: s.deliveryStatus,
+      };
+    };
+
     const teachers = teacherDocs.map((t) => {
       const classes = allClasses.filter((c) => c.teacherId === t.id);
       return {
@@ -1250,6 +1390,11 @@ async function handleApi(req, res, user, route) {
         displayName: t.displayName,
         email: t.email,
         status: t.status === 'suspended' ? 'suspended' : 'active',
+        // Never signed in: derived from the absence of a password rather than
+        // from a status value, so it stays true no matter which of the status
+        // toggles has been used on the account since.
+        neverSignedIn: !t.passwordSetAt,
+        lastSend: sendSummary(t.id),
         schoolAdmin: t.schoolAdmin === true,
         classCount: classes.length,
         studentCount: new Set(classes.flatMap((c) => c.studentIds || [])).size,
@@ -1269,6 +1414,8 @@ async function handleApi(req, res, user, route) {
         displayName: s.displayName,
         email: s.email,
         status: s.status === 'suspended' ? 'suspended' : 'active',
+        neverSignedIn: !s.passwordSetAt,
+        lastSend: sendSummary(s.id),
         classCount: allClasses.filter((c) => (c.studentIds || []).includes(s.id)).length,
         lastActiveAt: lastActive[s.id] || null,
       }))
@@ -1278,6 +1425,11 @@ async function handleApi(req, res, user, route) {
       teachers,
       students,
       status: isPlatformAdmin(user) ? await statusSummary() : null,
+      // Volume against the plan's own ceilings, plus when mail last went out.
+      // An operational fact about a running install, so it sits with Status
+      // and Cost rather than with the rosters — same split the rail already
+      // makes between "is it working" and "who are the people".
+      mail: isPlatformAdmin(user) ? await mailVolume() : null,
       adminEvents: (await col('adminEvents').list())
         .sort((a, b) => b.ts.localeCompare(a.ts))
         .slice(0, 20),
@@ -1308,11 +1460,11 @@ async function handleApi(req, res, user, route) {
     });
   }
 
-  // POST /api/admin/teachers — create a teacher account. Same
-  // find-or-provision shape as adding a student to a class, and the same
-  // DEV_PASSWORD stand-in: there is no mail path in this POC to deliver a
-  // generated one, and per-account passwords go away entirely at the Google
-  // SSO swap (see auth.js).
+  // POST /api/admin/teachers — create a teacher account and invite them.
+  // The account is created with no password at all; the emailed link sets one
+  // (auth.js, credential tokens). Nothing about a credential is returned here,
+  // which is the point — the administrator who creates an account can no
+  // longer sign in as it.
   if (req.method === 'POST' && seg1 === 'admin' && seg2 === 'teachers' && !seg3) {
     const body = await readBody(req);
     const email = String(body.email || '').trim().toLowerCase();
@@ -1330,13 +1482,21 @@ async function handleApi(req, res, user, route) {
       // administrator adds teachers; letting them mint peers would make the
       // grant self-propagating, so the tier that can create a tier is fixed.
       schoolAdmin: isPlatformAdmin(user) && body.schoolAdmin === true,
+      // Stays 'active'. "Invited but not signed in yet" is derived from the
+      // absence of passwordSetAt, not from a third status value — a new status
+      // would have to be understood by isSuspended(), the two status toggles,
+      // the audience counts and every roster filter, and any one of them
+      // missing it is an account that quietly cannot sign in.
       status: 'active',
       createdAt: now(),
     });
-    const tempPassword = newTempPassword();
-    await setPassword(teacher, tempPassword);
+    const sent = await sendInvite(teacher, user);
     await recordAdminEvent(user, 'create', teacher, teacher.schoolAdmin ? 'teacher + school administrator' : 'teacher');
-    return json(res, 200, { id: teacher.id, email, displayName, tempPassword });
+    if (!sent.accepted) await recordAdminEvent(user, 'invite-failed', teacher, sent.failureReason);
+    return json(res, 200, {
+      id: teacher.id, email, displayName,
+      invite: { accepted: sent.accepted, failureReason: sent.failureReason },
+    });
   }
 
   // POST /api/admin/teachers/:id/... — three small lifecycle actions on one
@@ -1379,15 +1539,24 @@ async function handleApi(req, res, user, route) {
       return json(res, 200, { ok: true, status });
     }
 
-    if (action === 'reset-password') {
-      const tempPassword = newTempPassword();
-      await setPassword(teacher, tempPassword);
-      // An admin resetting a teacher's password can then sign in as them.
-      // Acceptable for teacher accounts an admin already administers, but it
-      // is logged so the action is never invisible.
-      console.warn('[auth] password reset: admin', user.id, '→ teacher', teacher.id);
-      await recordAdminEvent(user, 'reset-password', teacher);
-      return json(res, 200, { ok: true, tempPassword });
+    // Mails a link to the account holder instead of setting a password the
+    // administrator can read. This is what closes the hole the old version
+    // logged and accepted: an admin could reset a teacher's password and then
+    // sign in as them. Now an admin can start a recovery and still cannot
+    // complete one — only the mailbox owner can.
+    if (action === 'send-reset') {
+      const sent = await sendReset(teacher);
+      await recordAdminEvent(user, 'reset-link-sent', teacher, sent.accepted ? null : sent.failureReason);
+      return json(res, 200, { ok: true, accepted: sent.accepted, failureReason: sent.failureReason, to: teacher.email });
+    }
+
+    // Same mechanism, different sentence on screen: "resend" is what an
+    // administrator asks for when the first invite never arrived, and reusing
+    // the reset wording there would be confusing at exactly the wrong moment.
+    if (action === 'resend-invite') {
+      const sent = await sendInvite(teacher, user);
+      await recordAdminEvent(user, 'invite-resent', teacher, sent.accepted ? null : sent.failureReason);
+      return json(res, 200, { ok: true, accepted: sent.accepted, failureReason: sent.failureReason, to: teacher.email });
     }
 
     return json(res, 404, { error: 'not found' });
@@ -1415,14 +1584,16 @@ async function handleApi(req, res, user, route) {
       return json(res, 200, { ok: true, status });
     }
 
-    if (action === 'reset-password') {
-      const tempPassword = newTempPassword();
-      await setPassword(student, tempPassword);
-      // Logged for the same reason the teacher reset is: whoever resets this
-      // can now sign in as the student, and that must never be invisible.
-      console.warn('[auth] password reset: admin', user.id, '→ student', student.id);
-      await recordAdminEvent(user, 'reset-password', student);
-      return json(res, 200, { ok: true, tempPassword });
+    if (action === 'send-reset') {
+      const sent = await sendReset(student);
+      await recordAdminEvent(user, 'reset-link-sent', student, sent.accepted ? null : sent.failureReason);
+      return json(res, 200, { ok: true, accepted: sent.accepted, failureReason: sent.failureReason, to: student.email });
+    }
+
+    if (action === 'resend-invite') {
+      const sent = await sendInvite(student, user);
+      await recordAdminEvent(user, 'invite-resent', student, sent.accepted ? null : sent.failureReason);
+      return json(res, 200, { ok: true, accepted: sent.accepted, failureReason: sent.failureReason, to: student.email });
     }
 
     return json(res, 404, { error: 'not found' });
@@ -1624,11 +1795,10 @@ async function handleApi(req, res, user, route) {
   // that — branching on the body is simpler than widening the router for
   // one route.
   //   { email, displayName } → add. Finds an existing student account by
-  //     email, or provisions a new one. New accounts get the same shared
-  //     dev password every seeded account already uses (`DEV_PASSWORD`) —
-  //     there's no email delivery in this POC to hand a generated one to,
-  //     and no self-serve signup yet; real per-student passwords go away
-  //     entirely once Google SSO lands, per auth.js's own plan.
+  //     email, or provisions a new one. A new account is created with no
+  //     password and invited by email; the link sets one (auth.js, credential
+  //     tokens). An address that already has an account is added to the
+  //     roster and deliberately not re-invited.
   //   { studentId, remove: true } → remove from this class's roster only —
   //     the account itself isn't deleted, since the student may belong to
   //     another class.
@@ -1652,10 +1822,17 @@ async function handleApi(req, res, user, route) {
     if (student && student.role !== 'student') {
       return json(res, 400, { error: 'that email belongs to a non-student account' });
     }
+    let invite = null;
     if (!student) {
       if (!displayName) return json(res, 400, { error: 'name is required for a new student' });
-      student = await col('users').add({ email, displayName, role: 'student', createdAt: now() });
-      await setPassword(student, newTempPassword());
+      student = await col('users').add({ email, displayName, role: 'student', status: 'active', createdAt: now() });
+      // No password is set here — the emailed link sets one. An existing
+      // student added to a second class is not re-invited: they already have
+      // an account, and a fresh invite would invalidate the credentials they
+      // are signing in with today.
+      invite = await sendInvite(student, user);
+      await recordAdminEvent(user, 'create', student, 'student');
+      if (!invite.accepted) await recordAdminEvent(user, 'invite-failed', student, invite.failureReason);
     }
 
     const studentIds = classDoc.studentIds || [];
@@ -1669,6 +1846,11 @@ async function handleApi(req, res, user, route) {
     return json(res, 200, {
       class: await col('classes').get(classDoc.id),
       student: { id: savedStudent.id, email: savedStudent.email, displayName: savedStudent.displayName },
+      // Null when the student already had an account. Non-null and unaccepted
+      // is the case the teacher has to see immediately — a mistyped address
+      // otherwise looks exactly like a successful add. Trimmed to the two
+      // fields the client acts on; the send's own id is bookkeeping.
+      invite: invite ? { accepted: invite.accepted, failureReason: invite.failureReason } : null,
     });
   }
 
@@ -2013,20 +2195,79 @@ function cacheControl(route) {
 // selection): state that changes what you see has to resolve before first
 // paint, not after it. Doing it server-side also means it holds with JS off,
 // and covers all five surfaces in one place instead of each page re-deriving
-// it.
+// it. Which page an account gets is settled in the same place and for the same
+// reason — see homePageFor.
 //
 // Only pages are gated. tokens.css, login.js, theme.js and the favicons stay
 // public — gating those would leave the login page unable to render itself.
-const PUBLIC_PAGES = new Set(['/login.html']);
+const PUBLIC_PAGES = new Set(['/login.html', '/set-password.html']);
 
-async function redirectedToLogin(req, res, route) {
+// The set-password page is public, but only with a live token — so the token
+// is resolved here, before the page is served, for the same reason sign-in is:
+// state that changes what you see must settle before first paint, not after.
+// A spent or expired link therefore lands on the sign-in page with the reason
+// and the way to get a new one, rather than rendering a form that fails only
+// once it has been filled in.
+async function redirectedForBadToken(req, res, route) {
+  if (route !== '/set-password.html') return false;
+  const t = new URL(req.url, 'http://x').searchParams.get('t');
+  const found = await inspectCredentialToken(t);
+  if (found.ok) return false;
+  const reason = found.reason === 'expired' ? 'expired' : 'invalid';
+  res.writeHead(302, { Location: `/login.html?link=${reason}` });
+  res.end();
+  return true;
+}
+
+// Where an account starts. The login form used to be the only thing that knew
+// this (login.js's ROLE_HOMES), so it only held for people who arrived by
+// submitting that form — typing the bare domain, a bookmark, or a `next=` from
+// an earlier bounce dropped a platform admin on the student app or the teacher
+// dashboard instead.
+//
+// A school administrator homes to the dashboard rather than to admin.html: the
+// grant sits on a teacher account (see canAdminPeople), and teaching is the job
+// they do daily. Administration is one click away in the account menu.
+function homePageFor(user) {
+  if (isPlatformAdmin(user)) return '/admin.html';
+  if (user.role === 'teacher') return '/dashboard.html';
+  return '/index.html';
+}
+
+// Pages that only one kind of account can use. Everything behind them is
+// already role-gated at the API, so without this a platform admin opening
+// /dashboard.html got a dashboard that 403s its own data — a broken page rather
+// than a redirect to the working one.
+//
+// index.html and report.html are deliberately absent: the student app doubles
+// as the teacher's preview of it, and a report is gated by ownership rather
+// than by role.
+const PAGE_ACCESS = {
+  '/admin.html': canAdminPeople,
+  '/dashboard.html': (u) => u.role === 'teacher',
+  '/teacher.html': (u) => u.role === 'teacher',
+};
+
+async function redirectedToOwnPage(req, res, route) {
   const isPage = route === '/' || route.endsWith('.html');
   if (!isPage || PUBLIC_PAGES.has(route)) return false;
-  if (await authenticate(req)) return false;
 
-  // req.url, not route: a deep link like /report.html?id=… has to survive the
-  // round trip. login.js already validates `next` against open redirects.
-  res.writeHead(302, { Location: `/login.html?next=${encodeURIComponent(req.url)}` });
+  const user = await authenticate(req);
+  if (!user) {
+    // req.url, not route: a deep link like /report.html?id=… has to survive the
+    // round trip. login.js already validates `next` against open redirects.
+    res.writeHead(302, { Location: `/login.html?next=${encodeURIComponent(req.url)}` });
+    res.end();
+    return true;
+  }
+
+  // '/' is not a page of its own — it means "wherever this account starts".
+  if (route !== '/') {
+    const allowed = PAGE_ACCESS[route];
+    if (!allowed || allowed(user)) return false;
+  }
+
+  res.writeHead(302, { Location: homePageFor(user) });
   res.end();
   return true;
 }
@@ -2067,7 +2308,8 @@ const server = http.createServer(async (req, res) => {
       if (!user) return json(res, 401, { error: 'not signed in' });
       await handleApi(req, res, user, route);
     } else {
-      if (await redirectedToLogin(req, res, route)) return;
+      if (await redirectedForBadToken(req, res, route)) return;
+      if (await redirectedToOwnPage(req, res, route)) return;
       serveStatic(req, res, route);
     }
   } catch (err) {

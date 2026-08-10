@@ -230,6 +230,127 @@ function tokenFrom(req) {
   return parseCookies(req.headers.cookie)[COOKIE] || null;
 }
 
+// ---------- credential tokens (invite + password reset) ----------
+//
+// An invited account is created with **no password at all** and an emailed
+// single-use link sets it. Nothing about a credential is ever displayed to the
+// administrator who created the account or carried in the body of an email.
+// That is a smaller mechanism than "mail a temporary password, then force a
+// change" — there is no interim password to leak, reuse, or forget to change —
+// and it closes the one hole this repo had already written down and accepted:
+// an admin who resets someone's password can then sign in as them.
+//
+// verifyPassword() already returns false for a user with no hash, so a
+// password-less account is unusable by construction rather than by a flag
+// somebody has to remember to check.
+//
+// Reset tokens live one hour and invites seven days, because the two are not
+// the same risk: an invite is initiated by a trusted administrator for someone
+// expected to be onboarding this week, while a reset can be triggered by anyone
+// who knows an address, so its window should be as short as is still usable.
+const INVITE_TTL_MS = 7 * 86400000;
+const RESET_TTL_MS = 60 * 60000;
+
+// NIST SP 800-63B: length is the control that matters. No composition rules, no
+// forced rotation, no truncation, paste allowed — each of those makes passwords
+// worse in practice. The blocklist is deliberately tiny; it exists to catch the
+// handful of strings a person picks when told "at least 12 characters", not to
+// be a dictionary.
+const MIN_PASSWORD_LENGTH = 12;
+const BLOCKED_PASSWORDS = new Set([
+  'password1234', 'passwordpassword', '123456789012', 'qwertyuiop12',
+  'letmeinletmein', 'tauthinking1', 'schoolschool', 'aaaaaaaaaaaa',
+]);
+
+// Returns null when acceptable, or the sentence to show the person.
+function passwordProblem(password) {
+  const value = String(password || '');
+  if (value.length < MIN_PASSWORD_LENGTH) return `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
+  if (value.length > 200) return 'Use fewer than 200 characters.';
+  if (BLOCKED_PASSWORDS.has(value.toLowerCase())) return 'That password is too easy to guess. Choose something else.';
+  return null;
+}
+
+// Hashed at rest for exactly the reason authSessions are: the row is a bearer
+// credential, and anyone who reads the collection — a backup, an export, a
+// misconfigured rule — could otherwise set the password of every pending
+// account without knowing anything else.
+async function mintCredentialToken(user, purpose, createdBy = null) {
+  const raw = crypto.randomBytes(32).toString('base64url');
+  const ttl = purpose === 'invite' ? INVITE_TTL_MS : RESET_TTL_MS;
+
+  // One live token per account: minting a new one must retire the old, or a
+  // resent invite leaves the first link working and a reset does not actually
+  // revoke anything.
+  await invalidateCredentialTokens(user.id);
+
+  await col('credentialTokens').add({
+    userId: user.id,
+    purpose,
+    tokenHash: hashToken(raw),
+    createdAt: new Date().toISOString(),
+    createdBy,
+    expiresAt: new Date(Date.now() + ttl).toISOString(),
+    usedAt: null,
+  });
+  return raw;
+}
+
+async function invalidateCredentialTokens(userId) {
+  for (const t of await col('credentialTokens').list({ userId })) {
+    await col('credentialTokens').delete(t.id);
+  }
+}
+
+// Looks a token up without consuming it, so the set-password page can be gated
+// server-side before first paint — an expired link must render an expired-link
+// page, never a form that only fails once it has been filled in.
+// Returns { ok: true, user, purpose } or { ok: false, reason }.
+async function inspectCredentialToken(raw) {
+  if (!raw) return { ok: false, reason: 'missing' };
+  const record = (await col('credentialTokens').list({ tokenHash: hashToken(String(raw)) }))[0];
+  if (!record || record.usedAt) return { ok: false, reason: 'invalid' };
+  if (new Date(record.expiresAt) < new Date()) return { ok: false, reason: 'expired' };
+  const user = await col('users').get(record.userId);
+  if (!user || isSuspended(user)) return { ok: false, reason: 'invalid' };
+  return { ok: true, user, purpose: record.purpose, record };
+}
+
+// Sets the password and signs the person straight in. Three things have to
+// happen together or not at all:
+//   - every token for the account dies, so a forwarded link is spent
+//   - every existing authSession dies, because a reset whose whole purpose may
+//     be evicting someone must not leave that someone's cookie working
+//   - a fresh session is issued, so the person lands signed in rather than
+//     being handed back to a login form they just proved themselves against
+async function redeemCredentialToken(raw, password, clientIp = null) {
+  const found = await inspectCredentialToken(raw);
+  if (!found.ok) return found;
+
+  const problem = passwordProblem(password);
+  if (problem) return { ok: false, reason: 'password', message: problem };
+
+  await setPassword(found.user, String(password));
+  await invalidateCredentialTokens(found.user.id);
+  for (const s of await col('authSessions').list({ userId: found.user.id })) {
+    await col('authSessions').delete(s.id);
+  }
+
+  // A pending account that has never signed in is indistinguishable from a
+  // suspended one without this: both simply fail to log in.
+  if (found.user.status !== 'active') await col('users').update(found.user.id, { status: 'active' });
+
+  const token = crypto.randomBytes(32).toString('hex');
+  await col('authSessions').add({
+    userId: found.user.id,
+    tokenHash: hashToken(token),
+    createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + SESSION_DAYS * 86400000).toISOString(),
+  });
+
+  return { ok: true, user: found.user, purpose: found.purpose, token, clientIp };
+}
+
 module.exports = {
   authenticate,
   isSuspended,
@@ -240,6 +361,12 @@ module.exports = {
   sessionCookie,
   clearedCookie,
   tokenFrom,
+  mintCredentialToken,
+  inspectCredentialToken,
+  redeemCredentialToken,
+  invalidateCredentialTokens,
+  passwordProblem,
+  MIN_PASSWORD_LENGTH,
   PRODUCTION,
   DEMO_MODE,
   DEV_PASSWORD,

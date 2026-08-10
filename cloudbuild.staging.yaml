@@ -52,7 +52,22 @@ steps:
       - --region=us-central1
       - --project=cta-pilot-dev
       - --service-account=cta-run@cta-pilot-dev.iam.gserviceaccount.com
-      - --set-env-vars=NODE_ENV=staging,SEED_DEMO=1,SEED_ONCE=1,SECURE_COOKIES=1,GCP_PROJECT_ID=cta-pilot-dev,GCP_LOCATION=global
+      - --set-env-vars=^;^NODE_ENV=staging;SEED_DEMO=1;SEED_ONCE=1;SECURE_COOKIES=1;GCP_PROJECT_ID=cta-pilot-dev;GCP_LOCATION=global;MAIL_FROM=Tau Thinking <no-reply@tauthinking.com>;APP_URL=https://staging.tauthinking.com
+      # Staging sends real email, because the thing being reviewed here is the
+      # onboarding itself: a real person is invited, gets the mail, sets a
+      # password and signs in. It uses a *different* SMTP2GO key from
+      # production, from this project's own Secret Manager, so revoking one
+      # never touches the other.
+      #
+      # The one caution that comes with this: staging shares cta-pilot-dev's
+      # Firestore with local dev, so it holds @school.dev fixture accounts.
+      # Inviting one would bounce against a domain that does not exist and
+      # spend the plan's 200/day allowance — invite real addresses only.
+      #
+      # No MAIL_WEBHOOK_SECRET: the free plan allows one webhook and it points
+      # at production, so delivery status is simply never recorded here. Sends
+      # still work; the roster reads "invite sent" rather than "delivered".
+      - --set-secrets=SMTP2GO_API_KEY=smtp2go-api-key:latest
       # Lower than prod's 20: this instance exists for a handful of reviewers,
       # and the ceiling is also the ceiling on a runaway Vertex bill.
       - --max-instances=4

@@ -443,9 +443,12 @@ button:hover { border-color: var(--tau-forest); }
   background: var(--tau-line);
 }
 
-#loginForm { display: flex; flex-direction: column; gap: 6px; }
-#loginForm label { font-size: 13px; color: var(--tau-ink-soft); margin-top: 6px; }
-#loginForm input {
+/* Was #loginForm until set-password.html needed the identical shell. Both
+   forms are the same component on the same sheet, so it is a class rather
+   than the second page redefining chrome it does not own. */
+.auth-form { display: flex; flex-direction: column; gap: 6px; }
+.auth-form label { font-size: 13px; color: var(--tau-ink-soft); margin-top: 6px; }
+.auth-form input {
   font: inherit;
   border: 1px solid var(--tau-line);
   border-radius: 8px;
@@ -453,7 +456,43 @@ button:hover { border-color: var(--tau-forest); }
   background: var(--tau-surface);
   color: var(--tau-ink);
 }
-#loginForm input:focus { outline: 2px solid var(--tau-surface-2); border-color: var(--tau-forest); }
+.auth-form input:focus { outline: 2px solid var(--tau-surface-2); border-color: var(--tau-forest); }
+
+.auth-identity { min-height: 1.2em; }
+.auth-rule { font-size: 13px; color: var(--tau-ink-soft); margin: 0 0 2px; }
+
+/* A recovery route, not a second way in: quieter than the submit it sits
+   under, and it reads as the destination ("Reset your password") rather than
+   asking the reader a question about themselves. */
+.auth-alt {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--tau-line);
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.auth-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--tau-forest);
+  cursor: pointer;
+  text-decoration: underline;
+  min-height: var(--tau-target);
+}
+.auth-notice {
+  background: var(--tau-surface-2);
+  border: 1px solid var(--tau-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--tau-ink-soft);
+  margin-bottom: 12px;
+}
 
 .login-error {
   background: var(--tau-attention-bg);

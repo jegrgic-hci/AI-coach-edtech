@@ -27,6 +27,10 @@ async function revealTestAccounts() {
     return;
   }
   if (!demo.demo) return;
+  // The reset view may already be showing (an expired link lands straight on
+  // it), and this request resolves after that decision — revealing the fixture
+  // list now would put a published password under a recovery form.
+  if (!$('resetForm').classList.contains('hidden')) return;
   $('demoPassword').textContent = demo.password;
   renderTestAccounts(demo.password);
   $('demoDivider').hidden = false;
@@ -55,25 +59,21 @@ function renderTestAccounts(password) {
   }
 }
 
-// A school administrator is a teacher with a grant, so their home stays the
-// dashboard — teaching is the job they do daily, administration the one they
-// do occasionally. They reach it from the account chip, which api.js shows
-// whenever /api/me reports canAdmin.
-const ROLE_HOMES = { teacher: '/dashboard.html', 'platform-admin': '/admin.html', student: '/index.html' };
-
-function landingFor(role) {
-  const roleHome = ROLE_HOMES[role] || ROLE_HOMES.student;
+// Which page each role starts on is the server's decision (index.js,
+// homePageFor) rather than a table here: '/' means "this account's home", and
+// a `next` the account can't use — someone bounced off /dashboard.html by a
+// 401 — is redirected to that same home instead of being rendered and
+// rejected again. Keeping a second copy of the mapping in the browser is what
+// let the two drift, so the sign-in form knew the rule and nothing else did.
+function landingFor() {
   const next = new URLSearchParams(location.search).get('next');
-  // Only honour same-origin relative paths — never redirect to an absolute URL
-  // supplied in the query string. And never honour a `next` that is some
-  // *other* role's home: someone bounced off a page they can't read (401 ->
-  // ?next=/dashboard.html) should land on their own home, not be sent back to
-  // the page that rejected them to be rejected again.
-  const otherRoleHome = Object.values(ROLE_HOMES).some((h) => h === next && h !== roleHome);
-  if (next && next.startsWith('/') && !next.startsWith('//') && !otherRoleHome) {
+  // Only honour same-origin relative paths — never an absolute URL supplied in
+  // the query string — and never a bounce straight back to sign-in.
+  const loops = next === '/login.html' || next?.startsWith('/login.html?') || next?.startsWith('/set-password.html');
+  if (next && next.startsWith('/') && !next.startsWith('//') && !loops) {
     return next;
   }
-  return roleHome;
+  return '/';
 }
 
 $('loginForm').addEventListener('submit', async (e) => {
@@ -84,11 +84,11 @@ $('loginForm').addEventListener('submit', async (e) => {
   submit.disabled = true;
   submit.textContent = 'Signing in…';
   try {
-    const me = await api('/api/auth/login', {
+    await api('/api/auth/login', {
       method: 'POST',
       body: { email: $('email').value, password: $('password').value },
     });
-    location.href = landingFor(me.role);
+    location.href = landingFor();
   } catch (ex) {
     err.textContent = ex.message;
     err.classList.remove('hidden');
@@ -97,5 +97,62 @@ $('loginForm').addEventListener('submit', async (e) => {
   }
 });
 
+// ---------- password reset ----------
+
+// Why the sign-in form is showing instead of the set-password page the person
+// clicked through to. Only ever states the link's condition — never whether an
+// account exists for it.
+const LINK_NOTICES = {
+  expired: 'That link has expired. Enter your email below and we will send you a new one.',
+  invalid: 'That link has already been used or is no longer valid. Enter your email below and we will send you a new one.',
+};
+
+function showResetView(show) {
+  $('loginForm').classList.toggle('hidden', show);
+  $('resetForm').classList.toggle('hidden', !show);
+  const demo = $('demoAccounts');
+  const divider = $('demoDivider');
+  // The demo fixture list belongs to signing in, not to recovery — leaving it
+  // under the reset form offers a password to someone who just said they
+  // haven't got one.
+  if (demo && !demo.hidden) demo.style.display = show ? 'none' : '';
+  if (divider && !divider.hidden) divider.style.display = show ? 'none' : '';
+  if (show) $('resetEmail').focus(); else $('email').focus();
+}
+
+$('showReset').addEventListener('click', () => {
+  $('resetEmail').value = $('email').value;
+  showResetView(true);
+});
+$('backToSignIn').addEventListener('click', () => showResetView(false));
+
+$('resetForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const submit = $('resetSubmit');
+  const done = $('resetDone');
+  submit.disabled = true;
+  submit.textContent = 'Sending…';
+  try {
+    await api('/api/auth/request-reset', { method: 'POST', body: { email: $('resetEmail').value } });
+  } catch {
+    // Deliberately swallowed. The server answers identically for a real and an
+    // unknown address; surfacing a transport error here would be the one thing
+    // that tells the two apart.
+  }
+  // Fixed wording, no address echoed back — the message must be identical
+  // whether or not an account exists, or the form enumerates who has one.
+  done.textContent = 'If that email has an account, a reset link is on its way. It expires in 1 hour.';
+  done.classList.remove('hidden');
+  submit.disabled = false;
+  submit.textContent = 'Send reset link';
+});
+
+const linkState = new URLSearchParams(location.search).get('link');
+if (LINK_NOTICES[linkState]) {
+  $('linkNotice').textContent = LINK_NOTICES[linkState];
+  $('linkNotice').classList.remove('hidden');
+  showResetView(true);
+}
+
 revealTestAccounts();
-$('email').focus();
+if ($('resetForm').classList.contains('hidden')) $('email').focus();

@@ -40,6 +40,10 @@ const NAV = [
     items: [
       { id: 'status', label: 'Status', platformOnly: true, count: () => openIssues() || null },
       { id: 'cost', label: 'Cost', platformOnly: true },
+      // Operations, not Accounts: this is volume against a plan ceiling and
+      // whether sending still works — an operational fact about a running
+      // install. "Who has an account" stays next door.
+      { id: 'email', label: 'Email delivery', platformOnly: true },
     ],
   },
   {
@@ -100,6 +104,32 @@ function renderLead() {
     <span class="admin-lead-text">drafts submitted so far, by ${plural(scale.students, 'student', 'students')}
       across ${plural(scale.classes, 'class', 'classes')} and ${plural(scale.assignments, 'assignment', 'assignments')}.</span>
   </section>`;
+}
+
+// The sign-in state of an account, in one line under their address.
+//
+// This is the whole answer to "my students say they never got the email", so
+// it names the address the message actually went to — a typo is the commonest
+// cause and the only one visible without asking anyone anything.
+//
+// Plain text, not a chip, for everything except a delivery failure: per
+// designsystem.md a chip needs to be BOTH actionable AND rare, and "invited,
+// hasn't signed in yet" is neither. A refused or bounced message is both, and
+// its label states the alert itself rather than carrying it in colour alone.
+function accountState(person) {
+  if (!person.neverSignedIn) return '';
+  const s = person.lastSend;
+  if (!s) return '<span class="account-state">No invite sent yet</span>';
+
+  const when = new Date(s.sentAt).toLocaleDateString();
+  const failed = !s.accepted || s.deliveryStatus === 'bounced' || s.deliveryStatus === 'spam';
+  if (failed) {
+    const why = s.failureReason || (s.deliveryStatus === 'spam' ? 'marked as spam' : 'bounced');
+    return `<span class="chip chip-attention">Invite not delivered</span>
+      <span class="account-state">to ${esc(s.to)} on ${esc(when)} — ${esc(why)}</span>`;
+  }
+  const landed = s.deliveryStatus === 'delivered' ? 'delivered' : 'sent';
+  return `<span class="account-state">Invite ${landed} to ${esc(s.to)} on ${esc(when)} · not signed in yet</span>`;
 }
 
 function relativeTime(iso) {
@@ -237,10 +267,11 @@ function renderStudents() {
         <div class="teacher-name">${esc(s.displayName)}
           ${suspended ? '<span class="chip chip-grey">Suspended</span>' : ''}</div>
         <div class="teacher-email">${esc(s.email)} · ${esc(relativeDate(s.lastActiveAt))}</div>
+        ${accountState(s)}
       </div>
       <div class="teacher-counts">${plural(s.classCount, 'class', 'classes')}</div>
       <div class="teacher-actions">
-        <button class="btn btn-quiet btn-sm" data-sreset="${s.id}">Reset password</button>
+        <button class="btn btn-quiet btn-sm" data-smail="${s.id}">${s.neverSignedIn ? 'Resend invite' : 'Send reset link'}</button>
         <button class="btn btn-quiet btn-sm" data-sstatus="${s.id}" data-to="${suspended ? 'active' : 'suspended'}">${suspended ? 'Reactivate' : 'Suspend'}</button>
       </div>
     </div>`;
@@ -298,6 +329,7 @@ function renderTeachers() {
           ${t.schoolAdmin ? '<span class="chip chip-neutral">School administrator</span>' : ''}
           ${suspended ? '<span class="chip chip-grey">Suspended</span>' : ''}</div>
         <div class="teacher-email">${esc(t.email)} · ${esc(relativeDate(t.lastActiveAt))}</div>
+        ${accountState(t)}
       </div>
       <div class="teacher-counts">
         ${plural(t.classCount, 'class', 'classes')} · ${plural(t.studentCount, 'student', 'students')}<br>
@@ -305,7 +337,7 @@ function renderTeachers() {
       </div>
       <div class="teacher-actions">
         <button class="btn btn-quiet btn-sm" data-edit="${t.id}">Edit</button>
-        <button class="btn btn-quiet btn-sm" data-reset="${t.id}">Reset password</button>
+        <button class="btn btn-quiet btn-sm" data-tmail="${t.id}">${t.neverSignedIn ? 'Resend invite' : 'Send reset link'}</button>
         <button class="btn btn-quiet btn-sm" data-status="${t.id}" data-to="${suspended ? 'active' : 'suspended'}">${suspended ? 'Reactivate' : 'Suspend'}</button>
       </div>
     </div>`;
@@ -546,9 +578,72 @@ function renderPatterns() {
   </section>`;
 }
 
+// Volume against the plan's ceilings, and whether sending still works.
+//
+// Counts carry their denominator for the same reason the reach bars do: "34"
+// alone is not a fact anyone can act on, and "34 of 200" is. No trend line —
+// the question here is "how close to the limit, and is it alive", not "what
+// shape has the week been".
+function renderEmail() {
+  const m = data.mail;
+  if (!m) return '';
+
+  const dayPct = Math.min(100, Math.round((m.today / m.limits.perDay) * 100));
+  const monthPct = Math.min(100, Math.round((m.month / m.limits.perMonth) * 100));
+
+  // A count of zero reads identically whether nothing needed sending or
+  // sending is broken. The last-send time is what separates those, so it is
+  // stated as a peer of the counts rather than as a footnote.
+  const lead = !m.configured
+    ? `<section class="admin-lead">
+        <span class="admin-lead-figure">Not configured</span>
+        <span class="admin-lead-text">No mail provider key is set on this instance, so invites and reset
+          links are written to the server log instead of being sent. Expected on a local or demo instance.</span>
+      </section>`
+    : !m.lastSentAt
+      ? `<section class="admin-lead">
+          <span class="admin-lead-figure">Nothing sent yet</span>
+          <span class="admin-lead-text">No invite or reset link has gone out from this instance this month.</span>
+        </section>`
+      : `<section class="admin-lead">
+          <span class="admin-lead-figure">${esc(relativeTime(m.lastSentAt))}</span>
+          <span class="admin-lead-text">was the last message out. On a school day this reading in
+            days rather than minutes is the sign that sending has stopped working.</span>
+        </section>`;
+
+  const undelivered = m.undelivered
+    ? `<section>
+        <div class="eyebrow">Not delivered</div>
+        <p class="section-note">${plural(m.undelivered, 'message', 'messages')} this month
+          ${m.undelivered === 1 ? 'was' : 'were'} refused, bounced, or marked as spam. Open the person's
+          row under Teachers or Students to see the address it went to, and resend from there.</p>
+      </section>`
+    : '';
+
+  return `<section>
+    <div class="section-head"><span class="section-title">Email delivery</span></div>
+    <p class="section-note">Account invites and password reset links. The plan allows
+      ${m.limits.perDay} a day and ${m.limits.perMonth} a month — a whole-school import is the thing
+      that reaches either.</p>
+    ${lead}
+    <div class="card card-lg">
+      <div class="audit-row">
+        <span class="audit-when">Today</span>
+        <span class="audit-what"><strong>${m.today}</strong> of ${m.limits.perDay} sent${dayPct >= 80 ? ` — ${dayPct}% of the daily limit` : ''}</span>
+      </div>
+      <div class="audit-row">
+        <span class="audit-when">This month</span>
+        <span class="audit-what"><strong>${m.month}</strong> of ${m.limits.perMonth} sent${monthPct >= 80 ? ` — ${monthPct}% of the monthly limit` : ''}</span>
+      </div>
+    </div>
+    ${undelivered}
+  </section>`;
+}
+
 const VIEWS = {
   status: renderStatus,
   cost: renderCost,
+  email: renderEmail,
   students: renderStudents,
   areas: renderContentAreas,
   patterns: renderPatterns,
@@ -602,10 +697,37 @@ function openTeacherModal(teacher) {
   $('teacherName').focus();
 }
 
-function showPassword(name, password) {
-  $('passwordSub').textContent = `${name} signs in with their email and this password.`;
-  $('passwordValue').textContent = password;
-  $('passwordModal').classList.remove('hidden');
+// One control for both messages, because which one is correct is a property
+// of the account rather than a choice the administrator should have to make:
+// an account that has never been signed into needs its invite again, and one
+// that has needs a reset. Guessing wrong sends the wrong words to a person who
+// is already confused about why they cannot get in.
+async function sendAccountEmail(collection, person) {
+  const resend = person.neverSignedIn;
+  const what = resend ? 'invite' : 'password reset link';
+  if (!confirm(`Send a new ${what} to ${person.email}?${resend ? '' : ' Their current password keeps working until they use it.'}`)) return;
+
+  const action = resend ? 'resend-invite' : 'send-reset';
+  const result = await api(`/api/admin/${collection}/${person.id}/${action}`, { method: 'POST' });
+  showSendResult(resend ? 'Invite sent' : 'Reset link sent', person.displayName, person.email, result);
+  await reload();
+}
+
+// Reports what happened to the message. Never a credential — an account is set
+// up by whoever holds the mailbox, so there is nothing here to pass on by hand.
+function showSendResult(title, name, address, result) {
+  const accepted = !result || result.accepted !== false;
+  $('sendTitle').textContent = accepted ? title : 'Not sent';
+  $('sendSub').textContent = accepted
+    ? `Sent to ${address} for ${name}. They set their own password from the link.`
+    : `Nothing was delivered to ${address}.`;
+  // The failure reason is shown rather than summarised: "mailbox does not
+  // exist" and "daily send limit reached" call for completely different
+  // actions, and collapsing them into "sending failed" hides which.
+  $('sendDetail').textContent = accepted
+    ? 'If it has not arrived in a few minutes, check their spam folder before resending.'
+    : (result.failureReason || 'The mail provider refused the message.');
+  $('sendModal').classList.remove('hidden');
 }
 
 async function reload() {
@@ -638,7 +760,7 @@ $('adminNav').addEventListener('click', (e) => {
 });
 
 $('teacherCancel').onclick = () => $('teacherModal').classList.add('hidden');
-$('passwordClose').onclick = () => $('passwordModal').classList.add('hidden');
+$('sendClose').onclick = () => $('sendModal').classList.add('hidden');
 
 $('teacherSave').onclick = async () => {
   const displayName = $('teacherName').value.trim();
@@ -656,7 +778,7 @@ $('teacherSave').onclick = async () => {
       const created = await api('/api/admin/teachers', { method: 'POST', body: { displayName, email, schoolAdmin } });
       $('teacherModal').classList.add('hidden');
       await reload();
-      showPassword(created.displayName, created.tempPassword);
+      showSendResult('Invite sent', created.displayName, email, created.invite);
     }
   } catch (ex) {
     err.textContent = ex.message;
@@ -699,11 +821,9 @@ $('adminMain').addEventListener('click', async (e) => {
     return openTeacherModal(data.teachers.find((t) => t.id === btn.dataset.edit));
   }
 
-  if (btn.dataset.reset) {
-    const teacher = data.teachers.find((t) => t.id === btn.dataset.reset);
-    if (!confirm(`Reset the password for ${teacher.displayName}? Their current one stops working.`)) return;
-    const { tempPassword } = await api(`/api/admin/teachers/${teacher.id}/reset-password`, { method: 'POST' });
-    return showPassword(teacher.displayName, tempPassword);
+  if (btn.dataset.tmail) {
+    const teacher = data.teachers.find((t) => t.id === btn.dataset.tmail);
+    return sendAccountEmail('teachers', teacher);
   }
 
   if (btn.dataset.retry) {
@@ -716,11 +836,9 @@ $('adminMain').addEventListener('click', async (e) => {
     return;
   }
 
-  if (btn.dataset.sreset) {
-    const student = data.students.find((s) => s.id === btn.dataset.sreset);
-    if (!confirm(`Reset the password for ${student.displayName}? Their current one stops working.`)) return;
-    const { tempPassword } = await api(`/api/admin/students/${student.id}/reset-password`, { method: 'POST' });
-    return showPassword(student.displayName, tempPassword);
+  if (btn.dataset.smail) {
+    const student = data.students.find((s) => s.id === btn.dataset.smail);
+    return sendAccountEmail('students', student);
   }
 
   if (btn.dataset.sstatus) {

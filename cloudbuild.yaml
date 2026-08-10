@@ -35,6 +35,11 @@ steps:
   # Env vars are repeated in full because --set-env-vars replaces the whole set
   # rather than merging. Dropping one here silently unconfigures the service.
   #
+  # The ^;^ prefix switches gcloud's separator from comma to semicolon. MAIL_FROM
+  # is a display name plus an address, and the day someone writes "Tau Thinking,
+  # Inc." a comma-separated list would split mid-value and set two broken vars
+  # instead of failing.
+  #
   # No --allow-unauthenticated / --no-allow-unauthenticated: the service's IAM
   # policy (allUsers → run.invoker, deliberate, see app/README.md) is managed
   # separately and must not be churned by an ordinary deploy.
@@ -49,7 +54,16 @@ steps:
       - --region=us-central1
       - --project=tau-thinking-prod
       - --service-account=cta-run@tau-thinking-prod.iam.gserviceaccount.com
-      - --set-env-vars=NODE_ENV=production,GCP_PROJECT_ID=tau-thinking-prod,GCP_LOCATION=global
+      - --set-env-vars=^;^NODE_ENV=production;GCP_PROJECT_ID=tau-thinking-prod;GCP_LOCATION=global;MAIL_FROM=Tau Thinking <no-reply@tauthinking.com>;APP_URL=https://app.tauthinking.com
+      # The mail credentials are the first values here that must not be in this
+      # file — it is committed. Secret Manager holds them; --set-secrets is a
+      # separate set from --set-env-vars and is likewise replaced wholesale, so
+      # both lines have to stay complete.
+      #
+      # Without these, production starts fine and then refuses to send on the
+      # first invite (mail.js declines to run key-less in production rather
+      # than printing invite links into a log).
+      - --set-secrets=SMTP2GO_API_KEY=smtp2go-api-key:latest,MAIL_WEBHOOK_SECRET=mail-webhook-secret:latest
       - --max-instances=20
 
 substitutions:

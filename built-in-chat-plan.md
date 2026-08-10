@@ -501,7 +501,8 @@ Lean: teacher note attached to a submission, visible to the student beside their
 6. **Teacher enablement curriculum** — reading the instrument, pattern literacy, annotated exemplars, conference craft, flag literacy (incl. ELL/IEP misfire profiles), dial pedagogy, student framing. `teacher-guide.md` is the seed; pilot teacher co-authors
 7. **Flag misfire disclosure** — unnatural-fluency / stylistic-inconsistency have false-positive profiles for ELL (translators) and IEP accommodations; side tray discloses per flag
 8. **Build-time check** — scoring must reward sparse-but-excellent usage profiles (TAU formulas are ratio-based so quality-density should win; verify with a gifted-student sample log)
-9. ~~**PQ is partly measuring vocabulary echo**~~ — **closed 2026-08-05.** The lexical `isResponsiveToAI()` test is gone; the classifier now receives the preceding coach turn and judges responsiveness by meaning, so paraphrase no longer scores below parroting. Fixing it exposed a larger validity problem: responsiveness runs at 75–82% in *every* condition tested, including with no coach at all, so PQ now reads 5 almost everywhere. **All dimension definition and validity work now lives in `tau-dimensions.md`**, split out on 2026-08-05 so it does not entangle the migration
+9. **`school-admin` as a role of its own** — today it is a `schoolAdmin: true` grant on a teacher, so every school administrator is also a teacher and homes to the teacher dashboard. There is no way to create a non-teaching administrator, and the *Roles* table above (which gives `school-admin` its own scope: teacher accounts and aggregate metrics, **no** student names, transcripts, or flags) is therefore unimplemented. Raised 2026-08-10 while fixing post-sign-in landing — the landing rule (`homePageFor` in `app/server/index.js`) is where the fourth role would gain its own home page
+10. ~~**PQ is partly measuring vocabulary echo**~~ — **closed 2026-08-05.** The lexical `isResponsiveToAI()` test is gone; the classifier now receives the preceding coach turn and judges responsiveness by meaning, so paraphrase no longer scores below parroting. Fixing it exposed a larger validity problem: responsiveness runs at 75–82% in *every* condition tested, including with no coach at all, so PQ now reads 5 almost everywhere. **All dimension definition and validity work now lives in `tau-dimensions.md`**, split out on 2026-08-05 so it does not entangle the migration
 
 ---
 
@@ -556,6 +557,92 @@ The correct rule set is `allow read, write: if false;`. Browsers never touch Fir
 ---
 
 ## Session Log
+
+- **2026-08-10 — The landing rule moved to the server: an account now starts on its own page.**
+  Signing in as the platform admin landed on the teacher dashboard. The mapping itself was never
+  wrong — `login.js` knew `platform-admin → /admin.html` — but *only the sign-in form knew it*.
+  Everything else ignored role entirely: `GET /` hardcoded `index.html`, so the student app was the
+  default for every role, and every page served to anyone who asked, so a platform admin on
+  `/dashboard.html` got a dashboard that 403s its own data. Typing the bare domain, a bookmark, or a
+  `?next=` from an earlier 401 bounce was enough to miss the one place the rule lived.
+
+  Now `homePageFor()` in `app/server/index.js` decides, alongside the sign-in gate and for the same
+  reason: state that changes what you see resolves before first paint, holds with JS off, and lives
+  in one place. `/` is not a page — it means "this account's home" (302). `PAGE_ACCESS` sends a
+  role-mismatched page request to that same home rather than rendering a shell that cannot load.
+  `index.html` and `report.html` stay open to all roles on purpose: the student app doubles as the
+  teacher's preview of it, and a report is gated by ownership, not by role.
+
+  Both browser copies of the table are gone — `login.js` and `set-password.js` redirect to `/` and
+  let the server answer. Three copies of one rule is what let it drift in the first place. Knock-on:
+  the account menu's "Preview student app" points at `/index.html`, since `/` would bounce a teacher
+  back to the dashboard. The report crumb "All assignments" keeps `/` and improves — it used to send
+  teachers into the student app.
+
+  A school administrator homes to the *dashboard*: the grant sits on a teacher account, teaching is
+  the daily job, administration is one click away in the account menu. That a non-teaching
+  `school-admin` cannot exist at all is now backlog item 9.
+
+  *Verified:* all five surfaces against platform-admin, school-admin teacher, plain teacher (grant
+  temporarily revoked and restored), student, and signed-out — each lands on its own page, is
+  redirected off the pages it cannot use, and deep links (`/report.html?id=…`) still survive the
+  sign-in round trip.
+
+- **2026-08-10 — Account creation by emailed invite; temp passwords deleted entirely.** An invited
+  account is now created with **no password at all** and an emailed single-use link sets one
+  (`credentialTokens` in `auth.js`; invite 7 days, reset 1 hour, tokens SHA-256 hashed at rest like
+  `authSessions` already were). No credential is ever displayed to an administrator or carried in
+  an email, which closes the item this log recorded as accepted-not-fixed on 2026-08-05: *an admin
+  who resets a teacher's password can sign in as them.* An admin can now start a recovery and still
+  cannot complete one. `verifyPassword()` already refused a user with no hash, so a pending account
+  is unusable by construction rather than by a flag somebody has to check.
+
+  New surfaces: `web/set-password.html` (+ `.js`), gated **server-side before first paint** by
+  `redirectedForBadToken()` — an expired link 302s to `/login.html?link=expired` with the recovery
+  form already open, rather than rendering a form that only fails once filled in. Self-serve reset
+  on the login page answers identically for a real and an unknown address, and a request for an
+  address with no account is logged to console only — never to `adminEvents`, which would turn the
+  audit log into an enumeration oracle for whoever reads it later. Redeeming deletes every token
+  **and every live `authSession`** for that account, so a reset evicts whoever prompted it.
+  Password rules per NIST SP 800-63B: 12-char minimum, no composition rules, no rotation, tiny
+  blocklist. `/api/admin/{teachers,students}/:id/reset-password` are gone; `send-reset` and
+  `resend-invite` replace them, and `showPassword()` and its modal are deleted.
+
+  **Mail: SMTP2GO over its HTTP API** (`server/mail.js`, `server/invites.js`), *not* SMTP —
+  Cloud Run blocks outbound 25 unconditionally and 465/587 without a VPC connector, so the SMTP
+  half of the provider is unreachable from the deployed app. No new npm dependency. With no API
+  key configured the seam prints the message to the console, so localhost and the demo instance
+  run the whole flow with no credentials and no cost — chosen by the absence of a key, not by
+  `NODE_ENV`, and a *production* instance with no key refuses to send rather than printing invite
+  links into a log.
+
+  **Delivery tracking, because acceptance is not delivery.** The send API answers 200 the moment it
+  accepts a message; a hard bounce or a school filter rejection arrives minutes later. Every send
+  is recorded in `emailSends` (with `day`/`month` buckets so counting today's volume is an equality
+  query, not a full scan), and `POST /api/webhooks/smtp2go` annotates the row with the
+  real outcome. That route is the only unauthenticated non-page route in the app: it is
+  authenticated by a shared secret in the `Authorization` header (constant-time compared), which
+  SMTP2GO's webhook config supports — a secret in the path would have been copied into every access
+  log on the way. It may **only** annotate an existing send — never create or mutate a user, never
+  consume a token — so even a leaked secret buys nothing but a false status on a row. New
+  *Operations → Email delivery* view: today and this month against the plan's 200/day and
+  1,000/month, plus time since the last send (a count of zero reads the same whether nothing needed
+  sending or sending broke — the timestamp is what separates those). Roster rows carry the
+  support answer inline, naming **the address the message actually went to**, since a typo is the
+  commonest cause of "they never got it" and the only one visible without asking anyone.
+
+  *Verified* against an in-memory store stub (ADC was unavailable): invite creates no password and
+  returns none; the invitee cannot sign in until redemption; good token serves the page while a
+  missing or junk one 302s; the 12-char rule; single-use; the session issued at redemption works;
+  reset request is indistinguishable for known and unknown addresses; redeeming a reset 401s the
+  old cookie and the old password while the new one works; adding an existing student to a second
+  class does *not* re-invite them; webhook 404s on a wrong or absent secret and records a bounce on
+  the right one; `tempPassword` appears nowhere in `app/`. **Not verified visually** — no screenshot
+  pass on the new page or the Email delivery view yet, which designsystem.md treats as non-optional.
+
+  Still open: no route creates a **platform admin** (still only `bootstrap-admin.js`), and whether
+  pilot students have mailboxes that accept external mail — if not, the student path needs the same
+  token as a teacher-printable list rather than an email.
 
 - **2026-08-08 — Split demo from product: real users get their own GCP project.** Until today local
   dev and the deployed instance were the *same* Firestore database in `cta-pilot-dev`, so the demo

@@ -29,6 +29,11 @@
       <h1>Sign in</h1>
       <p class="login-sub">Sign in to see your assignments and your drafts.</p>
 
+      <!-- Set by the server when it refuses an expired or spent set-password
+           link. Recovery lives here rather than on a dead-end page: the fix
+           for an expired link is a new one, and this is where you ask. -->
+      <p class="auth-notice hidden" id="linkNotice" role="status"></p>
+
       <!-- The real path after Phase A: domain-restricted Google SSO. Shown now,
            disabled, so the pilot UI doesn't have to be relearned later. -->
       <button class="google-btn" disabled>
@@ -39,7 +44,7 @@
 
       <div class="login-divider" id="demoDivider" hidden><span>or use a test account</span></div>
 
-      <form id="loginForm" novalidate>
+      <form id="loginForm" class="auth-form" novalidate>
         <label for="email">Email</label>
         <input id="email" name="email" type="email" autocomplete="username" required>
 
@@ -48,6 +53,26 @@
 
         <p class="login-error hidden" id="loginError" role="alert"></p>
         <button type="submit" class="login-submit" id="loginSubmit">Sign in</button>
+
+        <div class="auth-alt">
+          <button type="button" class="auth-link" id="showReset">Reset your password</button>
+        </div>
+      </form>
+
+      <!-- Same card, swapped contents rather than a second page: the person is
+           mid-task, and the way back to signing in has to stay one click. -->
+      <form id="resetForm" class="auth-form hidden" novalidate>
+        <p class="auth-rule">We will email you a link to choose a new password.</p>
+
+        <label for="resetEmail">Email</label>
+        <input id="resetEmail" name="resetEmail" type="email" autocomplete="username" required>
+
+        <p class="auth-notice hidden" id="resetDone" role="status"></p>
+        <button type="submit" class="login-submit" id="resetSubmit">Send reset link</button>
+
+        <div class="auth-alt">
+          <button type="button" class="auth-link" id="backToSignIn">Back to sign in</button>
+        </div>
       </form>
 
       <!-- Demo instances only; revealed by login.js after /api/auth/demo

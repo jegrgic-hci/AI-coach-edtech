@@ -5346,10 +5346,16 @@ async function submitRosterAdd(scope) {
   const submit = document.getElementById(ids.submit);
   submit.disabled = true;
   let added = 0;
+  // Addresses a new account was created for but whose invite the mail provider
+  // would not take — almost always a typo. Surfaced with the success count
+  // rather than only in the log: the student is on the roster either way, so
+  // nothing on screen would otherwise distinguish them from one who can sign in.
+  const undelivered = [];
   for (const row of rows) {
     try {
-      await api(`/api/classes/${classId}/students`, { method: 'POST', body: { email: row.email, displayName: row.name } });
+      const res = await api(`/api/classes/${classId}/students`, { method: 'POST', body: { email: row.email, displayName: row.name } });
       added++;
+      if (res.invite && res.invite.accepted === false) undelivered.push(row.email);
     } catch (err) {
       // One bad row (e.g. a rejected non-student email) shouldn't stop the
       // rest of a pasted roster from going through.
@@ -5370,8 +5376,13 @@ async function submitRosterAdd(scope) {
     return;
   }
   const cls = CLASSES.find(c => c.id === classId);
+  const inviteWarning = undelivered.length
+    ? ` <strong>${undelivered.length} invite${undelivered.length !== 1 ? 's' : ''} could not be delivered</strong>
+        (${undelivered.map(esc).join(', ')}) — check the address is right, then resend from Administration.`
+    : '';
   modalSuccess('add-students', {
-    message: `${added} student${added !== 1 ? 's' : ''} added to <strong>${esc(cls ? cls.name : 'the class')}</strong>.`,
+    message: `${added} student${added !== 1 ? 's' : ''} added to <strong>${esc(cls ? cls.name : 'the class')}</strong>.
+      They have been emailed a link to set their own password.${inviteWarning}`,
     actions: [
       { icon: 'description', title: 'Create an assignment', desc: `Goes to everyone on ${cls ? cls.name : 'this class'} automatically`, onClick: `closeAddStudentsModal();openNewAssignmentModal(['${classId}'])` },
       { icon: 'personAdd', title: 'Add more students', desc: 'Same class, another paste', onClick: `openAddStudentsModal('${classId}')` },

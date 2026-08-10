@@ -74,6 +74,9 @@
 .teacher-id { flex: 1; min-width: 0; }
 .teacher-name { font-size: var(--tau-text-md); font-weight: 600; color: var(--tau-ink); }
 .teacher-email { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); }
+/* Sits under the address, quieter than it: the invite state is context for a
+   support call, not a peer of the person's identity. */
+.account-state { display: inline-block; font-size: var(--tau-text-xs); color: var(--tau-ink-soft); margin-top: 2px; }
 .teacher-counts { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); flex-shrink: 0; text-align: right; }
 .teacher-actions { display: flex; gap: var(--tau-s2); flex-shrink: 0; }
 .row-suspended .teacher-name, .row-suspended .teacher-counts { opacity: var(--tau-disabled); }
@@ -237,16 +240,19 @@
   </div>
 </div>
 
-<div class="scrim hidden" id="passwordModal">
+<!-- Replaced the sign-in-details modal, which printed a password for an
+     administrator to pass on by hand. Nothing here is a credential: an account
+     is set up by the person who owns the mailbox, so all this reports is
+     whether the message was accepted for delivery and where it went. -->
+<div class="scrim hidden" id="sendModal">
   <div class="card card-lg modal-card">
     <div>
-      <div class="modal-title">Sign-in details</div>
-      <p class="modal-sub" id="passwordSub"></p>
+      <div class="modal-title" id="sendTitle"></div>
+      <p class="modal-sub" id="sendSub"></p>
     </div>
-    <div class="credential" id="passwordValue"></div>
-    <p class="modal-sub">There is no email delivery yet, so pass this on directly. Passwords go away entirely when school Google sign-in replaces them.</p>
+    <p class="modal-sub" id="sendDetail"></p>
     <div class="modal-actions">
-      <button class="btn btn-primary" type="button" id="passwordClose">Done</button>
+      <button class="btn btn-primary" type="button" id="sendClose">Done</button>
     </div>
   </div>
 </div>

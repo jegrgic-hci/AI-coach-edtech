@@ -46,12 +46,32 @@ The seed is idempotent per email: it extends what is already in Firestore rather
 
 | Module | Dev | Prod |
 |---|---|---|
-| `server/auth.js` | email + password, scrypt hash, opaque session token in an HttpOnly cookie (`authSessions`), suspension checked per request | Firebase Auth ID-token verify, domain-restricted Google SSO |
+| `server/auth.js` | email + password, scrypt hash, opaque session token in an HttpOnly cookie (`authSessions`), suspension checked per request; accounts are created password-less and set one via an emailed single-use `credentialTokens` link | Firebase Auth ID-token verify, domain-restricted Google SSO |
+| `server/mail.js` | prints the message to the console when no API key is set | SMTP2GO HTTP API (`api.smtp2go.com/v3/email/send`) — **not SMTP**, which Cloud Run blocks |
 | `server/llm.js` | **Vertex Gemini (swapped 2026-08-05)** — ADC from `gcloud auth application-default login` | same code; credentials come from the Cloud Run metadata server instead |
 | `server/school.js` | which GCP project a call bills to — platform default from `config.json` | per-school override for BYO-inference districts, read from the schools collection |
 | `server/store.js` | **Firestore (swapped 2026-08-05)** — `cta-pilot-dev`, `us-central1` | same code, `tau-thinking-prod` (2026-08-08); per-school project later |
 
 Route logic in `server/index.js` doesn't change when seams swap; it becomes the Cloud Run service.
+
+### Mail configuration
+
+`config.json` gains a `mail` block; env wins where both exist, same rule as `school.js`.
+
+| Key | Env var | What it is |
+|---|---|---|
+| `mail.apiKey` | `SMTP2GO_API_KEY` | SMTP2GO API key. **Absent in dev = console fallback**; absent in production = refuses to send |
+| `mail.from` | `MAIL_FROM` | `Tau Thinking <no-reply@tauthinking.com>` — must be on a verified sender domain |
+| `mail.appUrl` | `APP_URL` | Public origin invite links point at. Never derived from the Host header, which a forged one could rewrite |
+| `mail.webhookSecret` | `MAIL_WEBHOOK_SECRET` | Shared secret sent as the `Authorization` header on `POST /api/webhooks/smtp2go`. Without it the route 404s, so delivery status is simply never recorded |
+
+Sending domain `tauthinking.com` is verified with SMTP2GO (return-path `em736841`, DKIM `s736841._domainkey`, tracking `link` — all CNAMEs, all **DNS-only** in Cloudflare). **Do not add `include:spf.smtp2go.com` to the root SPF record:** the CNAME'd return path means SPF is evaluated against `em736841.tauthinking.com` and inherits it there, so a root include would authorize the provider's whole shared range to send as the domain for no benefit. Inbound is Cloudflare Email Routing with a catch-all; DMARC is at `p=none`.
+
+**Keys per environment.** Two separate SMTP2GO keys, so revoking one never touches the other: production's lives in `tau-thinking-prod`'s Secret Manager, staging's in `cta-pilot-dev`'s, and local reads `config.json`. Both deployed instances get theirs via `--set-secrets`, never from the committed env-var line. Staging sends real email on purpose — the thing being reviewed there is the onboarding itself. **But staging shares `cta-pilot-dev`'s Firestore with local dev**, so it holds `@school.dev` fixture accounts; inviting one bounces against a domain that does not exist and spends the 200/day allowance. Invite real addresses only.
+
+**One webhook, on production.** The free plan allows exactly one, so staging sets no `MAIL_WEBHOOK_SECRET` and never records delivery status — its roster reads "invite sent" rather than "delivered". Sending is unaffected.
+
+Free-plan ceilings are held in `mail.js` (`LIMITS`): 200/day, 1,000/month. `sendMail()` checks the daily one before calling out, so hitting it reads as "at the daily limit" on the admin surface rather than as an opaque provider error — a whole-school import is the case that reaches it.
 
 ### The Firestore swap (2026-08-05)
 

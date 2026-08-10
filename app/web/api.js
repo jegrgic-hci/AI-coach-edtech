@@ -190,9 +190,11 @@
     // A preview of someone else's experience, not a role this person holds —
     // which is why it stays a menu item rather than becoming a third option in
     // any role switcher.
-    if (me.role === 'teacher' && !here('/index.html') && path !== '/') {
+    // '/index.html', not '/': the server reads '/' as "this account's home"
+    // and would send a teacher straight back to the dashboard.
+    if (me.role === 'teacher' && !here('/index.html')) {
       out.push({
-        href: '/', icon: '👁', label: 'Preview student app',
+        href: '/index.html', icon: '👁', label: 'Preview student app',
         desc: 'Opens in a new tab',
         newTab: true,
       });
