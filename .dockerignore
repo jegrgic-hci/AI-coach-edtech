@@ -11,7 +11,15 @@ node_modules/
 # The single-file CTA and all planning docs — not part of the service.
 index.html
 teacher-dashboard.html
+# Both patterns are needed. Docker's `*` does not cross a path separator, so
+# `*.md` only ever matched the context root — app/README.md and app/gcp-setup.md
+# were shipping inside the image until 2026-08-10. They are not served (static
+# routing is scoped to app/web/), but app/README.md carries the demo password,
+# both project ids, service-account names and the security-posture writeup, so
+# it has no business in a production container. Verified by listing the built
+# image, not by reading this file.
 *.md
+**/*.md
 old/
 .claude/
 .vscode/
