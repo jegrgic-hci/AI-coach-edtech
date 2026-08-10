@@ -84,6 +84,9 @@ not licence to improvise — say so and ask, don't invent.**
 - **Motion:** `transform`/`opacity` only for movement, never `top`/`left`/`width`/`height`.
   `--tau-dur-short` + `-standard` easing for state changes (hover/press/toggle); `--tau-dur-medium`
   + `-decelerate`/`-accelerate` for anything that moves or resizes.
+- **A signed-out visitor sees the login page and nothing else.** Never paint an app shell (nav,
+  rail, section headings) and correct it afterwards — page access is resolved server-side, before
+  first paint, not by the client reacting to a 401.
 - **`index.html` is never touched.** All work is `app/` only — revertibility guarantee.
 - Placement: a **value** → `tokens.css`. A **concept rendered on 2+ surfaces** → `components.css`
   as an atom/molecule. **Layout only, single-surface** → the page's own sheet.
@@ -539,6 +542,32 @@ Three parts, and all three are load-bearing:
 The `@media (prefers-color-scheme: dark)` block in `tokens.css` is now only a fallback for a page
 that forgets its `data-theme` attribute. It is no longer the default signal — see the locked
 decision above.
+
+### Signed-out page access
+
+The same rule as the theme script, applied to content instead of colour: **what a visitor sees is
+resolved before first paint, not corrected after it.**
+
+Until 2026-08-10 the auth gate was purely client-side — the server handed every `.html` file to
+anyone, and `api.js` redirected to login once its first API call came back 401. The shell painted
+in the meantime, so a signed-out visitor to `app.tauthinking.com` got the nav, the rail and
+"Current assignments" for a beat before the login page replaced them. It read as a broken
+dashboard rather than as a sign-in wall, and "Current assignments" over nothing actively asserts
+something false (Nielsen, *visibility of system status*).
+
+Now `redirectedToLogin()` in `server/index.js` answers a page request from a signed-out visitor
+with a `302` to `/login.html?next=…`, so no markup is sent. Three things this depends on:
+
+1. **Only pages are gated** — `route === '/'` or `.endsWith('.html')`. `tokens.css`, `login.js`,
+   `theme.js` and the favicons must stay public or the login page cannot render itself.
+2. **`login.html` is the one public page**, in `PUBLIC_PAGES`. Adding a second (a marketing page,
+   a password reset) means adding it there, not loosening the test.
+3. **`next` carries `req.url`, not the pathname**, so `/report.html?id=…` survives. `login.js`
+   already validates it against open redirects and against landing on another role's home.
+
+Cost is one session lookup per page load — the same read every API call already does, and only on
+`.html`. That is the right trade for the same reason the theme script is allowed to block: a
+correct first paint is worth more than the round trip.
 
 Preference is stored per browser, not per account. Correct for a display setting, but worth
 knowing on shared Chromebooks: one student's dark choice greets the next student on that machine.

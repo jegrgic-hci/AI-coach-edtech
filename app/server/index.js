@@ -1985,6 +1985,34 @@ async function handleApi(req, res, user, route) {
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 
+// Pages are gated here rather than in the browser. Serving the shell to a
+// signed-out visitor and letting api.js correct it on the first 401 meant the
+// nav, the rail and "Current assignments" all painted before the redirect —
+// a stranger saw a dashboard with no data in it, which reads as an error
+// rather than as a sign-in wall.
+//
+// Same reasoning as the blocking theme script (designsystem.md, Theme
+// selection): state that changes what you see has to resolve before first
+// paint, not after it. Doing it server-side also means it holds with JS off,
+// and covers all five surfaces in one place instead of each page re-deriving
+// it.
+//
+// Only pages are gated. tokens.css, login.js, theme.js and the favicons stay
+// public — gating those would leave the login page unable to render itself.
+const PUBLIC_PAGES = new Set(['/login.html']);
+
+async function redirectedToLogin(req, res, route) {
+  const isPage = route === '/' || route.endsWith('.html');
+  if (!isPage || PUBLIC_PAGES.has(route)) return false;
+  if (await authenticate(req)) return false;
+
+  // req.url, not route: a deep link like /report.html?id=… has to survive the
+  // round trip. login.js already validates `next` against open redirects.
+  res.writeHead(302, { Location: `/login.html?next=${encodeURIComponent(req.url)}` });
+  res.end();
+  return true;
+}
+
 function serveStatic(req, res, route) {
   const file = route === '/' ? 'index.html' : route.slice(1);
   const full = path.join(WEB_DIR, path.normalize(file));
@@ -2018,6 +2046,7 @@ const server = http.createServer(async (req, res) => {
       if (!user) return json(res, 401, { error: 'not signed in' });
       await handleApi(req, res, user, route);
     } else {
+      if (await redirectedToLogin(req, res, route)) return;
       serveStatic(req, res, route);
     }
   } catch (err) {
