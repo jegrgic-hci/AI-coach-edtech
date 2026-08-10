@@ -410,13 +410,21 @@ function renderRailNav(home) {
   host.classList.toggle('hidden', current.length === 0);
   if (!current.length) return;
 
-  host.append(el('h3', 'rail-label', 'Jump to'));
+  // "Current assignments", not the old "Jump to" — a label names the content
+  // it stands over, never the action the reader is about to take on it
+  // (Morville & Rosenfeld's labeling rule; see the product-design-review
+  // skill's information-architecture reference). It deliberately repeats the
+  // heading of the section it indexes, which is what makes it an index.
+  const group = el('div', 'rail-group');
+  group.append(el('span', 'eyebrow', 'Current assignments'));
   for (const a of current) {
     const eyebrow = statusEyebrow(a);
-    const row = el('button', 'rail-nav-row');
+    const row = el('button', 'rail-item');
     row.type = 'button';
-    row.append(el('span', 'rail-nav-title', a.title));
-    row.append(el('span', `rail-nav-due acard-due-${eyebrow.tone}`, eyebrow.text));
+    const text = el('span', 'rail-item-text');
+    text.append(el('span', 'rail-item-name', a.title));
+    text.append(el('span', `rail-item-sub acard-due-${eyebrow.tone}`, eyebrow.text));
+    row.append(text);
     row.addEventListener('click', () => {
       const card = $(`card-${a.id}`);
       if (!card) return;
@@ -424,8 +432,9 @@ function renderRailNav(home) {
       card.classList.add('acard-jumped');
       setTimeout(() => card.classList.remove('acard-jumped'), 1200);
     });
-    host.append(row);
+    group.append(row);
   }
+  host.append(group);
 }
 
 function renderRail(home) {
@@ -473,7 +482,7 @@ function renderRail(home) {
   }
 
   const block = el('div', 'rail-block');
-  block.append(el('h3', 'rail-label', 'AI use guidance'));
+  block.append(el('h3', 'eyebrow', 'AI use guidance'));
   block.append(dimensionMeters(last.tau, priorAvg, scored));
   host.append(block);
 }
@@ -730,14 +739,19 @@ function renderSessionList() {
   $('btnNewSession').disabled = !state.session;
 
   if (!convs.length) {
-    list.append(el('p', 'session-list-empty', 'No sessions yet.'));
+    list.append(el('p', 'rail-empty', 'No sessions yet.'));
     return;
   }
+  const group = el('div', 'rail-group');
   for (const c of convs) {
-    const item = el('div', 'conv-item' + (c.locked ? ' locked' : '') + (state.conv?.id === c.id ? ' active' : ''), c.title);
+    const item = el('div', 'rail-item conv-item' + (c.locked ? ' locked' : '') + (state.conv?.id === c.id ? ' active' : ''));
+    const text = el('span', 'rail-item-text');
+    text.append(el('span', 'rail-item-name', c.title));
+    item.append(text);
     item.onclick = () => openConversation(c.id);
-    list.append(item);
+    group.append(item);
   }
+  list.append(group);
 }
 
 // "+ New session" doesn't create anything server-side yet — a session only

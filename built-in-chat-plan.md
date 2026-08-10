@@ -557,6 +557,43 @@ The correct rule set is `allow read, write: if false;`. Browsers never touch Fir
 
 ## Session Log
 
+- **2026-08-08 — Split demo from product: real users get their own GCP project.** Until today local
+  dev and the deployed instance were the *same* Firestore database in `cta-pilot-dev`, so the demo
+  students were literally the public site's students. Real users arriving makes that untenable.
+
+  **`tau-thinking-prod`** now holds real schools: own Firestore (`us-central1`, deny-all rules
+  released through the firebaserules API, same as dev), own `cta-run@` runtime identity with exactly
+  `roles/aiplatform.user` + `roles/datastore.user`, own Artifact Registry repo. `cloudbuild.yaml`
+  deploys there. Local work is unchanged — `config.json` still points at `cta-pilot-dev`, the demo
+  class is still seeded, `teacher@school.dev` still signs in.
+
+  **The seed became opt-in, because the old guard failed open.** It used to skip when
+  `NODE_ENV=production` — but Cloud Run replaces its whole env set on every `--set-env-vars`, so
+  dropping one line from `cloudbuild.yaml` was enough to silently reseed the live store. Now
+  `SEED_DEMO=1` is required, and it *throws* if `NODE_ENV=production` is also set: two switches that
+  have to agree, both failing closed. `npm run start:demo` is the everyday command.
+
+  Same flag gates the login page's test-account list (`GET /api/auth/demo`) — a real instance shows a
+  plain sign-in form rather than ten fixture accounts and a published password. The block is hidden
+  in the markup and only revealed on a positive answer, so a failed request can't leak it. And
+  `DEV_PASSWORD` moved from `seed-data.js` into `auth.js`, so a production process no longer loads
+  the demo fixtures module at all.
+
+  **`bootstrap-admin.js`** opens the chicken-and-egg an empty production store creates: every route
+  that makes an account needs an authenticated platform-admin, and only the seed ever made one. A CLI
+  rather than an HTTP route on purpose — "create the first admin if none exists" is a public
+  privilege-escalation route for the entire window between deploy and first use.
+
+  *Verified:* both modes locally (seed runs / doesn't, demo endpoint answers accordingly, no password
+  in the served HTML); the both-switches guard throws; the app reads and writes `tau-thinking-prod`
+  Firestore; a Vertex call succeeds there; the bootstrapped admin signs in.
+
+  *Open:* the `deploy-main` trigger still lives in `cta-pilot-dev` — its GitHub App connection does,
+  and creating one in prod needs a browser OAuth step. The build executes in the demo project while
+  the image and service land in prod, so shipping depends on the demo project existing. Also unsettled:
+  whether the public demo instance keeps getting deploys (it no longer does) and whether it earns a
+  second trigger.
+
 - **2026-08-06 — Deployed to Cloud Run, with the two open security items closed first.** The app runs
   at `https://cta-714032495709.us-central1.run.app`, **not publicly reachable** — deployed
   `--no-allow-unauthenticated`, so Cloud Run IAM 403s anonymous callers and the app's own session

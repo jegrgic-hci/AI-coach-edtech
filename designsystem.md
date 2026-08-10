@@ -649,6 +649,7 @@ expected shape between 3c and 3e, not a stall.
 | Plain-language band labels | **Written** — `BAND_META` in `report-render.js` | report hero |
 | Global nav (`.tau-nav` + crumbs + local toggle) | `components.css` (2026-07-22) | index (home + workspace), report — see session log. Not on `dashboard.html`/`teacher.html`, which keep their own `.tab-nav`. |
 | Icon system (`.tau-icon`, M3-style) | `icons.js` (new file) + `.tau-icon` base in `components.css` | index home card (chat, close, description, arrowForward, checklist, expandMore) — replaces the ✉/✕/→ text glyphs that were standing in for icons. `chat` (not `mail`) for the teacher-note vocabulary specifically — a note reads as "someone said something," not correspondence. Self-hosted inline SVG, not the Material Symbols webfont/CDN: the app loads zero external resources today (system fonts only) and a font dependency would break that. Not yet on `teacher.js`/`dashboard.html` or the workspace's `reading-banner-return`. |
+| Rail (`.rail` + `-head`/`-body`/`-foot`, `.rail-group`, `.rail-item` + `-text`/`-name`/`-sub`/`-meta`, `.rail-item-nested`, `.rail-inset`) | `components.css` §13 (2026-08-07) | **all four vertical rails** — student home, workspace sessions, teacher dashboard, admin. Replaces `.dash-rail`, `.sidebar` (two different objects, same name), `.admin-nav*`, `.conv-item`, `.sb-shortcut`, `.rail-label`, `.rail-avatar`. Width is `--tau-rail-w`. See session log. |
 | Assignment setup flow | **Missing** | |
 
 ---
@@ -1065,6 +1066,45 @@ is the one exception and only because meter fills are already on forest's list.
 | `--tau-ease-standard`, `--tau-ease-decelerate`, `--tau-ease-accelerate` | No easing was ever declared explicitly (bare `ease` or nothing); these are M3's `standard` and `emphasized-decelerate`/`-accelerate` curves, giving symmetric and directional motion one deliberate curve each instead of the browser default. |
 
 ## Session log
+
+**2026-08-08 — object action menus, danger tier, inline form errors**
+
+Components added while building the teacher dashboard's object action row (full reasoning in
+`teacher-dashboard-design.md`'s session log — this entry covers only what landed in the system).
+
+- **`components.css` §14 gains the object-menu half of the menu component**: `.menu-trigger-icon`
+  (square, icon-only trigger), `.menu-group-label`, `.menu-item-danger`, and `.obj-actions` (the row
+  itself). Deliberately *not* a new component family — same `.menu-panel`/`.menu-item` chrome and the
+  same `tauMenu` behaviour as the header's "+ Add", because the two menus are one system split on
+  one question (does the action have a subject on screen?), and looking like two would have been the
+  bug.
+- **`.menu-trigger-icon` renders at 36px to match the `.btn-sm` row it sits in, with a `::after`
+  taking the hit region out to the full `--tau-target` 44px.** The token's own comment calls it "a
+  real minimum, not advisory," and this is how a visually small control can honour it — expand the
+  target, not the box. Worth reusing rather than re-litigating next time a dense toolbar needs a
+  compact control.
+- **`.btn-danger`** — the first filled control in the app that isn't forest. **Attention, not
+  caution**: the caution/attention split (conversation-starter vs. real alert) had only ever been
+  applied to *student* signals, and it holds just as well for the teacher's own irreversible
+  actions. A destructive confirm is an alert; it does not get amber.
+- **`.form-error` + `.field-invalid`** — inline validation, replacing a chain of blocking `alert()`s.
+  Also attention-tiered, for the same reason. Pairs colour with an icon and the field outline, never
+  colour alone.
+- **`.modal.modal-sm` (440px)** — one small modal behind every single-ask action (rename, archive,
+  delete, move, grant, restore). The 2026-08 decision that all three *creation* modals share one
+  width still holds; this is a different object (one field and one confirm, not a form), not a
+  fourth bespoke width for the same thing.
+- **`icons.js` gains a menu vocabulary** — `moreHoriz`, `personAdd`, `folder`, `edit`, `archive`,
+  `trash`, `copy`, `swap`, `plusCircle`. The "+ Add" menu's three emoji (📄 👤 🗂) were replaced by
+  these: `icons.js` existed unused right beside them, and the whole point of that file is that this
+  app ships no external icon font. Static chrome declares `data-icon="name"` and gets filled once at
+  startup, since markup outside a template literal can't call `iconSVG()`.
+
+**A real accessibility bug this surfaced, in `tauMenu` itself (api.js), pre-existing since it
+shipped:** its Escape handler is bound to the *panel*, so it only fires when focus is inside — which
+happens on a keyboard-opened menu and never on a mouse-opened one. Every mouse user's Escape did
+nothing. Fixed at the page level for now (dashboard.html falls through to `closeAllMenus()`); the
+proper fix is in `tauMenu` and would benefit every surface that uses it.
 
 **2026-07-20 — review, v8, tokens**
 Reviewed the v7 standalone design system. Found three blockers (wrong dimension names,
@@ -1840,3 +1880,87 @@ Verified live (`node app/server/index.js`, Playwright, both themes): Home, Brows
 three class tables), Class detail, Assignment detail + drill panel, the flag-explainer modal, and
 `teacher.html`'s overview/new-assignment-form/student-detail screens. Console clean on every
 screen in both themes.
+
+---
+
+**2026-08-07 — one rail, replacing four independently-built sidebars**
+
+Prompted by a one-line question: "we don't have a sidebar component?" We did not. Four surfaces
+had each grown a vertical rail from scratch and agreed on nothing.
+
+| Surface | Was | Width | Ground | Active state |
+|---|---|---|---|---|
+| Student home | `.dash-rail` (`style.css`) | 292 | surface-2, no border | none — hover only |
+| Workspace sessions | `.sidebar` (`style.css`) | 290 | surface-2 + border-right | surface-2 fill + forest text |
+| Teacher dashboard | `.sidebar` (`dashboard.html` inline) | 240 | surface + border-right | **forest 10% tint** + 3px marker |
+| Admin | `.admin-nav` (`admin.html` inline) | 224 | none — bare column | surface-2 fill + forest text |
+
+Three of the four active states argued their case in a code comment and **the cases contradicted
+each other**: admin's said a neutral `--tau-surface-2` wash plus forest text was right and reserved
+fills for the one forward action; dashboard's said that exact wash was too weak in light theme and
+tinted with the brand hue instead. Both were careful. Neither knew the other existed. That is the
+actual cost of a missing component — not the duplicated declarations, the duplicated *reasoning*.
+
+Two of them were live constraint violations, not just drift:
+
+1. **`.sidebar-item.active`'s forest tint** (`color-mix(--tau-forest 10%, --tau-surface)`) — a
+   forest-tinted surface fill, which Hard Constraints allows only for `--tau-meter-track`. Its
+   argument was real (a neutral wash on a *white* rail is a near-invisible 3% lightness shift) but
+   the system's answer to "colour alone is too weak" is a second channel, not a seventh forest job
+   — and that row already had a 3px marker doing exactly that.
+2. **Two rails shipped sub-44px rows** — `.conv-item` ~36px, `.admin-nav-item` ~34px, against a
+   token whose own comment calls it "not advisory."
+
+Built `.rail` (`components.css` §13) on the toned-rail/lifted-pill option, chosen from three
+mocked in light theme. Three regions, because a rail's contents fall into three groups and only
+one scrolls: `.rail-head` (identity, search, the make-a-new-thing action), `.rail-body` (the list),
+`.rail-foot` (pinned via `margin-top: auto`). Plus `.rail-group` + `.eyebrow`, and `.rail-item`
+with `-text` / `-name` / `-sub` / `-meta` slots, `.rail-item-nested` for a row that filters the row
+above it, and `.rail-inset` for admin's — the one rail that doesn't run full height and would
+otherwise read as a stray grey rectangle on the page ground.
+
+**The active state, and why the tint stopped being needed.** Hover darkens to `--tau-surface-3`;
+selection *lightens* to `--tau-surface` plus `--tau-shadow`. Two directions off one ground, so the
+two states can't be confused. On a toned rail white is a step *up* in lightness — which is exactly
+the contrast the dashboard's tint was invented to manufacture, now available without opening a
+forest job. Same construction as `.tau-nav-local-opt.active`, the one place in the system that had
+already solved this. Colour is the third channel, never the first.
+
+One new token: **`--tau-rail-w: 272px`**. The four old widths (292/290/240/224) were not derivable
+from anything in `tokens.css`. 272 is the narrowest that holds the student rail's two-line rows
+without wrapping and gives the teacher rail ~30 characters of class name. Flagged in the token's
+own comment as a judgement call — **the system has no rule that produces a rail width, and that is
+a real gap**, not something this session closed.
+
+Also folded in: `.rail-label` (an 11px/700/0.07em near-duplicate of `.eyebrow`) deleted in favour
+of `.eyebrow`; `.rail-avatar` deleted in favour of `.avatar .avatar-lg` plus one scoped
+`.rail .avatar { background: --tau-surface-3 }` (the atom's own surface-2 ground is the rail's
+ground — an invisible circle); the dashboard's search input moved off `--tau-bg`, which is
+*lighter* than `--tau-surface-2` and so inverted the well it was meant to be.
+
+**One IA fix.** The student rail's `"Jump to"` heading became `"Current assignments"` — a label
+names the content it stands over, never the action the reader is about to take on it (Morville &
+Rosenfeld's labeling rule; the standing label check in the `product-design-review` skill). It
+deliberately repeats the heading of the section it indexes, which is what makes it an index.
+
+**Three bugs the screenshot caught that nothing else did**, which is the third time this file has
+had to say so. (a) `.rail-foot` was a bare block, so the workspace's Submit draft collapsed to
+text width — the old `.sidebar-footer` had been a flex column and that was load-bearing. (b) The
+student rail's progress panel is the tall region and its body is the short one, so pinning the
+foot clipped the meters; that rail scrolls as one column instead (layout-only override in
+`style.css`). (c) `.rail-progress > .eyebrow` never matched — `renderRail()` builds the heading
+*inside* `.rail-block`, not as its sibling. All three passed the token-resolution check, the
+JS parse, and the 200-response check.
+
+**Left in place, flagged not fixed:** `table.roster tr.expanded-row` carries the same forest tint,
+propagated from the sidebar rule that no longer exists. Its comment now says so. A table row can't
+lift onto a different plane the way a rail row can, so it needs its own second channel (an edge
+marker, most likely) before the tint comes off — a separate decision, not part of the rail work.
+Separately, `.tau-nav-local-opt.active` sets `color: var(--tau-sage)`, against the "sage is
+fill-only, never text" constraint. Pre-existing, untouched.
+
+Verified: `.rail` rendered in all four configurations against the real `tokens.css`/`components.css`
+(headless Chrome, light theme), plus the dashboard rail with its own inline sheet loaded; every
+`var(--tau-*)` in every sheet and inline block resolves; `app.js`/`admin.js` parse; all five pages
+return 200. **Not verified: the live authenticated pages in a browser** — the harness renders the
+component, not the running app, and dark theme was not screenshotted.

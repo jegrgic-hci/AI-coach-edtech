@@ -11,11 +11,29 @@ const TEST_ACCOUNTS = [
   { email: 'jamie@school.dev', note: 'student — American Literature, open assignment complete (all 3 drafts)' },
   { email: 'elena@school.dev', note: 'student — American Literature, on the final open draft (in progress)' },
   { email: 'marcus@school.dev', note: 'student — American Literature, integrity flags, open assignment complete' },
-  { email: 'teacher@school.dev', note: 'teacher — dashboard + roster across all 3 classes' },
-  { email: 'admin@school.dev', note: 'administrator — teacher accounts + product metrics' },
+  { email: 'teacher@school.dev', note: 'teacher + school administrator — dashboard, roster, and teacher accounts' },
+  { email: 'admin@school.dev', note: 'platform administrator — accounts, product metrics, and cost' },
 ];
 
-function renderTestAccounts() {
+// The list above describes seeded state, so it is only true on an instance the
+// demo seed populated. A real instance gets a plain sign-in form: no fixture
+// list, no shared password, and no divider offering an alternative that isn't
+// there. The server is the authority (SEED_DEMO), not the hostname.
+async function revealTestAccounts() {
+  let demo;
+  try {
+    demo = await api('/api/auth/demo');
+  } catch {
+    return;
+  }
+  if (!demo.demo) return;
+  $('demoPassword').textContent = demo.password;
+  renderTestAccounts(demo.password);
+  $('demoDivider').hidden = false;
+  $('demoAccounts').hidden = false;
+}
+
+function renderTestAccounts(password) {
   const ul = $('testAccounts');
   for (const acct of TEST_ACCOUNTS) {
     const li = document.createElement('li');
@@ -25,7 +43,7 @@ function renderTestAccounts() {
     btn.textContent = acct.email;
     btn.onclick = () => {
       $('email').value = acct.email;
-      $('password').value = 'coach1234';
+      $('password').value = password;
       $('loginError').classList.add('hidden');
       $('password').focus();
     };
@@ -37,7 +55,11 @@ function renderTestAccounts() {
   }
 }
 
-const ROLE_HOMES = { teacher: '/dashboard.html', admin: '/admin.html', student: '/index.html' };
+// A school administrator is a teacher with a grant, so their home stays the
+// dashboard — teaching is the job they do daily, administration the one they
+// do occasionally. They reach it from the account chip, which api.js shows
+// whenever /api/me reports canAdmin.
+const ROLE_HOMES = { teacher: '/dashboard.html', 'platform-admin': '/admin.html', student: '/index.html' };
 
 function landingFor(role) {
   const roleHome = ROLE_HOMES[role] || ROLE_HOMES.student;
@@ -75,5 +97,5 @@ $('loginForm').addEventListener('submit', async (e) => {
   }
 });
 
-renderTestAccounts();
+revealTestAccounts();
 $('email').focus();

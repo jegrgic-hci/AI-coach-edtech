@@ -6,7 +6,8 @@
   "main": "app/server/index.js",
   "scripts": {
     "start": "node app/server/index.js",
-    "seed": "node app/server/seed.js"
+    "start:demo": "SEED_DEMO=1 node app/server/index.js",
+    "seed": "SEED_DEMO=1 node app/server/seed.js"
   },
   "repository": {
     "type": "git",

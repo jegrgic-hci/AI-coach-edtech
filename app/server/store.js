@@ -19,16 +19,26 @@
 // Each surviving one is commented at its call site with why.
 //
 // Collections (the Phase B data model):
-//   users         { id, email, displayName, role: 'student'|'teacher'|'admin',
-//                   status: 'active'|'suspended', createdAt,
-//                   passwordHash, passwordSalt }   (dev-only; prod is SSO)
+//   users         { id, email, displayName,
+//                   role: 'student'|'teacher'|'platform-admin',
+//                   schoolAdmin: boolean, status: 'active'|'suspended',
+//                   createdAt, passwordHash, passwordSalt } (dev-only; prod SSO)
 //                 An absent status means active — accounts created before the
 //                 admin role existed need no migration.
-//                 'admin' is the tier above teacher: it creates and suspends
-//                 teacher accounts and reads aggregate product metrics. It is
-//                 deliberately NOT a super-teacher — admin has no route into a
+//                 'platform-admin' is us: it creates and suspends accounts and
+//                 reads aggregate product metrics plus what the tool costs. It
+//                 is deliberately NOT a super-teacher — it has no route into a
 //                 named student, a transcript, a report, or an integrity flag,
 //                 which is what keeps the teacher-only guarantee on flags true.
+//                 (It replaced the plain 'admin' role, 2026-08-07.)
+//                 schoolAdmin is a *grant on a teacher*, not a role: in a pilot
+//                 one person teaches and also runs their school's teacher
+//                 accounts. Teaching is a data relationship — classes,
+//                 assignments and submissions all key off teacherId — so it
+//                 stays the role, and administering is the additive permission.
+//                 The reverse modelling would drop that person out of every
+//                 `role: 'teacher'` query that builds a roster. Only a
+//                 platform-admin may set the grant; see index.js.
 //   authSessions  dev login sessions — replaced by Firebase ID tokens in prod:
 //                 { id, userId, token, createdAt, expiresAt }
 //   classes       { id, teacherId, name, studentIds: [], createdAt }
@@ -72,6 +82,7 @@
 //                 what got opened (`usage`) or what a student did (`events`):
 //                 { id, ts, schoolId, studentId, assignmentId, submissionId,
 //                   purpose: 'chat'|'auditor'|'classify'|'provenance'|'snapshot',
+//                   ok, errorCode,
 //                   model, billsTo: 'platform'|'school', inputTokens,
 //                   cachedInputTokens, outputTokens, thinkingTokens, latencyMs }
 //                 Tokens, never dollars — prices move, and stored dollars make
@@ -81,6 +92,13 @@
 //                 A teacher lifting a student's daily reply cap. Additive and
 //                 read only for the current day, so nothing carries overnight
 //                 and two grants stack. See budget.js rule 4.
+//   adminEvents   { id, ts, actorId, actorName, action, targetId, targetName,
+//                   targetRole, detail }
+//                 Every account action taken from the administration surface:
+//                 create, edit, suspend, reactivate, reset-password,
+//                 retry-analysis. Names are denormalised on purpose — an audit
+//                 record has to survive a rename or a suspension of the very
+//                 account it describes, so it must not be a join at read time.
 //   loginFailures { id, email, ip, ts }
 //                 Failed sign-ins, for the per-account throttle. `ip` is
 //                 recorded but never used to block — a school is one NAT

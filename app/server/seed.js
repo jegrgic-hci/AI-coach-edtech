@@ -10,10 +10,10 @@
 // needed to see a report.
 
 const { col } = require('./store');
-const { setPassword } = require('./auth');
+const { setPassword, DEV_PASSWORD } = require('./auth');
 const { enrich, scoreTAU } = require('./analysis');
 const {
-  DEV_PASSWORD, STUDENTS, CLASSES, ASSIGNMENTS, ELECTIVE_ASSIGNMENT,
+  STUDENTS, CLASSES, ASSIGNMENTS, ELECTIVE_ASSIGNMENT,
   ENGLISH_EXTRA_ASSIGNMENT, LIT_EXTRA_ASSIGNMENT, GUIDE_ASSIGNMENT,
   OPEN_ASSIGNMENTS, OPEN_ASSIGNMENT_STATE, TRANSCRIPTS,
   ESSAYS, PROVENANCE, FLAGS, SNAPSHOTS, TEACHER_NOTES, OPEN_TEACHER_NOTES,
@@ -31,12 +31,18 @@ const ts = (daysAgo) => new Date(Date.now() - daysAgo * DAY).toISOString();
 // days ago, tsOffset(3) is 3 days from now.
 const tsOffset = (days) => new Date(Date.now() + days * DAY).toISOString();
 
-async function upsertUser({ email, displayName, role }) {
+async function upsertUser({ email, displayName, role, schoolAdmin = false }) {
   let user = (await col('users').list({ email }))[0];
   if (!user) {
-    user = await col('users').add({ email, displayName, role, createdAt: ts(60) });
+    user = await col('users').add({ email, displayName, role, schoolAdmin, createdAt: ts(60) });
   }
   if (user.displayName !== displayName) user = await col('users').update(user.id, { displayName });
+  // Role and grant are re-applied on every seed rather than only at creation:
+  // dev databases predate the platform-admin split, and an account left on the
+  // old `admin` role would simply stop being able to sign in anywhere useful.
+  if (user.role !== role || user.schoolAdmin !== schoolAdmin) {
+    user = await col('users').update(user.id, { role, schoolAdmin });
+  }
   if (!user.passwordHash) user = await setPassword(user, DEV_PASSWORD);
   return user;
 }
@@ -258,17 +264,45 @@ async function seedActiveDraft({ student, assignment, tier, cycleIndex, daysAgo 
 
 async function seed() {
   // The demo seed writes ten accounts that all share one published password
-  // and fabricated student transcripts. Reaching production with either would
-  // be severe, so this refuses rather than trusting anyone to remember.
-  if (process.env.NODE_ENV === 'production') {
-    console.log('seed: skipped (NODE_ENV=production)');
+  // and fabricated student transcripts. Reaching a store with real students in
+  // it would be severe, so it is opt-in: absent or misspelled SEED_DEMO means
+  // no seed. The previous guard was the inverse — skip if NODE_ENV=production —
+  // which failed open, and Cloud Run env vars are set wholesale by
+  // --set-env-vars, so dropping one line from cloudbuild.yaml was enough to
+  // silently re-enable it. (2026-08-08, real-users split.)
+  if (process.env.SEED_DEMO !== '1') {
+    console.log('seed: skipped (set SEED_DEMO=1 to seed demo data — see npm run start:demo)');
     return;
   }
 
-  const teacher = await upsertUser({ email: TEACHER_EMAIL, displayName: 'Ms. Karim', role: 'teacher' });
-  // The admin tier: adds teachers, reads aggregate product metrics. Owns no
-  // class and no assignment, so it needs no wiring into anything below.
-  await upsertUser({ email: ADMIN_EMAIL, displayName: 'Dana Okoye', role: 'admin' });
+  // Both switches have to agree. SEED_DEMO=1 reaching a production instance
+  // means something is wrong with that deploy, not that someone wants demo
+  // students in it.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('SEED_DEMO=1 with NODE_ENV=production — refusing to write demo accounts to a production store');
+  }
+
+  // Staging (SEED_ONCE=1) seeds an empty store and then leaves it alone. The
+  // upserts below are idempotent per *record*, which means a redeploy would
+  // overwrite anything a stakeholder changed on a seeded assignment or note
+  // while they were reviewing — the demo class would silently revert under
+  // them. Their own new records survive either way; this is about not undoing
+  // edits to seeded ones. Local `start:demo` doesn't set it, so a checkout
+  // still picks up changes to seed-data.js on every restart.
+  if (process.env.SEED_ONCE === '1' && (await col('users').list()).length > 0) {
+    console.log('seed: skipped (SEED_ONCE=1 and the store already has users)');
+    return;
+  }
+
+  // Flagged as a school administrator so the pilot shape is what dev exercises:
+  // one person who teaches and also runs the school's teacher accounts. She
+  // still owns classes and assignments below, which is the whole reason the
+  // grant hangs off a teacher rather than replacing the role.
+  const teacher = await upsertUser({ email: TEACHER_EMAIL, displayName: 'Ms. Karim', role: 'teacher', schoolAdmin: true });
+  // The platform tier: adds accounts, reads aggregate product metrics and what
+  // the tool costs. Owns no class and no assignment, so it needs no wiring
+  // into anything below — and deliberately has no route into student work.
+  await upsertUser({ email: ADMIN_EMAIL, displayName: 'Dana Okoye', role: 'platform-admin' });
 
   // Users first, so class membership (which is by studentId) can be built
   // before any assignment or class record needs it.
@@ -419,3 +453,14 @@ async function seed() {
 }
 
 module.exports = { seed };
+
+// `npm run seed` reseeds without starting the server. Until 2026-08-08 this
+// file only exported, so running it directly did nothing at all.
+if (require.main === module) {
+  seed()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error('seed failed:', err);
+      process.exit(1);
+    });
+}

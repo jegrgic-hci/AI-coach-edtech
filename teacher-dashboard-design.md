@@ -40,8 +40,15 @@ student is reached by clicking into its row from inside the relevant Browse scre
 detail page, for assignments), not from the sidebar directly — the sidebar's job is narrowing to a
 filtered list, not listing every entity by name.
 
-Demoted sub-nav reuses `.sb-shortcut` (already the class for count-style filter rows) with added
-indent and a smaller `.sidebar-item-name` — one shared modifier, not a new component per section.
+Demoted sub-nav reuses `.rail-item-nested` (indent + a size step down + a right-aligned
+`.rail-item-meta` count) — one shared modifier, not a new component per section.
+
+**Since 2026-08-07 the whole rail is `components.css` §13 (`.rail`)**, shared with the student home,
+the workspace session list, and admin. This page no longer owns any rail chrome; what stays in its
+inline sheet is the global-search field and its results overlay, which no other rail has. The
+forest-tinted active row is gone — see `designsystem.md`'s session log for why the tint was a
+constraint violation and why a toned rail makes it unnecessary. Width is `--tau-rail-w` (272px),
+not the 240px this page used to set.
 
 | Screen | Reached via | Content |
 |---|---|---|
@@ -58,7 +65,7 @@ needs a real screen behind it, not more rail space — Closed assignments only e
 term, so leaving them enumerated in the rail alongside Open was on the same collision course a flat
 student-name list already hit.
 
-**Students in the sidebar — the scale fix.** A flat list of every student name doesn't fit a 240px
+**Students in the sidebar — the scale fix.** A flat list of every student name doesn't fit the
 rail once a class has more than a handful of students, and scrolling a name list isn't actually how
 a teacher finds someone anyway — after a conversation with a specific student, they know the name
 and want to type it, not scroll to it. So the Students group shows the bounded, count-based rows
@@ -93,7 +100,7 @@ below); everything here is either a count, an aggregate, or a link into a filter
 assignments, total students. Clicking "Worth a chat" or "Missing work" opens Browse Students
 pre-filtered; the other tiles are informational only.
 
-**Section order (2026-08-04): tiles → Patterns worth noticing → How your teaching is landing →
+**Section order (2026-08-04): tiles → Patterns worth noticing → Dimension trends →
 Classes at a glance.** Patterns moved above the teaching-landing section because it's the one most
 likely to need action today (per-student, time-sensitive); the teaching-landing section is a fleet-
 wide dimension rollup that rarely moves week to week, so it reads better as context underneath the
@@ -105,22 +112,94 @@ A cross-student rollup of the four behavioral pattern types (`TREND_META`/`REASO
 Passive AI engagement, Low critical evaluation, AI-originated ideas, Declining engagement), shown as
 a card only once **≥2 students** share it — a single student's pattern belongs in their own drill
 panel, not a class-wide card. Zero to four cards render depending on the day's data, never a fixed
-set. Each card shows:
-- Pattern label + student count
-- Which classes those students are spread across
-- **What this looks like** — plain-language description of the pattern
-- **What to try** — one concrete classroom intervention, in a tinted callout
-- **"View the N students →"** — opens Browse Students filtered to exactly this pattern (see
-  `gotoStudents('pattern', trendId)`), never a generic "view all" link
+set.
+
+**Cards collapse — 2026-08-08.** Prompted by feedback that Home is "a lot of data." The volume was
+never the count of findings, it was the prose: the four `TREND_META` entries carry **343 words** of
+`what` + `whatToTry` between them, and every word of it rendered permanently expanded. Each card is
+now a `<details>` closed by default:
+
+| | |
+|---|---|
+| **Closed** | Pattern label, then a standing line: `3 students · English 10 2 · American Literature 1` |
+| **Open** | *What this looks like* → *What to try* → *View the N students →* |
+
+The *finding* never folds — label, count, unit and class spread all stay on the closed card, so a
+teacher can act on this page without opening anything. Only the explanation and the intervention
+hide, which is the only thing progressive disclosure is legitimate for (see the required-vs-hidden
+rule in `.claude/skills/product-design-review`). Order inside an open card is **meaning → action →
+evidence → exit**: a teacher expands to learn what a finding means and what to do about it, so the
+supporting number is the justification for that advice and reads after it.
+
+**The count is never a bare numeral or a chip.** It sits in the phrase that names its unit
+("**3** students"), weighted and coloured inside that sentence so it still reads first. The old
+`chip-neutral` "3 students" badge is gone: enclosure is reserved for values that are both actionable
+and rare, and a chip on every card is neither. The section head carries the denominator
+(`3 patterns · 7 of 8 students`) so a count has scale as well as unit.
+
+**Missing checkpoints carries no blue at all** — an overdue draft is a date, not something the tool
+has a reading on, so there is no *What to try* on that card and nothing for the tool's voice to say.
 
 **Missing checkpoints is not a behavioral pattern** — a Tier-1 logistics fact (an overdue draft), so
-it gets its own card, visually and structurally separate from the four above. Conflating "overdue"
+it gets its own card, separated by its attention-tier count and its wording ("students with overdue
+drafts") rather than by different chrome. Conflating "overdue"
 with "disengaged" was a real mistake this dashboard already made once (see the 2026-07-28
 "Missing submissions" IA entry further down); keeping them as two different kinds of card is
 deliberate, not an oversight.
 
 **All-clear state** — no pattern cards and no missing-checkpoints card: a single centred card, a
 check mark, "All students on track."
+
+### Dimension trends
+
+**Was "How your teaching is landing"; rebuilt and renamed 2026-08-08.** A fleet-wide rollup of the
+four TAU dimensions — `renderTeachingSection()` over `fleetDimensionTrend()`, same
+`dimensionRowsFromCohort()` classification the class tier uses, scoped to every class at once.
+
+Two things changed together, both failures of an existing rule rather than taste:
+
+1. **The label.** "How your teaching is landing" is a process phrase, not the name of its contents —
+   the reader translates before knowing what's inside. What's inside is the four dimensions rolled
+   up, so the label names that. Fixed vocabulary: **Prompting Quality, Selective Use, Calibrated
+   Skepticism, Original Contribution**, and nothing else is a dimension. Any other proper noun in
+   this section is an assignment or a class, and the sentence must say which — a condensed outlier
+   note that read "Lowest on Rhetorical Analysis" made an *assignment* look like a fifth dimension.
+2. **The two visual tiers are gone.** A dimension with news got a tool-info-blue card; the quiet ones
+   shared a `.dim-line-group`. But the blue card carried "Averaging 2.1 / 5" — a **measured average
+   on the tool's-voice ground**, which inverts what that colour means (see *Colour: measured vs the
+   tool talking* below). All four dimensions now use the same collapsed `.pattern-card` as Behavioral
+   patterns, in canonical PQ/SU/CS/OC order so a dimension's position on the page is stable, and the
+   *words* carry which one matters ("lowest of the four" vs "holding steady") instead of the chrome.
+
+| | |
+|---|---|
+| **Closed** | `Calibrated Skepticism — lowest of the four` · `Averaging 2.1 of 5 across your classes` |
+| **Open** | *What this looks like* (the row's `note`) → the outlier evidence box, when there is one |
+
+The outlier callout still appears on the floor row only, and **its link now lives inside the evidence
+box** rather than at card level: that sentence is the only thing on the card naming an assignment,
+and a link two blocks below it leaves "view what?" to inference on a card whose own title is a
+dimension name. The link sits on its own line inside the box, never trailing the prose.
+
+**Open: these cards have no *What to try*.** The four patterns have `TREND_META.whatToTry`; the four
+dimensions have no authored recommendation copy anywhere, so there is nothing legitimate to put in a
+tool-voice block. Writing four is a content task, not a layout one. Until then a dimension card is
+measurement plus explanation, and no blue.
+
+### Colour: measured vs the tool talking
+
+`--tau-tool-info` (blue) means **the tool is talking** — Hard Constraints already says it is a voice,
+not a severity tier. What 2026-08-08 pinned down is where that voice starts, because the first draft
+of this rebuild got it wrong in both directions:
+
+| Content | Treatment | Why |
+|---|---|---|
+| A count that is itself the signal | Amber numeral, in a phrase naming its unit | Pattern counts are caution-tier; the pattern name beside it means colour is never the only channel |
+| A score | Ink numeral | Semantic colour never touches a score — a level is a position on a path, and that holds at class level too |
+| A second computed fact | White, hairline, tabular | Blue under a measured number tells a teacher the number is an opinion |
+| **The explainer** ("What this looks like") | **Neutral, no container** | It *describes what was measured*, so it belongs to the metric. Tinting a definition makes it read as an opinion — this is the distinction the first draft collapsed, folding the explainer into the blue alongside the advice |
+| **The recommendation** ("What to try") | **Blue rule + tint** | The only block on a card the tool *authored* rather than computed, and the only one a teacher should feel free to discount |
+| The link | Forest | Interactive text, one per card |
 
 **Classes at a glance** — one row per class: student count and either a "✓ On track" note or a
 worth-a-chat count. Unchanged in spirit from the old Overview tab's class-health rail.
@@ -160,14 +239,26 @@ longer reorders every other class's students underneath it, and a teacher scanni
 table doesn't have another class's rows scroll past mid-list. Search/filter/pattern selection
 still applies across all classes at once (unchanged); only sort is now per-class.
 
-**Row shape** — Student → **Currently on** → **How they're using AI** → Signal:
-- *Currently on*: the assignment name plus its checkpoint status chip (`Draft 2/3`, `Final`), for
-  whichever assignment the student most recently submitted something to, or (if nothing yet) the
-  soonest-due open assignment (`currentlyOn()`). Replaces the old ambiguous "latest score" column by
-  stating what the row's data actually represents.
-- *How they're using AI*: plain-language band, score demoted to a small secondary numeral beside it
-  — never a bare score leading, per the existing design-system rule.
+**Row shape** — Student → **Average** → **How they're using AI** → Signal:
+- *Average*: mean total across every submission the student has, not the latest one — a bare score
+  only meant something when a column also named the assignment, and this screen no longer does.
+- *How they're using AI*: plain-language band (`.band-plain`), never a bare score leading, per the
+  existing design-system rule.
+- *Signal*: **every** true signal as its own chip (2026-08-08), not one chip plus a `+N`. Overdue is
+  the one thing that takes the whole cell instead — Act outranks Notice.
 - No separate Class column — redundant under a class group header.
+
+**Column widths are shared across the class tables — 2026-08-08.** Each class table sizing its own
+columns from its own content was the cost of the separate-table rebuild above: three grids that
+never lined up down the page. `table.roster-browse` is `table-layout: fixed` with one colgroup
+(24 / 12 / 26 / 38) so the tables read as one roster split by heading. `min-width: 760px` keeps
+`.tbl-wrap`'s existing `overflow-x` doing the narrow-screen work.
+
+**No initials avatar — 2026-08-08.** The Student cell is the name alone. The avatar circle was
+decoration: these students have no photo, so it rendered initials directly beside the full name it
+was abbreviating, and it identified nothing the name didn't. Removing it also gave the Signal
+column the width its chips wanted (Student 28% → 24%). The avatar stays in global search results,
+where a compact row genuinely benefits from a fixed-width leading mark.
 
 ---
 
@@ -343,11 +434,22 @@ student has, not just their primary one — a student whose headline signal is a
 correctly counts toward a behavioral pattern's Home card or filter if they also match it, which the
 old primary-only scan silently missed.
 
+**Reversed for Browse Students — 2026-08-08.** "One pill, one colour" was the right call for scan
+speed and the wrong one for truth: a `+3` was four distinct signals wearing a single label, and the
+only way to learn which four was to click in. That roster now renders every labelled signal as its
+own chip (`signalPill(sig, { all: true })`, chips wrapping in `.signal-cell`), which the shared
+column widths above give it the room for. Labels come from `signalChipLabel()`: `TREND_META.short`
+for the four behavioural patterns, one "Worth a chat" covering all review-tier reasons, and
+"Reflection mismatch" for the two reflection signals — a `+N` survives only for a signal with no
+label of its own. The two fixed-150px call sites (class card, student list) still take the
+single-label form; the paragraph above describes them.
+
 ### Where signals appear
 
 | Surface | Review | Attention |
 |---|---|---|
-| Browse Students / Class / Assignment rows | Pill, `+N` count if more signals are true | Pill (pattern name), `+N` count if more signals are true |
+| Browse Students rows | Every labelled signal as its own chip | Every labelled signal as its own chip |
+| Class / Assignment rows | Pill, `+N` count if more signals are true | Pill (pattern name), `+N` count if more signals are true |
 | Class detail's inline expand | Pill | Pill (pattern name) |
 | Drill panel | Flagged submissions show their own flags inline (unchanged); an "Also noticed" list beneath the history shows every other attention-tier signal, not just one | Every attention-tier signal listed, each its own line, `learnMoreKey` links preserved per line |
 | Student detail header | Pill (no reason text) | Pill (no reason text) |
@@ -644,7 +746,12 @@ changed from the shape described above:
   (via `POST` through the real running server, not mocked) were deleted from `app/data/*.json`
   afterward with the server stopped, same as the 2026-07-31 pass did.
 
-**Known limitation, not solved here:** no class-rename or class-delete yet (only create); no way to
+**Known limitations as of this section — the first two were solved 2026-08-08 (see the Session Log's
+object-action-menus entry): class rename and archive now exist on a class's own action menu, and
+moving a student between classes is one step on the student's.** What remains open below is the
+teacher-scoping gap. Original text:
+
+no class-rename or class-delete yet (only create); no way to
 move a student between classes in one step (remove from one, add to the other, two separate actions);
 `GET /api/teacher/dashboard` still returns every class and every student globally rather than scoped to
 the requesting teacher (pre-existing, not introduced by this pass — fine while there's one teacher
@@ -1262,6 +1369,44 @@ assumed live.
 
 ---
 
+## `teacher.html`'s session view — needs a rebuild, flagged 2026-08-08
+
+**Owner's verdict, direct: "I'm not sure where the session view for the teacher came from, but its
+design is terrible."** Recording that here rather than in a commit message because it's the kind of
+judgement that otherwise gets rediscovered from scratch in six months.
+
+**Where it came from.** It predates this dashboard. `teacher.html` was the *original* teacher
+surface from the Path B build — an assignment list plus a per-student detail page — and when the
+sidebar-navigated triage dashboard was built alongside it (2026-07-28), the two were never
+reconciled. The dashboard took over every job except two, and `teacher.html` kept running with its
+original layout, unreviewed, on a page with no design doc of its own. That's why it looks like it
+does: it isn't a design decision anyone made, it's the residue of one that was never revisited.
+
+**What it does now.** As of this pass the teacher note is on the dashboard's own submission rows
+(see the Session Log), so the transcript is the only thing left that this surface uniquely provides.
+The link into it is relabelled `Transcript →` to say so.
+
+**Known problems, none of them fixed here:**
+- No rail, no navigation, no way back into the dashboard except the browser's back button — it opens
+  in a new tab specifically to paper over that.
+- Its own duplicate assignment/roster list on load, which the dashboard already does better and with
+  class scoping this page doesn't have.
+- A "+ New assignment" affordance that is a text link reading "in the dashboard" — a control whose
+  only function is to say it isn't a control here.
+- The transcript itself is an undifferentiated wall of turns: no way to jump to a flagged moment, no
+  filtering to student turns, no anchor from the submission you clicked in from. Everything the
+  dashboard learned about surfacing the moment worth looking at is absent.
+- `computeMoments()` (the "session-ready moments" strip) is a genuinely good idea stranded on a page
+  nobody is meant to land on — worth salvaging into the dashboard rather than losing with the page.
+
+**The decision to make, when this is picked up:** whether the transcript becomes a panel on the
+dashboard's Student detail (and `teacher.html` is deleted), or stays a standalone reading surface
+that gets a real design. The first is the direction the rest of this work has been going — one
+surface, actions on the object. It was deliberately left out of the 2026-08-08 pass because it moves
+real functionality between pages rather than re-siting a control, and wanted its own decision.
+
+---
+
 ## Open / Future Work
 
 *Updated 2026-07-27 — most of this list shipped in the `app/` port and was never checked off.*
@@ -1337,6 +1482,250 @@ see `app/README.md`'s file map if you need to work on that surface instead.
 *Added 2026-07-27. Going forward, log dashboard-affecting sessions here — same convention
 `designsystem.md` uses for the rest of `app/`. Retroactive entries below reconstruct what's
 already landed; write new ones going forward rather than editing history in place.*
+
+**2026-08-10 — Home rebuilt onto toned section bands, two columns, and no page header**
+
+Prompted directly: the condensed Home "is very flat with the content hierarchy — every section is
+white and we have no visual way to highlight key information." Designed as two Claude artifacts (a
+proposal doc, then a full composed screen with live toggles) before any code, same precedent as
+Assignment Detail and the add-flow modals.
+
+**The diagnosis, which was not what it looked like.** Three sections shared `.pattern-card`'s exact
+chrome, and *Classes at a glance* re-implemented that chrome inline — but the root fault was that
+`.content` is `--tau-surface`, i.e. **white cards on a white pane**, with a 1px hairline and a soft
+shadow carrying the entire card boundary. Proximity was barely encoded either (10px between cards,
+24px between sections). And `tokens.css` already ships a four-rung ladder — `bg` / `surface` /
+`surface-2` / `surface-3` — of which Home was using two.
+
+**An industry scan settled the method and reversed two decisions made before it.** IBM Carbon's
+layering model (base → layer-01 → 02 → 03, light themes alternating white ↔ grey), Material 3's
+switch from shadow-based to tonal elevation, and Polaris' rule that dividers belong to data and
+index tables all converge on the same answer: **separate with ground, not with lines or more
+shadow.** That killed a first proposal to rule each section head. Linear's unread state vs.
+Datadog's Change Overlays killed a second — see the change-marking note below.
+
+What shipped in `dashboard.html`:
+
+- **`.home-band` — one band per section**, not per group of related sections. A shared band is a
+  Gestalt common region, and a region claims its contents belong together; that's true of neither
+  {tiles, patterns} nor {dimensions, classes}. Four bands. Page-sheet rather than `components.css`
+  because it is layout on a single surface today — **promote it the moment a second surface wants
+  one**, per the placement rule.
+- **`.home-cols` — Dimension trends and Classes at a glance side by side**, 1.45fr / 1fr with
+  `align-items: start`, stacking below 1200px. Asymmetric deliberately: equal widths, or bands
+  stretched to equal height, would assert that a *metric readout* and an *entity index* are a matched
+  pair inviting row-to-row comparison. They aren't, and there is no correspondence to find.
+- **No `.content-header` on Home.** ~70px of pane to say "Home" — which the rail's active row already
+  says — and the date, which the OS clock says. Other screens keep theirs; `renderFirstRun()` keeps
+  its "Welcome".
+- **Classes at a glance is rows, not cards** (`.class-row`). Every other card on Home expands in
+  place; these navigate, and identical chrome for two behaviours was the affordance failure. The
+  chrome now carries the rule — cards expand, rows go — plus the two channels the app already owns:
+  forest (interactive text, one of its six jobs) and a trailing `→` (14 existing uses, all
+  navigational). **The roster count came off the row**: a number belongs where its size changes the
+  finding — a pattern touching 12 students outranks one touching 2 — and a class's headcount never
+  does.
+- **The disclosure chevron is gone**, all four call sites. It rendered at 10px, below
+  `--tau-text-xs` (11.5px) and so off the type scale entirely, which is why it read as debris. Cost,
+  stated plainly: a collapsed card no longer announces that it expands until hover, and `→` is now
+  the only affordance marker on the page. If that needs reversing the fix is `icons.js`'s
+  `expandMore` at a real size, not the 10px glyph.
+- **Card hover moved to `--tau-surface-3`, scoped to `.home-band`.** On surface-2 the old surface-2
+  hover made a white card *dissolve into its own band* — a defect the band change would have shipped.
+  Same direction `.rail-item:hover` already takes on that identical ground.
+
+**One real bug, caught in a browser rather than by reading the code.** The Behavioral patterns
+denominator read **"1 of 8 students"** regardless of the data: `detectTrends()` pushes
+`{ student, classes }`, so `t.students.map(s => s.id)` was `undefined` for every entry and the Set
+always collapsed to size 1. Now `s.student.id` — reads "6 of 8" against the demo seed. Pre-existing,
+unrelated to the layout, and invisible until the header it sits in was being looked at directly.
+
+**Deliberately not done, all still open:**
+
+- **Change marking is untouched.** `.f-updated` still renders "Updated" in `--tau-tool-info` — blue
+  for a *computed fact*, which inverts what Hard Constraints says that hue means, and this page's own
+  colour table already routes a second computed fact to white/hairline/tabular. The proposed
+  replacement is a **fixed comparison window** (`▼ 0.3 vs. …`) rather than an unread marker: unread
+  state is an inbox pattern needing an event stream and a read receipt, and `TEACHING_SNAPSHOT_KEY`
+  is a localStorage signature that disagrees across devices. Open question is the window — calendar
+  ("last week") vs. the cohort's own unit (the previous draft), which is what
+  `dimensionRowsFromCohort()` actually pairs. Retiring the snapshot is a data change, not a CSS one.
+- **Exception-first Dimension trends** (one card for the dimension with a finding, the steady ones
+  collapsed into a panel of expandable rows) was designed and not built. It reopens the 2026-08-08
+  tier removal; the distinction argued is that what got rejected was *a measured average on
+  tool-info blue ground*, not tiering as such. Note the collapsed rows must stay `<details>` — every
+  dimension carries a `note` from `dimensionTrendNote()`, and a first pass that flattened them into
+  plain lines silently lost three explainers.
+- **The stat tiles navigate and carry no cue either**, same open question as the class rows did.
+- **The signals band has no `.eyebrow`** and can't accurately get one — every tile names itself, and
+  "Alerts" / "Needs attention" would name a priority tier, which the label rule forbids. Note also
+  that "alert" is reserved vocabulary here: terra/missing-work is the alert, "worth a chat" is not.
+- **This document's own *Home* section still lists five stat tiles.** `renderHome()` emits one or two
+  (Worth a chat always, Missing work only above zero). Stale text, not a missing feature.
+
+Verified in a real browser (Playwright, installed to the session scratchpad — none was available in
+most earlier passes, hence their "worth a live check" caveats): logged in as `teacher@school.dev`
+against the running dev server and seeded data, confirmed four bands, the 639/441 column split at
+1440px and the stack at 1150px, three class rows each with an arrow and no count, zero chevrons, zero
+`.content-header`, no horizontal page scroll, card hover distinct from its band, a class row actually
+navigating to Class detail, and no console or page errors.
+
+**2026-08-08 — Home condensed: collapsed finding cards, and the colour rule that fell out of it**
+
+Feedback that Home is "a lot of data." The volume was never the number of findings — it was that
+every finding's prose rendered permanently open: 343 words across four pattern cards, plus up to
+four teaching cards under them. Both sections are now one collapsed `.pattern-card` per finding,
+detailed under *Patterns worth noticing* and *Dimension trends* above.
+
+Four rounds of correction shaped it, each worth keeping because each was a rule the first attempt
+broke:
+
+1. **Not a table.** The first draft put the findings in a shared list with a column header over the
+   numerals. Wrong object: these are distinct findings scanned as a set, not one record type in a
+   grid. Cards, with their existing chrome, and the body folds — that's the whole change.
+2. **A number needs context.** A bare "3" in a column is a number the reader has to decode. Once it
+   went back to a card the fix came free: the count sits in the phrase that names its unit, weighted
+   inside that sentence, with the denominator in the section head.
+3. **The explainer is not the tool talking.** The draft folded "What this looks like" and "What to
+   try" into one blue region. But the explainer *describes the measurement* — tinting a definition
+   makes it read as an opinion. Blue marks the recommendation and nothing else. Now written down in
+   *Colour: measured vs the tool talking*, because getting it wrong is easy and the existing Hard
+   Constraint doesn't say where the voice starts.
+4. **Meaning → action → evidence → exit.** The draft led an open card with the outlier measurement,
+   making a teacher read evidence for a claim they hadn't been given yet. The link also moved inside
+   the evidence box: the sentence names the assignment, the link goes there, nothing in between.
+
+Two things this surfaced rather than caused. The shipped teaching cards had a **measured average on
+a tool-info-blue ground** — backwards under the rule above, in live code, not just in the draft. And
+`renderTeachingSection()` has no authored *What to try* copy at all, which is why dimension cards
+ship with no blue: four recommendation strings are a content task, flagged above, not something to
+invent in a layout pass. Class View's own patterns panel was converted to the same card in the same
+pass — it shares `.pattern-card`, and it was a second, always-expanded rendering of an object Home
+already had a shape for.
+
+**2026-08-08 — demo relics: "Worth a chat, explained" into the account menu; Browse Students roster
+formatting**
+
+Four changes, all prompted by looking at the running roster rather than this doc.
+
+*"Worth a chat, explained" left the header.* It was built to show a demo audience how signals get
+labelled and had been sitting as a standing header button beside `+ Add` ever since — reference
+material a teacher reads once, holding a slot next to the page's primary action. It's now an item
+in the shared account menu. That menu is built once in `api.js`, so rather than dashboard.html
+rebuilding it, `mountAccountChip(el, { extras })` takes `{icon, label, desc, onClick}` items and
+renders them with the navigation destinations. The now-orphaned `.hdr-div` separator went with it.
+
+*Roster columns line up across classes* — see *Browse Students* above for the colgroup.
+
+*The band stopped being the smallest text in its row.* `bandChip(avg, true)` was inlining
+`font-size:10px`, so "How they're using AI" — the row's most important sentence — rendered smaller
+than the 11.5px uppercase column header above it. `.band-plain` now inherits its container's
+font-size at weight 500, which is what it should have been since it lost its chip chrome and its
+pip: it is plain text, so it is sized as text. Call sites that want it small still say so.
+
+*Every signal shows.* See the reversal note under *Signal levels*. Left open, flagged in passing:
+with fill and pip both gone, `.band-plain`'s only remaining channel is text colour, and band-2 vs
+band-3 are near-identical dark teals that also read as links. Not addressed here.
+
+**2026-08-08 — object action menus: one system with "+ Add", and the creation flows held to the
+same standard**
+
+Prompted by a review of every function a teacher has and how many turns it takes to reach each one
+(traced through the running code, not this doc). The finding: creation was centralised in a clean
+three-door `+ Add` menu, and *every other verb* was scattered — roster edit behind a button on Class
+detail, assignment edit five turns deep and only on Assignment detail, the student note and
+transcript on a different HTML page reached by an 11px link, and rename/archive/delete/move not
+built at all. The `+ Add` menu had a greyed-out "Rename or archive a class — not built yet" row and
+a footnote explaining where roster removal lived: both were the menu apologising for an IA gap.
+
+The follow-up prompt was the more important one — *"it feels like we have two different systems of
+functionality and I want to make sure it's cohesive."* Right, and the answer is that they aren't two
+systems, they're **one axis**: is there a subject on screen for this action to hang on? No — the
+thing doesn't exist yet, so it's `+ Add` in the global header, labelled and primary. Yes — it lives
+on the object, same corner of every `.content-header`. What makes them read as one family rather
+than two menus is the pairing: **a create action that needs a subject appears globally with a
+picker and on the subject without one.** "Add students" in the header asks which class; "Add
+students" on a class's own menu doesn't. Same item, same wording, same submit path.
+
+- **`objActionRow()`** builds the row; `mountObjActions()` re-binds `tauMenu` after every
+  `renderContent()` (which replaces `#content` wholesale, taking the previous panel's listeners with
+  it). Class detail keeps "Manage roster" inline and gains a scoped *Add to <class>* group (Add
+  students / New assignment) plus *Manage* (Rename / Archive). Assignment keeps "Goal &
+  requirements" inline, menu holds Edit / Duplicate / Delete. Student had no actions at all before;
+  it now has Move to another class / Grant extra replies — the latter surfacing a server route
+  (`grant-replies`) that had existed with no UI anywhere.
+- **The group label only renders when a panel holds more than one kind of action** — so the class
+  menu shows *ADD TO AMERICAN LITERATURE* / *MANAGE* and the other two show no labels. The menus
+  differ where the objects differ and nowhere else.
+- **Archive, not delete, for a class** — `POST /api/classes/:id/edit` takes `{ name, archived }`,
+  `teacherScope()` filters archived classes out of every roster/rollup in one place, and assignments
+  scoped only to archived classes go with them. **Archiving without an un-archive path would have
+  been a one-way door**, so the rail's Classes group grows an `Archived · N` row (only when N > 0)
+  opening a restore list. `archivedClasses` is sent as its own key, never merged into `classes`,
+  because everything on this page derives counts from that list.
+- **Delete for an assignment refuses rather than cascades** — `POST /api/assignments/:id/delete`
+  works only while no session or submission exists, and names what's in the way ("1 draft has already
+  been submitted to this assignment"). The append-only integrity record is the point of the tool;
+  retiring work that's been used is what archiving a class is for.
+- **Move a student is composed client-side** from the two calls the roster route already has, add
+  before remove — a failure halfway leaves them on two rosters (visible, fixable) rather than none.
+- **`+ Add` lost its greyed-out row and its footnote.** Both existed to explain absences that now
+  have real homes. Its three emoji (📄 👤 🗂) also became `icons.js` SVGs — `icons.js` had existed
+  unused beside them, which meant two icon systems across the two menus that are meant to read as
+  one thing.
+
+Creation flows, same pass, same standard:
+- **First run was reporting the opposite of the truth.** A teacher with no classes saw "✓ All
+  students on track" above an empty class list — a false status report at the exact moment they most
+  need to find the create menu. `renderFirstRun()` replaces Home in that state and names the first
+  door. This also settles, without re-arguing it, why the picker's order (ranked by content weight,
+  2026-08-03) doesn't need reversing for day one.
+- **One error system, not two.** The blocking `alert()` chain is gone — including the one still
+  telling teachers to open "Customize schedule & coaching," a disclosure deleted months earlier. The
+  form also gained `novalidate`: the `required` attributes stay for assistive tech, but the browser's
+  native bubble is off, so every failure reports the same way.
+- **One success shape.** New class already confirmed in-modal with scoped next actions; New
+  assignment fired a header toast and Add students wrote an inline line. All three now use
+  `modalSuccess()`. The `.assign-toast`/`.btn-flash` CSS and `flashAssignToast()` were deleted rather
+  than left dead. The per-class roster modal deliberately keeps showing its updated roster instead —
+  there the evidence *is* the confirmation, and a success view would hide it.
+- **Escape and the scrim.** No modal on this page closed on Escape; a stray scrim click discarded
+  everything typed in the longest form in the app. One `MODALS` registry now handles both, and a
+  `dirty()` check means an untouched form still closes instantly while one with content in it asks
+  first.
+
+**Four bugs caught by a headless browser (Playwright), not by reading the code:**
+1. **Escape didn't close the action menu.** `tauMenu` listens on the *panel*, so it only hears
+   Escape when focus is inside it — true when the menu was opened by keyboard, never when opened by
+   mouse. Every mouse user's Escape was landing on nothing, and had been since `tauMenu` shipped.
+   The page-level handler now falls through to `closeAllMenus()` (and the side tray) after modals.
+2. **Native `required` bubbles were still firing**, so the form had two error systems again — the
+   exact thing the inline errors were meant to end. Fixed with `novalidate` plus explicit checks.
+3. **The inline error scrolled out of view.** Parked at the submit button, focusing the offending
+   field left a highlighted box with no explanation of what was wrong with it. The single message is
+   now *moved* to sit under the field it names.
+4. **The success view appeared minutes late.** Confirming after `loadDashboardData()` meant the
+   teacher watched an unchanged form for as long as `/api/teacher/dashboard` takes to walk every
+   student × assignment × submission. Confirmation now happens on the POST response, refetch after,
+   and the submit button says "Creating…" while in flight.
+
+Verified against the live server: rename, empty-name rejection, archive (class drops out of
+`classes`, appears in `archivedClasses`), restore, assignment delete, and the delete guard firing on
+an assignment with a submission. Test class and four test assignments were deleted from Firestore
+afterwards, same as the 2026-07-31 and 2026-08 passes did.
+
+**The teacher note moved onto the submission row, same session.** It had been the least findable
+function a teacher had — six turns, ending in a second surface in a new tab. It now sits on the row
+it's about: an `Add note` / `Edit note` action beside `Report →`, opening the shared small modal, and
+an existing note renders inline on the row in the same `.card-edge-auditor` treatment the
+assignment-wide note already uses. `teacherNote` is sent on each submission in the dashboard payload
+so the row can both show it and prefill the editor without a second round trip; the save posts to the
+same `/api/submissions/:id/note` route `teacher.html` uses, so both surfaces stay in sync through the
+one record. Saving an empty note clears it, which the modal's subtitle says.
+
+**Still open, deliberately not done here:** the transcript remains on `teacher.html` — now the only
+thing that surface uniquely provides, and its link is relabelled `Transcript →` to say so. That page
+is separately flagged for a rebuild; see the *`teacher.html`'s session view* section above.
 
 **2026-07-28 (evening) — colour-tier violations, decorative dots, component-library alignment**
 Prompted by a specific bug: the overdue-checkpoint chip (`Draft 2/3`) and a real "missing work"

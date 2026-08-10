@@ -6,8 +6,8 @@
 // Vocabulary note: the server's data model calls one chat thread a
 // "conversation" and calls a draft/cycle a "session" — but nothing here is
 // user-facing copy for the data model. To a student, "session" already means
-// one sitting with the coach (the workspace's own sidebar calls it that:
-// .session-list, "No sessions yet"), so this view follows that precedent —
+// one sitting with the coach (the workspace's own rail calls it that:
+// "+ New session", "No sessions yet"), so this view follows that precedent —
 // every string a student reads says "session," never "conversation."
 
 const SPEAKER_STATIC = { student: 'You', coach: 'Coach', auditor: 'Auditor · on request' };

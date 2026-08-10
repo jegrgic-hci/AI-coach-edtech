@@ -30,15 +30,26 @@
 }
 .app-header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.2px; }
 
-.admin-main {
-  padding: var(--tau-s7) var(--tau-s7);
-  max-width: 940px;
+/* Page shell. The rail itself is components.css §13 — this is only where it
+   sits on the page. Its width comes from --tau-rail-w so the column and the
+   component can't drift apart. */
+.admin-shell {
+  display: grid;
+  grid-template-columns: var(--tau-rail-w) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--tau-s7);
+  max-width: 1180px;
   margin: 0 auto;
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--tau-s6);
+  padding: var(--tau-s7) var(--tau-s7);
 }
+
+/* The one rail in the app that doesn't run the full height of its viewport —
+   hence .rail-inset on the element, which closes it into a panel rather than
+   leaving a square-edged grey column floating on the page ground. */
+.admin-nav { position: sticky; top: var(--tau-s7); }
+
+.admin-main { display: flex; flex-direction: column; gap: var(--tau-s6); min-width: 0; }
 
 /* The lead. One hero figure for the whole view (dataviz: exactly one per
    view) — the count of drafts actually submitted, since that is the tool
@@ -84,6 +95,56 @@
 .pattern-label { font-size: var(--tau-text-sm); color: var(--tau-ink); margin-top: var(--tau-s1); font-weight: 600; }
 .pattern-note { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); margin-top: 2px; line-height: 1.45; }
 
+/* Cost figures reuse .pattern-grid/.pattern-figure rather than introducing a
+   second display-size number: the dataviz rule allows exactly one hero figure
+   per view, and this view already spends it on drafts submitted. */
+.cost-note { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); line-height: 1.5; margin-top: var(--tau-s3); }
+.cost-split { display: flex; flex-wrap: wrap; gap: var(--tau-s5); margin-top: var(--tau-s2); }
+.cost-split-item { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+.cost-split-value { font-weight: 600; color: var(--tau-ink); }
+
+/* Status rows: same shape as a teacher row (.list-row supplies the chrome),
+   one identity block and one action. */
+.status-row { display: flex; align-items: center; gap: var(--tau-s4); border-top: 1px solid var(--tau-line); }
+.status-row:first-of-type { border-top: none; }
+.status-row-id { flex: 1; min-width: 0; }
+
+/* The audit list. Two columns rather than a table: one timestamp and one
+   sentence is not tabular data, and a table would imply columns worth sorting. */
+.audit-row { display: flex; gap: var(--tau-s4); padding: var(--tau-s2) 0; border-top: 1px solid var(--tau-line); }
+.audit-row:first-of-type { border-top: none; }
+.audit-when { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); flex-shrink: 0; min-width: 82px; }
+.audit-what { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.45; }
+.audit-what strong { color: var(--tau-ink); font-weight: 600; }
+
+/* Roster search. Composed from .field's input styling rather than a new
+   control — this one genuinely is a labelled text input, unlike the checkbox
+   below. Placeholder carries the label because the section title directly
+   beside it already names what is being searched. */
+.section-head-tools { display: flex; align-items: center; gap: var(--tau-s3); flex-shrink: 0; }
+.roster-search { display: flex; align-items: center; gap: var(--tau-s2); }
+.roster-search input {
+  width: 240px;
+  padding: 7px var(--tau-s3);
+  border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-sm);
+  background: var(--tau-surface);
+  color: var(--tau-ink);
+  font-size: var(--tau-text-sm);
+  font-family: inherit;
+}
+.roster-search input:focus { outline: none; border-color: var(--tau-forest); }
+.roster-search-count { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); white-space: nowrap; }
+
+/* A checkbox row is not in components.css — .field stacks a label above a
+   control, which is the wrong axis for a tick box. Layout only, on tokens.
+   If a second surface needs one, promote this into the component layer rather
+   than copying it. */
+.field-check { display: flex; gap: var(--tau-s3); align-items: flex-start; }
+.field-check input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--tau-forest); flex-shrink: 0; }
+.field-check label { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); cursor: pointer; }
+.field-check .field-help { display: block; font-weight: 400; margin-top: 2px; }
+
 .modal-card { width: min(460px, 100%); max-height: 90vh; overflow-y: auto; }
 .modal-title { font-size: var(--tau-text-xl); font-weight: 700; letter-spacing: -0.3px; }
 .modal-sub { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.5; }
@@ -100,8 +161,24 @@
 }
 .hidden { display: none !important; }
 
+@media (max-width: 860px) {
+  /* The rail becomes a scrolling strip rather than collapsing behind a
+     toggle: these are the only four destinations on the surface, and hiding
+     the whole map to save a column trades wayfinding for space we have.
+     Layout only — the rows keep their component chrome. */
+  .admin-shell { grid-template-columns: minmax(0, 1fr); padding: var(--tau-s5) var(--tau-s4); gap: var(--tau-s5); }
+  .admin-nav { position: static; width: auto; min-width: 0; flex-direction: row; gap: var(--tau-s4); overflow-x: auto; }
+  .admin-nav .rail-group { flex-direction: row; gap: var(--tau-s1); flex-shrink: 0; align-items: center; }
+  .admin-nav .rail-group > .eyebrow { padding: 0 var(--tau-s2) 0 0; white-space: nowrap; }
+  .admin-nav .rail-item { width: auto; white-space: nowrap; }
+}
+
 @media (max-width: 720px) {
-  .admin-main { padding: var(--tau-s5) var(--tau-s4); }
+  .section-head { flex-wrap: wrap; }
+  .section-head-tools { flex-wrap: wrap; }
+  .roster-search input { width: 100%; min-width: 0; }
+  .roster-search { flex: 1; min-width: 180px; }
+  .status-row { flex-wrap: wrap; }
   .area-row { grid-template-columns: 1fr; gap: var(--tau-s1); }
   .area-value { text-align: left; }
   .teacher-row { flex-wrap: wrap; }
@@ -113,15 +190,20 @@
 <header class="app-header">
   <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="Tau">Thinking</span>
   <h1>Administration</h1>
-  <span class="chip chip-neutral">Administrator</span>
+  <span class="chip chip-neutral" id="roleChip">Administrator</span>
   <span class="visibility-cue">Aggregate figures only — no student work is visible here</span>
+  <!-- Appearance moved inside the account menu, where it now lives on every
+       surface. A standalone toggle here made the same preference a bare button
+       on one page and a menu item on another. -->
   <div class="account-chip" id="accountChip"></div>
-  <button class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
 </header>
 
-<main class="admin-main" id="adminMain">
-  <p class="section-note" id="loading">Loading…</p>
-</main>
+<div class="admin-shell">
+  <nav class="rail rail-inset admin-nav" id="adminNav" aria-label="Administration sections"></nav>
+  <main class="admin-main" id="adminMain">
+    <p class="section-note" id="loading">Loading…</p>
+  </main>
+</div>
 
 <div class="scrim hidden" id="teacherModal">
   <div class="card card-lg modal-card">
@@ -136,6 +218,16 @@
     <div class="field">
       <label for="teacherEmail">Email</label>
       <input id="teacherEmail" type="email" autocomplete="off" placeholder="name@school.dev">
+    </div>
+    <!-- Visible, never collapsed: it is a real decision about what the account
+         can do, and progressive disclosure is only for genuinely optional or
+         rarely-needed content. Hidden for a school administrator, who cannot
+         grant this — the server enforces the same rule. -->
+    <div class="field-check hidden" id="schoolAdminField">
+      <input id="teacherSchoolAdmin" type="checkbox">
+      <label for="teacherSchoolAdmin">School administrator
+        <span class="field-help">Also adds, edits, and suspends teacher accounts for their school. Does not change what they see of student work.</span>
+      </label>
     </div>
     <p class="form-error hidden" id="teacherError"></p>
     <div class="modal-actions">

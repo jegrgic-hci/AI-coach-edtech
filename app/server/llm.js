@@ -162,10 +162,17 @@ async function vertexEndpoint({ model, method, schoolId }) {
 // killed when the instance scales down, and this row is the thing that cannot
 // be reconstructed afterwards. It runs after the student has already seen the
 // full reply, so it costs no perceived latency.
-async function recordCall({ purpose, model, usage, latencyMs, target, meta }) {
+async function recordCall({ purpose, model, usage, latencyMs, target, meta, ok = true, errorCode = null }) {
   try {
     await col('llmCalls').add({
       ts: new Date().toISOString(),
+      // Rows written before failures were recorded carry no `ok`, so absent
+      // means success — the same convention `status` uses on users. Without a
+      // failure row there is no denominator anywhere for "is Vertex healthy",
+      // and an outage is only visible as an absence of successes, which looks
+      // identical to a quiet afternoon.
+      ok,
+      errorCode,
       schoolId: meta?.schoolId || null,
       studentId: meta?.studentId || null,
       assignmentId: meta?.assignmentId || null,
@@ -220,7 +227,11 @@ async function streamChat({ messages, maxTokens = MAX_CHAT_TOKENS, signal, onTok
     throw err;
   }
 
-  if (!res.ok) throw providerError(res.status, await res.text(), 'chat');
+  if (!res.ok) {
+    const err = providerError(res.status, await res.text(), 'chat');
+    await recordCall({ purpose: meta?.purpose || 'chat', model, latencyMs: Date.now() - startedAt, target, meta, ok: false, errorCode: res.status });
+    throw err;
+  }
 
   let full = '';
   let buffer = '';
@@ -297,7 +308,11 @@ async function complete({ messages, maxTokens = 1000, temperature = 0.2, json = 
     }),
   });
 
-  if (!res.ok) throw providerError(res.status, await res.text(), 'analysis');
+  if (!res.ok) {
+    const err = providerError(res.status, await res.text(), 'analysis');
+    await recordCall({ purpose: meta?.purpose || 'analysis', model, latencyMs: Date.now() - startedAt, target, meta, ok: false, errorCode: res.status });
+    throw err;
+  }
 
   const data = await res.json();
   const candidate = data.candidates?.[0];
@@ -327,4 +342,7 @@ async function complete({ messages, maxTokens = 1000, temperature = 0.2, json = 
   return text.trim();
 }
 
-module.exports = { streamChat, complete, MAX_EVAL_TOKENS };
+// modelFor is exported so the platform-admin Status view can show which models
+// are actually in effect. Reading it from here rather than re-deriving it from
+// config means the console can never disagree with what the calls use.
+module.exports = { streamChat, complete, modelFor, MAX_EVAL_TOKENS };

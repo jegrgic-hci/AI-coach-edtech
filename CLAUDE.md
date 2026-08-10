@@ -17,9 +17,11 @@ This repo holds **two things**. Most current work is in the second.
 
 **For any work on `app/web/dashboard.html` (the teacher triage surface), also read `teacher-dashboard-design.md`** — IA, the flag/signal system, and a session log scoped to that page. Covers `dashboard.html` only, not `teacher.html` (assignment creation, transcripts, notes — see `app/README.md`'s file map for that surface instead).
 
-Run it: `npm install` once, then `npm start` → http://localhost:8787. Everything is behind a login; test accounts are in `app/README.md`. **Requires GCP credentials** (`gcloud auth application-default login`) — the app runs on Vertex and Firestore, not on local files. `app/gcp-setup.md` is the setup walkthrough.
+Run it: `npm install` once, then `npm run start:demo` → http://localhost:8787. **Use `start:demo`, not `start`** — the demo seed is opt-in (`SEED_DEMO=1`) as of 2026-08-08, and plain `npm start` seeds nothing because that is what production runs. Everything is behind a login; test accounts are in `app/README.md`. **Requires GCP credentials** (`gcloud auth application-default login`) — the app runs on Vertex and Firestore, not on local files. `app/gcp-setup.md` is the setup walkthrough.
 
-Also deployed: **https://cta-714032495709.us-central1.run.app** (public, demo data only). `app/data/*.json` is a dead snapshot — the live store is Firestore in `cta-pilot-dev`.
+**Two GCP projects since 2026-08-08** — real users are arriving, so demo and product no longer share a database. `cta-pilot-dev` is the demo/dev sandbox your machine points at (via `config.json`); `tau-thinking-prod` holds real schools and is reachable only from Cloud Run. The demo seed refuses to run there. Read `app/README.md`'s *Two projects* section before touching seeding, auth, deploy config, or anything that writes users.
+
+Also deployed: **https://cta-714032495709.us-central1.run.app** — the *demo* instance in `cta-pilot-dev` (public, fabricated data, no longer receiving deploys). `app/data/*.json` is a dead snapshot.
 
 ---
 

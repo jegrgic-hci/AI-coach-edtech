@@ -18,6 +18,9 @@
  *   4. band + meters    9. trajectory sparkline
  *   5. card            10. avatar · field · confirm · offline
  *                      11. chip · dot · stat-tile · tray · list-row
+ *                      12. global nav
+ *                      13. rail
+ *                      14. menu (dropdown + account menu)
  */
 
 /* Bare utility, not a numbered section — needed here because report.html
@@ -132,6 +135,14 @@
    never for a primary action or a lone control on a phone view. */
 .btn-sm { min-height: 36px; font-size: var(--tau-text-sm); padding: 0 var(--tau-s3); }
 
+/* The confirm button on an irreversible action, and the only filled control in
+   the app that isn't forest. Attention rather than caution: deleting an
+   assignment is a real one-way action, not a conversation-starter — the
+   caution/attention split this app holds everywhere else applies to the
+   teacher's own actions too, not just to student signals. */
+.btn-danger { background: var(--tau-attention); border-color: var(--tau-attention); color: var(--tau-surface); }
+.btn-danger:hover:not(:disabled) { background: color-mix(in oklab, var(--tau-attention) 85%, black); border-color: color-mix(in oklab, var(--tau-attention) 85%, black); }
+
 /* No fill, no border — but still a button (padding, rounded hover fill),
    not a bare underlined link, for an action that sits inline with real
    buttons elsewhere on the same row. */
@@ -218,8 +229,14 @@ details[open] > .acard-disclosure-toggle {
    classification, not something to act on, and giving it the same filled-
    pill weight as a real alert is what buried the alert in the first place.
    The pip still carries the colour for at-a-glance scanning; only the
-   background/box-shadow that made it read as equally salient is dropped. */
-.band-plain { background: none; box-shadow: none; padding: 0; }
+   background/box-shadow that made it read as equally salient is dropped.
+   With no fill, no border and (since 2026-07-29) no pip, this variant is
+   plain text — so it is sized as text: it inherits its container's font-size
+   instead of keeping .band's 12.5px, and drops to weight 500. In the roster
+   it was rendering smaller than the uppercase column header above it, which
+   made the row's most important sentence its least legible element.
+   Consumers that want it smaller still set their own font-size. */
+.band-plain { background: none; box-shadow: none; padding: 0; font-size: inherit; font-weight: 500; }
 
 /* Same SAMR ramp as .band-1..4 above, applied as a border-left accent instead
    of a filled pill — for surfaces that want the level to read as a stripe on
@@ -903,17 +920,319 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    on a page's own generic `button` reset — report.html has no such reset,
    which is exactly why this rendered as a bare native button there before
    it lived here. */
+/* The slot the account menu mounts into. .account-name and .account-signout
+   went with the flat name-plus-button strip this replaced — the only thing
+   still borrowing .account-signout was report.html's Pattern Guide button,
+   which is a button and now says so (.btn.btn-quiet.btn-sm). */
 .account-chip { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.account-name { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); }
-.account-signout {
-  border: 1px solid var(--tau-line);
-  background: none;
-  border-radius: var(--tau-r-sm);
-  padding: 5px 10px;
-  font: inherit;
-  font-size: 12px;
-  color: var(--tau-ink-soft);
-  cursor: pointer;
-  transition: border-color var(--tau-dur-short) var(--tau-ease-standard), color var(--tau-dur-short) var(--tau-ease-standard);
+
+/* ---------- 13. rail ---------- */
+
+/* The vertical rail, wherever one appears: the teacher's persistent nav, the
+   admin's section list, the workspace's session list, the student's home
+   rail. Four surfaces had built this independently and agreed on nothing —
+   four widths (292/290/240/224), four grounds, four active states, and two
+   of them shared the class name `.sidebar` for different objects, inert only
+   because dashboard.html is the one page that doesn't load style.css.
+   Three of those four active states argued their case in a code comment and
+   the cases contradicted each other; none of the three knew the others
+   existed.
+
+   Three regions, because a rail's contents fall into three groups and only
+   one of them scrolls: .rail-head (identity, search, the action that makes a
+   new thing), .rail-body (the list, the only region that can overflow), and
+   .rail-foot (pinned via margin-top:auto). A rail with no head or no foot
+   just omits them. */
+.rail {
+  width: var(--tau-rail-w);
+  min-width: var(--tau-rail-w);
+  /* A step quieter than the content it frames — this is structure, not
+     content. The same move style.css made for .sidebar/.dash-rail in the
+     2026-07-26 pass, now the rule rather than two copies of it. */
+  background: var(--tau-surface-2);
+  padding: var(--tau-s4) var(--tau-s3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--tau-s5);
+  min-height: 0;
 }
-.account-signout:hover { border-color: var(--tau-forest); color: var(--tau-forest); }
+.rail-head { flex-shrink: 0; display: flex; flex-direction: column; gap: var(--tau-s3); }
+.rail-body { flex: 1; overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: var(--tau-s5); }
+/* Flex column, not a bare block — a foot holds stacked controls (the
+   workspace's Submit draft, and anything that joins it) and they should fill
+   the rail's width rather than shrink to their own text. */
+.rail-foot { flex-shrink: 0; margin-top: auto; display: flex; flex-direction: column; gap: var(--tau-s2); }
+
+/* A rail that doesn't run the full height of the viewport — admin's, which
+   sits in a centred page grid and is shorter than its content. Left square
+   and full-bleed it reads as a stray grey rectangle on the page ground, so
+   this variant closes itself into a panel. Chrome, so it lives here and not
+   in admin.html. */
+.rail-inset { border-radius: var(--tau-r-md); }
+
+.rail-group { display: flex; flex-direction: column; gap: 1px; }
+.rail-group > .eyebrow { padding: 0 var(--tau-s3) var(--tau-s2); }
+
+.rail-item {
+  display: flex;
+  align-items: center;
+  gap: var(--tau-s3);
+  width: 100%;
+  /* Not advisory — two of the four rails this replaces shipped 34px and 36px
+     rows against a token documented as a real minimum. */
+  min-height: var(--tau-target);
+  padding: var(--tau-s2) var(--tau-s3);
+  border: none;
+  border-radius: var(--tau-r-sm);
+  background: none;
+  font: inherit;
+  color: var(--tau-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--tau-dur-short) var(--tau-ease-standard);
+}
+/* Hover darkens, selection lightens — two directions off the same ground, so
+   the two states can never be mistaken for each other. --tau-hover-surface
+   is unusable here: it resolves to --tau-surface-2, which is the rail's own
+   background. */
+.rail-item:hover { background: var(--tau-surface-3); }
+.rail-item:focus-visible { outline: var(--tau-focus-ring); outline-offset: -2px; }
+
+/* The selected row is the only white surface in the rail, so it reads as
+   lifted out of the quiet ground and onto the same plane as the content it
+   opens. Three channels — surface reversal, shadow, then colour — which is
+   what lets the fill stay neutral. The rail this replaces on dashboard.html
+   tinted its active row with `color-mix(--tau-forest 10%, --tau-surface)`,
+   a seventh forest job the Hard Constraints don't allow; the tint existed
+   because a neutral wash on a *white* rail is a near-invisible 3% lightness
+   shift. On a toned rail the problem dissolves — white is a step up in
+   lightness against surface-2, which is the contrast that rail wanted.
+   Same construction as .tau-nav-local-opt.active above, which is the one
+   place in the system that had already solved this. */
+.rail-item.active {
+  background: var(--tau-surface);
+  box-shadow: var(--tau-shadow);
+  cursor: default;
+}
+
+.rail-item-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.rail-item-name {
+  font-size: var(--tau-text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rail-item-sub {
+  font-size: var(--tau-text-xs);
+  color: var(--tau-ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Right-aligned trailing value — a count, a due date, a status word. */
+.rail-item-meta {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: var(--tau-text-xs);
+  font-weight: 600;
+  color: var(--tau-ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+/* Forest under its "interactive text" job. Not a forest fill: a fill marks
+   the one action that moves the page forward, never wayfinding state. */
+.rail-item.active .rail-item-name { color: var(--tau-forest); font-weight: 600; }
+.rail-item.active .rail-item-meta { color: var(--tau-forest); }
+
+/* A row that filters the row above it rather than being its own destination
+   (Open under All assignments, Worth a chat under All students). Indented
+   and a step down in size so it doesn't visually tie with what it filters. */
+.rail-item-nested { padding-left: var(--tau-s6); min-height: 38px; }
+.rail-item-nested .rail-item-name { font-size: 12px; }
+
+/* Identity block — who you are, at the top of a rail that has one. */
+.rail-identity { display: flex; align-items: center; gap: var(--tau-s3); min-width: 0; }
+/* .avatar's own ground is --tau-surface-2, which is the rail's ground — on a
+   rail it would be a circle you can't see. One step further down the ramp. */
+.rail .avatar { background: var(--tau-surface-3); }
+.rail-who { display: flex; flex-direction: column; min-width: 0; }
+.rail-who-name { font-size: var(--tau-text-sm); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rail-who-sub { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
+
+/* Empty state for a .rail-body that has nothing in it yet. */
+.rail-empty { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); padding: var(--tau-s2) var(--tau-s3); }
+
+/* ---------- 14. menu ---------- */
+
+/* One dropdown, wherever one appears: the dashboard's "+ Add" picker and the
+   account menu on all five surfaces. Promoted here from dashboard.html, which
+   is where this vocabulary was written and where it was correct to live while
+   exactly one page had a header menu.
+ *
+   The account menu was the piecemeal one: dashboard.html hand-built a real
+   dropdown, while admin/index/report/teacher rendered a flat strip of a name
+   and a Sign out button from api.js — no panel, no keyboard model, and no
+   room for the destinations a person with two roles needs. One component, one
+   behaviour (tauMenu in api.js), one set of items decided from /api/me.
+
+   Behaviour lives in api.js, not here, because the WAI-ARIA menu-button
+   pattern is keyboard work: this file only has to make sure the states that
+   pattern sets — [aria-expanded], [hidden], :focus-visible — are visible. */
+
+.menu-wrap { position: relative; }
+
+.menu-trigger {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 var(--tau-s3);
+  border-radius: var(--tau-r-md); border: 1px solid var(--tau-line); background: var(--tau-surface);
+  font: inherit; font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); cursor: pointer;
+  transition: background var(--tau-dur-short) var(--tau-ease-standard), border-color var(--tau-dur-short) var(--tau-ease-standard);
+}
+.menu-trigger:hover, .menu-trigger[aria-expanded="true"] { background: var(--tau-hover-surface); }
+.menu-trigger[aria-expanded="true"] { border-color: var(--tau-line-strong); }
+/* The "+ Add" trigger — the one primary action in the header — needs
+   .btn-primary's forest fill, but .btn-primary and .menu-trigger are equal
+   specificity, so whichever rule comes later in the cascade would silently
+   win the whole property set. A dedicated modifier avoids that fight. */
+.menu-trigger.menu-trigger-primary { background: var(--tau-forest); border-color: var(--tau-forest); color: var(--tau-on-forest); }
+.menu-trigger.menu-trigger-primary:hover, .menu-trigger.menu-trigger-primary[aria-expanded="true"] { background: var(--tau-forest-lift); border-color: var(--tau-forest-lift); }
+.menu-trigger.menu-trigger-primary .menu-chevron { color: var(--tau-on-forest); opacity: 0.85; }
+.menu-chevron { color: var(--tau-ink-faint); transition: transform var(--tau-dur-short) var(--tau-ease-standard); font-size: 10px; }
+.menu-trigger[aria-expanded="true"] .menu-chevron { transform: rotate(180deg); }
+
+/* The account trigger. A pill rather than the squared .menu-trigger so the
+   identity control never reads as one more action button in the row.
+ *
+   No initials monogram: the name is the identity, and a generated two-letter
+   circle was decoration standing in for one. Padding is symmetric now that
+   nothing round sits inside the left edge. */
+.avatar-trigger {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 4px 11px; border-radius: var(--tau-r-pill);
+  border: 1px solid var(--tau-line); background: var(--tau-surface); cursor: pointer;
+  font: inherit;
+  transition: background var(--tau-dur-short) var(--tau-ease-standard);
+}
+.avatar-trigger:hover, .avatar-trigger[aria-expanded="true"] { background: var(--tau-hover-surface); }
+.avatar-trigger:focus-visible { outline: var(--tau-focus-ring); outline-offset: 2px; }
+.avatar-trigger .whoami-name {
+  font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink);
+  /* A long name shortens rather than pushing the header into a second row. */
+  max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.menu-panel {
+  position: absolute; top: calc(100% + 8px); right: 0; min-width: 240px;
+  background: var(--tau-surface); border: 1px solid var(--tau-line); border-radius: var(--tau-r-md);
+  box-shadow: var(--tau-shadow-lift); padding: 6px; z-index: 40;
+  animation: tau-reveal var(--tau-dur-medium) var(--tau-ease-decelerate);
+}
+.menu-panel[hidden] { display: none; }
+/* An opening panel is a position change, not information. Readers who ask for
+   less motion get the panel, not the slide. */
+@media (prefers-reduced-motion: reduce) {
+  .menu-panel { animation: none; }
+}
+
+.menu-item {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%; text-align: left; padding: 9px 10px;
+  border-radius: var(--tau-r-sm); border: none; background: none; font: inherit; font-size: var(--tau-text-sm);
+  font-weight: 600; color: var(--tau-ink); cursor: pointer; text-decoration: none;
+}
+/* Author `display: flex` above beats the UA stylesheet's `[hidden] { display:
+   none }`, so a plain `.hidden = true` on a .menu-item silently does nothing
+   without this — same fix .roster-preview[hidden] already needed. Caught by
+   actually testing the New Class success view's two shortcut buttons live,
+   not by reading the code: both stayed visible after being marked done. */
+.menu-item[hidden] { display: none; }
+.menu-item:hover { background: var(--tau-hover-surface); }
+/* Roving tabindex means the focused item is the only tabbable one, so focus
+   is the sole indication of position in the menu — it has to be unmissable,
+   and it must not rely on the hover wash alone to show it. */
+.menu-item:focus-visible {
+  outline: var(--tau-focus-ring);
+  outline-offset: -2px;
+  background: var(--tau-hover-surface);
+}
+.menu-item .mi-icon { flex-shrink: 0; width: 18px; text-align: center; margin-top: 1px; color: var(--tau-ink-soft); }
+.menu-item .mi-body { display: flex; flex-direction: column; gap: 1px; }
+.menu-item .mi-desc { font-weight: 400; font-size: var(--tau-text-xs); color: var(--tau-ink-faint); }
+
+.menu-divider { height: 1px; background: var(--tau-line); margin: 5px 8px; }
+.menu-account-head { padding: 8px 10px 10px; }
+.menu-account-head .mn { font-size: var(--tau-text-sm); font-weight: 700; }
+.menu-account-head .mr { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); }
+.menu-footnote { padding: 4px 10px 6px; font-size: var(--tau-text-xs); color: var(--tau-ink-faint); line-height: 1.45; }
+
+/* ── Object action menus ────────────────────────────────────────────────────
+   The second half of one system, not a second system. "+ Add" in the global
+   header handles the case where the thing doesn't exist yet and has nothing to
+   attach to; this handles the case where the object is the page you're on. Same
+   tauMenu behaviour, same .menu-panel/.menu-item chrome, same icon set — the
+   only difference is what the menu is anchored to, which is the distinction
+   the two triggers below are shaped to carry. */
+
+/* Icon-only trigger. Unlabelled on purpose: the object's own title sits
+   immediately to its left and is already the label, which is what makes a
+   global door labelled-and-primary and a local one small-and-adjacent. The
+   accessible name comes from an aria-label naming that object.
+   36px matches the .btn-sm row it sits in; ::after takes the hit region out to
+   the real --tau-target minimum without inflating the visible box. */
+.menu-trigger.menu-trigger-icon {
+  width: 36px; min-height: 36px; padding: 0; justify-content: center; position: relative;
+}
+.menu-trigger.menu-trigger-icon::after {
+  content: ''; position: absolute; top: 50%; left: 50%;
+  width: var(--tau-target); height: var(--tau-target); transform: translate(-50%, -50%);
+}
+.menu-trigger.menu-trigger-icon:focus-visible { outline: var(--tau-focus-ring); outline-offset: 2px; }
+
+/* Groups a menu's items by what kind of action they are — scoped creation
+   above, management below. Only earns its place when a panel holds both
+   kinds; a single-group panel takes no label, same rule .eyebrow follows. */
+.menu-group-label {
+  padding: 7px 10px 3px; font-size: 10px; font-weight: 650;
+  text-transform: uppercase; letter-spacing: 0.07em; color: var(--tau-ink-faint);
+}
+
+/* A destructive item states it in colour as well as wording ("Delete
+   assignment" — the object is named, per the labeling rule). Attention, not
+   caution: this is a real irreversible action, not a conversation-starter. */
+.menu-item.menu-item-danger { color: var(--tau-attention); }
+.menu-item.menu-item-danger .mi-icon { color: var(--tau-attention); }
+.menu-item.menu-item-danger:hover { background: var(--tau-attention-bg); }
+
+/* The row an object page's actions live in — same corner of every
+   .content-header, so "where do I do things to this?" is learned once. */
+.obj-actions { display: flex; align-items: center; gap: var(--tau-s2); flex-shrink: 0; }
+
+/* Appearance as a menu row. This is the real shared toggle markup — theme.js
+   wires every `.theme-toggle` on the page generically — laid out as a row via
+   a modifier, not a second toggle implementation.
+ *
+   §2 sizes .theme-toggle as a square icon button (fixed width/height, grid
+   centring). Those have to be undone explicitly here, not just overridden by
+   .menu-item's display: a stale `width: var(--tau-target)` would squeeze the
+   label into a 44px column. Two classes beat one, so this wins on specificity
+   wherever it lands in the cascade. */
+.menu-item.theme-toggle {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: none;
+  border-radius: var(--tau-r-sm);
+  font-size: var(--tau-text-sm);
+  color: var(--tau-ink);
+}
+.menu-item.theme-toggle:hover { border-color: transparent; }
+.menu-item .theme-toggle-icon { margin-left: auto; font-size: 14px; line-height: 1; }
+
+/* A named destination that doesn't exist yet. Rendered rather than omitted so
+   the gap is a stated limitation instead of a thing the reader assumes is
+   hiding somewhere they haven't looked. */
+.menu-future {
+  display: flex; align-items: flex-start; gap: 10px; padding: 9px 10px; border-radius: var(--tau-r-sm);
+  color: var(--tau-ink-faint); font-size: var(--tau-text-sm); font-weight: 600; cursor: not-allowed;
+}
+.menu-future .mi-desc { color: var(--tau-ink-faint); }

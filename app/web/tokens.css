@@ -190,6 +190,15 @@
      shipping 20px chips, which is the failure this token prevents. */
   --tau-target: 44px;
 
+  /* One width for every vertical rail in the app. The four surfaces that
+     grew a rail independently landed on 292 / 290 / 240 / 224, none of them
+     derivable from anything in this file. 272 is the narrowest width that
+     still holds the student rail's two-line rows without wrapping and gives
+     the teacher rail ~30 characters of class name before it ellipses. It is
+     a judgement call, not a derivation — the system has no rule that
+     produces a rail width, and that is a real gap. */
+  --tau-rail-w: 272px;
+
   --tau-shadow:      0 1px 2px #16191C0F, 0 8px 24px -16px #16191C2E;
   --tau-shadow-lift: 0 2px 4px #16191C14, 0 18px 40px -22px #16191C3D;
 

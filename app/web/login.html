@@ -37,7 +37,7 @@
         <span class="soon">coming soon</span>
       </button>
 
-      <div class="login-divider"><span>or use a test account</span></div>
+      <div class="login-divider" id="demoDivider" hidden><span>or use a test account</span></div>
 
       <form id="loginForm" novalidate>
         <label for="email">Email</label>
@@ -50,9 +50,12 @@
         <button type="submit" class="login-submit" id="loginSubmit">Sign in</button>
       </form>
 
-      <details class="test-accounts">
+      <!-- Demo instances only; revealed by login.js after /api/auth/demo
+           confirms it. Hidden in the markup so a failed or slow request
+           leaves it hidden rather than publishing a password. -->
+      <details class="test-accounts" id="demoAccounts" hidden>
         <summary>Test accounts</summary>
-        <p class="test-hint">Password for all accounts: <code>coach1234</code></p>
+        <p class="test-hint">Password for all accounts: <code id="demoPassword"></code></p>
         <ul id="testAccounts"></ul>
       </details>
     </main>

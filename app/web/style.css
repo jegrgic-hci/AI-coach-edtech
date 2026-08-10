@@ -35,32 +35,22 @@ button:hover { border-color: var(--tau-forest); }
 
 .ws-body { flex: 1; min-height: 0; display: flex; }
 
-.sidebar {
-  width: 290px;
-  min-width: 290px;
-  /* A step quieter than the chat pane it sits beside — this is structure,
-     not content, and should read as considered rather than competing with
-     the conversation for attention. */
-  background: var(--tau-surface-2);
-  border-right: 1px solid var(--tau-line);
-  display: flex;
-  flex-direction: column;
-  padding: 14px;
-  gap: 12px;
-}
+/* ---------- workspace rail ---------- */
+/* Chrome is components.css §13. What's left here is what only this rail has:
+   the assignment-prompt disclosure, the new-session action, and the lock
+   marker on a session that's been submitted.
+
+   Claude-Code-in-VS-Code shape: a new-session action pinned above a flat,
+   newest-first list of this draft's conversations. Other drafts' status and
+   scores live entirely on the home assignment card — this list only ever
+   answers "which session, in the draft I'm currently in". */
 
 /* Same collapsible pill-into-sage-box pattern as the assignment card's own
    prompt (.acard-disclosure-prompt below) — reused wholesale rather than
    restyled, so the prompt reads as the same object whether it's on the home
-   card or here. The sidebar's own flex gap handles spacing, so no extra
+   card or here. The rail's own flex gap handles spacing, so no extra
    margin. */
 .ws-prompt { margin: 0; }
-
-/* ---------- session list ---------- */
-/* Claude-Code-in-VS-Code shape: a new-session action pinned above a flat,
-   newest-first list of this draft's conversations. Other drafts' status and
-   scores live entirely on the home assignment card — this list only ever
-   answers "which session, in the draft I'm currently in". */
 
 .new-session-btn {
   width: 100%;
@@ -68,27 +58,14 @@ button:hover { border-color: var(--tau-forest); }
   font-weight: 600;
   color: var(--tau-forest);
   border-color: var(--tau-line);
+  background: var(--tau-surface);
 }
-.new-session-btn:hover { background: var(--tau-hover-surface); }
+.new-session-btn:hover { background: var(--tau-surface-3); }
 .new-session-btn:disabled { opacity: 0.5; cursor: default; }
 
-.session-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; min-height: 0; }
-.session-list-empty { color: var(--tau-ink-soft); font-size: 13px; padding: 8px 10px; }
-
-.conv-item {
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.conv-item:hover { background: var(--tau-hover-surface); }
-.conv-item.active { background: var(--tau-surface-2); color: var(--tau-forest); }
-.conv-item.locked::after { content: ' 🔒'; font-size: 11px; }
-
-.sidebar-footer { display: flex; flex-direction: column; gap: 8px; }
+/* Every session's title is one line, so this rail uses .rail-item's name slot
+   and nothing else — no .rail-item-sub, no .rail-item-meta. */
+.conv-item.locked .rail-item-name::after { content: ' 🔒'; font-size: 11px; }
 .submit-btn {
   background: var(--tau-forest); color: var(--tau-on-forest); border-color: var(--tau-forest);
   border-radius: var(--tau-r-pill); padding: 10px 18px;
@@ -517,18 +494,9 @@ button:hover { border-color: var(--tau-forest); }
 .dash { display: flex; flex: 1; overflow: hidden; }
 
 /* Fixed ground: identity and standing. Scrolls independently of the content.
-   No border — separation from the content pane is tonal (surface-2 against
-   the page's --tau-bg), not a hairline. Depth belongs to elevated surfaces
-   like the assignment cards; this is flat structure, so it stays flat. */
-.dash-rail {
-  width: 292px;
-  min-width: 292px;
-  background: var(--tau-surface-2);
-  overflow-y: auto;
-  padding: 20px 18px 36px;
-  display: flex;
-  flex-direction: column;
-}
+   Chrome (width, ground, the head/body/foot regions) is components.css §13 —
+   what stays here is only what this rail alone carries: the identity block
+   and the progress panel. */
 .dash-main { flex: 1; overflow-y: auto; padding: 26px 32px 72px; background: #FFFFFF; }
 :root[data-theme="dark"] .dash-main { background: var(--tau-bg); }
 @media (prefers-color-scheme: dark) {
@@ -536,41 +504,25 @@ button:hover { border-color: var(--tau-forest); }
 }
 .dash-main > .chunk { max-width: 880px; }
 
-.rail-identity { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-.rail-avatar {
-  width: 40px; height: 40px; border-radius: 50%;
-  background: var(--tau-surface-3); color: var(--tau-forest);
-  display: grid; place-items: center;
-  font-size: 14px; font-weight: 700; flex-shrink: 0;
-}
-.rail-who { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.rail-name { font-size: 14px; font-weight: 600; }
-.rail-sub { font-size: 12px; color: var(--tau-ink-soft); }
+/* This rail scrolls as one column rather than scrolling its body against a
+   fixed foot: the body (a few current assignments) is always short and the
+   foot (four meters plus guidance) is the tall part, so pinning the foot
+   would be the thing that clips. Layout only — the regions keep their
+   component roles, .rail-foot's margin-top:auto still settles the progress
+   panel at the bottom whenever there's room to spare. */
+.dash-rail { overflow-y: auto; }
+.dash-rail .rail-body { overflow: visible; flex: 0 0 auto; }
 
-.rail-nav {
-  padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--tau-line);
-  display: flex; flex-direction: column; gap: 2px;
-}
-.rail-nav-row {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  width: 100%; padding: 7px 8px; border: none; border-radius: var(--tau-r-sm);
-  background: none; text-align: left; cursor: pointer;
-  transition: background var(--tau-dur-short) var(--tau-ease-standard);
-}
-.rail-nav-row:hover, .rail-nav-row:focus-visible { background: var(--tau-surface-3); }
-.rail-nav-title { font-size: 13px; font-weight: 600; }
-.rail-nav-due { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
-
-/* Pinned to the bottom of the rail via margin-top: auto — whatever room
-   .rail-nav doesn't use, this claims, so guidance reads as the rail's
+/* Pinned to the bottom by .rail-foot's margin-top:auto — whatever room the
+   assignment list doesn't use, this claims, so guidance reads as the rail's
    settled-at-the-bottom conclusion rather than just more stacked content. */
-.rail-progress { padding-top: 16px; margin-top: auto; border-top: 1px solid var(--tau-line); }
-.rail-label {
-  font-size: 11px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.07em; color: var(--tau-ink-soft); margin-bottom: 12px;
-}
+.rail-progress { padding-top: 16px; border-top: 1px solid var(--tau-line); }
+/* The heading is inside .rail-block, not a sibling of it — renderRail()
+   builds it that way so a second block can carry its own. .eyebrow is an
+   inline span by default; a block heading needs the line to itself. */
+.rail-block > .eyebrow { display: block; margin-bottom: 12px; }
 .rail-block + .rail-block { margin-top: 26px; }
-.rail-empty { font-size: 13px; color: var(--tau-ink-soft); line-height: 1.55; }
+.rail-progress .rail-empty { padding: 0; line-height: 1.55; }
 
 .meters { display: flex; flex-direction: column; gap: 18px; }
 .meter-name { font-size: 12px; color: var(--tau-ink-soft); margin-bottom: 5px; display: block; }
@@ -738,12 +690,18 @@ button.draft-chip:hover { border-color: var(--tau-forest); }
 
 @media (max-width: 900px) {
   .dash { flex-direction: column; overflow-y: auto; }
-  .dash-rail { width: 100%; min-width: 0; border-right: none; border-bottom: 1px solid var(--tau-line); overflow: visible; padding-bottom: 24px; }
+  /* Layout only — the rail stops being a column and becomes a band across
+     the top. Its chrome (ground, row shape, active state) is untouched. */
+  .dash-rail { width: 100%; min-width: 0; border-bottom: 1px solid var(--tau-line); overflow: visible; padding-bottom: 24px; }
   .dash-main { overflow: visible; padding: 24px 20px 60px; }
   /* Collapsed, the rail is a band: the three blocks run side by side so the
      meters keep a sane width instead of stretching the full page. */
   .rail-progress { display: flex; flex-wrap: wrap; gap: 30px 40px; align-items: flex-start; }
   .rail-block { flex: 1 1 240px; max-width: 340px; }
   .rail-block + .rail-block { margin-top: 0; }
+
+  /* The workspace rail sits above the chat rather than beside it. */
+  .ws-body { flex-direction: column; }
+  .ws-body > .rail { width: 100%; min-width: 0; }
 }
 

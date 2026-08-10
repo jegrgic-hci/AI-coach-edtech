@@ -8,8 +8,6 @@
 //   flat    — asks the coach for answers and accepts them; little movement
 //   flagged — high scores on the surface, provenance says otherwise
 
-const DEV_PASSWORD = 'coach1234';
-
 // tier drives every general-purpose assignment (the closed multi-draft one
 // and each class's open one) via TRANSCRIPTS/ESSAYS/PROVENANCE/SNAPSHOTS
 // below. It's independent of the bike-guide assignment, which is the same
@@ -692,7 +690,6 @@ const OPEN_TEACHER_NOTES = {
 };
 
 module.exports = {
-  DEV_PASSWORD,
   STUDENTS,
   CLASSES,
   ASSIGNMENTS,

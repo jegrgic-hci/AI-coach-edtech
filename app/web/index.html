@@ -25,7 +25,7 @@
   <span class="tau-nav-fill"></span>
   <span class="tau-nav-local hidden" id="navLocal"></span>
   <div class="account-chip" id="accountChip"></div>
-  <button class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
+  <!-- Appearance lives in the account menu now, on every surface. -->
 </header>
 
 <!-- View 1: student home -->
@@ -33,16 +33,18 @@
   <!-- The rail is the dashboard's fixed ground: who you are and where you stand.
        It does not change as assignments come and go. Content scrolls beside it. -->
   <div class="dash">
-    <aside class="dash-rail">
-      <div class="rail-identity">
-        <div class="rail-avatar" id="railAvatar"></div>
-        <div class="rail-who">
-          <span class="rail-name" id="railName"></span>
-          <span class="rail-sub" id="railSub"></span>
+    <aside class="rail dash-rail">
+      <div class="rail-head">
+        <div class="rail-identity">
+          <div class="avatar avatar-lg" id="railAvatar"></div>
+          <div class="rail-who">
+            <span class="rail-who-name" id="railName"></span>
+            <span class="rail-who-sub" id="railSub"></span>
+          </div>
         </div>
       </div>
-      <div class="rail-nav" id="railNav"></div>
-      <div class="rail-progress" id="railProgress"></div>
+      <div class="rail-body" id="railNav"></div>
+      <div class="rail-foot rail-progress" id="railProgress"></div>
     </aside>
 
     <main class="dash-main" id="home">
@@ -71,17 +73,19 @@
 <!-- View 2: assignment workspace -->
 <div id="viewWorkspace" class="view hidden">
   <div class="ws-body">
-    <aside class="sidebar">
-      <details class="acard-disclosure acard-disclosure-prompt ws-prompt">
-        <summary class="acard-disclosure-toggle">
-          <svg class="acard-disclosure-icon" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Assignment prompt
-        </summary>
-        <div id="wsPrompt"></div>
-      </details>
-      <button id="btnNewSession" class="new-session-btn">+ New session</button>
-      <nav class="session-list" id="sessionList"></nav>
-      <div class="sidebar-footer">
+    <aside class="rail">
+      <div class="rail-head">
+        <details class="acard-disclosure acard-disclosure-prompt ws-prompt">
+          <summary class="acard-disclosure-toggle">
+            <svg class="acard-disclosure-icon" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Assignment prompt
+          </summary>
+          <div id="wsPrompt"></div>
+        </details>
+        <button id="btnNewSession" class="new-session-btn">+ New session</button>
+      </div>
+      <nav class="rail-body" id="sessionList"></nav>
+      <div class="rail-foot">
         <button id="btnSubmit" class="submit-btn">Submit draft</button>
       </div>
     </aside>

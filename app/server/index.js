@@ -7,13 +7,14 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { col } = require('./store');
-const { authenticate, login, logout, sessionCookie, clearedCookie, tokenFrom, setPassword, newTempPassword } = require('./auth');
-const { streamChat, MAX_EVAL_TOKENS } = require('./llm');
+const { authenticate, login, logout, sessionCookie, clearedCookie, tokenFrom, setPassword, newTempPassword, DEMO_MODE, DEV_PASSWORD } = require('./auth');
+const { streamChat, modelFor, MAX_EVAL_TOKENS } = require('./llm');
 const { LEVELS, coachMessages, auditorMessages } = require('./coach');
 const { runAnalysis } = require('./analysis');
-const { checkChatBudget, grantExtraReplies, usageToday, grantedToday, SOFT_REPLIES_PER_DAY } = require('./budget');
+const { checkChatBudget, grantExtraReplies, usageToday, grantedToday, SOFT_REPLIES_PER_DAY, HARD_INPUT_TOKENS_PER_DAY } = require('./budget');
+const { config } = require('./school');
 const { seed } = require('./seed');
-const { DEV_PASSWORD } = require('./seed-data');
+const { costOf, isPriced } = require('./prices');
 
 const PORT = process.env.PORT || 8787;
 const WEB_DIR = path.join(__dirname, '..', 'web');
@@ -83,12 +84,32 @@ async function logEvent(user, { type, sessionId, conversationId, meta }) {
 // roster, including per-student integrity flags that the design guarantees are
 // scoped to the student's own teacher.
 async function teacherScope(user) {
-  const classes = await col('classes').list((c) => c.teacherId === user.id);
+  // Three equality queries, not three collection scans, and issued together:
+  // teacherId is indexed, and `students` only needs the enrolment filter
+  // applied in memory once the role query has come back. The predicate form
+  // read every class, user and assignment in the install on every call to
+  // build one teacher's rail (see store.js on why that form is a cost
+  // decision), serially.
+  const [allClasses, allStudents, allAssignments] = await Promise.all([
+    col('classes').list({ teacherId: user.id }),
+    col('users').list({ role: 'student' }),
+    col('assignments').list({ teacherId: user.id }),
+  ]);
+  // An archived class is a finished term: its records stay readable, it just
+  // stops occupying the rail and every rollup. Filtering here rather than at
+  // each call site is what stops a student who only ever belonged to that
+  // class from lingering in Browse Students after it's put away.
+  const classes = allClasses.filter((c) => !c.archived);
   const classIds = classes.map((c) => c.id);
+  const active = new Set(classIds);
   const enrolled = new Set(classes.flatMap((c) => c.studentIds || []));
-  const students = await col('users').list((u) => u.role === 'student' && enrolled.has(u.id));
-  const assignments = await col('assignments').list((a) => a.teacherId === user.id);
-  return { classes, classIds, students, assignments };
+  const students = allStudents.filter((u) => enrolled.has(u.id));
+  // An assignment given only to archived classes goes away with them. One with
+  // no classIds at all predates classes entirely and stays visible — same
+  // fallback the dashboard payload applies below.
+  const assignments = allAssignments
+    .filter((a) => !a.classIds || !a.classIds.length || a.classIds.some((id) => active.has(id)));
+  return { classes, allClasses, classIds, students, assignments };
 }
 
 // Being a teacher is not a key to every student — only to your own.
@@ -100,6 +121,53 @@ async function teacherScope(user) {
 // Invisible while the seed made exactly one teacher; reachable from the day
 // an admin could create a second one (2026-08-04). Found by testing it
 // 2026-08-05, not by reading the code.
+// Two tiers reach the administration surface, and the split is deliberate.
+//
+// `platform-admin` is us: it runs accounts and reads what the tool costs. It
+// is NOT a super-teacher — like the admin tier it replaces, it has no route
+// into a named student, a transcript, a report, or an integrity flag, which is
+// what keeps the teacher-only guarantee on flags true.
+//
+// A school administrator is a *grant on a teacher*, not a separate role,
+// because in a pilot the same person does both jobs. Teaching is a data
+// relationship (classes, assignments, submissions all key off teacherId);
+// administering is one additive permission. Modelling it the other way round
+// would drop the person out of every `role: 'teacher'` query that builds the
+// roster and counts their classes.
+function isPlatformAdmin(user) {
+  return user.role === 'platform-admin';
+}
+
+function canAdminPeople(user) {
+  return isPlatformAdmin(user) || (user.role === 'teacher' && user.schoolAdmin === true);
+}
+
+// Every account action, written down. "Who granted this person access, and
+// when" is the first question asked in an access review or an incident, and
+// before this it was unanswerable — the accounts simply existed.
+//
+// Names are copied in rather than joined at read time on purpose: the point of
+// an audit record is to survive the thing it describes, and a suspended or
+// renamed account must not rewrite its own history.
+async function recordAdminEvent(actor, action, target, detail = null) {
+  try {
+    await col('adminEvents').add({
+      ts: now(),
+      actorId: actor.id,
+      actorName: actor.displayName,
+      action,
+      targetId: target?.id || null,
+      targetName: target?.displayName || null,
+      targetRole: target?.role || null,
+      detail,
+    });
+  } catch (err) {
+    // An audit write must never be the reason an administrator cannot suspend
+    // an account — that trades a record for an outage.
+    console.error('[admin] could not record adminEvent:', err.message);
+  }
+}
+
 async function canReadSubmission(user, submission) {
   if (submission.studentId === user.id) return true;
   if (user.role !== 'teacher') return false;
@@ -229,9 +297,42 @@ function median(nums) {
 // this block is fully populated from day one while the ranking above is still
 // filling up.
 async function studentPatterns() {
-  const sessions = await col('sessions').list();
-  const events = await col('events').list();
-  const submissions = await col('submissions').list();
+  // Independent collections, so fetched together. Awaited one at a time these
+  // are ~8s of pure round-trip latency on a seeded install; none of them
+  // depends on another's result.
+  const [sessions, events, submissions, allConvs, allTurns, allClasses, allAssignments, allAnalyses] =
+    await Promise.all([
+      col('sessions').list(),
+      col('events').list(),
+      col('submissions').list(),
+      col('conversations').list(),
+      col('turns').list(),
+      col('classes').list(),
+      col('assignments').list(),
+      col('analyses').list(),
+    ]);
+
+  // Read each collection once and group in memory rather than querying per
+  // session, per conversation and per submission. Those loops were ~170
+  // sequential Firestore round trips on a seeded install, which put this
+  // endpoint at 85 seconds — long enough that the page never left "Loading…".
+  // Everything here is install-wide and already bounded by what one school
+  // generates in a semester, so one pass per collection is the cheaper read.
+  const convsBySession = new Map();
+  for (const c of allConvs) {
+    if (!convsBySession.has(c.sessionId)) convsBySession.set(c.sessionId, []);
+    convsBySession.get(c.sessionId).push(c);
+  }
+  const turnsByConv = new Map();
+  for (const t of allTurns) {
+    if (!turnsByConv.has(t.conversationId)) turnsByConv.set(t.conversationId, []);
+    turnsByConv.get(t.conversationId).push(t);
+  }
+  const episodesBySession = new Map();
+  for (const e of events) {
+    if (e.type !== 'episode-resume') continue;
+    episodesBySession.set(e.sessionId, (episodesBySession.get(e.sessionId) || 0) + 1);
+  }
 
   const convsPerSession = [];
   const turnsPerConv = [];
@@ -240,23 +341,23 @@ async function studentPatterns() {
   const episodesPerSession = [];
 
   for (const s of sessions) {
-    const convs = await col('conversations').list((c) => c.sessionId === s.id);
+    const convs = convsBySession.get(s.id) || [];
     convsPerSession.push(convs.length);
     for (const c of convs) {
-      turnsPerConv.push(liveTurns(await conversationTurns(c.id)).filter((t) => t.role === 'student').length);
+      turnsPerConv.push(liveTurns(turnsByConv.get(c.id) || []).filter((t) => t.role === 'student').length);
     }
     if (evaluateSessions.has(s.id)) sessionsWithEvaluate++;
-    episodesPerSession.push(events.filter((e) => e.sessionId === s.id && e.type === 'episode-resume').length);
+    episodesPerSession.push(episodesBySession.get(s.id) || 0);
   }
 
   // Expected drafts = every enrolled student × their assignment's draft budget.
   // A student in two classes that both got the same assignment is counted once
   // for it, which is why this walks a Set of ids rather than summing sizes.
   let expectedDrafts = 0;
-  for (const a of await col('assignments').list()) {
+  for (const a of allAssignments) {
     const enrolled = new Set(
-      (await col('classes')
-        .list((c) => (a.classIds || []).includes(c.id)))
+      allClasses
+        .filter((c) => (a.classIds || []).includes(c.id))
         .flatMap((c) => c.studentIds || [])
     );
     expectedDrafts += enrolled.size * (a.draftBudget || 1);
@@ -265,9 +366,15 @@ async function studentPatterns() {
   const eventCounts = {};
   for (const e of events) eventCounts[e.type] = (eventCounts[e.type] || 0) + 1;
 
+  // `await col('analyses').get(id)?.status` read as `await (promise?.status)`,
+  // which is always undefined — so every submission counted as pending and the
+  // tile reported "50 analyses not complete" on an install where they had all
+  // finished. The optional chain has to come after the await, and the lookup
+  // is a map rather than a get-per-submission for the same reason as above.
+  const analysisById = new Map(allAnalyses.map((a) => [a.id, a]));
   const analysisCounts = { complete: 0, error: 0, pending: 0 };
   for (const sub of submissions) {
-    const status = sub.analysisId ? await col('analyses').get(sub.analysisId)?.status : null;
+    const status = sub.analysisId ? analysisById.get(sub.analysisId)?.status : null;
     if (status === 'complete') analysisCounts.complete++;
     else if (status === 'error') analysisCounts.error++;
     else analysisCounts.pending++;
@@ -402,6 +509,15 @@ async function handleAuth(req, res, route) {
     return true;
   }
 
+  // Unauthenticated by necessity: the login page has to ask before anyone has
+  // signed in. It reveals only whether this instance is a demo one — the
+  // account list stays a client-side fixture, and there is still no endpoint
+  // that enumerates real users.
+  if (req.method === 'GET' && route === '/api/auth/demo') {
+    json(res, 200, DEMO_MODE ? { demo: true, password: DEV_PASSWORD } : { demo: false });
+    return true;
+  }
+
   if (req.method === 'POST' && route === '/api/auth/logout') {
     const token = tokenFrom(req);
     if (token) await logout(token);
@@ -411,6 +527,185 @@ async function handleAuth(req, res, route) {
   }
 
   return false;
+}
+
+// What the tool cost, from the llmCalls rows llm.js has been writing since the
+// Vertex migration. Three jobs and no others (built-in-chat-plan.md): catch an
+// anomaly before the bill arrives, answer "what does a school cost" for
+// pricing, and show whether chat or analysis is the lever worth pulling on
+// model choice.
+//
+// Aggregate by construction, same rule as the rest of this surface: the
+// per-student spread is computed from studentId and then reported as bare
+// numbers. No name, no id, no way to ask "what did Maya cost" — the anomaly
+// this is meant to catch is a runaway loop, which a distribution shows just as
+// well as a leaderboard would.
+// Everything the Status view needs: is anything failing, is anyone stuck, is
+// spend abnormal, and what is this install actually configured to do.
+//
+// It answers the question the rest of this surface cannot — "is the tool
+// working right now" — which is the one an administrator opens the console to
+// ask. All of it is derived from records that already existed; none of it was
+// assembled anywhere before.
+//
+// Still aggregate: a failed analysis is identified by its assignment and its
+// submission id, never by whose work it is. Fixing a broken report does not
+// require knowing whose report it is.
+async function statusSummary() {
+  const dayAgo = new Date(Date.now() - 86400000).toISOString();
+  const todayStart = new Date().toISOString().slice(0, 10);
+
+  const [analyses, submissions, assignments, llmRows] = await Promise.all([
+    col('analyses').list(),
+    col('submissions').list(),
+    col('assignments').list(),
+    col('llmCalls').list(),
+  ]);
+
+  const submissionById = new Map(submissions.map((s) => [s.id, s]));
+  const assignmentTitle = new Map(assignments.map((a) => [a.id, a.title]));
+
+  // A student submitted and got no report back. That is a ticket, not a
+  // statistic, so it is listed one per row with the retry that fixes it —
+  // rather than folded into a count nobody can act on.
+  const failedAnalyses = analyses
+    .filter((a) => a.status === 'error')
+    .map((a) => {
+      const sub = submissionById.get(a.submissionId);
+      return {
+        analysisId: a.id,
+        submissionId: a.submissionId,
+        assignment: (sub && assignmentTitle.get(sub.assignmentId)) || 'Unknown assignment',
+        submittedAt: sub?.submittedAt || null,
+        error: a.error || 'No error recorded',
+      };
+    })
+    .sort((x, y) => String(y.submittedAt).localeCompare(String(x.submittedAt)));
+
+  // Pending is normal for a minute or two and abnormal after that: analysis is
+  // async post-submit, so a row still pending an hour later means the run died
+  // without ever writing its own error.
+  const hourAgo = new Date(Date.now() - 3600000).toISOString();
+  const stuckAnalyses = analyses.filter((a) => {
+    if (a.status === 'complete' || a.status === 'error') return false;
+    const sub = submissionById.get(a.submissionId);
+    return sub?.submittedAt && sub.submittedAt < hourAgo;
+  }).length;
+
+  const recent = llmRows.filter((r) => r.ts >= dayAgo);
+  const failed = recent.filter((r) => r.ok === false);
+  const lastFailure = llmRows.filter((r) => r.ok === false).sort((a, b) => a.ts.localeCompare(b.ts)).pop() || null;
+
+  // Cap pressure, computed from the call log rather than by asking budget.js
+  // per student — same answer, one pass instead of one query per head.
+  const today = llmRows.filter((r) => r.ts.slice(0, 10) === todayStart && r.studentId);
+  const perStudentToday = new Map();
+  for (const r of today) {
+    const b = perStudentToday.get(r.studentId) || { replies: 0, inputTokens: 0 };
+    if (r.purpose === 'chat') b.replies += 1;
+    b.inputTokens += r.inputTokens || 0;
+    perStudentToday.set(r.studentId, b);
+  }
+  const atSoftCap = [...perStudentToday.values()].filter((b) => b.replies >= SOFT_REPLIES_PER_DAY).length;
+  const nearSoftCap = [...perStudentToday.values()].filter(
+    (b) => b.replies >= SOFT_REPLIES_PER_DAY * 0.8 && b.replies < SOFT_REPLIES_PER_DAY).length;
+  const atHardCap = [...perStudentToday.values()].filter((b) => b.inputTokens >= HARD_INPUT_TOKENS_PER_DAY).length;
+
+  // The runaway-loop signature. A student five times the median is not a heavy
+  // user — 40 replies and 40,000 replies look nothing alike, and the second one
+  // is a bug. Reported as a count and a multiple, never as a name.
+  const spend = [...llmRows.reduce((m, r) => {
+    if (!r.studentId) return m;
+    return m.set(r.studentId, (m.get(r.studentId) || 0) + costOf(r));
+  }, new Map()).values()].sort((a, b) => a - b);
+  const median = spend.length ? spend[Math.floor(spend.length / 2)] : 0;
+  const OUTLIER_MULTIPLE = 5;
+  const outliers = median > 0 ? spend.filter((v) => v >= median * OUTLIER_MULTIPLE).length : 0;
+
+  return {
+    failedAnalyses,
+    stuckAnalyses,
+    llm: {
+      calls24h: recent.length,
+      failures24h: failed.length,
+      // Null rather than 0 when nothing ran: "0% errors" and "no traffic" are
+      // different facts, and only one of them is reassuring.
+      errorRate24h: recent.length ? failed.length / recent.length : null,
+      lastFailureAt: lastFailure?.ts || null,
+      lastFailureCode: lastFailure?.errorCode || null,
+    },
+    caps: {
+      softLimit: SOFT_REPLIES_PER_DAY,
+      hardLimit: HARD_INPUT_TOKENS_PER_DAY,
+      atSoftCap,
+      nearSoftCap,
+      atHardCap,
+      activeToday: perStudentToday.size,
+    },
+    spend: { outliers, outlierMultiple: OUTLIER_MULTIPLE, medianUsd: median },
+    // Read-only, and deliberately so: config that routes data is a security
+    // boundary. Showing it is what makes "compliance is configured by us"
+    // checkable rather than a claim.
+    config: {
+      projectId: config().gcp?.projectId || null,
+      location: config().gcp?.location || 'global',
+      chatModel: modelFor('chat'),
+      analysisModel: modelFor('analysis'),
+    },
+  };
+}
+
+async function costSummary() {
+  const rows = (await col('llmCalls').list()).filter((r) => r.ok !== false);
+  const usd = (list) => list.reduce((sum, r) => sum + costOf(r), 0);
+
+  const group = (keyOf) => {
+    const buckets = new Map();
+    for (const r of rows) {
+      const k = keyOf(r);
+      const b = buckets.get(k) || { key: k, usd: 0, calls: 0 };
+      b.usd += costOf(r);
+      b.calls += 1;
+      buckets.set(k, b);
+    }
+    return [...buckets.values()].sort((a, b) => b.usd - a.usd);
+  };
+
+  // Chat is what a student drives; analysis is what a submission triggers.
+  // Which of the two dominates decides whether a cheaper chat model or a
+  // batched analysis tier is the saving worth making.
+  const kind = (r) => (r.purpose === 'chat' || r.purpose === 'auditor' ? 'chat' : 'analysis');
+
+  const perStudent = [...rows.reduce((m, r) => {
+    if (!r.studentId) return m;
+    return m.set(r.studentId, (m.get(r.studentId) || 0) + costOf(r));
+  }, new Map()).values()].sort((a, b) => a - b);
+
+  const dayAgo = (n) => new Date(Date.now() - n * 86400000).toISOString();
+  const since = (from, to) => rows.filter((r) => r.ts >= from && (!to || r.ts < to));
+
+  return {
+    totalUsd: usd(rows),
+    calls: rows.length,
+    inputTokens: rows.reduce((s, r) => s + (r.inputTokens || 0), 0),
+    outputTokens: rows.reduce((s, r) => s + (r.outputTokens || 0) + (r.thinkingTokens || 0), 0),
+    byKind: group(kind),
+    byModel: group((r) => r.model || 'unknown'),
+    perStudent: perStudent.length
+      ? {
+          students: perStudent.length,
+          median: perStudent[Math.floor(perStudent.length / 2)],
+          max: perStudent[perStudent.length - 1],
+        }
+      : null,
+    last7Usd: usd(since(dayAgo(7))),
+    prior7Usd: usd(since(dayAgo(14), dayAgo(7))),
+    // A model swapped in config but missing from prices.js prices at zero,
+    // which would quietly under-report rather than fail. Naming it here is what
+    // makes that visible instead of silent.
+    unpricedModels: [...new Set(rows.map((r) => r.model).filter((m) => m && !isPriced(m)))],
+    since: rows.reduce((min, r) => (!min || r.ts < min ? r.ts : min), null),
+  };
 }
 
 // ---------- routes ----------
@@ -425,6 +720,9 @@ async function handleApi(req, res, user, route) {
       email: user.email,
       displayName: user.displayName,
       role: user.role,
+      // Drives the Administration link in the shared account chip. Sent for
+      // every role so the chip needs no second request to decide.
+      canAdmin: canAdminPeople(user),
     });
   }
 
@@ -911,7 +1209,7 @@ async function handleApi(req, res, user, route) {
   // ---------- admin routes ----------
 
   if (seg1 === 'admin') {
-    if (user.role !== 'admin') return json(res, 403, { error: 'admin only' });
+    if (!canAdminPeople(user)) return json(res, 403, { error: 'admin only' });
   }
 
   // GET /api/admin/overview — everything admin.html needs in one call, same
@@ -922,37 +1220,79 @@ async function handleApi(req, res, user, route) {
   // teacher accounts and reads what the tool is being used for — the student's
   // work stays between the student and their own teacher.
   if (req.method === 'GET' && seg1 === 'admin' && seg2 === 'overview') {
-    const usage = await col('usage').list();
+    // One parallel batch, then everything below is in-memory. The roster used
+    // to do two reads *per teacher* — invisible at one seeded teacher, and the
+    // same N+1 shape that had studentPatterns() taking 85 seconds, growing with
+    // exactly the thing this page exists to add more of.
+    const [usage, teacherDocsRaw, allClasses, allAssignments, allStudents, allSubmissions, patterns, cost] =
+      await Promise.all([
+        col('usage').list(),
+        col('users').list({ role: 'teacher' }),
+        col('classes').list(),
+        col('assignments').list(),
+        col('users').list({ role: 'student' }),
+        col('submissions').list(),
+        studentPatterns(),
+        isPlatformAdmin(user) ? costSummary() : Promise.resolve(null),
+      ]);
+
     const lastActive = {};
     for (const u of usage) {
       if (!lastActive[u.userId] || u.ts > lastActive[u.userId]) lastActive[u.userId] = u.ts;
     }
 
-    const teacherDocs = (await col('users').list({ role: 'teacher' }))
-      .sort((a, b) => a.displayName.localeCompare(b.displayName));
-    const teachers = [];
-    for (const t of teacherDocs) {
-      const classes = await col('classes').list({ teacherId: t.id });
-      teachers.push({
+    const teacherDocs = teacherDocsRaw.sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+    const teachers = teacherDocs.map((t) => {
+      const classes = allClasses.filter((c) => c.teacherId === t.id);
+      return {
         id: t.id,
         displayName: t.displayName,
         email: t.email,
         status: t.status === 'suspended' ? 'suspended' : 'active',
+        schoolAdmin: t.schoolAdmin === true,
         classCount: classes.length,
         studentCount: new Set(classes.flatMap((c) => c.studentIds || [])).size,
-        assignmentCount: (await col('assignments').list({ teacherId: t.id })).length,
+        assignmentCount: allAssignments.filter((a) => a.teacherId === t.id).length,
         lastActiveAt: lastActive[t.id] || null,
-      });
-    }
+      };
+    });
+
+    // Student *accounts*, never student work. Managing an account means
+    // knowing whose it is — you cannot reset a password for an anonymous
+    // person, and "I can't sign in" is the commonest ticket there is. The
+    // guarantee this surface keeps is about the work: no transcript, no essay,
+    // no report, no integrity flag, for any tier, ever.
+    const students = allStudents
+      .map((s) => ({
+        id: s.id,
+        displayName: s.displayName,
+        email: s.email,
+        status: s.status === 'suspended' ? 'suspended' : 'active',
+        classCount: allClasses.filter((c) => (c.studentIds || []).includes(s.id)).length,
+        lastActiveAt: lastActive[s.id] || null,
+      }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
     return json(res, 200, {
       teachers,
+      students,
+      status: isPlatformAdmin(user) ? await statusSummary() : null,
+      adminEvents: (await col('adminEvents').list())
+        .sort((a, b) => b.ts.localeCompare(a.ts))
+        .slice(0, 20),
+      viewer: { role: user.role, platformAdmin: isPlatformAdmin(user) },
+      // What the tool costs is ours, not the school's — a school administrator
+      // manages their own people and reads their own product usage, but our
+      // margin is not their business. Withheld server-side rather than hidden
+      // in the page, so the answer does not depend on the client.
+      cost,
       scale: {
         teachers: teachers.length,
-        students: (await col('users').list({ role: 'student' })).length,
-        classes: (await col('classes').list()).length,
-        assignments: (await col('assignments').list()).length,
-        submissions: (await col('submissions').list()).length,
+        students: allStudents.length,
+        classes: allClasses.length,
+        assignments: allAssignments.length,
+        submissions: allSubmissions.length,
       },
       contentAreas: rankContentAreas(usage),
       // Denominators for the reach bars: "3 of 8 students opened this" is a
@@ -961,10 +1301,10 @@ async function handleApi(req, res, user, route) {
       // means everything is tied.
       audienceSize: {
         teacher: teachers.filter((t) => t.status === 'active').length,
-        student: (await col('users').list((u) => u.role === 'student' && u.status !== 'suspended')).length,
+        student: allStudents.filter((s) => s.status !== 'suspended').length,
       },
       usageSince: usage.reduce((min, u) => (!min || u.ts < min ? u.ts : min), null),
-      studentPatterns: await studentPatterns(),
+      studentPatterns: patterns,
     });
   }
 
@@ -982,9 +1322,20 @@ async function handleApi(req, res, user, route) {
     if ((await col('users').list((u) => u.email.toLowerCase() === email))[0]) {
       return json(res, 400, { error: 'an account with that email already exists' });
     }
-    const teacher = await col('users').add({ email, displayName, role: 'teacher', status: 'active', createdAt: now() });
-    const tempPassword = newTempPassword(DEV_PASSWORD);
+    const teacher = await col('users').add({
+      email,
+      displayName,
+      role: 'teacher',
+      // Only a platform admin can hand out the administration grant. A school
+      // administrator adds teachers; letting them mint peers would make the
+      // grant self-propagating, so the tier that can create a tier is fixed.
+      schoolAdmin: isPlatformAdmin(user) && body.schoolAdmin === true,
+      status: 'active',
+      createdAt: now(),
+    });
+    const tempPassword = newTempPassword();
     await setPassword(teacher, tempPassword);
+    await recordAdminEvent(user, 'create', teacher, teacher.schoolAdmin ? 'teacher + school administrator' : 'teacher');
     return json(res, 200, { id: teacher.id, email, displayName, tempPassword });
   }
 
@@ -1005,7 +1356,15 @@ async function handleApi(req, res, user, route) {
       if (!email || !email.includes('@')) return json(res, 400, { error: 'a valid email is required' });
       const clash = (await col('users').list((u) => u.email.toLowerCase() === email && u.id !== teacher.id))[0];
       if (clash) return json(res, 400, { error: 'another account already uses that email' });
-      await col('users').update(teacher.id, { displayName, email });
+      const patch = { displayName, email };
+      // Same rule as creation: the grant is only editable by the tier above it,
+      // and a school administrator editing a teacher must not be able to
+      // silently promote them (or themselves) by replaying this field.
+      if (isPlatformAdmin(user)) patch.schoolAdmin = body.schoolAdmin === true;
+      await col('users').update(teacher.id, patch);
+      const grantChanged = isPlatformAdmin(user) && patch.schoolAdmin !== (teacher.schoolAdmin === true);
+      await recordAdminEvent(user, 'edit', { ...teacher, displayName },
+        grantChanged ? (patch.schoolAdmin ? 'granted school administrator' : 'revoked school administrator') : null);
       return json(res, 200, { ok: true });
     }
 
@@ -1016,25 +1375,79 @@ async function handleApi(req, res, user, route) {
       const body = await readBody(req);
       const status = body.status === 'suspended' ? 'suspended' : 'active';
       await col('users').update(teacher.id, { status });
+      await recordAdminEvent(user, status === 'suspended' ? 'suspend' : 'reactivate', teacher);
       return json(res, 200, { ok: true, status });
     }
 
     if (action === 'reset-password') {
-      const tempPassword = newTempPassword(DEV_PASSWORD);
+      const tempPassword = newTempPassword();
       await setPassword(teacher, tempPassword);
       // An admin resetting a teacher's password can then sign in as them.
       // Acceptable for teacher accounts an admin already administers, but it
       // is logged so the action is never invisible.
       console.warn('[auth] password reset: admin', user.id, '→ teacher', teacher.id);
+      await recordAdminEvent(user, 'reset-password', teacher);
       return json(res, 200, { ok: true, tempPassword });
     }
 
     return json(res, 404, { error: 'not found' });
   }
 
+  // POST /api/admin/students/:id/<action> — the two support actions that
+  // actually generate tickets: "I can't sign in" and "this account shouldn't
+  // be active any more". Deliberately fewer actions than teachers get: a
+  // student's name and email come from the teacher's roster, so editing them
+  // here would let two surfaces disagree about the same person.
+  if (req.method === 'POST' && seg1 === 'admin' && seg2 === 'students' && seg3) {
+    const parts = route.split('/'); // /api/admin/students/:id/<action>
+    const student = await col('users').get(parts[4]);
+    const action = parts[5];
+    if (!student || student.role !== 'student') return json(res, 404, { error: 'student not found' });
+
+    if (action === 'status') {
+      const body = await readBody(req);
+      const status = body.status === 'suspended' ? 'suspended' : 'active';
+      // Suspend, never delete, for the same reason as teachers: a student owns
+      // sessions, conversations, an append-only turn record and submissions.
+      // Deleting the account orphans the integrity record it exists to support.
+      await col('users').update(student.id, { status });
+      await recordAdminEvent(user, status === 'suspended' ? 'suspend' : 'reactivate', student);
+      return json(res, 200, { ok: true, status });
+    }
+
+    if (action === 'reset-password') {
+      const tempPassword = newTempPassword();
+      await setPassword(student, tempPassword);
+      // Logged for the same reason the teacher reset is: whoever resets this
+      // can now sign in as the student, and that must never be invisible.
+      console.warn('[auth] password reset: admin', user.id, '→ student', student.id);
+      await recordAdminEvent(user, 'reset-password', student);
+      return json(res, 200, { ok: true, tempPassword });
+    }
+
+    return json(res, 404, { error: 'not found' });
+  }
+
+  // POST /api/admin/analyses/:submissionId/retry — re-run a failed analysis.
+  //
+  // The failure is usually transient (a 429, a truncated response), so the fix
+  // is to run it again. Without this the only remedy was asking the student to
+  // resubmit work they had already submitted.
+  if (req.method === 'POST' && seg1 === 'admin' && seg2 === 'analyses' && seg4 === 'retry') {
+    if (!isPlatformAdmin(user)) return json(res, 403, { error: 'platform admin only' });
+    const submission = await col('submissions').get(seg3);
+    if (!submission) return json(res, 404, { error: 'submission not found' });
+    await recordAdminEvent(user, 'retry-analysis', null, `submission ${submission.id}`);
+    // Fire-and-forget with the same shape as the submit path: analysis takes
+    // far longer than a request should wait, and its result is read from the
+    // analyses collection either way.
+    runAnalysis(submission.id).catch((err) => console.error('[admin] retry failed:', err.message));
+    return json(res, 200, { ok: true });
+  }
+
   // ---------- teacher routes ----------
 
-  if (seg1 === 'teacher' || (req.method === 'POST' && seg1 === 'assignments' && (!seg2 || seg3 === 'note' || seg3 === 'edit')) || (req.method === 'POST' && seg1 === 'submissions' && seg3 === 'note') || (req.method === 'POST' && seg1 === 'classes')) {
+  if (seg1 === 'teacher' || (req.method === 'POST' && seg1 === 'assignments' && (!seg2 || seg3 === 'note' || seg3 === 'edit' || seg3 === 'delete')) || (req.method === 'POST' && seg1 === 'submissions' && seg3 === 'note') || (req.method === 'POST' && seg1 === 'classes')) {
     if (user.role !== 'teacher') return json(res, 403, { error: 'teacher only' });
   }
 
@@ -1154,6 +1567,55 @@ async function handleApi(req, res, user, route) {
     return json(res, 200, classDoc);
   }
 
+  // POST /api/classes/:id/edit — rename and/or archive a class. Archive, not
+  // delete: a finished term's submissions, analyses and transcripts stay
+  // readable and a student's own report keeps resolving; the class just stops
+  // occupying the rail (teacherScope filters it out). Reversible by sending
+  // archived: false, which is why there's no confirmation gate on the way in.
+  if (req.method === 'POST' && seg1 === 'classes' && seg3 === 'edit') {
+    const classDoc = await col('classes').get(seg2);
+    if (!classDoc) return json(res, 404, { error: 'class not found' });
+    if (classDoc.teacherId !== user.id) return json(res, 403, { error: 'not your class' });
+    const body = await readBody(req);
+    const patch = {};
+    if (typeof body.name === 'string') {
+      const name = body.name.trim();
+      if (!name) return json(res, 400, { error: 'class name is required' });
+      patch.name = name;
+    }
+    if (typeof body.archived === 'boolean') patch.archived = body.archived;
+    if (!Object.keys(patch).length) return json(res, 400, { error: 'nothing to change' });
+    await col('classes').update(classDoc.id, patch);
+    return json(res, 200, await col('classes').get(classDoc.id));
+  }
+
+  // POST /api/assignments/:id/delete — only while the assignment is still
+  // untouched. Once a student has opened a session or submitted a draft there
+  // are sessions, conversations, turns, submissions and analyses hanging off
+  // this id, and the append-only integrity record (see store.js) is the whole
+  // point of the tool — so this refuses and names what's in the way rather
+  // than cascading a delete through it. Retiring work that's been used is what
+  // archiving a class does instead.
+  if (req.method === 'POST' && seg1 === 'assignments' && seg3 === 'delete') {
+    const assignment = await col('assignments').get(seg2);
+    if (!assignment) return json(res, 404, { error: 'assignment not found' });
+    if (assignment.teacherId !== user.id) return json(res, 403, { error: 'not your assignment' });
+    const submissions = await col('submissions').list({ assignmentId: assignment.id });
+    if (submissions.length) {
+      return json(res, 400, {
+        error: `${submissions.length} draft${submissions.length === 1 ? ' has' : 's have'} already been submitted to this assignment, so it can't be deleted.`,
+      });
+    }
+    const sessions = await col('sessions').list({ assignmentId: assignment.id });
+    if (sessions.length) {
+      return json(res, 400, {
+        error: `${sessions.length} student${sessions.length === 1 ? ' has' : 's have'} already started work on this assignment, so it can't be deleted.`,
+      });
+    }
+    await col('assignments').delete(assignment.id);
+    return json(res, 200, { ok: true });
+  }
+
   // POST /api/classes/:id/students — add or remove a student on this
   // class's roster. Two shapes on one route rather than a second URL: the
   // minimal router here only destructures three path segments
@@ -1193,7 +1655,7 @@ async function handleApi(req, res, user, route) {
     if (!student) {
       if (!displayName) return json(res, 400, { error: 'name is required for a new student' });
       student = await col('users').add({ email, displayName, role: 'student', createdAt: now() });
-      await setPassword(student, newTempPassword(DEV_PASSWORD));
+      await setPassword(student, newTempPassword());
     }
 
     const studentIds = classDoc.studentIds || [];
@@ -1229,7 +1691,7 @@ async function handleApi(req, res, user, route) {
   // (dashboard.html) in the exact shape its mock generator produced:
   // { assignments, students, classes, submissions }
   if (req.method === 'GET' && seg1 === 'teacher' && seg2 === 'dashboard') {
-    const { students, classes, classIds: allClassIds, assignments: ownAssignments } = await teacherScope(user);
+    const { students, classes, allClasses, classIds: allClassIds, assignments: ownAssignments } = await teacherScope(user);
     // An assignment seeded/created before classes existed (or omitted at
     // creation) has no classIds — treat it as visible to every class rather
     // than to none, so it doesn't silently vanish from the dashboard. "Every
@@ -1242,7 +1704,10 @@ async function handleApi(req, res, user, route) {
       status: a.dueDate && new Date(a.dueDate) < new Date() ? 'closed' : 'open',
       draftBudget: a.draftBudget,
       draftDueDates: a.draftDueDates || null,
-      classIds: a.classIds && a.classIds.length ? a.classIds : allClassIds,
+      // Intersected with the live classes, not passed through: an assignment
+      // can span an archived section and a running one, and the archived id
+      // would otherwise resolve to nothing on every lookup downstream.
+      classIds: a.classIds && a.classIds.length ? a.classIds.filter((id) => allClassIds.includes(id)) : allClassIds,
       // The assignment's own goal — shown to the coach every session
       // (description/purpose/requirements) and a whole-class rubric-style
       // reminder (teacherNote, distinct from a per-submission teacherNote).
@@ -1254,50 +1719,94 @@ async function handleApi(req, res, user, route) {
       teacherNote: a.teacherNote || null,
     }));
 
+    // Three parallel batches, then everything below is in-memory. This used to
+    // be a serial student × assignment × draft walk issuing four queries per
+    // draft — so a 20-student, 5-assignment class paid 100 round-trips before
+    // it looked at a single submission, most of them for pairs where the
+    // student had submitted nothing. Queries are scoped per assignment rather
+    // than collection-wide so document reads stay bounded to this teacher's
+    // work, not the whole install. Same fix the admin overview got above.
+    const inScope = new Set(students.map((s) => s.id));
+    const [subsByAssignment, sessionsByAssignment] = await Promise.all([
+      Promise.all(assignments.map((a) => col('submissions').list({ assignmentId: a.id }))),
+      Promise.all(assignments.map((a) => col('sessions').list({ assignmentId: a.id }))),
+    ]);
+
     const submissions = {};
-    for (const s of students) {
-      for (const a of assignments) {
-        const subRows = (await col('submissions').list({ studentId: s.id, assignmentId: a.id }))
-          .sort((x, y) => x.cycleIndex - y.cycleIndex);
-        const subOut = [];
-        for (const sub of subRows) {
-            const analysis = sub.analysisId ? await col('analyses').get(sub.analysisId) : null;
-            const done = analysis?.status === 'complete';
-            // One session per (student, assignment, cycleIndex) under the
-            // current model (a draft's active session is reused, never
-            // duplicated — see store.js), but a student can open more than
-            // one *conversation* inside that same session (a "new chat"
-            // without submitting). Conversation count is the real proxy for
-            // "did they restart with a fresh context instead of extending
-            // one long thread" — feeds the Assignment Detail timeline's
-            // per-draft usage note.
-            const session = (await col('sessions')
-              .list({ assignmentId: a.id, studentId: s.id, cycleIndex: sub.cycleIndex }))[0];
-            const conversationCount = session
-              ? (await col('conversations').list({ sessionId: session.id })).length
-              : 0;
-            subOut.push({
-              id: sub.id,
-              ts: sub.submittedAt,
-              cycleIndex: sub.cycleIndex,
-              pq: done ? analysis.tau.PQ : 0,
-              su: done ? analysis.tau.SU : 0,
-              cs: done ? analysis.tau.CS : 0,
-              oc: done ? analysis.tau.OC : 0,
-              analysisStatus: analysis?.status || 'missing',
-              coachingLevel: analysis?.coachingLevel || null,
-              conversationCount,
-              // Per-submission origin mix (student-born/synthesized/ai-born
-              // counts) — already computed for OC scoring, never surfaced
-              // before now. Feeds the assignment-level provenance aggregate
-              // in dashboard.html; null when provenance tracing didn't run
-              // (regex-fallback path has no provenance data).
-              provenance: done ? (analysis.tau.provenanceCounts || null) : null,
-              ...(done && analysis.flags?.length ? { integrityFlags: analysis.flags.map((f) => f.flag) } : {}),
-            });
-        }
-        submissions[`${s.id}_${a.id}`] = subOut;
+    for (const s of students) for (const a of assignments) submissions[`${s.id}_${a.id}`] = [];
+
+    const rows = [];
+    for (let i = 0; i < assignments.length; i++) {
+      // An assignment's submissions include students who have since left this
+      // teacher's live rosters (an archived class); teacherScope already
+      // dropped them from `students`, so they must not reappear here.
+      for (const sub of subsByAssignment[i].filter((sub) => inScope.has(sub.studentId))) {
+        rows.push({ sub, assignmentIndex: i });
       }
+    }
+
+    // One session per (student, assignment, cycleIndex) under the current
+    // model (a draft's active session is reused, never duplicated — see
+    // store.js), but a student can open more than one *conversation* inside
+    // that same session (a "new chat" without submitting). Conversation count
+    // is the real proxy for "did they restart with a fresh context instead of
+    // extending one long thread" — feeds the Assignment Detail timeline's
+    // per-draft usage note.
+    const sessionFor = new Map();
+    for (let i = 0; i < assignments.length; i++) {
+      for (const sess of sessionsByAssignment[i]) {
+        const key = `${sess.studentId}_${assignments[i].id}_${sess.cycleIndex}`;
+        if (!sessionFor.has(key)) sessionFor.set(key, sess);
+      }
+    }
+
+    const sessionIds = [];
+    for (const { sub, assignmentIndex } of rows) {
+      const sess = sessionFor.get(`${sub.studentId}_${assignments[assignmentIndex].id}_${sub.cycleIndex}`);
+      if (sess && !sessionIds.includes(sess.id)) sessionIds.push(sess.id);
+    }
+
+    const analysisIds = [...new Set(rows.map((r) => r.sub.analysisId).filter(Boolean))];
+    const [analysisDocs, convoLists] = await Promise.all([
+      Promise.all(analysisIds.map((id) => col('analyses').get(id))),
+      Promise.all(sessionIds.map((id) => col('conversations').list({ sessionId: id }))),
+    ]);
+    const analysisById = new Map(analysisIds.map((id, i) => [id, analysisDocs[i]]));
+    const convoCountBySession = new Map(sessionIds.map((id, i) => [id, convoLists[i].length]));
+
+    for (const { sub, assignmentIndex } of rows) {
+      const a = assignments[assignmentIndex];
+      const analysis = sub.analysisId ? analysisById.get(sub.analysisId) : null;
+      const done = analysis?.status === 'complete';
+      const session = sessionFor.get(`${sub.studentId}_${a.id}_${sub.cycleIndex}`);
+      submissions[`${sub.studentId}_${a.id}`].push({
+        id: sub.id,
+        ts: sub.submittedAt,
+        cycleIndex: sub.cycleIndex,
+        pq: done ? analysis.tau.PQ : 0,
+        su: done ? analysis.tau.SU : 0,
+        cs: done ? analysis.tau.CS : 0,
+        oc: done ? analysis.tau.OC : 0,
+        analysisStatus: analysis?.status || 'missing',
+        coachingLevel: analysis?.coachingLevel || null,
+        conversationCount: session ? convoCountBySession.get(session.id) || 0 : 0,
+        // Per-submission origin mix (student-born/synthesized/ai-born
+        // counts) — already computed for OC scoring, never surfaced
+        // before now. Feeds the assignment-level provenance aggregate
+        // in dashboard.html; null when provenance tracing didn't run
+        // (regex-fallback path has no provenance data).
+        provenance: done ? (analysis.tau.provenanceCounts || null) : null,
+        // The teacher's own note on this draft, shown to the student
+        // beside their snapshot. Sent in full rather than as a
+        // hasNote boolean so the dashboard can both display it and
+        // prefill the edit form without a second round trip.
+        teacherNote: sub.teacherNote || null,
+        ...(done && analysis.flags?.length ? { integrityFlags: analysis.flags.map((f) => f.flag) } : {}),
+      });
+    }
+
+    for (const key of Object.keys(submissions)) {
+      submissions[key].sort((x, y) => x.cycleIndex - y.cycleIndex);
     }
 
     return json(res, 200, {
@@ -1309,6 +1818,13 @@ async function handleApi(req, res, user, route) {
         initials: s.displayName.split(' ').map((p) => p[0]).join(''),
       })),
       classes: classes.map((c) => ({ id: c.id, name: c.name, studentIds: c.studentIds })),
+      // Sent separately from `classes`, never merged into it: everything on
+      // this page derives rosters and rollups from that list, and an archived
+      // class appearing there would put a finished term back into every count.
+      // This exists so the sidebar can offer a way to un-archive.
+      archivedClasses: allClasses
+        .filter((c) => c.archived)
+        .map((c) => ({ id: c.id, name: c.name, studentIds: c.studentIds || [] })),
       submissions,
     });
   }
@@ -1316,17 +1832,34 @@ async function handleApi(req, res, user, route) {
   // GET /api/teacher/assignments — all assignments with roster summary
   if (req.method === 'GET' && seg1 === 'teacher' && seg2 === 'assignments' && !seg3) {
     const { students, assignments: ownAssignments } = await teacherScope(user);
+    // Two parallel batches per collection instead of two queries per
+    // (assignment, student) pair plus one per draft — the same N+1 that made
+    // the triage dashboard slow, on a route that reads the same records.
+    const [subsByAssignment, activeSessionsByAssignment] = await Promise.all([
+      Promise.all(ownAssignments.map((a) => col('submissions').list({ assignmentId: a.id }))),
+      Promise.all(ownAssignments.map((a) => col('sessions').list({ assignmentId: a.id, status: 'active' }))),
+    ]);
+    const allAnalysisIds = [...new Set(subsByAssignment.flat().map((s) => s.analysisId).filter(Boolean))];
+    const analysisDocs = await Promise.all(allAnalysisIds.map((id) => col('analyses').get(id)));
+    const analysisById = new Map(allAnalysisIds.map((id, i) => [id, analysisDocs[i]]));
+
     const assignments = [];
-    for (const a of ownAssignments) {
+    for (let ai = 0; ai < ownAssignments.length; ai++) {
+      const a = ownAssignments[ai];
+      const subsByStudent = new Map();
+      for (const sub of subsByAssignment[ai]) {
+        if (!subsByStudent.has(sub.studentId)) subsByStudent.set(sub.studentId, []);
+        subsByStudent.get(sub.studentId).push(sub);
+      }
+      const activeStudentIds = new Set(activeSessionsByAssignment[ai].map((s) => s.studentId));
       const roster = [];
       for (const s of students) {
-        const submissions = (await col('submissions').list({ assignmentId: a.id, studentId: s.id }))
+        const submissions = (subsByStudent.get(s.id) || [])
           .sort((x, y) => x.cycleIndex - y.cycleIndex);
-        const active = (await col('sessions')
-          .list({ assignmentId: a.id, studentId: s.id, status: 'active' }))[0];
+        const active = activeStudentIds.has(s.id);
         const cycles = [];
         for (const sub of submissions) {
-          const analysis = sub.analysisId ? await col('analyses').get(sub.analysisId) : null;
+          const analysis = sub.analysisId ? analysisById.get(sub.analysisId) : null;
           cycles.push({
             submissionId: sub.id,
             cycleIndex: sub.cycleIndex,
@@ -1342,7 +1875,7 @@ async function handleApi(req, res, user, route) {
           studentId: s.id,
           displayName: s.displayName,
           email: s.email,
-          activeSession: !!active,
+          activeSession: active,
           cycles,
         });
       }

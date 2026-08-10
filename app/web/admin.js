@@ -1,10 +1,16 @@
-// Administration surface. Two jobs, in this order: run the teacher roster,
-// then read what the tool is actually being used for so build effort can
-// follow attention.
+// Administration surface, serving two tiers off one page.
+//
+// A school administrator (a teacher carrying the grant) runs their teacher
+// roster and reads what the tool is being used for. A platform administrator
+// sees the same, plus what the tool costs — `data.cost` is null for anyone
+// else, withheld by the server rather than hidden here, so the page cannot be
+// the thing that leaks it.
 //
 // Everything here is aggregate by construction — /api/admin/overview never
 // sends a student name, a transcript, an essay, or an integrity flag, so
-// there is nothing on this page to accidentally disclose.
+// there is nothing on this page to accidentally disclose. The cost view holds
+// that line too: the per-student spread is reported as bare numbers, never as
+// a ranked list of who cost what.
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -12,6 +18,65 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 let data = null;
 let areaAudience = 'teacher';
 let editingId = null;
+let view = null;
+let filter = '';
+
+// The rail. Three groups, because the surface serves three different questions
+// and the first version conflated two of them: "Activity" held Cost next to
+// Content areas, but one is an operational fact about a running install and
+// the other is a product-roadmap question. Nobody opens this console to learn
+// that Evaluate is under-used.
+//
+//   Operations — is it working, and what is it costing (the daily question)
+//   Accounts   — the people (where the support tickets come from)
+//   Product    — what people do with it (the roadmap question)
+//
+// Labels name their contents, not the act of looking at them: "Operations",
+// not "Tracking" or "Monitoring", which describe what the system does rather
+// than what is on the page.
+const NAV = [
+  {
+    heading: 'Operations',
+    items: [
+      { id: 'status', label: 'Status', platformOnly: true, count: () => openIssues() || null },
+      { id: 'cost', label: 'Cost', platformOnly: true },
+    ],
+  },
+  {
+    heading: 'Accounts',
+    items: [
+      { id: 'teachers', label: 'Teachers', count: () => data.teachers.length },
+      { id: 'students', label: 'Students', count: () => data.students.length },
+    ],
+  },
+  {
+    heading: 'Product',
+    items: [
+      { id: 'areas', label: 'Content areas' },
+      { id: 'patterns', label: 'Work patterns' },
+    ],
+  },
+];
+
+// The count on Status is the number of things actually needing a decision, so
+// the rail can say "2" without anyone opening it. Zero renders as no badge at
+// all rather than a "0" — an all-clear should look like silence.
+function openIssues() {
+  const s = data.status;
+  if (!s) return 0;
+  return s.failedAnalyses.length + s.stuckAnalyses + s.caps.atHardCap + s.spend.outliers;
+}
+
+function navItems() {
+  return NAV.flatMap((g) => g.items).filter((i) => !i.platformOnly || data.viewer?.platformAdmin);
+}
+
+// Status for a platform admin, Teachers for a school administrator. Cost was
+// the wrong landing: what it costs is a monthly question, whether it is working
+// is a daily one, and the console should open on the daily one.
+function defaultView() {
+  return data.viewer?.platformAdmin ? 'status' : 'teachers';
+}
 
 function plural(n, one, many) {
   return `${n} ${n === 1 ? one : many}`;
@@ -37,12 +102,200 @@ function renderLead() {
   </section>`;
 }
 
+function relativeTime(iso) {
+  if (!iso) return 'never';
+  const mins = Math.floor((Date.now() - new Date(iso)) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  if (mins < 1440) return `${Math.floor(mins / 60)} h ago`;
+  return `${Math.floor(mins / 1440)} d ago`;
+}
+
+// Status. The one view that answers "is anything broken right now", which is
+// what an administrator opens the console to ask and what nothing here could
+// answer before.
+//
+// Structured as decisions first, reassurance second: anything needing action
+// is listed individually with the control that resolves it, and everything
+// that is merely fine collapses into one line. An all-clear should be short.
+function renderStatus() {
+  const s = data.status;
+  if (!s) return '';
+  const issues = openIssues();
+
+  const lead = issues === 0
+    ? `<section class="admin-lead">
+        <span class="admin-lead-figure">All clear</span>
+        <span class="admin-lead-text">Nothing needs attention. Reports are completing, no student has hit a
+          hard limit, and spend looks normal.</span>
+      </section>`
+    : `<section class="admin-lead">
+        <span class="admin-lead-figure">${issues}</span>
+        <span class="admin-lead-text">${issues === 1 ? 'thing needs' : 'things need'} attention.
+          Everything below is listed with what resolves it.</span>
+      </section>`;
+
+  // Each failed analysis is one student who submitted work and got no report.
+  // Listed individually with its retry, identified by assignment and id —
+  // fixing a broken report never requires knowing whose report it is.
+  const failures = s.failedAnalyses.length
+    ? `<section>
+        <div class="section-head"><span class="section-title">Reports that failed</span></div>
+        <p class="section-note">A draft was submitted and its report never arrived. Usually a transient model
+          error, so retrying is normally the whole fix. The student keeps their submission either way.</p>
+        <div class="card card-lg">
+          ${s.failedAnalyses.map((f) => `<div class="list-row status-row">
+            <div class="status-row-id">
+              <div class="teacher-name">${esc(f.assignment)}</div>
+              <div class="teacher-email">${esc(f.submittedAt ? `submitted ${relativeTime(f.submittedAt)}` : 'submission date unknown')}
+                · ${esc(f.error)}</div>
+            </div>
+            <button class="btn btn-quiet btn-sm" data-retry="${esc(f.submissionId)}">Retry</button>
+          </div>`).join('')}
+        </div>
+      </section>`
+    : '';
+
+  const stuck = s.stuckAnalyses
+    ? `<section>
+        <div class="section-head"><span class="section-title">Reports still pending</span></div>
+        <p class="section-note">${plural(s.stuckAnalyses, 'report has', 'reports have')} been pending for over an hour.
+          Analysis normally finishes in seconds, so these runs most likely died without recording an error.
+          They will not retry themselves.</p>
+      </section>`
+    : '';
+
+  const rate = s.llm.errorRate24h;
+  const modelLine = s.llm.calls24h === 0
+    ? 'No model calls in the last 24 hours — nobody has used the coach today.'
+    : `${plural(s.llm.calls24h, 'model call', 'model calls')} in the last 24 hours, ${
+        s.llm.failures24h === 0 ? 'none failed' : `${s.llm.failures24h} failed (${Math.round(rate * 100)}%)`}.${
+        s.llm.lastFailureAt ? ` Last failure ${relativeTime(s.llm.lastFailureAt)}${s.llm.lastFailureCode ? ` (HTTP ${s.llm.lastFailureCode})` : ''}.` : ''}`;
+
+  const capLine = s.caps.activeToday === 0
+    ? 'No students have used the coach today.'
+    : `${plural(s.caps.activeToday, 'student has', 'students have')} used the coach today. ${
+        s.caps.atSoftCap ? `${s.caps.atSoftCap} reached the ${s.caps.softLimit}-reply daily limit` : `None reached the ${s.caps.softLimit}-reply daily limit`}${
+        s.caps.nearSoftCap ? `, ${s.caps.nearSoftCap} are close to it` : ''}. ${
+        s.caps.atHardCap ? `${plural(s.caps.atHardCap, 'student has', 'students have')} hit the hard token limit — that should not happen in normal use and usually means a loop.` : ''}`;
+
+  const spendLine = s.spend.outliers
+    ? `${plural(s.spend.outliers, 'student is', 'students are')} spending at least ${s.spend.outlierMultiple}× the median (${money(s.spend.medianUsd)}). Worth a look — heavy use and a runaway loop are different shapes.`
+    : `No student is spending more than ${s.spend.outlierMultiple}× the median${s.spend.medianUsd ? ` (${money(s.spend.medianUsd)})` : ''}.`;
+
+  return lead + failures + stuck + `<section>
+    <div class="section-head"><span class="section-title">Running state</span></div>
+    <div class="card card-lg">
+      <div class="eyebrow">Model calls</div>
+      <p class="pattern-note">${esc(modelLine)}</p>
+      <div class="eyebrow">Daily limits</div>
+      <p class="pattern-note">${esc(capLine)}</p>
+      <div class="eyebrow">Spend distribution</div>
+      <p class="pattern-note">${esc(spendLine)}</p>
+    </div>
+  </section>
+  <section>
+    <div class="section-head"><span class="section-title">Configuration</span></div>
+    <p class="section-note">Set at deploy time, not from this page. Config that routes data is a security
+      boundary — a console that can change where student work goes is an exfiltration channel. It is shown
+      so it can be checked, not changed.</p>
+    <div class="card card-lg">
+      <div class="cost-split">
+        <span class="cost-split-item">Project <span class="cost-split-value">${esc(s.config.projectId || 'not set')}</span></span>
+        <span class="cost-split-item">Region <span class="cost-split-value">${esc(s.config.location)}</span></span>
+        <span class="cost-split-item">Chat model <span class="cost-split-value">${esc(s.config.chatModel)}</span></span>
+        <span class="cost-split-item">Analysis model <span class="cost-split-value">${esc(s.config.analysisModel)}</span></span>
+        <span class="cost-split-item">Daily reply limit <span class="cost-split-value">${esc(s.caps.softLimit)}</span></span>
+        <span class="cost-split-item">Daily token limit <span class="cost-split-value">${compactTokens(s.caps.hardLimit)}</span></span>
+      </div>
+    </div>
+  </section>`;
+}
+
+function matchesFilter(person) {
+  if (!filter) return true;
+  const q = filter.toLowerCase();
+  return person.displayName.toLowerCase().includes(q) || person.email.toLowerCase().includes(q);
+}
+
+// One search box, shared by both rosters. Not a component in components.css,
+// so it is composed from .field — which is the right shape here, unlike the
+// checkbox case.
+function renderSearch(placeholder, shown, total) {
+  return `<div class="roster-search">
+    <input id="rosterFilter" type="search" placeholder="${esc(placeholder)}" value="${esc(filter)}" autocomplete="off">
+    ${filter ? `<span class="roster-search-count">${shown} of ${total}</span>` : ''}
+  </div>`;
+}
+
+function renderStudents() {
+  const shown = data.students.filter(matchesFilter);
+  const rows = shown.map((s) => {
+    const suspended = s.status === 'suspended';
+    return `<div class="list-row teacher-row${suspended ? ' row-suspended' : ''}">
+      <div class="teacher-id">
+        <div class="teacher-name">${esc(s.displayName)}
+          ${suspended ? '<span class="chip chip-grey">Suspended</span>' : ''}</div>
+        <div class="teacher-email">${esc(s.email)} · ${esc(relativeDate(s.lastActiveAt))}</div>
+      </div>
+      <div class="teacher-counts">${plural(s.classCount, 'class', 'classes')}</div>
+      <div class="teacher-actions">
+        <button class="btn btn-quiet btn-sm" data-sreset="${s.id}">Reset password</button>
+        <button class="btn btn-quiet btn-sm" data-sstatus="${s.id}" data-to="${suspended ? 'active' : 'suspended'}">${suspended ? 'Reactivate' : 'Suspend'}</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<section>
+    <div class="section-head">
+      <span class="section-title">Students</span>
+      ${renderSearch('Search students by name or email', shown.length, data.students.length)}
+    </div>
+    <p class="section-note">Accounts only. Students are added by their teacher, on a class roster — there is no
+      "add student" here, because two places to create the same person is two places for them to differ.
+      Their work, reports, and flags stay between them and their own teacher.</p>
+    <div class="card card-lg">
+      ${rows || `<p class="section-note" style="margin:0">${filter ? 'No student matches that search.' : 'No students yet. Teachers add them to a class by email.'}</p>`}
+    </div>
+  </section>` + renderAdminEvents();
+}
+
+// Who did what, on the account surfaces. Rendered on both rosters because the
+// question ("who suspended this account?") arrives from whichever one you are
+// standing on.
+function renderAdminEvents() {
+  const events = data.adminEvents || [];
+  const verb = {
+    create: 'added', edit: 'edited', suspend: 'suspended',
+    reactivate: 'reactivated', 'reset-password': 'reset the password for',
+    'retry-analysis': 'retried a report for',
+  };
+  if (!events.length) {
+    return `<section>
+      <div class="eyebrow">Recent account changes</div>
+      <p class="pattern-note">Nothing recorded yet. Every account action taken from this page is logged here from now on.</p>
+    </section>`;
+  }
+  return `<section>
+    <div class="eyebrow">Recent account changes</div>
+    <div class="card card-lg">
+      ${events.map((e) => `<div class="audit-row">
+        <span class="audit-when">${esc(relativeTime(e.ts))}</span>
+        <span class="audit-what"><strong>${esc(e.actorName)}</strong> ${esc(verb[e.action] || e.action)}
+          ${esc(e.targetName || e.detail || '')}${e.targetName && e.detail ? ` — ${esc(e.detail)}` : ''}</span>
+      </div>`).join('')}
+    </div>
+  </section>`;
+}
+
 function renderTeachers() {
-  const rows = data.teachers.map((t) => {
+  const shown = data.teachers.filter(matchesFilter);
+  const rows = shown.map((t) => {
     const suspended = t.status === 'suspended';
     return `<div class="list-row teacher-row${suspended ? ' row-suspended' : ''}">
       <div class="teacher-id">
         <div class="teacher-name">${esc(t.displayName)}
+          ${t.schoolAdmin ? '<span class="chip chip-neutral">School administrator</span>' : ''}
           ${suspended ? '<span class="chip chip-grey">Suspended</span>' : ''}</div>
         <div class="teacher-email">${esc(t.email)} · ${esc(relativeDate(t.lastActiveAt))}</div>
       </div>
@@ -61,14 +314,131 @@ function renderTeachers() {
   return `<section>
     <div class="section-head">
       <span class="section-title">Teachers</span>
-      <button class="btn btn-primary" type="button" id="addTeacher">+ Add teacher</button>
+      <div class="section-head-tools">
+        ${renderSearch('Search teachers by name or email', shown.length, data.teachers.length)}
+        <button class="btn btn-primary" type="button" id="addTeacher">+ Add teacher</button>
+      </div>
     </div>
     <p class="section-note">Each teacher builds their own workspace — their classes, their students, their assignments.
       A teacher only ever sees the students on their own rosters.</p>
     <div class="card card-lg">
-      ${rows || '<p class="section-note" style="margin:0">No teachers yet. Add the first one to get started.</p>'}
+      ${rows || `<p class="section-note" style="margin:0">${filter ? 'No teacher matches that search.' : 'No teachers yet. Add the first one to get started.'}</p>`}
+    </div>
+  </section>` + renderAdminEvents();
+}
+
+// Dollars at this scale are cents, so two decimals everywhere would render a
+// whole page of "$0.00". Below a dollar the meaningful digits are the cents.
+function money(n) {
+  if (!n) return '$0';
+  // "under 1¢" rather than "<1¢": this string is interpolated straight into
+  // markup in the split rows, where a bare < opens a phantom tag.
+  if (n < 0.01) return 'under 1¢';
+  if (n < 1) return `${Math.round(n * 100)}¢`;
+  return `$${n.toFixed(2)}`;
+}
+
+function compactTokens(n) {
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
+  if (n >= 1e3) return `${Math.round(n / 1e3)}K`;
+  return String(n);
+}
+
+function renderCost() {
+  const c = data.cost;
+  if (!c) return '';
+
+  // Trend as a sentence, not a chart. designsystem.md: a trend value defaults
+  // to plain text unless a chart was explicitly asked for — and two weekly
+  // totals is not a series worth drawing.
+  const delta = c.last7Usd - c.prior7Usd;
+  const trend = !c.prior7Usd && !c.last7Usd
+    ? 'Nothing spent in the last two weeks.'
+    : `${money(c.last7Usd)} in the last 7 days, against ${money(c.prior7Usd)} the 7 before — ${
+        Math.abs(delta) < 0.01 ? 'flat' : delta > 0 ? `up ${money(delta)}` : `down ${money(-delta)}`}.`;
+
+  const kindLabel = { chat: 'Coach chat', analysis: 'Draft analysis' };
+  const split = c.byKind.map((k) => `<span class="cost-split-item">${esc(kindLabel[k.key] || k.key)}
+    <span class="cost-split-value">${money(k.usd)}</span> · ${plural(k.calls, 'call', 'calls')}</span>`).join('');
+
+  const models = c.byModel.map((m) => `<span class="cost-split-item">${esc(m.key)}
+    <span class="cost-split-value">${money(m.usd)}</span> · ${plural(m.calls, 'call', 'calls')}</span>`).join('');
+
+  const tiles = [
+    {
+      figure: c.perStudent ? money(c.perStudent.median) : '—',
+      label: 'Median per student',
+      note: c.perStudent
+        ? `Across ${plural(c.perStudent.students, 'student', 'students')} who have used the coach. Costliest is ${money(c.perStudent.max)}.`
+        : 'Fills in once students start using the coach.',
+    },
+    { figure: compactTokens(c.inputTokens), label: 'Input tokens', note: 'Chat resends the whole conversation each turn, so this grows faster than reply count does.' },
+    { figure: compactTokens(c.outputTokens), label: 'Output tokens', note: 'Includes thinking tokens, which bill as output.' },
+  ];
+
+  const unpriced = c.unpricedModels.length
+    ? `<p class="cost-note">No price on record for ${esc(c.unpricedModels.join(', '))}, so those calls count as $0 here.
+       Add the rate to <code>app/server/prices.js</code> to bring them in.</p>`
+    : '';
+
+  return `<section class="admin-lead">
+      <span class="admin-lead-figure">${esc(money(c.totalUsd))}</span>
+      <span class="admin-lead-text">spent so far, across ${plural(c.calls, 'model call', 'model calls')}${
+        c.since ? `, since ${new Date(c.since).toLocaleDateString()}` : ''}.</span>
+    </section>
+    <section>
+    <div class="section-head">
+      <span class="section-title">Where it goes</span>
+      <button class="btn btn-quiet btn-sm" type="button" id="exportCost">Export CSV</button>
+    </div>
+    <p class="section-note">${esc(trend)} Derived from stored token counts at current published rates,
+      so these figures re-price rather than go stale when Google moves prices.
+      Treat them as close, not exact — Google's own billing console is the authority.</p>
+    <div class="card card-lg">
+      <div class="pattern-grid">
+        ${tiles.map((t) => `<div>
+          <div class="pattern-figure">${esc(t.figure)}</div>
+          <div class="pattern-label">${esc(t.label)}</div>
+          <div class="pattern-note">${esc(t.note)}</div>
+        </div>`).join('')}
+      </div>
+      <div class="eyebrow">By purpose</div>
+      <div class="cost-split">${split || '<span class="cost-split-item">No calls recorded yet.</span>'}</div>
+      <div class="eyebrow">By model</div>
+      <div class="cost-split">${models || '<span class="cost-split-item">No calls recorded yet.</span>'}</div>
+      ${unpriced}
     </div>
   </section>`;
+}
+
+// CSV, because the person who asks for these numbers works in a spreadsheet
+// and will not accept a screenshot. Built client-side from the payload already
+// on the page — no endpoint, no second source of truth to drift.
+function exportCost() {
+  const c = data.cost;
+  const rows = [
+    ['metric', 'value'],
+    ['total_usd', c.totalUsd.toFixed(4)],
+    ['calls', c.calls],
+    ['input_tokens', c.inputTokens],
+    ['output_tokens', c.outputTokens],
+    ['last_7_days_usd', c.last7Usd.toFixed(4)],
+    ['prior_7_days_usd', c.prior7Usd.toFixed(4)],
+    ['students_with_usage', c.perStudent ? c.perStudent.students : 0],
+    ['median_per_student_usd', c.perStudent ? c.perStudent.median.toFixed(4) : ''],
+    ['max_per_student_usd', c.perStudent ? c.perStudent.max.toFixed(4) : ''],
+    ...c.byKind.map((k) => [`usd_${k.key}`, k.usd.toFixed(4)]),
+    ...c.byModel.map((m) => [`usd_model_${m.key}`, m.usd.toFixed(4)]),
+  ];
+  // Quote every field: model names carry hyphens today and could carry commas
+  // tomorrow, and a CSV that breaks on one row breaks silently.
+  const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `tau-cost-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function renderContentAreas() {
@@ -159,10 +529,9 @@ function renderPatterns() {
 
   const editing = ['copy', 'regenerate', 'edit', 'stop'].map((t) => `${t} ${ev[t] || 0}`).join(' · ');
 
-  return `<section>
-    <div class="section-head"><span class="section-title">Student work patterns</span></div>
+  return renderLead() + `<section>
     <p class="section-note">Derived from the work records themselves, so these are complete from day one
-      rather than filling in as the counts above do.</p>
+      rather than filling in as the content-area counts do.</p>
     <div class="card card-lg">
       <div class="pattern-grid">
         ${tiles.map((t) => `<div>
@@ -177,8 +546,39 @@ function renderPatterns() {
   </section>`;
 }
 
+const VIEWS = {
+  status: renderStatus,
+  cost: renderCost,
+  students: renderStudents,
+  areas: renderContentAreas,
+  patterns: renderPatterns,
+  teachers: renderTeachers,
+};
+
+function renderNav() {
+  const allowed = new Set(navItems().map((i) => i.id));
+  $('adminNav').innerHTML = NAV.map((group) => {
+    const items = group.items.filter((i) => allowed.has(i.id));
+    if (!items.length) return '';
+    return `<div class="rail-group">
+      <span class="eyebrow">${esc(group.heading)}</span>
+      ${items.map((i) => `<button class="rail-item${i.id === view ? ' active' : ''}" type="button"
+        data-view="${i.id}"${i.id === view ? ' aria-current="page"' : ''}>
+        <span class="rail-item-text"><span class="rail-item-name">${esc(i.label)}</span></span>
+        ${i.count ? `<span class="rail-item-meta">${esc(i.count())}</span>` : ''}
+      </button>`).join('')}
+    </div>`;
+  }).join('');
+}
+
 function render() {
-  $('adminMain').innerHTML = renderLead() + renderTeachers() + renderContentAreas() + renderPatterns();
+  $('roleChip').textContent = data.viewer?.platformAdmin ? 'Platform administrator' : 'School administrator';
+  // A view the current tier cannot see (a school admin on #cost, or a stale
+  // bookmark) falls back rather than rendering an empty main region.
+  if (!navItems().some((i) => i.id === view)) view = defaultView();
+  renderNav();
+  $('adminMain').innerHTML = VIEWS[view]();
+  $('adminMain').scrollTop = 0;
 }
 
 // ---------- actions ----------
@@ -192,6 +592,11 @@ function openTeacherModal(teacher) {
   $('teacherSave').textContent = teacher ? 'Save changes' : 'Add teacher';
   $('teacherName').value = teacher ? teacher.displayName : '';
   $('teacherEmail').value = teacher ? teacher.email : '';
+  $('teacherSchoolAdmin').checked = teacher ? teacher.schoolAdmin === true : false;
+  // Only the tier above can hand out the grant, so a school administrator does
+  // not see a control they cannot use. The server refuses the field regardless
+  // — this just stops the form from implying otherwise.
+  $('schoolAdminField').classList.toggle('hidden', !data.viewer?.platformAdmin);
   $('teacherError').classList.add('hidden');
   $('teacherModal').classList.remove('hidden');
   $('teacherName').focus();
@@ -208,22 +613,47 @@ async function reload() {
   render();
 }
 
+// Hash routing, the same shape teacher.html already uses. It costs nothing and
+// it means a reload, the back button, and a pasted link all land where the
+// person expects rather than resetting to the default view.
+function viewFromHash() {
+  return (location.hash || '').replace(/^#/, '') || null;
+}
+
+window.addEventListener('hashchange', () => {
+  const next = viewFromHash();
+  if (!data || !next || next === view) return;
+  view = next;
+  render();
+});
+
+$('adminNav').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-view]');
+  if (!btn || btn.dataset.view === view) return;
+  view = btn.dataset.view;
+  // Assigning the hash re-enters through hashchange, so render once here and
+  // let the guard above swallow the echo.
+  location.hash = view;
+  render();
+});
+
 $('teacherCancel').onclick = () => $('teacherModal').classList.add('hidden');
 $('passwordClose').onclick = () => $('passwordModal').classList.add('hidden');
 
 $('teacherSave').onclick = async () => {
   const displayName = $('teacherName').value.trim();
   const email = $('teacherEmail').value.trim();
+  const schoolAdmin = $('teacherSchoolAdmin').checked;
   const err = $('teacherError');
   err.classList.add('hidden');
   $('teacherSave').disabled = true;
   try {
     if (editingId) {
-      await api(`/api/admin/teachers/${editingId}/edit`, { method: 'POST', body: { displayName, email } });
+      await api(`/api/admin/teachers/${editingId}/edit`, { method: 'POST', body: { displayName, email, schoolAdmin } });
       $('teacherModal').classList.add('hidden');
       await reload();
     } else {
-      const created = await api('/api/admin/teachers', { method: 'POST', body: { displayName, email } });
+      const created = await api('/api/admin/teachers', { method: 'POST', body: { displayName, email, schoolAdmin } });
       $('teacherModal').classList.add('hidden');
       await reload();
       showPassword(created.displayName, created.tempPassword);
@@ -235,6 +665,21 @@ $('teacherSave').onclick = async () => {
     $('teacherSave').disabled = false;
   }
 };
+
+// Search runs on input. The whole main region re-renders, so focus and caret
+// are restored explicitly — without that the box loses focus on the first
+// keystroke and the person types one character at a time into nothing.
+$('adminMain').addEventListener('input', (e) => {
+  if (e.target.id !== 'rosterFilter') return;
+  const caret = e.target.selectionStart;
+  filter = e.target.value;
+  render();
+  const box = $('rosterFilter');
+  if (box) {
+    box.focus();
+    box.setSelectionRange(caret, caret);
+  }
+});
 
 // One delegated handler for the whole main region — every control inside it is
 // re-rendered wholesale on each reload, so per-element listeners would have to
@@ -261,6 +706,33 @@ $('adminMain').addEventListener('click', async (e) => {
     return showPassword(teacher.displayName, tempPassword);
   }
 
+  if (btn.dataset.retry) {
+    btn.disabled = true;
+    btn.textContent = 'Retrying…';
+    await api(`/api/admin/analyses/${btn.dataset.retry}/retry`, { method: 'POST' });
+    // Analysis is async, so the row cannot disappear on the response — say what
+    // actually happened rather than implying it is already fixed.
+    btn.textContent = 'Retry started';
+    return;
+  }
+
+  if (btn.dataset.sreset) {
+    const student = data.students.find((s) => s.id === btn.dataset.sreset);
+    if (!confirm(`Reset the password for ${student.displayName}? Their current one stops working.`)) return;
+    const { tempPassword } = await api(`/api/admin/students/${student.id}/reset-password`, { method: 'POST' });
+    return showPassword(student.displayName, tempPassword);
+  }
+
+  if (btn.dataset.sstatus) {
+    const student = data.students.find((s) => s.id === btn.dataset.sstatus);
+    const to = btn.dataset.to;
+    if (to === 'suspended' && !confirm(`Suspend ${student.displayName}? They are signed out immediately. Their work and reports are kept.`)) return;
+    await api(`/api/admin/students/${student.id}/status`, { method: 'POST', body: { status: to } });
+    return reload();
+  }
+
+  if (btn.id === 'exportCost') return exportCost();
+
   if (btn.dataset.status) {
     const teacher = data.teachers.find((t) => t.id === btn.dataset.status);
     const to = btn.dataset.to;
@@ -274,6 +746,14 @@ $('adminMain').addEventListener('click', async (e) => {
 });
 
 (async function init() {
-  await mountAccountChip($('accountChip'));
-  await reload();
+  try {
+    await mountAccountChip($('accountChip'));
+    view = viewFromHash();
+    await reload();
+  } catch (ex) {
+    // Without this the page sits on "Loading…" forever on any failure, which
+    // is indistinguishable from a slow load and reports nothing. Whatever went
+    // wrong, say so on the page rather than only in the console.
+    $('adminMain').innerHTML = `<p class="section-note">This page could not load: ${esc(ex.message)}</p>`;
+  }
 })();

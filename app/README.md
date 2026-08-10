@@ -6,10 +6,12 @@ Dev implementation of the built-in chat (see `../built-in-chat-plan.md`, the sou
 
 ```
 npm install          # first time only
-npm start            # → node app/server/index.js
+npm run start:demo   # → SEED_DEMO=1 node app/server/index.js
 ```
 
 Then open http://localhost:8787.
+
+**Use `start:demo` for everyday work** — it's the one that seeds the demo class below. Plain `npm start` starts the same server against the same store but seeds nothing, which is what production runs. The seed is opt-in as of 2026-08-08 (see *Two projects* below); if the login page shows no test accounts, that's the flag missing, not a broken store.
 
 **Setup required** (once): a GCP project with Vertex + Firestore enabled and ADC on your machine — `../app/gcp-setup.md` walks through it. There is no API key: credentials come from `gcloud auth application-default login`.
 
@@ -19,7 +21,7 @@ Boot takes ~20s: the seed is idempotent per record, and every one of those check
 
 ### Test accounts
 
-Everything is behind a login. The seed creates a demo class — **password `coach1234`** for all of them (the login page lists them and fills the form on click):
+Everything is behind a login. `npm run start:demo` creates a demo class — **password `coach1234`** for all of them (the login page lists them and fills the form on click, on demo instances only):
 
 | Email | Who |
 |---|---|
@@ -38,7 +40,7 @@ Three classes, each with its own open assignment staged at a different point (En
 
 The demo analyses are pre-baked from hand-labeled transcripts in `server/seed-data.js`, run through the real `enrich()`/`scoreTAU()` — so scores stay consistent with the formulas and **no LLM call is needed to browse reports**. Credentials are only needed to actually chat or submit a new draft (see `gcp-setup.md`).
 
-The seed is idempotent per email: it extends what is already in Firestore rather than requiring a wipe, and backfills passwords onto users created before auth existed. To start clean, wipe the collections and re-run — `node app/server/migrate-to-firestore.js --wipe` restores the JSON snapshot, or delete the collections and let `npm start` re-seed from scratch.
+The seed is idempotent per email: it extends what is already in Firestore rather than requiring a wipe, and backfills passwords onto users created before auth existed. To start clean, wipe the collections and re-run — `node app/server/migrate-to-firestore.js --wipe` restores the JSON snapshot, or delete the collections and let `npm run start:demo` re-seed from scratch. `npm run seed` reseeds without starting the server (it was a no-op until 2026-08-08).
 
 ## Seams (dev → prod)
 
@@ -47,7 +49,7 @@ The seed is idempotent per email: it extends what is already in Firestore rather
 | `server/auth.js` | email + password, scrypt hash, opaque session token in an HttpOnly cookie (`authSessions`), suspension checked per request | Firebase Auth ID-token verify, domain-restricted Google SSO |
 | `server/llm.js` | **Vertex Gemini (swapped 2026-08-05)** — ADC from `gcloud auth application-default login` | same code; credentials come from the Cloud Run metadata server instead |
 | `server/school.js` | which GCP project a call bills to — platform default from `config.json` | per-school override for BYO-inference districts, read from the schools collection |
-| `server/store.js` | **Firestore (swapped 2026-08-05)** — `cta-pilot-dev`, `us-central1` | same, per-school project |
+| `server/store.js` | **Firestore (swapped 2026-08-05)** — `cta-pilot-dev`, `us-central1` | same code, `tau-thinking-prod` (2026-08-08); per-school project later |
 
 Route logic in `server/index.js` doesn't change when seams swap; it becomes the Cloud Run service.
 
@@ -75,7 +77,7 @@ Hardening applied to the password path (which is a POC stand-in — see the SSO 
 | cookie | `Secure` added when `NODE_ENV=production` (conditional, because localhost is plain HTTP) |
 | account enumeration | unknown emails burn the same scrypt work, so "no such account" no longer answers ~100× faster |
 | brute force | 10 failures per account per 15 min |
-| dev password | production generates a random temp password; the demo seed refuses to run at all under `NODE_ENV=production` |
+| dev password | production generates a random temp password. The demo seed is opt-in (`SEED_DEMO=1`) and throws if `NODE_ENV=production` is also set; `DEV_PASSWORD` moved from `seed-data.js` to `auth.js` so a production process never loads the demo fixtures at all |
 
 **Lockout is per-account, never per-IP — deliberately.** A school is one NAT gateway, so an IP lockout means ten fumbled passwords anywhere in the building locks out the whole class. Confirmed by building it that way first and watching an unrelated student with the correct password get refused. Password spraying is therefore *detected and logged* (one address failing against 25+ distinct accounts), not blocked.
 
@@ -83,27 +85,96 @@ Known and accepted while passwords remain: an admin who resets a teacher's passw
 
 **Firestore rules are deployed** (`../firestore.rules`, released 2026-08-05): `allow read, write: if false;`. There were no rules at all before — the database was created via `gcloud` rather than the Firebase console, so none were ever attached and access was governed purely by IAM. Nothing legitimate is denied, because no browser ever holds a Firestore handle; the point is that registering a Firebase web app later can't hand out a client key against a database whose rules were never decided. **Editing that file changes nothing on its own** — it has to be released again through the firebaserules API.
 
-**Least-privilege runtime.** Cloud Run runs as `cta-run@cta-pilot-dev.iam.gserviceaccount.com` holding exactly `roles/aiplatform.user` and `roles/datastore.user` — nothing else. Worth pinning explicitly: the default compute service account Cloud Run would otherwise use carries `roles/editor`.
+**Least-privilege runtime.** Cloud Run runs as `cta-run@tau-thinking-prod.iam.gserviceaccount.com` (and `cta-run@cta-pilot-dev` on the demo project) holding exactly `roles/aiplatform.user` and `roles/datastore.user` — nothing else. Worth pinning explicitly: the default compute service account Cloud Run would otherwise use carries `roles/editor`.
+
+## Two projects: demo and real (2026-08-08)
+
+Real users arrive, so the demo and the product no longer share a database.
+
+| | `cta-pilot-dev` | `tau-thinking-prod` |
+|---|---|---|
+| Holds | fabricated demo records | real schools |
+| Reached by | your machine (`config.json`) and staging | Cloud Run only (env vars) |
+| Demo seed | `npm run start:demo` | refuses to run |
+| Firestore | `(default)`, us-central1 | `(default)`, us-central1, deny-all rules released |
+| Runtime identity | `cta-run@cta-pilot-dev` | `cta-run@tau-thinking-prod` |
+
+Nothing about local work changes: `config.json` still points at `cta-pilot-dev`, the demo class is still there, and you still sign in as `teacher@school.dev`. What changed is that production is somewhere else and cannot be seeded.
+
+### Three environments (staging added 2026-08-10)
+
+Two projects, three places the app runs. Staging exists so a change can be put
+in front of a stakeholder without that being the same act as shipping to
+schools — before this, the only deployed instance anyone could be sent to was
+production.
+
+| | Local | Staging | Production |
+|---|---|---|---|
+| URL | `localhost:8787` | `staging.tauthinking.com` | `app.tauthinking.com` |
+| GCP project | `cta-pilot-dev` | `cta-pilot-dev` | `tau-thinking-prod` |
+| Deployed by | — | push to `staging` | push to `main` |
+| Build config | — | `cloudbuild.staging.yaml` | `cloudbuild.yaml` |
+| `NODE_ENV` | unset | `staging` | `production` |
+| Demo data | reseeds every start | seeds an empty store once | never |
+| Data in it | fabricated | fabricated | real students |
+
+**Staging and local share a Firestore.** They are the same project, so demo
+records you create locally show up on staging and vice versa. That is a
+deliberate simplification, not an oversight — a third GCP project would need
+its own Vertex quota, service accounts, billing and deny-all rules to hold
+nothing but more fabricated records. The consequence to remember: wiping
+collections locally wipes what a stakeholder is looking at.
+
+**Staging is not a production rehearsal.** It runs `NODE_ENV=staging`, which is
+what allows the demo seed and the shared test-account password, so it is
+deliberately *not* byte-identical to prod. It catches deploy-shaped bugs (the
+container, the service account, env-var config, the metadata-server credential
+path) — not production-guard bugs. The one production behaviour it does keep is
+`SECURE_COOKIES=1`, because that is a property of being served over HTTPS
+rather than of being production.
+
+**The seed runs once, not every deploy** (`SEED_ONCE=1`). The upserts are
+idempotent per record, so without that flag a redeploy would silently revert
+edits a reviewer had made to a seeded assignment or note while they were
+looking at it. To reset staging to a clean demo class, delete the Firestore
+collections and redeploy.
+
+**Two independent switches, both fail closed.** `SEED_DEMO=1` is required for the seed to run at all, and it throws if `NODE_ENV=production` is also set. The old guard was the inverse — *skip if production* — which failed open: Cloud Run env vars are replaced wholesale by `--set-env-vars`, so dropping one line from `cloudbuild.yaml` was enough to silently re-enable the demo seed against the live store.
+
+`SEED_DEMO` also drives the login page's test-account list, over `GET /api/auth/demo`. A real instance serves a plain sign-in form — no fixture list, no shared password, and no divider offering an alternative that isn't there. The block is hidden in the markup and only revealed on a positive answer, so a failed request can't publish a password.
+
+**The first admin on an empty store** is a chicken-and-egg: every route that creates an account requires an authenticated platform-admin, and the only thing that ever created one was the seed. Hence a CLI, deliberately not an HTTP route — a "create the first admin if none exists" endpoint is a public privilege-escalation route for the whole window between deploy and first use:
+
+```
+GCP_PROJECT_ID=tau-thinking-prod NODE_ENV=production \
+  node app/server/bootstrap-admin.js you@example.com "Your Name"
+```
+
+Prints a generated password once. Re-running on an existing email resets that account instead of duplicating it, which makes it the lockout recovery path too.
+
+**Loose end:** the `deploy-main` trigger still lives in `cta-pilot-dev`, because that's where its GitHub App connection is, and creating one in prod needs a browser OAuth step. So the build *executes* in the demo project while the image and the service land in prod (`cta-build@cta-pilot-dev` holds `run.developer` on prod, `artifactregistry.writer` on prod's `cta` repo, and `serviceAccountUser` on prod's `cta-run@`). It works, but shipping depends on the demo project existing — move the connection when convenient.
 
 ## Deployment (Cloud Run)
 
 **Push to `main` and it deploys.** The `deploy-main` Cloud Build trigger
 (us-central1) watches the GitHub repo and runs `../cloudbuild.yaml`: build,
-push, `gcloud run deploy`. About two minutes end to end.
+push, `gcloud run deploy`. About two minutes end to end. Since 2026-08-08 it
+deploys to **`tau-thinking-prod`**, not to the demo project.
 
 Images are tagged with the commit SHA, so a running revision maps back to
 exactly one commit — check with:
 
 ```
-gcloud run services describe cta --region=us-central1 \
+gcloud run services describe cta --region=us-central1 --project=tau-thinking-prod \
   --format="value(spec.template.spec.containers[0].image)"
 ```
 
 The build runs as `cta-build@cta-pilot-dev.iam.gserviceaccount.com`, which holds
-`roles/run.developer` and `roles/logging.logWriter` on the project,
-`roles/artifactregistry.writer` on the `cta` repo only, and
-`roles/iam.serviceAccountUser` on `cta-run@` only. It cannot reach Firestore or
-Vertex — deploying and running are separate identities on purpose.
+`roles/run.developer` and `roles/logging.logWriter`, `roles/artifactregistry.writer`
+on the `cta` repo only, and `roles/iam.serviceAccountUser` on `cta-run@` only —
+now on both projects (see *Two projects* above for why it spans them). It cannot
+reach Firestore or Vertex in either — deploying and running are separate
+identities on purpose.
 
 `cloudbuild.yaml` passes no `--allow-unauthenticated` either way, so an ordinary
 deploy leaves the service's IAM policy (public, see below) untouched.
@@ -111,22 +182,42 @@ deploy leaves the service's IAM policy (public, see below) untouched.
 Manual deploy, for when the trigger is the thing that's broken:
 
 ```
-gcloud run deploy cta --source . --region us-central1 \
-  --service-account=cta-run@cta-pilot-dev.iam.gserviceaccount.com \
-  --set-env-vars=NODE_ENV=production,GCP_PROJECT_ID=cta-pilot-dev,GCP_LOCATION=global
+gcloud run deploy cta --source . --region us-central1 --project tau-thinking-prod \
+  --service-account=cta-run@tau-thinking-prod.iam.gserviceaccount.com \
+  --set-env-vars=NODE_ENV=production,GCP_PROJECT_ID=tau-thinking-prod,GCP_LOCATION=global
 ```
 
 Note this uploads the **working directory**, not a commit — which is how
 revision `cta-00001-qbf` came to correspond to no commit that existed anywhere.
 Prefer the trigger.
 
-Live and **public** at `https://cta-714032495709.us-central1.run.app` (opened 2026-08-06). Anyone can reach the login page and sign in with the demo accounts above — deliberate, because every record in that project is fabricated.
+**The public demo** is `https://staging.tauthinking.com` (opened 2026-08-06 on a run.app hostname; renamed and repurposed as staging 2026-08-10), the `cta` service in `cta-pilot-dev`. Anyone can reach the login page and sign in with the demo accounts above — deliberate, because every record in that project is fabricated.
+
+### What was actually deployed vs what the docs said (2026-08-10)
+
+Worth recording, because the gap held for two days and the docs read as if it hadn't:
+
+`app.tauthinking.com` was a domain mapping onto the `cta` service in **`cta-pilot-dev`**, and `tau-thinking-prod` had **no Cloud Run service at all**. The public domain served the demo seed and accepted `coach1234`. The 2026-08-08 split — the prod-targeting `cloudbuild.yaml`, the *Two projects* section above, the CLAUDE.md rewrite — was written but never committed, so `deploy-main` had only ever run the pre-split config, three times, all on 2026-08-06.
+
+The lesson is narrow and worth keeping: **a section of this file describing infrastructure is a statement of intent until `gcloud` agrees with it.** Check the live state before trusting a deployment doc, this one included.
+
+Fixed by commit `00c4d18`: prod service created (revision `cta-00001-lr6`), `app.tauthinking.com` remapped to it, `staging.tauthinking.com` mapped to the dev service. Verified by confirming `app.tauthinking.com` returns 401 for the demo password — the store behind it is a different project's, and empty.
+
+Between the project split (2026-08-08) and 2026-08-10 that service received no deploys at all: the trigger had moved to prod, and it sat on whatever revision it last got. **It is now the staging instance** — the second trigger that section called the tidier answer. Same service, same URL, same fabricated data; what changed is that `staging` branch pushes now keep it current.
+
+**Push to `staging` and it deploys there.** The `deploy-staging` trigger runs `../cloudbuild.staging.yaml` into `cta-pilot-dev`. Typical loop: work on `main` or a feature branch, then
+
+```
+git push origin HEAD:staging
+```
+
+and send the URL. Nothing about that touches prod, which only ever moves on a push to `main`.
 
 Two things make that safe, and one rule keeps it that way:
 
 - **Spend is capped by construction.** The soft cap is 40 coach replies/day/account across 10 demo accounts, so a stranger maxing every one of them costs roughly a dollar a day; the hard tier bounds it absolutely. The $25 budget alert would fire long before anything ran away. This is the usage-cap work paying for itself — a public demo would have been an open tab on the Vertex bill without it.
 - **App auth is still enforced.** Removing Cloud Run's IAM gate didn't remove the session layer: `/api/*` returns 401 without a sign-in, and every role and ownership check is unchanged.
-- **`cta-pilot-dev` must never hold real student data while these credentials are public.** The demo password is published in this repo, so the moment a real pilot exists it gets its own project — which is already the plan (`gcp-setup.md` step 3). This is the rule most likely to be forgotten under deadline.
+- **`cta-pilot-dev` must never hold real student data while these credentials are public.** The demo password is published in this repo. This is the rule that was most likely to be forgotten under deadline, which is why it stopped depending on memory: real users live in `tau-thinking-prod`, and the demo seed cannot reach it (*Two projects*, above).
 
 - **No config.json in the image** (`.dockerignore`), so deployed instances are configured by environment. `school.js` reads the file in dev and env vars otherwise, with env winning where both exist.
 - **No credentials anywhere.** `llm.js` falls through to the Cloud Run metadata server when no ADC file is present — a code path that had never run until this deploy, and now has.
@@ -163,7 +254,7 @@ With thinking off, 3.5 Flash loses the advantage that justified its 6× price �
 - `POST /api/submissions/:id/reanalyze` retry path with a Retry button on the report page. The Groq 429 retry loop is gone with the Vertex swap — it existed for a free-tier TPM limit that no longer applies
 
 - **Teacher triage dashboard** (`web/dashboard.html`): the existing `teacher-dashboard.html` ported whole (guide first, detail on demand — overview/class/assignment/student tabs, two-tier flag system, side tray, flag detection modal); its mock generator replaced by `/api/teacher/dashboard`, which serves the exact mock shape from real data. Drill panels link into the detail layer: per-submission "Report →" (teacher-mode report) and "Conversation view →" (`teacher.html#student/:aid/:sid`). Reflects the real `classes` collection now — a class tab per class, not a synthesized "My Class"
-- **Teacher detail layer** (`web/teacher.html`): assignment creation (prompt, due date, draft budget, coaching level per slot with default-fade prefill), roster with per-cycle TAU/SAMR chips + flag markers, student detail view — trajectory strip (growth across the fade), conversation-ready moments (first turns, best challenge, pushback, unchallenged AI-born concepts), snapshots verbatim, integrity signals, full transcripts with turn labels/meta-turns/superseded turns/events interleaved, teacher note per submission (shown to the student on their report). Report page shows the integrity flags panel with misfire disclosure when a teacher is signed in
+- **Teacher detail layer** (`web/teacher.html`) — ⚠️ **flagged for a rebuild 2026-08-08; do not extend it, and read `teacher-dashboard-design.md`'s "`teacher.html`'s session view — needs a rebuild" section before touching it.** It predates the triage dashboard and was never reconciled with it: no rail, no way back, a duplicate assignment list, and a transcript with no way to reach the moment you came for. The per-submission teacher note moved onto the dashboard's own submission rows on that date, so the transcript is now the only thing this page uniquely provides. Original description follows: assignment creation (prompt, due date, draft budget, coaching level per slot with default-fade prefill), roster with per-cycle TAU/SAMR chips + flag markers, student detail view — trajectory strip (growth across the fade), conversation-ready moments (first turns, best challenge, pushback, unchallenged AI-born concepts), snapshots verbatim, integrity signals, full transcripts with turn labels/meta-turns/superseded turns/events interleaved, teacher note per submission (shown to the student on their report). Report page shows the integrity flags panel with misfire disclosure when a teacher is signed in
 
 - **Administration surface** (`web/admin.html`, `web/admin.js`): the third role. An admin creates
   teacher accounts (name + email; the teacher then builds their own classes/students/assignments),

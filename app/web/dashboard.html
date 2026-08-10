@@ -44,72 +44,10 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
    local (only dashboard.html has this header) rather than added to
    components.css, per tokens.css's own placement rule for a single-surface
    concept. */
-.hdr-div { width: 1px; height: 24px; background: var(--tau-line); margin: 0 2px; flex-shrink: 0; }
-.menu-wrap { position: relative; }
-.menu-trigger {
-  display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 var(--tau-s3);
-  border-radius: var(--tau-r-md); border: 1px solid var(--tau-line); background: var(--tau-surface);
-  font: inherit; font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); cursor: pointer;
-  transition: background var(--tau-dur-short) var(--tau-ease-standard), border-color var(--tau-dur-short) var(--tau-ease-standard);
-}
-.menu-trigger:hover, .menu-trigger[aria-expanded="true"] { background: var(--tau-hover-surface); }
-.menu-trigger[aria-expanded="true"] { border-color: var(--tau-line-strong); }
-/* The "+ Add" trigger — the one primary action in the header — needs
-   .btn-primary's forest fill, but .btn-primary and .menu-trigger are equal
-   specificity, so whichever rule comes later in the cascade would silently
-   win the whole property set. A dedicated modifier avoids that fight. */
-.menu-trigger.menu-trigger-primary { background: var(--tau-forest); border-color: var(--tau-forest); color: var(--tau-on-forest); }
-.menu-trigger.menu-trigger-primary:hover, .menu-trigger.menu-trigger-primary[aria-expanded="true"] { background: var(--tau-forest-lift); border-color: var(--tau-forest-lift); }
-.menu-trigger.menu-trigger-primary .menu-chevron { color: var(--tau-on-forest); opacity: 0.85; }
-.menu-chevron { color: var(--tau-ink-faint); transition: transform var(--tau-dur-short) var(--tau-ease-standard); font-size: 10px; }
-.menu-trigger[aria-expanded="true"] .menu-chevron { transform: rotate(180deg); }
-
-.avatar-trigger {
-  display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px 4px 4px; border-radius: var(--tau-r-pill);
-  border: 1px solid var(--tau-line); background: var(--tau-surface); cursor: pointer;
-  transition: background var(--tau-dur-short) var(--tau-ease-standard);
-}
-.avatar-trigger:hover, .avatar-trigger[aria-expanded="true"] { background: var(--tau-hover-surface); }
-.avatar-trigger .whoami-name { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); }
-
-.menu-panel {
-  position: absolute; top: calc(100% + 8px); right: 0; min-width: 240px;
-  background: var(--tau-surface); border: 1px solid var(--tau-line); border-radius: var(--tau-r-md);
-  box-shadow: var(--tau-shadow-lift); padding: 6px; z-index: 40;
-  animation: tau-reveal var(--tau-dur-medium) var(--tau-ease-decelerate);
-}
-.menu-panel[hidden] { display: none; }
-.menu-item {
-  display: flex; align-items: flex-start; gap: 10px; width: 100%; text-align: left; padding: 9px 10px;
-  border-radius: var(--tau-r-sm); border: none; background: none; font: inherit; font-size: var(--tau-text-sm);
-  font-weight: 600; color: var(--tau-ink); cursor: pointer; text-decoration: none;
-}
-/* Author `display: flex` above beats the UA stylesheet's `[hidden] { display:
-   none }`, so a plain `.hidden = true` on a .menu-item silently does nothing
-   without this — same fix .roster-preview[hidden] already needed. Caught by
-   actually testing the New Class success view's two shortcut buttons live,
-   not by reading the code: both stayed visible after being marked done. */
-.menu-item[hidden] { display: none; }
-.menu-item:hover { background: var(--tau-hover-surface); }
-.menu-item .mi-icon { flex-shrink: 0; width: 18px; text-align: center; margin-top: 1px; color: var(--tau-ink-soft); }
-.menu-item .mi-body { display: flex; flex-direction: column; gap: 1px; }
-.menu-item .mi-desc { font-weight: 400; font-size: var(--tau-text-xs); color: var(--tau-ink-faint); }
-.menu-divider { height: 1px; background: var(--tau-line); margin: 5px 8px; }
-.menu-account-head { padding: 8px 10px 10px; }
-.menu-account-head .mn { font-size: var(--tau-text-sm); font-weight: 700; }
-.menu-account-head .mr { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); }
-.menu-future {
-  display: flex; align-items: flex-start; gap: 10px; padding: 9px 10px; border-radius: var(--tau-r-sm);
-  color: var(--tau-ink-faint); font-size: var(--tau-text-sm); font-weight: 600; cursor: not-allowed;
-}
-.menu-future .mi-desc { color: var(--tau-ink-faint); }
-.menu-footnote { padding: 4px 10px 6px; font-size: var(--tau-text-xs); color: var(--tau-ink-faint); line-height: 1.5; }
-
-/* The theme toggle is real, shared markup (theme.js wires `.theme-toggle`
-   generically on every page) laid out as a menu row here via a modifier —
-   not a second toggle implementation. */
-.menu-item.theme-toggle { justify-content: space-between; align-items: center; }
-.theme-toggle-icon { margin-left: auto; font-size: 14px; }
+/* .menu-*, .avatar-trigger, .menu-panel, .menu-footnote and the
+   .menu-item.theme-toggle modifier moved to components.css §14 when the
+   account menu became shared. This sheet may lay them out; it no longer
+   defines them. */
 
 .menu-field {
   display: block; font-size: var(--tau-text-xs); font-weight: 700; color: var(--tau-ink-soft);
@@ -164,19 +102,6 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
   display: flex; align-items: center; gap: 8px; padding: 8px 11px; border: 1px solid var(--tau-line);
   border-radius: var(--tau-r-sm); background: var(--tau-surface-2); font-size: var(--tau-text-sm); font-weight: 600;
 }
-
-/* Confirms an assignment save, anchored to the "+ Add" trigger (add-wrap)
-   regardless of whether it was opened from there directly or via the "New
-   class" success panel's "Create an assignment" shortcut — not a generic
-   toast stack, since there's only ever one at a time. */
-.assign-toast {
-  position: absolute; top: calc(100% + 8px); left: 0; width: 260px; z-index: 45;
-  background: var(--tau-surface); border: 1px solid var(--tau-line); border-radius: var(--tau-r-md);
-  box-shadow: var(--tau-shadow-lift); padding: 10px 12px; font-size: var(--tau-text-xs); color: var(--tau-ink-soft);
-  line-height: 1.5; animation: tau-reveal var(--tau-dur-medium) var(--tau-ease-decelerate);
-}
-.assign-toast b { color: var(--tau-ink); }
-.btn-flash { box-shadow: 0 0 0 3px var(--tau-positive-bg); transition: box-shadow var(--tau-dur-medium) var(--tau-ease-standard); }
 
 /* Roster paste preview — one row per parsed line, a status chip standing in
    for what POST /api/classes/:id/students would report per email (new
@@ -240,90 +165,44 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
   overflow: hidden;
 }
 
-/* ── Sidebar — one persistent nav, not four tab-scoped ones.
+/* ── Rail — one persistent nav, not four tab-scoped ones.
    Search + Home + Classes + Assignments (enumerated — small in number) +
-   Students (NOT enumerated — see .sb-shortcut below, a flat name list
-   doesn't fit a rail at 60+ students and isn't how a teacher finds a known
-   name anyway). ── */
-.sidebar {
-  width: 240px;
-  flex-shrink: 0;
-  background: var(--tau-surface);
-  border-right: 1px solid var(--tau-line);
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-.sidebar-section {
-  padding: var(--tau-s3) var(--tau-s4) 5px;
-  flex-shrink: 0;
-}
-.sidebar-item {
-  display: flex;
-  align-items: center;
-  gap: var(--tau-s2);
-  padding: 9px var(--tau-s4);
-  min-height: var(--tau-target);
-  cursor: pointer;
-  border-left: 3px solid transparent;
-  transition: background var(--tau-dur-short) var(--tau-ease-standard);
-}
-.sidebar-item:hover { background: var(--tau-hover-surface); }
-/* A flat --tau-surface-2 wash reads as a near-invisible 3% lightness shift in
-   light theme — dark theme's version of this row only looks "selected"
-   because --tau-forest is a bright mint there. Tinting the background with
-   the brand hue itself (not a neutral grey) gives light mode the same kind
-   of colour-carried signal, instead of relying on lightness alone. */
-.sidebar-item.active { background: color-mix(in oklab, var(--tau-forest) 10%, var(--tau-surface)); border-left-color: var(--tau-forest); }
-.sidebar-item-name {
-  font-size: var(--tau-text-sm);
-  font-weight: 500;
-  color: var(--tau-ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.sidebar-item.active .sidebar-item-name { color: var(--tau-forest); font-weight: 600; }
-.sidebar-item-sub {
-  font-size: var(--tau-text-xs);
-  color: var(--tau-ink-soft);
-  margin-top: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.sidebar-home {
-  font-weight: 600;
-  font-size: var(--tau-text-md);
-  margin: 2px 0 6px;
-}
-.sidebar-search { padding: var(--tau-s3) var(--tau-s3) 2px; flex-shrink: 0; }
+   Students (NOT enumerated — a flat name list doesn't fit a rail at 60+
+   students and isn't how a teacher finds a known name anyway; the bounded
+   Worth-a-chat / Missing-work shortcuts are the entry points instead).
+
+   Chrome is components.css §13. What's left here is this rail's own search
+   field and its results overlay, which no other rail has. ── */
+
 /* Anchor for the results dropdown — scoped to the input alone, not the whole
-   .sidebar-search block (which also holds the hint text below it). Anchoring
+   .rail-search block (which also holds the hint text below it). Anchoring
    to the wider block would resolve top:100% against the hint's bottom edge
    instead of the input's, leaving the panel visibly detached from the box
    a teacher is actually typing into. */
-.sidebar-search-anchor { position: relative; }
-.sidebar-search input {
+.rail-search-anchor { position: relative; }
+.rail-search input {
   width: 100%;
   padding: 7px 10px;
   min-height: var(--tau-target);
   border: 1px solid var(--tau-line);
   border-radius: var(--tau-r-sm);
   font-size: var(--tau-text-xs);
-  background: var(--tau-bg);
+  /* White, matching the rail's selected row — on a toned rail the field has
+     to read as a well cut into the ground, and --tau-bg is *lighter* than
+     --tau-surface-2, which inverted that. */
+  background: var(--tau-surface);
   color: var(--tau-ink);
   outline: none;
   font-family: inherit;
 }
-.sidebar-search input:focus { border-color: var(--tau-forest); }
-.sidebar-search-hint { font-size: 10.5px; color: var(--tau-ink-faint); margin: 5px 2px 6px; }
-.sidebar-search-hint.hidden { display: none; }
+.rail-search input:focus { border-color: var(--tau-forest); }
+.rail-search-hint { font-size: 10.5px; color: var(--tau-ink-faint); margin: 5px 2px 0; }
+.rail-search-hint.hidden { display: none; }
 /* Overlay, not reflow — a query used to push Home/Classes/Assignments/
    Students down the rail on every keystroke (up to ~14 rows worst case).
    Floating the results over the nav instead (Jakob's Law: this is how every
    other type-ahead a teacher has used already behaves) keeps the rest of the
-   sidebar exactly where it was while they type. */
+   rail exactly where it was while they type. */
 #global-search-results {
   position: absolute;
   left: 0;
@@ -331,28 +210,14 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
   top: calc(100% + 4px);
   z-index: 20;
 }
-.sidebar-search-results {
-  margin: 0 var(--tau-s3) var(--tau-s2);
+.rail-search-results {
   border: 1px solid var(--tau-line-strong);
   border-radius: var(--tau-r-sm);
   background: var(--tau-surface);
   box-shadow: var(--tau-shadow);
   overflow: hidden;
+  padding: var(--tau-s1);
 }
-.sidebar-search-results .sidebar-item { padding: 8px 10px; }
-.sidebar-search-results .sidebar-item-sub { color: var(--tau-ink-faint); }
-
-/* Bounded flag-based entry points, not an enumerated name list — see the
-   comment on .sidebar above for why. No dot indicator: the label already
-   states the condition, a colored dot would just repeat it — the rule this
-   page originated and designsystem.md's Colour section now states for the
-   whole app (2026-07-28), applied here first. */
-/* Demoted sub-nav: a filter of the primary row above it (All students /
-   Open assignments), not an independent destination — smaller and indented
-   so it doesn't visually tie with the primary row it's filtering. */
-.sb-shortcut { display: flex; justify-content: space-between; align-items: center; padding-left: calc(var(--tau-s4) + 14px); }
-.sb-shortcut .sidebar-item-name { font-size: 12px; }
-.sb-shortcut-count { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); font-variant-numeric: tabular-nums; }
 
 /* ── Content ── */
 /* Flat white, not --tau-bg's forest wash. Same "ground colour" correction the
@@ -360,9 +225,12 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
    2026-07-24): the wash is right for page shell/chrome, but once a pane is
    full of actual card content (tables, tinted stat tiles, chips), the wash
    sits under every one of those tints too and reads as a flat mash of green
-   rather than distinct surfaces — the sidebar already stayed white for the
-   same reason. Dark theme is unaffected (charcoal, not forest, per the same
-   rule). */
+   rather than distinct surfaces. Dark theme is unaffected (charcoal, not
+   forest, per the same rule).
+
+   This white is also what the rail is a step quieter *than* — .rail sits on
+   --tau-surface-2 and its selected row returns to this same white, so the
+   two surfaces are doing one job between them. Don't tint either. */
 .content {
   flex: 1;
   overflow-y: auto;
@@ -410,6 +278,14 @@ table.roster th {
   border-bottom: 1px solid var(--tau-line-strong);
   white-space: nowrap;
 }
+/* Browse Students renders one table per class, so each was sizing its own
+   columns from its own content and the three grids never lined up down the
+   page. Fixed layout + one shared colgroup makes the class tables read as
+   one roster split by heading rather than three unrelated tables. The
+   min-width keeps .tbl-wrap's overflow-x doing the work on narrow screens
+   instead of the cells crushing. */
+table.roster-browse { table-layout: fixed; min-width: 760px; }
+table.roster-browse td { vertical-align: top; }
 table.roster th.sortable { cursor: pointer; user-select: none; }
 table.roster th.sortable:hover { color: var(--tau-ink); }
 table.roster th.sortable .sort-arrow { font-size: 10px; margin-left: 3px; opacity: 0.35; font-style: normal; }
@@ -418,17 +294,20 @@ table.roster th.sort-active .sort-arrow { opacity: 1; color: var(--tau-forest); 
 table.roster tbody tr:last-child td { border-bottom: none; }
 table.roster tbody tr.row-clickable { cursor: pointer; transition: background var(--tau-dur-short) var(--tau-ease-standard); }
 table.roster tbody tr.row-clickable:hover { background: var(--tau-hover-surface); }
-/* Forest-tinted, not a flat --tau-surface-2 wash — a neutral 3% lightness
-   shift is already near-invisible in light theme against a white ground (the
-   same failure .sidebar-item.active hit first; this reuses its fix: tint
-   with the brand hue itself, so "this is the open row" reads as a colour
-   signal in both themes, not a lightness difference only some monitors
-   render legibly). */
+/* KNOWN VIOLATION — forest-tinted surface fill, which Hard Constraints allows
+   only for --tau-meter-track. The argument was that a neutral --tau-surface-2
+   wash is a near-invisible 3% lightness shift against this pane's white
+   ground. That argument was borrowed from the old .sidebar-item.active, which
+   no longer exists: the rail moved to a toned ground (components.css §13),
+   where its selected row reverses to white and the tint stopped being needed
+   at all. This row can't use that fix — a table row can't lift onto a
+   different plane the way a rail row can — so it needs its own second
+   channel (an edge marker on the row, most likely) before the tint comes
+   off. Left as-is rather than changed blind; not part of the rail work. */
 table.roster tbody tr.expanded-row { background: color-mix(in oklab, var(--tau-forest) 7%, var(--tau-surface)); }
 table.roster tbody tr.drill-row { cursor: default; }
 table.roster tbody tr.drill-row:hover { background: transparent; }
 table.roster td.n { font-variant-numeric: tabular-nums; }
-table.roster .who { display: flex; align-items: center; gap: 9px; }
 table.roster .group-row { pointer-events: none; }
 table.roster .group-row td { padding: var(--tau-s3) var(--tau-s4) 6px; background: var(--tau-surface); border-bottom: none; }
 /* A second group (e.g. Closed following Open) gets a rule above it so the
@@ -685,6 +564,20 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .sub-date { color: var(--tau-ink-soft); width: 140px; flex-shrink: 0; font-size: var(--tau-text-xs); }
 .sub-chip { width: 44px; text-align: center; flex-shrink: 0; }
 .sub-total { font-size: var(--tau-text-md); font-weight: 700; width: 40px; text-align: right; flex-shrink: 0; }
+/* The row's two trailing actions. Plain interactive text, not buttons or
+   chips — they sit at the end of a dense data row, and enclosure is reserved
+   for values that are both actionable and rare (designsystem.md's salience
+   budget). Sized to --tau-target on the block axis so a 11px link is still a
+   real touch target. */
+.sub-row-link {
+  font-size: 11px; flex-shrink: 0; color: var(--tau-forest); cursor: pointer;
+  display: inline-flex; align-items: center; min-height: var(--tau-target); padding: 0 2px;
+}
+.sub-row-link:hover { text-decoration: underline; }
+/* The teacher's own note, in the auditor voice the assignment-wide note
+   already uses — same component, one tier down (a note on one draft rather
+   than to the whole class). */
+.sub-note { padding: var(--tau-s3) var(--tau-s4); font-size: var(--tau-text-xs); margin-top: var(--tau-s2); }
 .integrity-flags-row {
   display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
   margin-top: 7px; padding-top: 7px;
@@ -739,6 +632,13 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    stay bare text too: a chip between "·" separators mid-sentence reads as
    clutter, not signal. */
 .signal-pill-review { flex-shrink: 0; white-space: nowrap; }
+/* The roster's Signal cell, now that it holds every true signal rather than
+   one label: chips wrap onto as many lines as the column needs. Row height
+   is allowed to vary — a student with four signals genuinely has more to
+   say than one with none, and truncating that back to a uniform line is
+   what the "+N" was doing. */
+.signal-cell { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.signal-cell .signal-pill-count { margin-left: 0; }
 /* 2026-08-03: the count badge for additional true signals beyond the one
    the pill already names — same caution hue, darker fill so it reads as
    "more of this" rather than a second, competing alert. */
@@ -782,52 +682,162 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .chip-dd-item.reset { color: var(--tau-ink-faint); border-top: 1px solid var(--tau-line); margin-top: 2px; padding-top: 8px; }
 .chip-dd-empty { padding: 8px 10px; font-size: 12px; color: var(--tau-ink-faint); }
 
-/* ── Pattern cards (Home) ── */
-.pattern-card { background: var(--tau-surface); border: 1px solid var(--tau-line); border-radius: var(--tau-r-md); padding: var(--tau-s4) var(--tau-s5); box-shadow: var(--tau-shadow); }
-.pattern-head { display: flex; align-items: center; gap: 10px; margin-bottom: 3px; flex-wrap: wrap; }
-.pattern-title { font-size: 14.5px; font-weight: 700; }
-.pattern-sub { font-size: 12px; color: var(--tau-ink-faint); margin-bottom: 10px; }
-.pattern-body { font-size: 13px; color: var(--tau-ink-soft); margin: 0 0 8px; line-height: 1.55; }
-.pattern-body b { color: var(--tau-ink); }
-.pattern-try { background: var(--tau-surface-2); border-radius: var(--tau-r-sm); padding: 9px 12px; font-size: 12.5px; color: var(--tau-ink-soft); line-height: 1.5; }
-.pattern-try b { color: var(--tau-ink); }
-.pattern-link { display: inline-block; margin-top: 10px; font-size: 12.5px; font-weight: 600; color: var(--tau-forest); cursor: pointer; }
+/* ── Finding cards (Home) — 2026-08-08 ──
+   One card shape for both Home sections. Each card holds a finding: a name,
+   a magnitude, and — once opened — what it means and what to do about it.
+   Cards, not rows: the section is scanned as a set of distinct findings, not
+   as a table of one repeated record type, so nothing here shares a container
+   or a column grid.
 
-/* ── Teaching-note cards (Home, "How your teaching is landing") ──
+   Every card is collapsed by default. The *finding* never folds — name, count,
+   unit and spread all stay on the closed card, so a teacher can act on this
+   page without opening anything. What folds is the explanation and the
+   intervention: supporting detail, which is the only thing progressive
+   disclosure is legitimate for.
+
+   Colour carries exactly one distinction inside a card, and it is not
+   severity — it is who is speaking:
+     .f-explain  no container, neutral ink   — describes what was measured.
+                 It belongs to the metric; tinting a definition would make it
+                 read as an opinion.
+     .f-measure  white, hairline, tabular    — a second computed fact.
+     .f-voice    tool-info blue              — the tool's recommendation, and
+                 only that. The one block on the card the tool authored rather
+                 than computed, per Hard Constraints' "blue is a voice, not a
+                 severity tier."
+   The disclosure is the same <details> + chevron the reflection rows in the
+   drill panel already use, not a second pattern invented for this. */
+.finding-list { display: flex; flex-direction: column; gap: 10px; }
+.pattern-card { background: var(--tau-surface); border: 1px solid var(--tau-line); border-radius: var(--tau-r-md); box-shadow: var(--tau-shadow); overflow: hidden; }
+.finding-summary {
+  display: flex; align-items: center; gap: 14px;
+  padding: var(--tau-s3) var(--tau-s5); min-height: var(--tau-target);
+  cursor: pointer; list-style: none;
+  transition: background var(--tau-dur-short) var(--tau-ease-standard);
+}
+.finding-summary::-webkit-details-marker { display: none; }
+.finding-summary:hover { background: var(--tau-hover-surface); }
+.finding-summary:focus-visible { outline: var(--tau-focus-ring); outline-offset: calc(-1 * var(--tau-focus-gap)); }
+.f-body { flex: 1; min-width: 0; }
+.pattern-title { font-size: 14.5px; font-weight: 700; display: block; }
+/* The count never stands alone — it sits in the phrase that names its unit
+   ("3 students"), weighted and coloured inside that sentence so it still
+   reads first. A bare numeral in a column is a number the reader decodes. */
+.f-where { font-size: 12px; color: var(--tau-ink-soft); margin-top: 3px; display: block; }
+.f-where .num { color: var(--tau-caution); font-weight: 700; font-variant-numeric: tabular-nums; }
+.f-where.attn .num { color: var(--tau-attention); }
+.f-where.neutral .num { color: var(--tau-ink); }
+/* No disclosure chevron. It rendered at 10px — below --tau-text-xs (11.5px),
+   i.e. off the type scale entirely — which is why it read as debris rather
+   than a control. Removed rather than resized: the whole summary row is the
+   target, and hover plus the opened body carry the state. Consequence worth
+   knowing: a collapsed card no longer announces that it expands until hover,
+   which also makes the trailing → on a navigating row the only affordance
+   marker left on the page. If this needs reversing, the fix is icons.js's
+   expandMore at a size that is actually on the scale, not the 10px glyph. */
+.f-detail { padding: var(--tau-s4) var(--tau-s5); border-top: 1px solid var(--tau-line); }
+.pattern-body { font-size: 13px; color: var(--tau-ink-soft); margin: 0 0 var(--tau-s3); line-height: 1.55; }
+.pattern-body b { color: var(--tau-ink); }
+.pattern-try {
+  background: var(--tau-tool-info-bg); border-left: 3px solid var(--tau-tool-info);
+  border-radius: 0 var(--tau-r-sm) var(--tau-r-sm) 0; padding: 11px 13px;
+  font-size: 12.5px; color: var(--tau-ink-soft); line-height: 1.5; margin: 0 0 var(--tau-s3);
+}
+.pattern-try b { color: var(--tau-tool-info); }
+/* A measured fact inside an open card, and its link — which lives in this
+   box rather than at card level so the sentence that names the assignment
+   and the control that opens it are the same object. Own line, never
+   trailing the prose as if it were the end of a sentence. */
+.f-measure {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 9px;
+  background: var(--tau-surface); border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-sm); padding: 10px 12px;
+  font-size: 12.5px; color: var(--tau-ink-soft); line-height: 1.5; margin: 0 0 var(--tau-s3);
+}
+.f-measure b { color: var(--tau-ink); font-variant-numeric: tabular-nums; }
+.f-detail > :last-child { margin-bottom: 0; }
+.pattern-link { display: inline-block; font-size: 12.5px; font-weight: 600; color: var(--tau-forest); cursor: pointer; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--tau-s3); margin-bottom: var(--tau-s2); }
+.section-head .eyebrow { margin-bottom: 0; }
+.section-summary { font-size: 12px; color: var(--tau-ink-soft); }
+
+/* ── Home layout: one band per section ──
+   Home was three sections of white cards on the white .content pane, told
+   apart only by an 11px eyebrow and a 24px gap — cards with no ground to sit
+   on and a proximity ratio too small to group anything. Separation now comes
+   from a toned band per section, which is the construction .rail already uses
+   (surface-2 ground, white content lifted off it) and the one Carbon's
+   layering model and M3's tonal elevation both land on. Deliberately NOT a
+   divider rule: Polaris reserves those for data and index tables.
+
+   One band per *section*, not per group of related sections. A shared band is
+   a common region and a region claims its contents belong together — true of
+   neither {tiles, patterns} nor {dimensions, classes}, so each gets its own.
+
+   Page-sheet, not components.css, because this is layout on a single surface
+   today. The moment Class detail or Assignment detail wants the same band,
+   promote it — that is the placement rule, not an accident. */
+.home-band {
+  background: var(--tau-surface-2);
+  border-radius: var(--tau-r-lg);
+  padding: var(--tau-s5);
+}
+.home-stack { display: flex; flex-direction: column; gap: var(--tau-s6); }
+
+/* Asymmetric on purpose. The dimension column carries a long title plus a
+   caption sentence; the class column carries a name and a chip. 50/50 starves
+   one and strands the other — and equal widths would also assert the two are
+   a matched pair, which a metric readout and an entity index are not.
+   align-items: start so each band hugs its own content rather than stretching
+   to match, for the same reason. */
+.home-cols { display: grid; grid-template-columns: 1.45fr 1fr; gap: var(--tau-s6); align-items: start; }
+.home-col { min-width: 0; }
+@media (max-width: 1200px) { .home-cols { grid-template-columns: 1fr; } }
+
+/* A white card hovering to surface-2 would dissolve into the band underneath
+   it. Darken instead — the same direction .rail-item:hover already takes on
+   this exact ground. Scoped to the band so surfaces without one keep theirs. */
+.home-band .finding-summary:hover { background: var(--tau-surface-3); }
+
+/* Classes at a glance: rows, not cards.
+   Every other card on Home expands in place; these navigate. Same chrome for
+   two different behaviours is the affordance failure, so the chrome itself
+   now carries the rule — cards expand, rows go somewhere — backed by the two
+   channels the app already uses for it: forest (interactive text, one of its
+   six jobs) and a trailing → (14 existing uses, all navigational).
+   No roster count on the row: a number belongs where its size changes the
+   finding, and a class's headcount never does. */
+.class-row {
+  display: flex; align-items: center; gap: var(--tau-s3);
+  min-height: var(--tau-target); padding: 0 var(--tau-s2);
+  border-bottom: 1px solid var(--tau-line); border-radius: var(--tau-r-sm);
+  cursor: pointer;
+  transition: background var(--tau-dur-short) var(--tau-ease-standard);
+}
+.class-row:last-child { border-bottom: 0; }
+.class-row:hover { background: var(--tau-surface-3); }
+.class-row-name { flex: 1; min-width: 0; font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-forest); }
+.class-row-go {
+  flex-shrink: 0; color: var(--tau-ink-faint); font-size: 13px; line-height: 1;
+  transition: transform var(--tau-dur-short) var(--tau-ease-standard);
+}
+.class-row:hover .class-row-go { transform: translateX(2px); color: var(--tau-forest); }
+
+/* ── Dimension trends (Home) — rebuilt 2026-08-08 ──
    Fleet-wide counterpart to the class-tier dimension trend — same
    dimensionRowsFromCohort() classification, same trend states, just scoped
-   to every class instead of one. Two tiers, not one shape for all four
-   dimensions: a full card is reserved for a dimension with real news (an
-   active trend, a genuine floor, or a split-class finding); everything with
-   nothing to report collapses into a shared quiet line instead of matching
-   chrome — visual weight tracks what's actually being said, and Behavioral
-   patterns/Classes at a glance aren't pushed down the page by four
-   equally-sized cards regardless of content. */
-.teaching-card { border-radius: 0 var(--tau-r-md) var(--tau-r-md) 0; padding: var(--tau-s4) var(--tau-s5); box-shadow: var(--tau-shadow); border: 1px solid var(--tau-line); background: var(--tau-tool-info-bg); border-left: 3px solid var(--tau-tool-info); }
-.teaching-card.positive { background: color-mix(in oklab, var(--tau-forest) 6%, var(--tau-surface)); border-left-color: var(--tau-forest); }
-.teaching-eyebrow { display: flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tau-tool-info); font-family: var(--tau-font-mono); margin-bottom: 10px; }
-.teaching-card.positive .teaching-eyebrow { color: var(--tau-forest); }
-.teaching-headline { font-size: 14.5px; font-weight: 700; margin-bottom: 6px; }
-.teaching-body { font-size: 13px; color: var(--tau-ink-soft); line-height: 1.55; margin: 0 0 10px; }
-.teaching-body b { color: var(--tau-ink); }
-.teaching-body:last-child { margin-bottom: 0; }
-.teaching-outlier { display: flex; gap: 10px; align-items: flex-start; background: var(--tau-surface); border: 1px solid var(--tau-line); border-radius: var(--tau-r-sm); padding: 10px 12px; font-size: 12.5px; color: var(--tau-ink-soft); line-height: 1.5; }
-.teaching-outlier b { color: var(--tau-ink); }
-.teaching-link { display: inline-block; margin-top: 10px; font-size: 12.5px; font-weight: 600; color: var(--tau-tool-info); cursor: pointer; }
-.teaching-card.positive .teaching-link { color: var(--tau-forest); }
+   to every class instead of one.
 
-/* The quiet tier — no box, no shadow, just a row. Two variants: plain
-   "steady" (mid) and "already strong, holding" (ceiling) — distinguished by
-   glyph AND colour together (never colour alone), so sustained excellence
-   doesn't read identically to a dimension with literally nothing to say. */
-.dim-line { display: flex; align-items: baseline; gap: 8px; padding: 9px 2px; border-bottom: 1px solid var(--tau-line); font-size: 12.5px; }
-.dim-line:last-child { border-bottom: none; }
-.dim-line .glyph { font-size: 10px; flex-shrink: 0; color: var(--tau-ink-faint); }
-.dim-line-name { font-weight: 600; color: var(--tau-ink); flex-shrink: 0; }
-.dim-line-note { color: var(--tau-ink-soft); }
-.dim-line.positive-quiet .glyph { color: var(--tau-forest); }
-.dim-line.positive-quiet .dim-line-note { color: var(--tau-forest); }
-.dim-line-group { border: 1px solid var(--tau-line); border-radius: var(--tau-r-md); background: var(--tau-surface); padding: 2px var(--tau-s4); }
+   Was "How your teaching is landing," two visual tiers (a tinted card for a
+   dimension with news, a shared quiet-line group for the rest). Both are gone:
+   the label was a process phrase rather than the name of its contents, and the
+   two tiers put a *measured average* on a tool-info blue ground — blue
+   underneath a number, which inverts what that colour means. All four
+   dimensions now use the same .pattern-card as Behavioral patterns, and the
+   words carry which one matters ("lowest of the four" vs "holding steady")
+   instead of the chrome. The `.updated` marker is what survives of the old
+   eyebrow: the one thing this section needed that a card title can't say. */
+.f-updated { color: var(--tau-tool-info); font-weight: 700; }
 
 /* ── Filter/search side tray, flag modal ──
    The modal composes .scrim/.confirm for its outer shell and — 2026-07-28 —
@@ -854,6 +864,37 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .modal .tray-header { padding: var(--tau-s5) var(--tau-s6) var(--tau-s4); }
 .modal .tray-subtitle { line-height: 1.5; }
 .modal .tray-body { padding: var(--tau-s5) var(--tau-s6); gap: 0; }
+/* The one small modal every object action runs through — rename, archive,
+   delete, move a student, grant replies, restore an archived class. A single
+   ask with a single confirm doesn't want the 680px reading width the
+   roster/assignment forms were sized for. */
+.modal.modal-sm { width: min(440px, 92vw); }
+.modal-actions { display: flex; justify-content: flex-end; gap: var(--tau-s2); margin-top: var(--tau-s5); }
+.modal-choices { display: flex; flex-direction: column; gap: 6px; }
+.modal-choice {
+  display: flex; align-items: center; gap: 9px; padding: 10px 12px; min-height: var(--tau-target);
+  border: 1px solid var(--tau-line); border-radius: var(--tau-r-sm); cursor: pointer; font-size: var(--tau-text-sm);
+}
+.modal-choice:hover { background: var(--tau-hover-surface); }
+.modal-choice-sub { margin-left: auto; font-size: var(--tau-text-xs); color: var(--tau-ink-faint); }
+
+/* Inline validation, replacing the chain of blocking alert()s the assignment
+   form used to fire one at a time. Terra, not amber: a form that won't submit
+   is a real error, not a conversation-starter — the one place on this teacher
+   surface where attention colour is about the teacher's own action rather than
+   a student's overdue work. */
+.form-error {
+  display: flex; gap: 7px; align-items: flex-start;
+  font-size: var(--tau-text-xs); color: var(--tau-attention);
+  background: var(--tau-attention-bg); border: 1px solid color-mix(in oklab, var(--tau-attention) 25%, transparent);
+  border-radius: var(--tau-r-sm); padding: 8px 11px; margin-top: var(--tau-s3); line-height: 1.45;
+}
+.form-error[hidden] { display: none; }
+/* Marks the specific field the message above is about, so a long form doesn't
+   make the teacher hunt for which row failed. */
+.field-invalid input, .field-invalid textarea, .field-invalid select, input.field-invalid, textarea.field-invalid, select.field-invalid {
+  border-color: var(--tau-attention);
+}
 .flag-card {
   padding: var(--tau-s4) 0;
   border-bottom: 1px solid var(--tau-line);
@@ -947,12 +988,8 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
 
   <div style="margin-left:auto;display:flex;align-items:center;gap:var(--tau-s2)">
 
-    <button onclick="openFlagModal()" class="btn btn-quiet btn-sm">Worth a chat, explained</button>
-
-    <div class="hdr-div"></div>
-
     <div class="menu-wrap" id="add-wrap">
-      <button class="menu-trigger menu-trigger-primary" id="trig-manage" aria-haspopup="true" aria-expanded="false" onclick="toggleHeaderMenu('manage', event)">
+      <button class="menu-trigger menu-trigger-primary" id="trig-manage" type="button">
         + Add <span class="menu-chevron">▾</span>
       </button>
       <!-- Just a 3-way picker now — each choice opens a full-size modal
@@ -962,62 +999,39 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
            class-scope decision needs room to read, not a maze of small
            panels — see teacher-dashboard-design.md, 2026-08-03. -->
       <div class="menu-panel" id="panel-manage" hidden role="menu">
+        <!-- Icons come from icons.js, same set the object action menus use.
+             These were emoji (📄 👤 🗂) while that file sat unused beside
+             them — two icon systems across two menus that are meant to read
+             as one thing.
+             The greyed-out "Rename or archive a class" row and the footnote
+             pointing at a class's own page are both gone: both existed to
+             explain an absence, and those actions now live on the object
+             itself, where the menu no longer has to say where they are. -->
         <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openNewAssignmentModal()">
-          <span class="mi-icon" aria-hidden="true">📄</span>
+          <span class="mi-icon" data-icon="description"></span>
           <span class="mi-body">New assignment<span class="mi-desc">Title, description, classes — pick or start one</span></span>
         </button>
         <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openAddStudentsModal()">
-          <span class="mi-icon" aria-hidden="true">👤</span>
+          <span class="mi-icon" data-icon="personAdd"></span>
           <span class="mi-body">Add students<span class="mi-desc">Paste a roster — pick a class or start one</span></span>
         </button>
         <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openNewClassModal()">
-          <span class="mi-icon" aria-hidden="true">🗂</span>
+          <span class="mi-icon" data-icon="folder"></span>
           <span class="mi-body">New class<span class="mi-desc">Start an empty class — nobody on it yet</span></span>
         </button>
-        <div class="menu-future" aria-disabled="true">
-          <span class="mi-icon" aria-hidden="true">✎</span>
-          <span class="mi-body">Rename or archive a class<span class="mi-desc">Not built yet — logged as a known limitation</span></span>
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-footnote">Removing a student, or seeing a class's full roster, happens from that class's own page — open it from the sidebar.</div>
       </div>
     </div>
 
-    <div class="menu-wrap">
-      <button class="avatar-trigger" id="trig-account" aria-haspopup="true" aria-expanded="false" onclick="toggleHeaderMenu('account', event)">
-        <span class="avatar-circle" id="avatar-initials">··</span>
-        <span class="whoami-name" id="whoami"></span>
-        <span class="menu-chevron">▾</span>
-      </button>
-      <div class="menu-panel" id="panel-account" hidden role="menu">
-        <div class="menu-account-head">
-          <div class="mn" id="whoami-name-full">…</div>
-          <div class="mr" id="whoami-email"></div>
-        </div>
-        <div class="menu-divider"></div>
-        <a href="/" class="menu-item" role="menuitem">
-          <span class="mi-icon" aria-hidden="true">←</span>
-          <span class="mi-body">Student app<span class="mi-desc">Preview the app your students use</span></span>
-        </a>
-        <div class="menu-divider"></div>
-        <button type="button" class="menu-item theme-toggle" aria-pressed="false" aria-label="Switch to dark theme">
-          <span class="mi-icon" aria-hidden="true">◐</span>
-          <span class="mi-body">Appearance</span>
-          <span class="theme-toggle-icon" aria-hidden="true">&#9790;</span>
-        </button>
-        <div class="menu-divider"></div>
-        <a href="#" class="menu-item" role="menuitem" onclick="event.preventDefault();logout()">
-          <span class="mi-icon" aria-hidden="true">⇥</span>
-          <span class="mi-body">Sign out</span>
-        </a>
-      </div>
-    </div>
+    <!-- The shared account menu (api.js mountAccountChip -> components.css
+         §14). Was hand-built here, which is why the other four surfaces had no
+         menu at all and admin.html had nowhere to put a way back. -->
+    <div class="account-chip" id="accountChip"></div>
 
   </div>
 </header>
 
 <div class="layout">
-  <aside id="sidebar" class="sidebar"></aside>
+  <aside id="sidebar" class="rail"></aside>
   <main id="content" class="content"></main>
 </div>
 
@@ -1066,14 +1080,14 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
   </div>
 </div>
 
-<div class="scrim modal-overlay" id="new-class-modal-overlay" onclick="closeNewClassModal(event)">
+<div class="scrim modal-overlay" id="new-class-modal-overlay" onclick="guardedClose('new-class-modal-overlay', event)">
   <div class="confirm modal" onclick="event.stopPropagation()">
     <div class="tray-header">
       <div style="flex:1;min-width:0">
         <div class="tray-title">New class</div>
         <div class="tray-subtitle">Empty at first — an assignment given to this class automatically goes to everyone on it later, no roster to hand-pick.</div>
       </div>
-      <button class="tray-close" id="new-class-close-btn" onclick="closeNewClassModal()"></button>
+      <button class="tray-close" id="new-class-close-btn" onclick="guardedClose('new-class-modal-overlay')"></button>
     </div>
     <div class="tray-body">
       <div id="new-class-view-form">
@@ -1159,16 +1173,18 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
   </div>
 </div>
 
-<div class="scrim modal-overlay" id="add-students-modal-overlay" onclick="closeAddStudentsModal(event)">
+<div class="scrim modal-overlay" id="add-students-modal-overlay" onclick="guardedClose('add-students-modal-overlay', event)">
   <div class="confirm modal" onclick="event.stopPropagation()">
     <div class="tray-header">
       <div style="flex:1;min-width:0">
         <div class="tray-title">Add students</div>
         <div class="tray-subtitle">Paste a whole roster or just one — existing accounts are reused, nothing duplicates.</div>
       </div>
-      <button class="tray-close" id="add-students-close-btn" onclick="closeAddStudentsModal()"></button>
+      <button class="tray-close" id="add-students-close-btn" onclick="guardedClose('add-students-modal-overlay')"></button>
     </div>
     <div class="tray-body">
+      <div id="add-students-view-success" hidden></div>
+      <div id="add-students-view-form">
       <label class="menu-field" style="padding:0;margin-bottom:16px">Students <span class="menu-field-optional">one per line — "Name, email" or just an email</span>
         <textarea id="hdr-addstudent-roster-input" rows="7" placeholder="Jordan Lee, jordan@school.edu" oninput="renderRosterPreview('hdr')" style="font-size:14px"></textarea>
       </label>
@@ -1186,6 +1202,7 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
       <button type="button" class="btn btn-primary" id="hdr-addstudent-submit" disabled onclick="submitRosterAdd('hdr')" style="margin-top:16px">Add students</button>
       <div class="menu-confirm" id="add-students-confirm" hidden style="margin-top:12px"></div>
       <div class="roadmap-next-hint">Next, once a roster's in place: assign work from the "+ Add" menu — it goes to everyone on this class automatically, no roster to hand-pick per assignment.</div>
+      </div>
     </div>
   </div>
 </div>
@@ -1203,17 +1220,24 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
   </div>
 </div>
 
-<div class="scrim modal-overlay" id="new-assignment-modal-overlay" onclick="closeNewAssignmentModal(event)">
+<div class="scrim modal-overlay" id="new-assignment-modal-overlay" onclick="guardedClose('new-assignment-modal-overlay', event)">
   <div class="confirm modal" onclick="event.stopPropagation()">
     <div class="tray-header">
       <div style="flex:1;min-width:0">
         <div class="tray-title" id="new-assignment-title">New assignment</div>
         <div class="tray-subtitle" id="new-assignment-subtitle">Description, purpose, and requirements are shown to students and seed what the coach knows going into every session.</div>
       </div>
-      <button class="tray-close" id="new-assignment-close-btn" onclick="closeNewAssignmentModal()"></button>
+      <button class="tray-close" id="new-assignment-close-btn" onclick="guardedClose('new-assignment-modal-overlay')"></button>
     </div>
     <div class="tray-body">
-      <form class="new-assignment-form field" id="newAssignmentForm">
+      <div id="new-assignment-view-success" hidden></div>
+      <div id="new-assignment-view-form">
+      <!-- novalidate: the required attributes stay (they still carry the
+           semantics to assistive tech) but the browser's own bubble is turned
+           off, so every failure on this form reports the same way — one inline
+           message at the submit button, in the app's voice. Two error systems
+           on one form was the thing being fixed, not one. -->
+      <form class="new-assignment-form field" id="newAssignmentForm" novalidate>
         <div class="eyebrow-row">
           <span class="eyebrow">Classes</span>
           <button type="button" class="link-btn" id="assign-selectall-btn" onclick="toggleAllAssignClasses()">Select all</button>
@@ -1247,10 +1271,43 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
         <div class="eyebrow deemphasized" style="margin-top:6px">Note to yourself <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--tau-ink-faint)">— optional</span></div>
         <textarea name="teacherNote" rows="2" placeholder="A rubric-style reminder, shown to you, not the coach" class="deemphasized"></textarea>
 
-        <div class="form-row">
+        <!-- Inline, at the point of submit, replacing the chain of blocking
+             alert()s this form used to fire one at a time — each of which had
+             to be dismissed before the next appeared and re-fired on every
+             retry. The message names the field and focus moves to it. -->
+        <div class="form-error" id="na-form-error" hidden></div>
+
+        <div class="form-row" id="na-submit-row">
           <button type="submit" class="btn btn-primary" id="new-assignment-submit-btn">Create assignment</button>
         </div>
       </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- One small modal behind every object action (rename, archive, delete,
+     move a student, grant replies, restore a class). Built once rather than
+     five near-identical one-offs, and it is also what replaced the native
+     confirm()/alert() calls these actions would otherwise have used — a
+     destructive confirmation and a validation failure should look like the
+     rest of the app, not like the browser. -->
+<div class="scrim modal-overlay" id="obj-modal-overlay" onclick="closeObjModal(event)">
+  <div class="confirm modal modal-sm" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="obj-modal-title">
+    <div class="tray-header">
+      <div style="flex:1;min-width:0">
+        <div class="tray-title" id="obj-modal-title"></div>
+        <div class="tray-subtitle" id="obj-modal-subtitle"></div>
+      </div>
+      <button class="tray-close" onclick="closeObjModal()" aria-label="Close"></button>
+    </div>
+    <div class="tray-body">
+      <div id="obj-modal-body" class="field"></div>
+      <div class="form-error" id="obj-modal-error" hidden></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-quiet btn-sm" onclick="closeObjModal()">Cancel</button>
+        <button type="button" class="btn btn-primary btn-sm" id="obj-modal-confirm"></button>
+      </div>
     </div>
   </div>
 </div>
@@ -1272,6 +1329,10 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
 // ── Data — loaded from the CTA app API ──────────────────────────────────────
 
 let ASSIGNMENTS = [], STUDENTS = [], CLASSES = [], SUBMISSIONS = {};
+// Archived classes are deliberately absent from CLASSES (and from every
+// roster/rollup the server built from it) — they exist here only so the
+// sidebar can offer the way back out of archiving.
+let ARCHIVED_CLASSES = [];
 
 async function loadDashboardData() {
   const res = await fetch('/api/teacher/dashboard');
@@ -1281,6 +1342,7 @@ async function loadDashboardData() {
   ASSIGNMENTS = data.assignments.map(a => ({ ...a, due: new Date(a.due) }));
   STUDENTS    = data.students;
   CLASSES     = data.classes;
+  ARCHIVED_CLASSES = data.archivedClasses || [];
   SUBMISSIONS = {};
   for (const [key, subs] of Object.entries(data.submissions)) {
     SUBMISSIONS[key] = subs.map(s => ({ ...s, ts: new Date(s.ts) }));
@@ -1714,13 +1776,50 @@ function getStudentSignal(studentId, assignmentId = null) {
 // Both tiers render identically — a behavioral pattern is exactly as much a
 // conversation-starter as a review flag, never a verdict, so it gets the
 // same quiet amber treatment rather than a second, unstyled tier.
-// The roster row still leads with one label for scan speed, but a quiet
-// "+N" carries the fact that more signals are true without escalating the
-// pill's color or adding a second one — the full list lives in the drill
-// panel (renderDrillPanel), not here.
-function signalPill(sig) {
-  const extra = sig.signals && sig.signals.length > 1
-    ? `<span class="signal-pill-count">+${sig.signals.length - 1}</span>`
+//
+// A signal's chip label: the four behavioural patterns already have a short
+// form in TREND_META, review-tier reasons collapse to the one "Worth a chat"
+// label that covers all of them, and the two reflection mismatches get a
+// short of their own here rather than putting a 45-character sentence in a
+// chip. Returns null for anything unlabelled, which the callers count rather
+// than render blank.
+function signalChipLabel(s) {
+  if (s.tier === 'review') return 'Worth a chat';
+  const tid = REASON_TO_TREND[s.reason];
+  if (tid && TREND_META[tid]) return TREND_META[tid].short;
+  if (s.learnMoreKey === 'reflection-score-mismatch' || s.learnMoreKey === 'reflection-delta-mismatch') {
+    return 'Reflection mismatch';
+  }
+  return null;
+}
+
+// 2026-08-08: `all` renders every true signal as its own chip instead of one
+// label plus a "+N". The count was chosen for scan speed, but it hid how many
+// distinct things were true — a student showing "+3" was four separate
+// signals wearing one pill. The Browse Students roster has the horizontal
+// space for the real list, so it asks for it; the two fixed-150px call sites
+// (class card, student list) do not, and keep the single-label form.
+function signalPill(sig, { all = false } = {}) {
+  const signals = sig.signals || [];
+  if (all) {
+    const labels = [];
+    let unlabelled = 0;
+    signals.forEach(s => {
+      const l = signalChipLabel(s);
+      // Dedupe: two review flags collapse to one "Worth a chat", and the
+      // same pattern can be true on more than one assignment. A deduped
+      // label isn't "extra" — only a signal with no label of its own is.
+      if (!l) unlabelled++;
+      else if (!labels.includes(l)) labels.push(l);
+    });
+    if (!labels.length) return '';
+    return `<div class="signal-cell">
+      ${labels.map(l => `<span class="chip chip-caution signal-pill-review">${l}</span>`).join('')}
+      ${unlabelled > 0 ? `<span class="signal-pill-count">+${unlabelled}</span>` : ''}
+    </div>`;
+  }
+  const extra = signals.length > 1
+    ? `<span class="signal-pill-count">+${signals.length - 1}</span>`
     : '';
   if (sig.status === 'review') return `<span class="chip chip-caution signal-pill-review">Worth a chat${extra}</span>`;
   if (sig.status === 'attention' && sig.reason) {
@@ -1779,20 +1878,21 @@ function allSubsForStudent(studentId) {
 // Assignment/Class Detail rows still show the latest submission, because
 // "how did this one go" is genuinely theirs to ask.
 //
-// Signal is a single slot, so it needs a priority when more than one thing
-// is true: overdue (Act — a plain administrative fact) outranks a
-// behavioural/integrity pattern (Notice — a conversation to have, not
-// something blocking). A student who is both overdue and flagged for a
-// pattern is, first and foremost, overdue; the pattern is still visible the
-// moment they're clicked into.
+// Signal shows every true behavioural/integrity signal as its own chip
+// (signalPill's `all` — 2026-08-08, replacing "one label + N"), with one
+// exception that still takes the whole cell: overdue. Overdue is Act — a
+// plain administrative fact — and outranks Notice, which is what every
+// pattern chip is. A student who is both overdue and flagged is, first and
+// foremost, overdue; the patterns are still there the moment they're
+// clicked into.
 function browseStudentRowTr(student) {
   const co = currentlyOn(student.id);
   const sig = getStudentSignal(student.id);
   if (!co) {
     return `<tr class="row-clickable" onclick="gotoStudentFromClass('${student.id}')">
-      <td><div class="who"><div class="avatar avatar-sm">${student.initials}</div><span style="font-weight:500">${student.name}</span></div></td>
+      <td><span style="font-weight:500">${student.name}</span></td>
       <td colspan="2" style="color:var(--tau-ink-faint)">No assignments yet</td>
-      <td>${signalPill(sig) || '<span class="no-signal">—</span>'}</td>
+      <td>${signalPill(sig, { all: true }) || '<span class="no-signal">—</span>'}</td>
     </tr>`;
   }
   const { assignment } = co;
@@ -1801,22 +1901,23 @@ function browseStudentRowTr(student) {
   const avg = allSubs.length ? Math.round(allSubs.reduce((s, sub) => s + total(sub), 0) / allSubs.length) : null;
   const signalHtml = late
     ? `<span class="chip chip-attention">Late</span>`
-    : (signalPill(sig) || '<span class="no-signal">—</span>');
+    : (signalPill(sig, { all: true }) || '<span class="no-signal">—</span>');
   return `<tr class="row-clickable" onclick="gotoStudentFromClass('${student.id}')">
-    <td><div class="who"><div class="avatar avatar-sm">${student.initials}</div><span style="font-weight:500">${student.name}</span></div></td>
+    <td><span style="font-weight:500">${student.name}</span></td>
     <td>${avg !== null ? `<span class="n" style="font-weight:700">${avg}</span><span style="font-size:11px;color:var(--tau-ink-soft)">/20</span>` : '<span class="no-signal">—</span>'}</td>
-    <td>${avg !== null ? bandChip(avg, true) : '<span class="no-signal">—</span>'}</td>
+    <td>${avg !== null ? bandChip(avg) : '<span class="no-signal">—</span>'}</td>
     <td>${signalHtml}</td>
   </tr>`;
 }
 
-// ── Shared sidebar-list item ──────────────────────────────────────────────────
+// ── Shared rail item ──────────────────────────────────────────────────────────
+// Chrome is components.css §13 (.rail-item); this only fills its three slots.
 function sidebarItem({ id, active, name, sub, trailing, onClick }) {
-  return `<div class="sidebar-item ${active ? 'active' : ''}" onclick="${onClick}">
-    <div style="flex:1;min-width:0">
-      <div class="sidebar-item-name">${name}</div>
-      ${sub ? `<div class="sidebar-item-sub">${sub}</div>` : ''}
-    </div>
+  return `<div class="rail-item ${active ? 'active' : ''}" onclick="${onClick}">
+    <span class="rail-item-text">
+      <span class="rail-item-name">${name}</span>
+      ${sub ? `<span class="rail-item-sub">${sub}</span>` : ''}
+    </span>
     ${trailing || ''}
   </div>`;
 }
@@ -1864,45 +1965,60 @@ function renderSidebar() {
   const missingCount = new Set(ASSIGNMENTS.flatMap(a => studentsFor(a).filter(s => hasMissingCheckpoint(a, s.id)).map(s => s.id))).size;
 
   el.innerHTML = `
-    <div class="sidebar-search">
-      <div class="sidebar-search-anchor">
-        <input type="text" id="global-search-input" placeholder="Search students, classes, assignments…"
-               oninput="runGlobalSearch(this.value)" value="">
-        <div id="global-search-results"></div>
+    <div class="rail-head">
+      <div class="rail-search">
+        <div class="rail-search-anchor">
+          <input type="text" id="global-search-input" placeholder="Search students, classes, assignments…"
+                 oninput="runGlobalSearch(this.value)" value="">
+          <div id="global-search-results"></div>
+        </div>
+        <div class="rail-search-hint" id="global-search-hint">Type a name — the fast path once a class has more than a few students.</div>
       </div>
-      <div class="sidebar-search-hint" id="global-search-hint">Type a name — the fast path once a class has more than a few students.</div>
-    </div>
-    <div class="sidebar-home ${screen === 'home' ? 'active sidebar-item' : 'sidebar-item'}" onclick="goHome()">
-      <div class="sidebar-item-name">Home</div>
-    </div>
-    <div style="height:1px;background:var(--tau-line);margin:2px 0 8px"></div>
-
-    <div class="sidebar-section eyebrow">Classes</div>
-    ${classItems}
-
-    <div class="sidebar-section eyebrow" style="margin-top:8px">Assignments</div>
-    ${sidebarItem({
-      active: screen === 'assignments' && browseAssignFilter === 'all',
-      name: 'All assignments',
-      sub: `${ASSIGNMENTS.length} assignment${ASSIGNMENTS.length !== 1 ? 's' : ''}`,
-      onClick: "gotoAssignments('all')",
-    })}
-    <div class="sidebar-item sb-shortcut ${screen === 'assignments' && browseAssignFilter === 'open' ? 'active' : ''}" onclick="gotoAssignments('open')">
-      <span class="sidebar-item-name">Open</span><span class="sb-shortcut-count">${openCount}</span>
+      <div class="rail-group">
+        <div class="rail-item ${screen === 'home' ? 'active' : ''}" onclick="goHome()">
+          <span class="rail-item-text"><span class="rail-item-name">Home</span></span>
+        </div>
+      </div>
     </div>
 
-    <div class="sidebar-section eyebrow" style="margin-top:8px">Students</div>
-    ${sidebarItem({
-      active: screen === 'students' && browseFilter === 'all' && !browsePattern,
-      name: 'All students',
-      sub: `${STUDENTS.length} student${STUDENTS.length !== 1 ? 's' : ''}`,
-      onClick: "gotoStudents('all')",
-    })}
-    <div class="sidebar-item sb-shortcut ${screen === 'students' && browseFilter === 'review' ? 'active' : ''}" onclick="gotoStudents('review')">
-      <span class="sidebar-item-name">Worth a chat</span><span class="sb-shortcut-count">${reviewCount}</span>
-    </div>
-    <div class="sidebar-item sb-shortcut ${screen === 'students' && browseFilter === 'missing' ? 'active' : ''}" onclick="gotoStudents('missing')">
-      <span class="sidebar-item-name">Missing work</span><span class="sb-shortcut-count">${missingCount}</span>
+    <div class="rail-body">
+      <div class="rail-group">
+        <span class="eyebrow">Classes</span>
+        ${classItems}
+        ${ARCHIVED_CLASSES.length ? `
+        <div class="rail-item rail-item-nested" onclick="openArchivedClasses()">
+          <span class="rail-item-text"><span class="rail-item-name">Archived</span></span><span class="rail-item-meta">${ARCHIVED_CLASSES.length}</span>
+        </div>` : ''}
+      </div>
+
+      <div class="rail-group">
+        <span class="eyebrow">Assignments</span>
+        ${sidebarItem({
+          active: screen === 'assignments' && browseAssignFilter === 'all',
+          name: 'All assignments',
+          sub: `${ASSIGNMENTS.length} assignment${ASSIGNMENTS.length !== 1 ? 's' : ''}`,
+          onClick: "gotoAssignments('all')",
+        })}
+        <div class="rail-item rail-item-nested ${screen === 'assignments' && browseAssignFilter === 'open' ? 'active' : ''}" onclick="gotoAssignments('open')">
+          <span class="rail-item-text"><span class="rail-item-name">Open</span></span><span class="rail-item-meta">${openCount}</span>
+        </div>
+      </div>
+
+      <div class="rail-group">
+        <span class="eyebrow">Students</span>
+        ${sidebarItem({
+          active: screen === 'students' && browseFilter === 'all' && !browsePattern,
+          name: 'All students',
+          sub: `${STUDENTS.length} student${STUDENTS.length !== 1 ? 's' : ''}`,
+          onClick: "gotoStudents('all')",
+        })}
+        <div class="rail-item rail-item-nested ${screen === 'students' && browseFilter === 'review' ? 'active' : ''}" onclick="gotoStudents('review')">
+          <span class="rail-item-text"><span class="rail-item-name">Worth a chat</span></span><span class="rail-item-meta">${reviewCount}</span>
+        </div>
+        <div class="rail-item rail-item-nested ${screen === 'students' && browseFilter === 'missing' ? 'active' : ''}" onclick="gotoStudents('missing')">
+          <span class="rail-item-text"><span class="rail-item-name">Missing work</span></span><span class="rail-item-meta">${missingCount}</span>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -1919,7 +2035,7 @@ function runGlobalSearch(q) {
   const assignmentMatches = ASSIGNMENTS.filter(a => a.name.toLowerCase().includes(query)).slice(0, 4);
 
   if (!studentMatches.length && !classMatches.length && !assignmentMatches.length) {
-    box.innerHTML = `<div class="sidebar-search-results"><div class="sidebar-item"><span class="sidebar-item-sub">No matches</span></div></div>`;
+    box.innerHTML = `<div class="rail-search-results"><div class="rail-empty">No matches</div></div>`;
     return;
   }
 
@@ -1928,7 +2044,7 @@ function runGlobalSearch(q) {
     ...classMatches.map(c => sidebarItem({ name: c.name, sub: 'Class', onClick: `gotoClass('${c.id}')` })),
     ...assignmentMatches.map(a => sidebarItem({ name: a.name, sub: 'Assignment', onClick: `gotoAssignment('${a.id}')` })),
   ].join('');
-  box.innerHTML = `<div class="sidebar-search-results">${rows}</div>`;
+  box.innerHTML = `<div class="rail-search-results">${rows}</div>`;
 }
 
 // ── Fleet-tier dimension rollup (Home) ──────────────────────────────────────────
@@ -1985,9 +2101,25 @@ function seriesOutlierIndex(series, key, deltaThresh = 0.3) {
   return Math.abs(values[worstIdx] - mean) >= deltaThresh ? worstIdx : -1;
 }
 
-// Renders "How your teaching is landing" — a full card only for a dimension
-// with real news (an active trend, a genuine floor, or a split-class
-// finding); everything else collapses into one shared quiet-line group.
+// The state a dimension is in, said in the words a teacher would use, as a
+// suffix to the dimension's own name. Kept apart from the .note (which
+// explains what the state means) because the card title must state the
+// finding on its own — a collapsed card that says only "Calibrated
+// Skepticism" has hidden the very thing the section exists to report.
+function dimensionStateLabel(row) {
+  if (row.skewed) return 'your classes are split';
+  return {
+    up:      'improving',
+    down:    'declining',
+    floor:   'lowest of the four',
+    ceiling: 'consistently strong',
+    mid:     'holding steady',
+  }[row.trend];
+}
+
+// Renders "Dimension trends" — one collapsed card per TAU dimension, in the
+// canonical PQ/SU/CS/OC order, so a dimension's position on the page is
+// stable rather than reshuffling by whichever had news today.
 // Returns '' when there isn't yet enough data (mirrors the "not enough data
 // yet" graceful-degradation idiom used throughout the class/assignment
 // tiers) rather than rendering an empty or misleading section.
@@ -2004,59 +2136,72 @@ function renderTeachingSection() {
   const outlierNote = outlierIdx >= 0 ? classSeriesOutlierNote(series, floorRow.key, floorRow.label) : null;
   const outlierAssignment = outlierIdx >= 0 ? series[outlierIdx] : null;
 
-  const blocks = [];
-  let lineRun = [];
-  const flushLines = () => {
-    if (lineRun.length) { blocks.push(`<div class="dim-line-group">${lineRun.join('')}</div>`); lineRun = []; }
-  };
-
-  trend.rows.forEach(row => {
+  const cards = trend.rows.map(row => {
     const changed = teachingRowChanged(row);
-    const notable = row.skewed || row.trend === 'up' || row.trend === 'down' || row.trend === 'floor';
-    if (!notable) {
-      // 'mid' → plain quiet line; 'ceiling' → quiet-positive line, distinct
-      // by glyph AND colour so sustained excellence doesn't read the same
-      // as a dimension with literally nothing to say.
-      const variant = row.trend === 'ceiling' ? 'positive-quiet' : '';
-      const glyph = row.trend === 'ceiling' ? '✓' : '–';
-      lineRun.push(`<div class="dim-line ${variant}">
-        <span class="glyph">${glyph}</span>
-        <span class="dim-line-name">${row.label}</span>
-        <span class="dim-line-note">${row.note}${changed ? ' · <b>Updated</b>' : ''}</span>
-      </div>`);
-      return;
-    }
-    flushLines();
-    const isPositive = row.trend === 'up' && !row.skewed;
-    const cls = isPositive ? 'positive' : '';
-    const eyebrow = (isPositive ? '✓ Across your classes' : 'Across your classes') + (changed ? ' · <b>Updated</b>' : '');
-    const headline = row.skewed
-      ? `${row.label}'s average looks like progress, but your classes are split`
-      : row.trend === 'up'   ? `${row.label} has improved across your classes`
-      : row.trend === 'down' ? `${row.label} has declined across your classes`
-      : `${row.label} is the dimension your students struggle with most`;
     const isOutlierRow = floorRow && row.key === floorRow.key && outlierAssignment;
-    const body = `Averaging <b>${row.avgCurr.toFixed(1)} / 5</b> across your classes this month. ${row.note}`;
-    const outlierHtml = isOutlierRow ? `<div class="teaching-outlier"><span>📎</span><span>${outlierNote}</span></div>` : '';
-    const linkHtml = isOutlierRow ? `<span class="teaching-link" onclick="logUse('dashboard','teaching-landing');gotoAssignment('${outlierAssignment.id}')">View ${outlierAssignment.label} →</span>` : '';
-    blocks.push(`<div class="teaching-card ${cls}">
-      <div class="teaching-eyebrow">${eyebrow}</div>
-      <div class="teaching-headline">${headline}</div>
-      <p class="teaching-body">${body}</p>
-      ${outlierHtml}
-      ${linkHtml}
-    </div>`);
-  });
-  flushLines();
+    // The link sits inside the evidence box, not at card level: that sentence
+    // is the only thing on the card naming an assignment, and a link two
+    // blocks below it leaves "view what?" to inference — especially on a card
+    // whose own title is a dimension name.
+    const measured = isOutlierRow ? `<div class="f-measure">
+        <span>${outlierNote}</span>
+        <span class="pattern-link" onclick="event.stopPropagation();logUse('dashboard','teaching-landing');gotoAssignment('${outlierAssignment.id}')">View ${outlierAssignment.label} →</span>
+      </div>` : '';
+    return `<details class="pattern-card">
+      <summary class="finding-summary">
+        <span class="f-body">
+          <span class="pattern-title">${row.label} — ${dimensionStateLabel(row)}</span>
+          <span class="f-where neutral">Averaging <span class="num">${row.avgCurr.toFixed(1)} of 5</span> across your classes${changed ? ' · <span class="f-updated">Updated</span>' : ''}</span>
+        </span>
+      </summary>
+      <div class="f-detail">
+        <p class="pattern-body"><b>What this looks like:</b> ${row.note}</p>
+        ${measured}
+      </div>
+    </details>`;
+  }).join('');
+
   saveTeachingSnapshot(trend.rows);
 
-  return `<div class="eyebrow" style="margin-bottom:8px">How your teaching is landing</div>
-  <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:var(--tau-s6)">${blocks.join('')}</div>`;
+  return `<div class="section-head">
+    <div class="eyebrow">Dimension trends</div>
+    <div class="section-summary">Across your classes this month</div>
+  </div>
+  <div class="finding-list">${cards}</div>`;
 }
 
 // ── Home ──────────────────────────────────────────────────────────────────────
 
+// A teacher with nothing yet used to land on "✓ All students on track" above
+// an empty class list — the page reporting success at the exact moment there
+// is nothing to succeed at, and nothing pointing to the one control that
+// helps. The all-clear card is a real state, but it's the state of a roster
+// that exists; this is the state of not having one.
+//
+// Also why the "+ Add" menu's order didn't need re-arguing: it's ranked by how
+// much content each door holds, which is right once a teacher is running, and
+// this names the correct first door directly for the one day they aren't.
+function renderFirstRun() {
+  return `
+    <div class="content-header">
+      <div class="content-title">Welcome</div>
+      <div class="content-meta">${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
+    </div>
+    <div class="card-lg" style="max-width:520px">
+      <div style="font-size:var(--tau-text-lg);font-weight:700;margin-bottom:6px">Start with a class</div>
+      <div style="font-size:var(--tau-text-sm);color:var(--tau-ink-soft);line-height:1.6;margin-bottom:var(--tau-s5)">
+        Add your students to it, then assign work — an assignment goes to everyone on the class
+        automatically, so there's no roster to hand-pick each time.
+      </div>
+      <button class="btn btn-primary" onclick="openNewClassModal()">Create your first class</button>
+      <div style="font-size:var(--tau-text-xs);color:var(--tau-ink-faint);margin-top:var(--tau-s4)">
+        Everything here also lives in <strong>+ Add</strong>, top right, once you're running.
+      </div>
+    </div>`;
+}
+
 function renderHome() {
+  if (!CLASSES.length && !ARCHIVED_CLASSES.length) return renderFirstRun();
   const trends = detectTrends(2);
   const missingIds = new Set(ASSIGNMENTS.flatMap(a => studentsFor(a).filter(s => hasMissingCheckpoint(a, s.id)).map(s => s.id)));
   const reviewCount = STUDENTS.filter(s => getStudentSignal(s.id).status === 'review').length;
@@ -2091,47 +2236,87 @@ function renderHome() {
     ? validAvgs.filter(c => c.avgTotal <= rosterAvg - 1.5).sort((a, b) => a.avgTotal - b.avgTotal)
     : [];
 
-  const tiles = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">
+  const tiles = `<div style="display:flex;gap:10px;flex-wrap:wrap">
     ${statTile(reviewCount, reviewCount ? 'Worth a chat' : 'No signals', reviewCount ? 'var(--tau-caution)' : 'var(--tau-positive)', reviewCount ? 'var(--tau-caution-bg)' : 'var(--tau-positive-bg)', "gotoStudents('review')")}
     ${missingIds.size ? statTile(missingIds.size, 'Missing work', 'var(--tau-attention)', 'var(--tau-attention-bg)', "gotoStudents('missing')") : ''}
   </div>`;
 
   const teachingSection = renderTeachingSection();
 
+  // The count never renders as a bare numeral or a chip — it sits in the
+  // phrase that names its unit, weighted inside that sentence. The old chip
+  // failed the enclosure rule twice over (a chip on every card is neither
+  // rare nor actionable), and a chip is also the wrong shape for a number
+  // whose job is to be read, not clicked.
   const patternCards = trends.map(({ id, students, meta }) => {
     const classCounts = CLASSES.map(cls => {
       const n = students.filter(x => x.classes.some(c => c.id === cls.id)).length;
       return n ? `${cls.name} ${n}` : null;
     }).filter(Boolean).join(' · ');
-    return `<div class="pattern-card">
-      <div class="pattern-head"><span class="pattern-title">${meta.label}</span><span class="chip chip-neutral">${students.length} student${students.length !== 1 ? 's' : ''}</span></div>
-      <div class="pattern-sub">${classCounts}</div>
-      <p class="pattern-body"><b>What this looks like:</b> ${meta.what}</p>
-      <div class="pattern-try"><b>What to try:</b> ${meta.whatToTry}</div>
-      <span class="pattern-link" onclick="logUse('dashboard','patterns-worth-noticing');gotoStudents('pattern', '${id}')">View the ${students.length} student${students.length !== 1 ? 's' : ''} →</span>
-    </div>`;
+    const n = students.length;
+    return `<details class="pattern-card">
+      <summary class="finding-summary">
+        <span class="f-body">
+          <span class="pattern-title">${meta.label}</span>
+          <span class="f-where"><span class="num">${n}</span> student${n !== 1 ? 's' : ''}${classCounts ? ` · ${classCounts}` : ''}</span>
+        </span>
+      </summary>
+      <div class="f-detail">
+        <p class="pattern-body"><b>What this looks like:</b> ${meta.what}</p>
+        <div class="pattern-try"><b>What to try:</b> ${meta.whatToTry}</div>
+        <span class="pattern-link" onclick="event.stopPropagation();logUse('dashboard','patterns-worth-noticing');gotoStudents('pattern', '${id}')">View the ${n} student${n !== 1 ? 's' : ''} →</span>
+      </div>
+    </details>`;
   }).join('');
 
   // Missing checkpoints is a Tier-1 logistics fact, not a behavioral pattern —
   // it gets its own card, visually and conceptually separate from the ones
   // above, so "overdue" and "disengaged" don't collapse into one taxonomy.
-  const missingCard = missingIds.size ? `<div class="pattern-card">
-    <div class="pattern-head"><span class="pattern-title">Missing checkpoints</span><span class="chip chip-attention">${missingIds.size} student${missingIds.size !== 1 ? 's' : ''}</span></div>
-    <p class="pattern-body">Overdue drafts — a logistics fact, not a behavioral pattern, kept separate from engagement signals above.</p>
-    <span class="pattern-link" onclick="gotoStudents('missing')">View missing work →</span>
-  </div>` : '';
+  // It carries no .pattern-try at all: an overdue draft is a date, not
+  // something the tool has a reading on, so there is nothing for the tool's
+  // own voice to say and no blue on this card.
+  const missingCard = missingIds.size ? `<details class="pattern-card">
+    <summary class="finding-summary">
+      <span class="f-body">
+        <span class="pattern-title">Missing checkpoints</span>
+        <span class="f-where attn"><span class="num">${missingIds.size}</span> student${missingIds.size !== 1 ? 's' : ''} with overdue drafts</span>
+      </span>
+    </summary>
+    <div class="f-detail">
+      <p class="pattern-body"><b>What this looks like:</b> Drafts past their due date — a logistics
+        fact, not a behavioral pattern, kept separate from the engagement signals above.</p>
+      <span class="pattern-link" onclick="event.stopPropagation();gotoStudents('missing')">View missing work →</span>
+    </div>
+  </details>` : '';
 
-  const patternsSection = (patternCards || missingCard) ? `<div class="eyebrow" style="margin-bottom:8px">Behavioral patterns</div>
-  <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:var(--tau-s6)">
+  // Counts what the section is actually about, so the collapsed set still
+  // orients: how many patterns, and how much of the roster they touch.
+  // detectTrends() pushes { student, classes }, not a bare student — reading
+  // s.id here collapsed every entry to undefined, so the Set was always size 1
+  // and the denominator read "1 of 8 students" no matter how many were in the
+  // patterns. Caught in a browser, not by reading the code.
+  const patternStudentIds = new Set(trends.flatMap(t => t.students.map(s => s.student.id)));
+  const patternsSummary = [
+    `${trends.length} pattern${trends.length !== 1 ? 's' : ''}`,
+    patternStudentIds.size ? `${patternStudentIds.size} of ${STUDENTS.length} students` : null,
+  ].filter(Boolean).join(' · ');
+
+  const patternsSection = (patternCards || missingCard) ? `<div class="section-head">
+    <div class="eyebrow">Behavioral patterns</div>
+    <div class="section-summary">${patternsSummary}</div>
+  </div>
+  <div class="finding-list">
     ${patternCards}${missingCard}
-  </div>` : `<div style="text-align:center;padding:40px 24px;background:var(--tau-surface);border:1px solid var(--tau-line);border-radius:var(--tau-r-md);box-shadow:var(--tau-shadow);margin-bottom:24px">
+  </div>` : `<div style="text-align:center;padding:40px 24px;background:var(--tau-surface);border:1px solid var(--tau-line);border-radius:var(--tau-r-md);box-shadow:var(--tau-shadow)">
     <div style="font-size:22px;margin-bottom:8px">✓</div>
     <div style="font-weight:600;font-size:14px;color:var(--tau-positive)">All students on track</div>
     <div style="font-size:12px;color:var(--tau-ink-soft);margin-top:4px">No behavioral patterns or missing work detected</div>
   </div>`;
 
-  const classesSection = `<div class="eyebrow" style="margin-bottom:8px">Classes at a glance</div>
-  <div style="display:flex;flex-direction:column;gap:6px">
+  const classesSection = `<div class="section-head">
+    <div class="eyebrow">Classes at a glance</div>
+  </div>
+  <div>
     ${CLASSES.map(cls => {
       const students  = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
       const flagCount = students.filter(s => getStudentSignal(s.id).status === 'review').length;
@@ -2145,27 +2330,26 @@ function renderHome() {
         : isLagging
           ? `<span class="chip chip-tool-info">Avg. below your other classes</span>`
           : `<span class="chip chip-positive">✓ On track</span>`;
-      return `<div style="background:var(--tau-surface);border:1px solid var(--tau-line);border-radius:var(--tau-r-md);padding:11px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;box-shadow:var(--tau-shadow)" onclick="gotoClass('${cls.id}')">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600">${cls.name}</div>
-          <div style="font-size:11px;color:var(--tau-ink-soft);margin-top:1px">${students.length} student${students.length !== 1 ? 's' : ''}</div>
-        </div>
+      return `<div class="class-row" onclick="gotoClass('${cls.id}')">
+        <span class="class-row-name">${cls.name}</span>
         ${pill}
+        <span class="class-row-go">→</span>
       </div>`;
     }).join('')}
   </div>`;
 
-  const date = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-
+  // No .content-header. "Home" is what the rail's active row already says and
+  // the date is what the OS clock says — ~70px of pane spent on neither being
+  // news. The bands below start at the top of the content padding instead.
   return `
-    <div class="content-header">
-      <div class="content-title">Home</div>
-      <div class="content-meta">${date}</div>
+    <div class="home-stack">
+      <div class="home-band">${tiles}</div>
+      <div class="home-band">${patternsSection}</div>
+      <div class="home-cols">
+        <div class="home-band home-col">${teachingSection}</div>
+        <div class="home-band home-col">${classesSection}</div>
+      </div>
     </div>
-    ${tiles}
-    ${patternsSection}
-    ${teachingSection}
-    ${classesSection}
   `;
 }
 
@@ -2230,7 +2414,10 @@ function browseRosterTables() {
       <div class="browse-class-group">
         <div class="browse-class-label eyebrow">${cls.name} — ${students.length} student${students.length !== 1 ? 's' : ''}</div>
         <div class="tbl-wrap">
-        <table class="roster">
+        <table class="roster roster-browse">
+          <colgroup>
+            <col style="width:24%"><col style="width:12%"><col style="width:26%"><col style="width:38%">
+          </colgroup>
           <thead><tr>
             ${sortTh('Student', 'name', state, cls.id)}
             ${sortTh('Average', 'tau', state, cls.id)}
@@ -2536,13 +2723,25 @@ function renderClassAggregateCard(cid, students, assignments, missingCount, flag
 
   const overviewPanel = `${statRow}${noteBlock}${originBlock}`;
 
+  // Same card as Home's Behavioral patterns — same object, so the same shape
+  // and the same disclosure, rather than this surface keeping a second,
+  // always-expanded rendering of the identical finding. It gains "What this
+  // looks like," which it never showed and Home always did.
   const patternsPanel = patterns.length ? `
-    <div style="display:flex;flex-direction:column;gap:12px">
-      ${patterns.map(({ id, students: pStudents, meta }) => `<div class="pattern-card">
-        <div class="pattern-head"><span class="pattern-title">${meta.label}</span><span class="chip chip-neutral">${pStudents.length} student${pStudents.length !== 1 ? 's' : ''}</span></div>
-        <div class="pattern-try"><b>What to try:</b> ${meta.whatToTry}</div>
-        <span class="pattern-link" onclick="event.stopPropagation();gotoStudents('pattern', '${id}')">View the ${pStudents.length} student${pStudents.length !== 1 ? 's' : ''} →</span>
-      </div>`).join('')}
+    <div class="finding-list">
+      ${patterns.map(({ id, students: pStudents, meta }) => `<details class="pattern-card">
+        <summary class="finding-summary">
+          <span class="f-body">
+            <span class="pattern-title">${meta.label}</span>
+            <span class="f-where"><span class="num">${pStudents.length}</span> student${pStudents.length !== 1 ? 's' : ''} in this class</span>
+          </span>
+        </summary>
+        <div class="f-detail">
+          <p class="pattern-body"><b>What this looks like:</b> ${meta.what}</p>
+          <div class="pattern-try"><b>What to try:</b> ${meta.whatToTry}</div>
+          <span class="pattern-link" onclick="event.stopPropagation();gotoStudents('pattern', '${id}')">View the ${pStudents.length} student${pStudents.length !== 1 ? 's' : ''} →</span>
+        </div>
+      </details>`).join('')}
     </div>` : `<p class="agg-sample-note">No recurring patterns across this class's assignments yet.</p>`;
 
   const TREND_LABEL = { up: 'Trending up', down: 'Trending down', floor: 'Flat (floor)', ceiling: 'Flat (ceiling)', mid: 'Flat' };
@@ -2678,7 +2877,7 @@ function renderClassDetail(cid) {
     <div class="content-header">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
         <div class="content-title">${cls.name}</div>
-        <button class="btn btn-quiet btn-sm" onclick="openRosterModal('${cls.id}')">Manage roster</button>
+        ${classActionRow(cls)}
       </div>
       <div class="content-meta" style="margin-top:8px">${metaParts.join(' · ')}</div>
     </div>
@@ -3145,13 +3344,15 @@ function renderAssignmentDetail(aid) {
 
   return `
     <div class="content-header">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <div class="content-title">${a.name}</div>
-        <span class="chip ${closed ? 'chip-grey' : 'chip-neutral'}">${closed ? 'Closed' : 'Open'}</span>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <button class="btn btn-quiet btn-sm" onclick="openGoalModal('${a.id}')">Goal & requirements</button>
-        <button class="btn btn-quiet btn-sm" onclick="openEditAssignmentModal('${a.id}')">Edit</button>
+      <!-- Actions right-aligned on the title row, not stacked beneath it —
+           same corner of the header as Class and Student detail, which is the
+           whole point of there being one action row. -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="content-title">${a.name}</div>
+          <span class="chip ${closed ? 'chip-grey' : 'chip-neutral'}">${closed ? 'Closed' : 'Open'}</span>
+        </div>
+        ${assignmentActionRow(a)}
       </div>
     </div>
     ${renderDraftScheduleCard(a)}
@@ -3699,15 +3900,18 @@ function renderStudentDetail(sid) {
 
   return `
     <div class="content-header">
-      <div style="display:flex;align-items:center;gap:12px">
-        <div class="avatar" style="width:40px;height:40px;font-size:14px">${s.initials}</div>
-        <div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <div class="content-title">${s.name}</div>
-            ${signalPill(sig)}
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="avatar" style="width:40px;height:40px;font-size:14px">${s.initials}</div>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="content-title">${s.name}</div>
+              ${signalPill(sig)}
+            </div>
+            <div class="content-meta">${classes.map(c => c.name).join(' · ') || 'Not enrolled in any class'}</div>
           </div>
-          <div class="content-meta">${classes.map(c => c.name).join(' · ') || 'Not enrolled in any class'}</div>
         </div>
+        ${studentActionRow(s)}
       </div>
     </div>
     ${classPanels}
@@ -3827,9 +4031,14 @@ function renderDrillPanel(subs, label, sig, ctx) {
           <span class="dim-score">OC <span>${sub.oc}</span></span>
         </div>
         <span style="min-width:150px;flex-shrink:0">${bandChip(t, true)}</span>
-        ${sub.id ? `<a href="/report.html?id=${sub.id}&role=teacher" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;flex-shrink:0;color:var(--tau-forest)">Report →</a>` : ''}
+        ${sub.id ? `<a class="sub-row-link" onclick="event.stopPropagation();openSubmissionNote('${sub.id}', ${i + 1})">${sub.teacherNote ? 'Edit note' : 'Add note'}</a>` : ''}
+        ${sub.id ? `<a href="/report.html?id=${sub.id}&role=teacher" target="_blank" onclick="event.stopPropagation()" class="sub-row-link">Report →</a>` : ''}
       </div>
       ${flagRow}
+      ${sub.teacherNote ? `<div class="card-edge-auditor sub-note">
+        <span class="eyebrow-lbl" style="color:var(--tau-auditor)">${iconSVG('chat')}Your note to this student</span>
+        ${esc(sub.teacherNote)}
+      </div>` : ''}
       ${renderReflectionSection(sub, prevSub)}
     </div>`;
   }).join('');
@@ -3848,8 +4057,13 @@ function renderDrillPanel(subs, label, sig, ctx) {
        </div>`
     : '';
 
+  // Named for what it opens, not for the surface it happens to live on — the
+  // note it used to be the only route to now lives on the rows below, so the
+  // transcript is the whole of what's left on the other side of this link.
+  // (That surface itself is due a rebuild — see teacher-dashboard-design.md's
+  // Open / Future Work.)
   const convLink = ctx
-    ? `<a href="/teacher.html#student/${ctx.assignmentId}/${ctx.studentId}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;float:right;color:var(--tau-forest)">Session view →</a>`
+    ? `<a href="/teacher.html#student/${ctx.assignmentId}/${ctx.studentId}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;float:right;color:var(--tau-forest)">Transcript →</a>`
     : '';
 
   return `<div class="drill-panel">
@@ -3949,6 +4163,10 @@ function renderContent() {
   else if (screen === 'assignments') el.innerHTML = renderBrowseAssignments();
   else if (screen === 'students')    el.innerHTML = renderBrowseStudents();
   else if (screen === 'student')     el.innerHTML = renderStudentDetail(activeStudent);
+  // #content was just replaced wholesale, taking any previous action menu's
+  // DOM (and tauMenu's listeners) with it — so the menu is bound to the new
+  // trigger/panel here rather than once at startup.
+  mountObjActions();
 }
 
 function render() {
@@ -4097,6 +4315,516 @@ function closeFlagModal(e) {
   if (e && e.target !== document.getElementById('flag-modal-overlay')) return;
   document.getElementById('flag-modal-overlay').classList.remove('open');
   document.body.style.overflow = '';
+}
+
+// ── One success shape for all three creation doors ──────────────────────────
+// New class already worked this way — an in-modal confirmation naming what was
+// made, plus the next actions scoped to it — and it was the only one of the
+// three that did. New assignment fired a toast pinned to the header and Add
+// students wrote an inline line, so three sibling actions confirmed themselves
+// three different ways. This is that same shape, shared.
+//
+// The next actions are the scoped-creation rule again: having just made a
+// class, the useful next doors are the two that take a class as their subject.
+function modalSuccess(scope, { message, actions = [], onDone }) {
+  document.getElementById(`${scope}-view-form`).hidden = true;
+  const box = document.getElementById(`${scope}-view-success`);
+  box.hidden = false;
+  box.innerHTML = `
+    <div class="menu-confirm" style="margin:0 0 18px">✓ ${message}</div>
+    ${actions.length ? `<div style="display:flex;flex-direction:column;gap:8px">
+      ${actions.map(a => `<button type="button" class="menu-item" style="border:1px solid var(--tau-line);border-radius:var(--tau-r-md);padding:12px" onclick="${a.onClick}">
+        <span class="mi-icon">${iconSVG(a.icon)}</span>
+        <span class="mi-body">${esc(a.title)}<span class="mi-desc">${esc(a.desc)}</span></span>
+      </button>`).join('')}
+    </div>` : ''}
+    <button type="button" class="btn btn-quiet btn-sm" style="margin-top:16px" onclick="${onDone}">Done for now</button>`;
+}
+
+// Called on every open, so a modal reopened after a success shows the form
+// again rather than the last thing it confirmed.
+function resetModalView(scope) {
+  const form = document.getElementById(`${scope}-view-form`);
+  const success = document.getElementById(`${scope}-view-success`);
+  if (form) form.hidden = false;
+  if (success) { success.hidden = true; success.innerHTML = ''; }
+}
+
+// ── Modal dismissal — Escape, scrim, and the work they'd throw away ─────────
+// Every modal on this page in one registry, because they all had the same two
+// gaps: none of them closed on Escape (tauMenu gave the *menus* a full keyboard
+// model years before the modals had any), and a stray scrim click silently
+// discarded whatever had been typed — on the longest form in the app.
+//
+// `dirty` is what makes the second one safe without making the modal a trap:
+// an untouched form still closes instantly on a scrim click, and only a form
+// with real content in it stops to ask. The ask is the shared small modal,
+// which sits later in the DOM than every form modal and so stacks above them.
+const MODALS = [
+  { id: 'obj-modal-overlay',            close: () => closeObjModal() },
+  { id: 'new-assignment-modal-overlay', close: () => closeNewAssignmentModal(), dirty: () => newAssignmentIsDirty(), what: 'this assignment' },
+  { id: 'new-class-modal-overlay',      close: () => closeNewClassModal(),      dirty: () => newClassIsDirty(),      what: 'this class' },
+  { id: 'add-students-modal-overlay',   close: () => closeAddStudentsModal(),   dirty: () => addStudentsIsDirty(),  what: 'this roster' },
+  { id: 'roster-modal-overlay',         close: () => closeRosterModal() },
+  { id: 'goal-modal-overlay',           close: () => closeGoalModal() },
+  { id: 'flag-modal-overlay',           close: () => closeFlagModal() },
+];
+
+const val = (id) => (document.getElementById(id)?.value || '').trim();
+
+function newAssignmentIsDirty() {
+  const f = document.getElementById('newAssignmentForm');
+  if (!f) return false;
+  return ['title', 'description', 'purpose', 'requirements', 'teacherNote']
+    .some(n => (f.elements[n]?.value || '').trim());
+}
+function newClassIsDirty() {
+  return !!(val('newclass-name-input') || val('newclass-roster-input') || val('newclass-assign-title'));
+}
+function addStudentsIsDirty() {
+  return !!val('hdr-addstudent-roster-input');
+}
+
+function openModalEntries() {
+  return MODALS.filter(m => document.getElementById(m.id)?.classList.contains('open'));
+}
+
+// The topmost open modal is the last one in the registry that's open — the
+// shared small modal is first in the list precisely because it can stack on
+// top of a form modal, so it's checked first, not last.
+function topModal() {
+  const open = openModalEntries();
+  return open.length ? open[0] : null;
+}
+
+function requestModalClose(entry) {
+  if (!entry) return;
+  if (entry.dirty && entry.dirty()) {
+    openObjModal({
+      title: 'Discard what you\'ve typed?',
+      subtitle: `You haven't created ${entry.what} yet. Closing now loses everything in the form.`,
+      confirmLabel: 'Discard',
+      danger: true,
+      onConfirm: async () => { entry.close(); },
+    });
+    return;
+  }
+  entry.close();
+}
+
+// The scrim/close-button entry point. Same guard as Escape, so there is one
+// answer to "what happens when I try to leave" rather than three.
+function guardedClose(id, e) {
+  if (e && e.target !== document.getElementById(id)) return;
+  requestModalClose(MODALS.find(m => m.id === id));
+}
+
+// Escape, in the order things are stacked: the topmost modal, then the side
+// tray, then any open menu.
+//
+// The menu case is not redundant with tauMenu's own Escape handler, which was
+// the assumption until a browser test proved otherwise: tauMenu listens on the
+// *panel*, so it only ever hears Escape when focus is inside it — which happens
+// when the menu was opened by keyboard and never when it was opened by mouse.
+// Every mouse user's Escape was landing on nothing.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const top = topModal();
+  if (top) { e.preventDefault(); requestModalClose(top); return; }
+  if (document.getElementById('side-tray').classList.contains('open')) {
+    e.preventDefault();
+    closeFlagTray();
+    return;
+  }
+  closeAllMenus();
+});
+
+// ── Object action row ────────────────────────────────────────────────────────
+// One system with the header's "+ Add", split on one question: is there a
+// subject on screen for this action to hang on? No — the thing doesn't exist
+// yet, so it lives in the global header, labelled and primary. Yes — it lives
+// on the object, in the same corner of every .content-header, so "where do I do
+// things to this?" is learned once instead of per screen.
+//
+// Creation reappears here, scoped: "Add students to AP Literature" is the same
+// item as the header's "Add students" with the class picker already answered.
+// That pairing is what makes the two menus one family rather than two systems,
+// and it is why a class carries a create group while an assignment and a
+// student don't — a class is the only one of the three you can add things *to*.
+//
+// The panel is rebuilt with the screen (renderContent replaces #content
+// wholesale), so tauMenu is re-instantiated per render rather than bound once.
+let objActionsMenu = null;
+
+function objActionRow({ name, primary = [], groups = [] }) {
+  const primaryBtns = primary
+    .map(p => `<button class="btn btn-quiet btn-sm" onclick="${p.onClick}">${esc(p.label)}</button>`)
+    .join('');
+
+  const filled = groups
+    .map(g => ({ ...g, items: (g.items || []).filter(Boolean) }))
+    .filter(g => g.items.length);
+
+  // A group label only earns its place once a panel holds more than one kind
+  // of action — same rule .eyebrow follows for a card with a single section.
+  const panelHtml = filled.map((g, i) => {
+    const label = filled.length > 1 && g.label ? `<div class="menu-group-label">${esc(g.label)}</div>` : '';
+    const rows = g.items.map(it => `
+      <button type="button" class="menu-item${it.danger ? ' menu-item-danger' : ''}" onclick="closeObjActions();${it.onClick}">
+        <span class="mi-icon">${iconSVG(it.icon)}</span>
+        <span class="mi-body">${esc(it.title)}${it.desc ? `<span class="mi-desc">${esc(it.desc)}</span>` : ''}</span>
+      </button>`).join('');
+    return (i ? '<div class="menu-divider"></div>' : '') + label + rows;
+  }).join('');
+
+  if (!panelHtml) return `<div class="obj-actions">${primaryBtns}</div>`;
+
+  return `<div class="obj-actions">
+    ${primaryBtns}
+    <div class="menu-wrap">
+      <button class="menu-trigger menu-trigger-icon" id="obj-actions-trigger" type="button"
+              aria-label="More actions for ${esc(name)}">${iconSVG('moreHoriz')}</button>
+      <div class="menu-panel" id="obj-actions-panel" hidden>${panelHtml}</div>
+    </div>
+  </div>`;
+}
+
+function mountObjActions() {
+  const trigger = document.getElementById('obj-actions-trigger');
+  const panel = document.getElementById('obj-actions-panel');
+  objActionsMenu = (trigger && panel) ? tauMenu(trigger, panel) : null;
+}
+
+function closeObjActions() { if (objActionsMenu) objActionsMenu.close(); }
+
+function classActionRow(cls) {
+  return objActionRow({
+    name: cls.name,
+    primary: [{ label: 'Manage roster', onClick: `openRosterModal('${cls.id}')` }],
+    groups: [
+      {
+        label: `Add to ${cls.name}`,
+        items: [
+          { icon: 'personAdd', title: 'Add students', desc: 'Paste a roster — this class already chosen', onClick: `openAddStudentsModal('${cls.id}')` },
+          { icon: 'description', title: 'New assignment', desc: 'Goes to everyone on this class', onClick: `openNewAssignmentModal(['${cls.id}'])` },
+        ],
+      },
+      {
+        label: 'Manage',
+        items: [
+          { icon: 'edit', title: 'Rename class', onClick: `openRenameClass('${cls.id}')` },
+          { icon: 'archive', title: 'Archive class', desc: 'Keeps its records, clears it from the sidebar', onClick: `openArchiveClass('${cls.id}')` },
+        ],
+      },
+    ],
+  });
+}
+
+function assignmentActionRow(a) {
+  return objActionRow({
+    name: a.name,
+    primary: [{ label: 'Goal & requirements', onClick: `openGoalModal('${a.id}')` }],
+    groups: [{
+      items: [
+        { icon: 'edit', title: 'Edit assignment', onClick: `openEditAssignmentModal('${a.id}')` },
+        { icon: 'copy', title: 'Duplicate assignment', desc: 'Opens a copy to change before you create it', onClick: `duplicateAssignment('${a.id}')` },
+        { icon: 'trash', title: 'Delete assignment', desc: 'Only while nothing has been submitted', danger: true, onClick: `openDeleteAssignment('${a.id}')` },
+      ],
+    }],
+  });
+}
+
+function studentActionRow(s) {
+  return objActionRow({
+    name: s.name,
+    groups: [{
+      items: [
+        { icon: 'swap', title: 'Move to another class', desc: 'Off one roster and onto another in one step', onClick: `openMoveStudent('${s.id}')` },
+        { icon: 'plusCircle', title: 'Grant extra replies', desc: "Lifts today's coach reply cap for this student", onClick: `openGrantReplies('${s.id}')` },
+      ],
+    }],
+  });
+}
+
+// ── The one small modal every object action runs through ────────────────────
+// Rename, archive, delete, move, grant, restore — one ask, one confirm. Also
+// the reason none of these calls a native confirm()/alert(): a destructive
+// confirmation belongs in the app's own voice, and a native dialog can't
+// distinguish "this is irreversible" from "this needs a value."
+let objModalConfirm = null;
+
+function openObjModal({ title, subtitle = '', bodyHtml = '', confirmLabel, danger = false, onConfirm, focusId }) {
+  document.getElementById('obj-modal-title').textContent = title;
+  const sub = document.getElementById('obj-modal-subtitle');
+  sub.textContent = subtitle;
+  sub.hidden = !subtitle;
+  document.getElementById('obj-modal-body').innerHTML = bodyHtml;
+  const btn = document.getElementById('obj-modal-confirm');
+  btn.textContent = confirmLabel;
+  btn.classList.toggle('btn-danger', danger);
+  objModalConfirm = onConfirm;
+  clearObjModalError();
+  document.getElementById('obj-modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  if (focusId) {
+    const el = document.getElementById(focusId);
+    if (el) {
+      el.focus();
+      // Select-all only for a single-line value being replaced (a class name).
+      // On a textarea holding a note someone already wrote, it would mean the
+      // next keystroke wipes it.
+      if (el.tagName === 'INPUT' && el.select) el.select();
+    }
+  } else {
+    btn.focus();
+  }
+}
+
+function closeObjModal(e) {
+  if (e && e.target !== document.getElementById('obj-modal-overlay')) return;
+  document.getElementById('obj-modal-overlay').classList.remove('open');
+  // This one can be stacked on top of a form modal (the discard prompt), so
+  // it must not hand scrolling back to the page while that form is still up.
+  if (!openModalEntries().length) document.body.style.overflow = '';
+  objModalConfirm = null;
+}
+
+function objModalError(message) {
+  const box = document.getElementById('obj-modal-error');
+  box.innerHTML = `<span aria-hidden="true">!</span><span>${esc(message)}</span>`;
+  box.hidden = false;
+}
+
+function clearObjModalError() {
+  const box = document.getElementById('obj-modal-error');
+  box.hidden = true;
+  box.innerHTML = '';
+}
+
+document.getElementById('obj-modal-confirm').onclick = async () => {
+  if (!objModalConfirm) return;
+  const btn = document.getElementById('obj-modal-confirm');
+  const label = btn.textContent;
+  btn.disabled = true;
+  clearObjModalError();
+  try {
+    await objModalConfirm();
+  } catch (err) {
+    // The server's own message is the useful one here (it names what's in the
+    // way — "3 drafts have already been submitted" — which the client can't
+    // know), so it's surfaced verbatim rather than replaced with a generic.
+    objModalError(err.message || 'That didn\'t work. Try again.');
+    btn.disabled = false;
+    btn.textContent = label;
+    return;
+  }
+  btn.disabled = false;
+  closeObjModal();
+};
+
+// ── Class actions ───────────────────────────────────────────────────────────
+
+function openRenameClass(cid) {
+  const cls = CLASSES.find(c => c.id === cid);
+  if (!cls) return;
+  openObjModal({
+    title: 'Rename class',
+    bodyHtml: `<label for="rename-class-input">Class name</label>
+      <input type="text" id="rename-class-input" value="${esc(cls.name)}">`,
+    confirmLabel: 'Save name',
+    focusId: 'rename-class-input',
+    onConfirm: async () => {
+      const name = document.getElementById('rename-class-input').value.trim();
+      if (!name) throw new Error('A class needs a name.');
+      await api(`/api/classes/${cid}/edit`, { method: 'POST', body: { name } });
+      await loadDashboardData();
+      render();
+    },
+  });
+}
+
+function openArchiveClass(cid) {
+  const cls = CLASSES.find(c => c.id === cid);
+  if (!cls) return;
+  const n = (cls.studentIds || []).length;
+  openObjModal({
+    title: `Archive ${cls.name}?`,
+    subtitle: `It leaves the sidebar and every rollup. Nothing is deleted — its ${n} student${n !== 1 ? 's' : ''}, assignments, submissions and transcripts all stay, and you can restore it from Archived under Classes.`,
+    confirmLabel: 'Archive class',
+    onConfirm: async () => {
+      await api(`/api/classes/${cid}/edit`, { method: 'POST', body: { archived: true } });
+      if (screen === 'class' && activeClass === cid) { screen = 'home'; activeClass = null; }
+      await loadDashboardData();
+      render();
+    },
+  });
+}
+
+// The way back out of archiving. Without this, "Archive" is a one-way door —
+// worse than not having built it, since the class is then unreachable rather
+// than merely untidy.
+function openArchivedClasses() {
+  const rows = ARCHIVED_CLASSES.length
+    ? ARCHIVED_CLASSES.map(c => `<div class="modal-choice">
+        <span>${esc(c.name)}</span>
+        <span class="modal-choice-sub">${(c.studentIds || []).length} student${(c.studentIds || []).length !== 1 ? 's' : ''}</span>
+        <button type="button" class="btn btn-quiet btn-sm" onclick="restoreClass('${c.id}')">Restore</button>
+      </div>`).join('')
+    : '<div style="font-size:var(--tau-text-sm);color:var(--tau-ink-soft)">Nothing archived.</div>';
+  openObjModal({
+    title: 'Archived classes',
+    subtitle: 'Restoring a class puts it back in the sidebar with its roster and assignments intact.',
+    bodyHtml: `<div class="modal-choices">${rows}</div>`,
+    confirmLabel: 'Done',
+    onConfirm: async () => {},
+  });
+}
+
+async function restoreClass(cid) {
+  try {
+    await api(`/api/classes/${cid}/edit`, { method: 'POST', body: { archived: false } });
+  } catch (err) {
+    objModalError(err.message || 'Could not restore this class.');
+    return;
+  }
+  await loadDashboardData();
+  render();
+  if (ARCHIVED_CLASSES.length) openArchivedClasses();
+  else closeObjModal();
+}
+
+// ── Assignment actions ──────────────────────────────────────────────────────
+
+// Prefills the same modal Edit uses, but in create mode — so a duplicate is
+// reviewed and adjusted (dates especially, which are never right for a copy)
+// before it exists, rather than appearing behind the teacher's back.
+function duplicateAssignment(aid) {
+  const a = ASSIGNMENTS.find(x => x.id === aid);
+  if (!a) return;
+  openEditAssignmentModal(aid);
+  editingAssignmentId = null;
+  document.getElementById('new-assignment-title').textContent = 'Duplicate assignment';
+  document.getElementById('new-assignment-subtitle').textContent = 'A copy of ' + a.name + ' — check the dates before creating it, they carried over as-is.';
+  document.getElementById('new-assignment-submit-btn').textContent = 'Create assignment';
+  const titleField = document.getElementById('na-title');
+  titleField.value = `Copy of ${a.name}`;
+  titleField.focus();
+  titleField.select();
+}
+
+function openDeleteAssignment(aid) {
+  const a = ASSIGNMENTS.find(x => x.id === aid);
+  if (!a) return;
+  openObjModal({
+    title: `Delete ${a.name}?`,
+    subtitle: 'This can\'t be undone. It only works while no student has started work — if someone has, nothing is deleted and you\'ll be told who\'s in the way.',
+    confirmLabel: 'Delete assignment',
+    danger: true,
+    onConfirm: async () => {
+      await api(`/api/assignments/${aid}/delete`, { method: 'POST', body: {} });
+      if (screen === 'assignment' && activeAssignment === aid) { screen = 'assignments'; activeAssignment = null; }
+      await loadDashboardData();
+      render();
+    },
+  });
+}
+
+// ── Student actions ─────────────────────────────────────────────────────────
+
+// One step, two calls — the server has no "move" route because a move is
+// exactly a remove plus an add, and inventing a third route to say so would
+// duplicate the membership rules already enforced on this one.
+function openMoveStudent(sid) {
+  const s = STUDENTS.find(x => x.id === sid);
+  if (!s) return;
+  const from = classesForStudent(sid);
+  const fromOptions = from.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  const toOptions = CLASSES.filter(c => !from.some(f => f.id === c.id))
+    .map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  if (!toOptions) {
+    openObjModal({
+      title: `Move ${s.name}`,
+      subtitle: `${s.name} is already on every class you have. Make another class first, then move them onto it.`,
+      confirmLabel: 'Close',
+      onConfirm: async () => {},
+    });
+    return;
+  }
+  openObjModal({
+    title: `Move ${s.name}`,
+    subtitle: 'Their account, submissions and reports are untouched — only which roster they sit on changes.',
+    bodyHtml: `
+      <label for="move-from">Off this class</label>
+      <select id="move-from" style="margin-bottom:var(--tau-s3)">${fromOptions}</select>
+      <label for="move-to">Onto this class</label>
+      <select id="move-to" >${toOptions}</select>`,
+    confirmLabel: 'Move student',
+    focusId: 'move-from',
+    onConfirm: async () => {
+      const fromId = document.getElementById('move-from').value;
+      const toId = document.getElementById('move-to').value;
+      if (!fromId || !toId) throw new Error('Choose a class to move from and one to move to.');
+      // Add first: if the second call fails, the student is on two rosters
+      // (visible, fixable) rather than none (invisible, and their work with it).
+      await api(`/api/classes/${toId}/students`, { method: 'POST', body: { email: s.email, displayName: s.name } });
+      await api(`/api/classes/${fromId}/students`, { method: 'POST', body: { studentId: sid, remove: true } });
+      await loadDashboardData();
+      render();
+    },
+  });
+}
+
+// ── The teacher's note on a draft ───────────────────────────────────────────
+// Previously reachable only by opening teacher.html in a new tab from an 11px
+// link and scrolling to the right draft — the single least findable function a
+// teacher had. It belongs on the submission row, which is where the teacher
+// already is when they decide a draft is worth saying something about.
+//
+// Same route teacher.html posts to; this is an additional entry point, not a
+// replacement, so both surfaces stay in sync through the one record.
+function openSubmissionNote(subId, draftNumber) {
+  let existing = null;
+  for (const subs of Object.values(SUBMISSIONS)) {
+    const hit = subs.find(s => s.id === subId);
+    if (hit) { existing = hit; break; }
+  }
+  const current = existing?.teacherNote || '';
+  openObjModal({
+    title: current ? `Edit your note on draft ${draftNumber}` : `Note on draft ${draftNumber}`,
+    subtitle: 'The student sees this beside their snapshot — your read next to the auditor\'s. Clearing it removes the note.',
+    bodyHtml: `<label for="submission-note-input">Your note</label>
+      <textarea id="submission-note-input" rows="5" placeholder="What you noticed, and what you'd like them to try next.">${esc(current)}</textarea>`,
+    confirmLabel: current ? 'Save note' : 'Add note',
+    focusId: 'submission-note-input',
+    onConfirm: async () => {
+      const text = document.getElementById('submission-note-input').value;
+      await api(`/api/submissions/${subId}/note`, { method: 'POST', body: { text } });
+      // Patched in place as well as refetched: /api/teacher/dashboard takes
+      // real seconds, and the row should show the note the moment it's saved.
+      if (existing) existing.teacherNote = text.trim() || null;
+      renderContent();
+      await loadDashboardData();
+      render();
+    },
+  });
+}
+
+function openGrantReplies(sid) {
+  const s = STUDENTS.find(x => x.id === sid);
+  if (!s) return;
+  openObjModal({
+    title: `Grant ${s.name} extra replies`,
+    subtitle: 'Applies to today only — nothing carries overnight, and a second grant stacks on the first.',
+    bodyHtml: `<label for="grant-replies-input">Extra replies</label>
+      <input type="number" id="grant-replies-input" value="20" min="1" max="200" style="max-width:120px">`,
+    confirmLabel: 'Grant replies',
+    focusId: 'grant-replies-input',
+    onConfirm: async () => {
+      const extraReplies = parseInt(document.getElementById('grant-replies-input').value, 10);
+      if (!extraReplies || extraReplies < 1) throw new Error('Enter how many extra replies to grant.');
+      await api(`/api/teacher/students/${sid}/grant-replies`, { method: 'POST', body: { extraReplies } });
+    },
+  });
 }
 
 // ── New-assignment / Edit-assignment modal ───────────────────────────────────
@@ -4258,14 +4986,23 @@ function toggleAllAssignClasses() {
 // header's own + New assignment button) doesn't inherit a stale scope.
 let pendingAssignClassIds = null;
 
-function openNewAssignmentModal() {
+// `preselect` is an array of class ids — the scoped twin of this door. From
+// the header it opens with every class checked and the teacher narrows it;
+// from a class's own action menu it opens with just that class, because the
+// question the checklist asks has already been answered by where they clicked.
+function openNewAssignmentModal(preselect) {
   logUse('dashboard', 'add-assignment');
   editingAssignmentId = null;
+  const scoped = preselect && preselect.length ? CLASSES.find(c => c.id === preselect[0]) : null;
   document.getElementById('new-assignment-title').textContent = 'New assignment';
-  document.getElementById('new-assignment-subtitle').textContent = 'Choose which classes get it — every student on them is assigned automatically, no roster to pick.';
+  document.getElementById('new-assignment-subtitle').textContent = scoped
+    ? `Goes to everyone on ${scoped.name}. Add more classes below if others are doing the same work.`
+    : 'Choose which classes get it — every student on them is assigned automatically, no roster to pick.';
   document.getElementById('new-assignment-submit-btn').textContent = 'Create assignment';
   document.getElementById('newAssignmentForm').reset();
-  renderAssignClassChecklist(pendingAssignClassIds);
+  resetModalView('new-assignment');
+  clearAssignFormErrors();
+  renderAssignClassChecklist(preselect || pendingAssignClassIds);
   pendingAssignClassIds = null;
   naDraftDatesDirty = false;
   naSyncLevelSelects();
@@ -4285,6 +5022,8 @@ function openEditAssignmentModal(aid) {
   document.getElementById('new-assignment-submit-btn').textContent = 'Save changes';
   const form = document.getElementById('newAssignmentForm');
   form.reset();
+  resetModalView('new-assignment');
+  clearAssignFormErrors();
   renderAssignClassChecklist(a.classIds && a.classIds.length ? a.classIds : CLASSES.map(c => c.id));
   form.elements.title.value = a.name;
   form.elements.description.value = a.description || '';
@@ -4319,16 +5058,67 @@ document.getElementById('na-due-date').oninput = naApplyDueDateDefaults;
 document.getElementById('newAssignmentLevelSelects').addEventListener('input', (e) => {
   if (e.target.classList.contains('draft-due-input')) naDraftDatesDirty = true;
 });
+function clearAssignFormErrors() {
+  const box = document.getElementById('na-form-error');
+  if (box) { box.hidden = true; box.innerHTML = ''; }
+  document.querySelectorAll('#newAssignmentForm .field-invalid')
+    .forEach(el => el.classList.remove('field-invalid'));
+}
+
+// One message at a time, moved to sit directly under the field it names.
+//
+// It lived only at the submit button first, which read fine in the code and
+// failed in a browser: on a form this long, focusing the offending field
+// scrolled the message off-screen, leaving a highlighted box with no
+// explanation of what was wrong with it. Moving the single message is what
+// keeps "one error at a time" true while still putting it where the eye is.
+function assignFormError(message, focusEl) {
+  const box = document.getElementById('na-form-error');
+  box.innerHTML = `<span aria-hidden="true">!</span><span>${esc(message)}</span>`;
+  box.hidden = false;
+  if (focusEl) {
+    focusEl.insertAdjacentElement('afterend', box);
+    focusEl.classList.add('field-invalid');
+    focusEl.focus({ preventScroll: true });
+  } else {
+    // No field to blame — a server rejection. Back to the submit button.
+    document.getElementById('na-submit-row').insertAdjacentElement('beforebegin', box);
+  }
+  box.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
 document.getElementById('newAssignmentForm').onsubmit = async (e) => {
   e.preventDefault();
   const form = e.target;
+  clearAssignFormErrors();
   const classIds = [...document.querySelectorAll('#assign-class-checklist input[type=checkbox]:checked')].map(b => b.value);
-  if (!classIds.length) { alert('Choose at least one class — an assignment needs somewhere to go.'); return; }
-  if (!document.getElementById('na-due-date').value) { alert('Set a due date.'); return; }
-  const draftDueDates = [...document.getElementById('newAssignmentLevelSelects').querySelectorAll('.draft-due-input')].map(i => i.value);
-  if (draftDueDates.some(d => !d)) { alert('Set a due date for every draft — open "Customize schedule & coaching" to check them.'); return; }
+  if (!classIds.length) {
+    return assignFormError('Choose at least one class — an assignment needs somewhere to go.', document.getElementById('assign-class-checklist'));
+  }
+  // Checked in the order they appear on the form, so focus always moves
+  // forward down the page rather than jumping back past something valid.
+  const required = [
+    ['title', 'Give the assignment a title.'],
+    ['description', 'Describe what the task is — students see this.'],
+    ['purpose', 'Say why this matters. Students see this too, and it frames the work.'],
+    ['requirements', 'List what has to be included — length, format, sources.'],
+  ];
+  for (const [name, message] of required) {
+    const el = form.elements[name];
+    if (!(el.value || '').trim()) return assignFormError(message, el);
+  }
+  const dueEl = document.getElementById('na-due-date');
+  if (!dueEl.value) return assignFormError('Set a due date for the assignment.', dueEl);
+  const dueInputs = [...document.getElementById('newAssignmentLevelSelects').querySelectorAll('.draft-due-input')];
+  const draftDueDates = dueInputs.map(i => i.value);
+  const missingAt = draftDueDates.findIndex(d => !d);
+  if (missingAt !== -1) {
+    return assignFormError(`Draft ${missingAt + 1} has no due date — every draft needs one.`, dueInputs[missingAt]);
+  }
   for (let i = 1; i < draftDueDates.length; i++) {
-    if (draftDueDates[i] < draftDueDates[i - 1]) { alert('Draft due dates must be in order — each draft due on or after the previous one.'); return; }
+    if (draftDueDates[i] < draftDueDates[i - 1]) {
+      return assignFormError(`Draft ${i + 1} is due before draft ${i}. Each draft has to be due on or after the one before it.`, dueInputs[i]);
+    }
   }
   const body = {
     classIds,
@@ -4348,33 +5138,47 @@ document.getElementById('newAssignmentForm').onsubmit = async (e) => {
   // draft budget below a student's already-submitted count) only surfaces
   // server-side, past what the client-side checks above catch, so it needs
   // to be caught here rather than left as an unhandled rejection.
+  // The save is the slow part and the button is the only thing the teacher is
+  // looking at, so it says so rather than sitting inert.
+  const submitBtn = document.getElementById('new-assignment-submit-btn');
+  const submitLabel = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = wasCreate ? 'Creating…' : 'Saving…';
+  let saved;
   try {
-    await api(endpoint, { method: 'POST', body });
+    saved = await api(endpoint, { method: 'POST', body });
   } catch (err) {
-    alert(err.message || 'Could not save this assignment.');
-    return;
+    submitBtn.disabled = false;
+    submitBtn.textContent = submitLabel;
+    return assignFormError(err.message || 'Could not save this assignment.');
   }
-  closeNewAssignmentModal();
+  submitBtn.disabled = false;
+  submitBtn.textContent = submitLabel;
+
+  // Confirm before refetching, not after. /api/teacher/dashboard walks every
+  // student × assignment × submission and takes real seconds on a seeded
+  // install — long enough that confirming afterwards left the teacher looking
+  // at an unchanged form wondering whether the click registered.
+  const students = classIds.reduce((sum, id) => sum + ((CLASSES.find(c => c.id === id)?.studentIds || []).length), 0);
   if (wasCreate) {
-    const total = classIds.reduce((sum, id) => sum + ((CLASSES.find(c => c.id === id)?.studentIds || []).length), 0);
-    flashAssignToast(`✓ ${esc(body.title)} created — sent to ${total} student${total !== 1 ? 's' : ''} across ${classIds.length} class${classIds.length !== 1 ? 'es' : ''}.`);
+    modalSuccess('new-assignment', {
+      message: `<strong>${esc(body.title)}</strong> created — sent to ${students} student${students !== 1 ? 's' : ''} across ${classIds.length} class${classIds.length !== 1 ? 'es' : ''}.`,
+      actions: [
+        // The id comes from the create response, not from searching ASSIGNMENTS
+        // by name after a reload — two assignments can share a title.
+        saved && saved.id && { icon: 'description', title: 'Open the assignment', desc: 'Its schedule, goal and per-draft timeline', onClick: `closeNewAssignmentModal();gotoAssignment('${saved.id}')` },
+        // Single-quoted ids, not JSON.stringify — this lands inside a
+        // double-quoted onclick attribute, and JSON's double quotes would close it.
+        { icon: 'copy', title: 'Create another', desc: 'A fresh form, same classes still checked', onClick: `openNewAssignmentModal([${classIds.map(id => `'${id}'`).join(',')}])` },
+      ].filter(Boolean),
+      onDone: 'closeNewAssignmentModal()',
+    });
+  } else {
+    closeNewAssignmentModal();
   }
   await loadDashboardData();
   render();
 };
-
-function flashAssignToast(html) {
-  const wrap = document.getElementById('add-wrap');
-  const trig = document.getElementById('trig-manage');
-  const old = wrap.querySelector('.assign-toast');
-  if (old) old.remove();
-  const toast = document.createElement('div');
-  toast.className = 'assign-toast';
-  toast.innerHTML = html;
-  wrap.appendChild(toast);
-  trig.classList.add('btn-flash');
-  window.setTimeout(() => { toast.remove(); trig.classList.remove('btn-flash'); }, 3200);
-}
 
 // ── Class roster modal — view + remove only ─────────────────────────────────
 // Reached only from a class's own Class View ("Manage roster"). Creating a
@@ -4558,40 +5362,46 @@ async function submitRosterAdd(scope) {
   await loadDashboardData();
   renderContent();
   if (scope === 'roster') {
+    // The per-class roster modal shows the roster it just changed, so the
+    // updated list below *is* the confirmation — a success view that hid it
+    // would replace the evidence with a claim.
     refreshRosterModal();
     submit.disabled = true;
-  } else {
-    flashConfirm('add-students-confirm', `✓ ${added} student${added !== 1 ? 's' : ''} added — paste more, or close when done.`);
+    return;
   }
-}
-
-// ── Header menus (Manage / Account) ─────────────────────────────────────────
-// Two dropdowns, one open at a time. `toggleHeaderMenu` is the only entry
-// point — it closes whichever menu isn't the one being toggled, so opening
-// Account while Manage is open doesn't leave both on screen.
-
-const HEADER_MENUS = { manage: { trigger: 'trig-manage', panel: 'panel-manage' }, account: { trigger: 'trig-account', panel: 'panel-account' } };
-
-function closeAllHeaderMenus() {
-  Object.values(HEADER_MENUS).forEach(({ trigger, panel }) => {
-    document.getElementById(panel).hidden = true;
-    document.getElementById(trigger).setAttribute('aria-expanded', 'false');
+  const cls = CLASSES.find(c => c.id === classId);
+  modalSuccess('add-students', {
+    message: `${added} student${added !== 1 ? 's' : ''} added to <strong>${esc(cls ? cls.name : 'the class')}</strong>.`,
+    actions: [
+      { icon: 'description', title: 'Create an assignment', desc: `Goes to everyone on ${cls ? cls.name : 'this class'} automatically`, onClick: `closeAddStudentsModal();openNewAssignmentModal(['${classId}'])` },
+      { icon: 'personAdd', title: 'Add more students', desc: 'Same class, another paste', onClick: `openAddStudentsModal('${classId}')` },
+    ],
+    onDone: 'closeAddStudentsModal()',
   });
 }
 
+// ── Header menus (Manage / Account) ─────────────────────────────────────────
+// The "+ Add" picker now runs on the shared menu behaviour (api.js tauMenu),
+// which is what gave it arrow keys, Home/End, and an Escape that returns focus
+// to the trigger instead of stranding it. The account menu is a second
+// instance of the same thing, mounted by mountAccountChip, and tauMenu keeps
+// one open at a time across both.
+// Static markup can't call iconSVG() inline, so anything in this page's fixed
+// chrome declares which icon it wants and gets it filled in once here.
+document.querySelectorAll('[data-icon]').forEach((el) => { el.innerHTML = iconSVG(el.dataset.icon); });
+
+const addMenu = tauMenu(document.getElementById('trig-manage'), document.getElementById('panel-manage'));
+
+// Kept as the entry point the header's inline onclick attributes already call,
+// rather than editing every menu item to reach the instance directly.
 function toggleHeaderMenu(which, e) {
-  e.stopPropagation();
-  const { trigger, panel } = HEADER_MENUS[which];
-  const panelEl = document.getElementById(panel);
-  const willOpen = panelEl.hidden;
-  closeAllHeaderMenus();
-  panelEl.hidden = !willOpen;
-  document.getElementById(trigger).setAttribute('aria-expanded', String(willOpen));
+  if (e) e.stopPropagation();
+  if (which === 'manage') addMenu.toggle();
 }
 
-document.addEventListener('click', closeAllHeaderMenus);
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllHeaderMenus(); });
-document.querySelectorAll('.menu-panel').forEach((p) => p.addEventListener('click', (e) => e.stopPropagation()));
+function closeAllHeaderMenus() {
+  closeAllMenus();
+}
 
 function flashConfirm(elId, text) {
   const el = document.getElementById(elId);
@@ -4696,9 +5506,14 @@ function closeNewClassModal(e) {
   document.body.style.overflow = '';
 }
 
-function openAddStudentsModal() {
+// `classId` is the scoped twin of this same door: opened from the header it
+// asks which class, opened from a class's own action menu that question is
+// already answered. One modal, one submit path — the picker is the only
+// difference between the two entry points.
+function openAddStudentsModal(classId) {
   logUse('dashboard', 'add-students');
-  populateHeaderClassSelect();
+  resetModalView('add-students');
+  populateHeaderClassSelect(classId);
   document.getElementById('hdr-addstudent-roster-input').value = '';
   document.getElementById('hdr-addstudent-preview').hidden = true;
   document.getElementById('hdr-addstudent-preview').innerHTML = '';
@@ -4714,9 +5529,9 @@ function closeAddStudentsModal(e) {
   document.body.style.overflow = '';
 }
 
-function populateHeaderClassSelect() {
+function populateHeaderClassSelect(preselect) {
   const sel = document.getElementById('hdr-addstudent-class-select');
-  const prev = sel.value;
+  const prev = preselect || sel.value;
   sel.innerHTML = '<option value="">Choose a class…</option>'
     + CLASSES.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('')
     + '<option value="__new__">+ New class…</option>';
@@ -4871,12 +5686,18 @@ document.getElementById('roster-modal-close-btn').innerHTML = iconSVG('close');
 document.getElementById('new-class-close-btn').innerHTML = iconSVG('close');
 document.getElementById('add-students-close-btn').innerHTML = iconSVG('close');
 
-api('/api/me').then((me) => {
-  document.getElementById('whoami').textContent = me.displayName;
-  document.getElementById('whoami-name-full').textContent = me.displayName;
-  document.getElementById('whoami-email').textContent = me.email || '';
-  const initials = me.displayName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || '?';
-  document.getElementById('avatar-initials').textContent = initials;
+// One call, one component. Which destinations this account gets is decided in
+// api.js from the same payload, so no page has to know the rules.
+// "Worth a chat, explained" rides along as an extra: it is reference material
+// a teacher reads once, not a per-session action, so it no longer earns a
+// standing header button beside + Add.
+mountAccountChip(document.getElementById('accountChip'), {
+  extras: [{
+    icon: 'ⓘ',
+    label: 'Worth a chat, explained',
+    desc: 'What each signal means, and what it does not',
+    onClick: openFlagModal,
+  }],
 }).catch(() => {});
 
 loadDashboardData().then(render).catch((err) => {
