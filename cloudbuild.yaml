@@ -5,6 +5,17 @@
 # exactly one commit. That is the property the old `--source .` deploys did not
 # have: they uploaded the working directory, so a live revision could
 # correspond to no commit at all.
+#
+# This deploys to `tau-thinking-prod` — the real-users project, separate from
+# `cta-pilot-dev` since 2026-08-08. The build still *executes* in cta-pilot-dev,
+# because that is where the trigger's GitHub App connection lives; the image and
+# the service both land in prod. Moving the connection to prod needs a browser
+# OAuth step and is the one loose end here (app/README.md, Deployment).
+#
+# There is deliberately no demo data path in this file: the seed is opt-in via
+# SEED_DEMO, which is never set here. See app/server/seed.js. The staging
+# instance, which does seed demo data, is cloudbuild.staging.yaml — keep the
+# two in step when this service's env vars or flags change.
 
 steps:
   - id: build
@@ -36,12 +47,13 @@ steps:
       - cta
       - --image=${_IMAGE}:$COMMIT_SHA
       - --region=us-central1
-      - --service-account=cta-run@cta-pilot-dev.iam.gserviceaccount.com
-      - --set-env-vars=NODE_ENV=production,GCP_PROJECT_ID=cta-pilot-dev,GCP_LOCATION=global
+      - --project=tau-thinking-prod
+      - --service-account=cta-run@tau-thinking-prod.iam.gserviceaccount.com
+      - --set-env-vars=NODE_ENV=production,GCP_PROJECT_ID=tau-thinking-prod,GCP_LOCATION=global
       - --max-instances=20
 
 substitutions:
-  _IMAGE: us-central1-docker.pkg.dev/cta-pilot-dev/cta/cta
+  _IMAGE: us-central1-docker.pkg.dev/tau-thinking-prod/cta/cta
 
 images:
   - '${_IMAGE}:$COMMIT_SHA'

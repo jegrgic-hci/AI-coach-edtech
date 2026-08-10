@@ -1,0 +1,69 @@
+# Push-to-deploy for the STAGING service — the stakeholder-review instance.
+# Fires from the `deploy-staging` trigger on pushes to the `staging` branch.
+# The production counterpart is cloudbuild.yaml; keep the two in step when the
+# service's env vars or flags change.
+#
+# Everything here lands in `cta-pilot-dev`: image, service and store. That is
+# the whole point — a stakeholder clicking through this instance cannot reach a
+# real school's records, because they are in a different GCP project that this
+# service has no credentials for.
+#
+# NODE_ENV=staging, not production, and that is load-bearing in three places:
+# it lets the demo seed run (seed.js refuses under production), it turns on the
+# login page's test-account list (auth.js DEMO_MODE), and it makes
+# admin-created accounts use the shared dev password. SECURE_COOKIES=1 puts
+# back the one production behaviour that is about transport rather than
+# environment — this is served over HTTPS, so the session cookie needs Secure.
+#
+# SEED_ONCE=1 means the seed populates an empty store and then stops. Without
+# it every cold start would overwrite whatever a reviewer had changed on a
+# seeded record. To reset staging to a clean demo class, delete the Firestore
+# collections and redeploy.
+
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_IMAGE}:$COMMIT_SHA
+      - -t
+      - ${_IMAGE}:staging
+      - .
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: [push, --all-tags, '${_IMAGE}']
+
+  # Env vars are repeated in full because --set-env-vars replaces the whole set
+  # rather than merging. Dropping one here silently unconfigures the service.
+  #
+  # No --allow-unauthenticated either way: the service is already public by IAM
+  # policy (allUsers → run.invoker) so stakeholders can reach it without a
+  # Google account, and an ordinary deploy must not churn that.
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - cta
+      - --image=${_IMAGE}:$COMMIT_SHA
+      - --region=us-central1
+      - --project=cta-pilot-dev
+      - --service-account=cta-run@cta-pilot-dev.iam.gserviceaccount.com
+      - --set-env-vars=NODE_ENV=staging,SEED_DEMO=1,SEED_ONCE=1,SECURE_COOKIES=1,GCP_PROJECT_ID=cta-pilot-dev,GCP_LOCATION=global
+      # Lower than prod's 20: this instance exists for a handful of reviewers,
+      # and the ceiling is also the ceiling on a runaway Vertex bill.
+      - --max-instances=4
+
+substitutions:
+  _IMAGE: us-central1-docker.pkg.dev/cta-pilot-dev/cta/cta
+
+images:
+  - '${_IMAGE}:$COMMIT_SHA'
+  - '${_IMAGE}:staging'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8

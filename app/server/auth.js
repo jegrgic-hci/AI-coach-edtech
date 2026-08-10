@@ -15,6 +15,19 @@ const COOKIE = 'cta_session';
 const SESSION_DAYS = 7;
 const PRODUCTION = process.env.NODE_ENV === 'production';
 
+// Secure cookies are a property of the *transport*, not of the environment,
+// and staging conflates the two: it is served over HTTPS by Cloud Run but runs
+// NODE_ENV=staging so the demo seed is allowed to populate it. Without this
+// split it would issue session cookies without Secure over a public TLS
+// origin. Defaults to PRODUCTION, so nothing changes for prod or for localhost.
+const SECURE_COOKIES = PRODUCTION || process.env.SECURE_COOKIES === '1';
+
+// Whether this instance's store was populated by the demo seed. The login
+// page's test-account list is only truthful — and only safe to publish a shared
+// password for — when it was. Opt-in and never true in production, so a real
+// instance shows real users a plain sign-in form. See seed.js.
+const DEMO_MODE = process.env.SEED_DEMO === '1' && !PRODUCTION;
+
 // scrypt work factor. Node's default N is 2^14, which is below current
 // guidance; 2^16 costs ~100ms per verification here, which is nothing against
 // a login and a great deal against an offline cracker with the hash file.
@@ -190,11 +203,11 @@ async function authenticate(req) {
 // would silently ship a cookie that travels in the clear.
 function sessionCookie(token) {
   const maxAge = SESSION_DAYS * 86400;
-  return `${COOKIE}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}${PRODUCTION ? '; Secure' : ''}`;
+  return `${COOKIE}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}${SECURE_COOKIES ? '; Secure' : ''}`;
 }
 
 function clearedCookie() {
-  return `${COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${PRODUCTION ? '; Secure' : ''}`;
+  return `${COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${SECURE_COOKIES ? '; Secure' : ''}`;
 }
 
 // Every seeded and admin-created account shares one password in dev, which is
@@ -202,9 +215,15 @@ function clearedCookie() {
 // It is also the single worst thing that could reach production, so the value
 // is chosen here rather than passed in, and production gets a random one that
 // nobody can guess from having read this repo.
-function newTempPassword(devPassword) {
+//
+// It lives here rather than in seed-data.js (where it was until 2026-08-08)
+// because index.js needs it for admin-created accounts, and importing it from
+// seed-data meant every production process loaded the demo fixtures module.
+const DEV_PASSWORD = 'coach1234';
+
+function newTempPassword() {
   if (PRODUCTION) return crypto.randomBytes(12).toString('base64url');
-  return devPassword;
+  return DEV_PASSWORD;
 }
 
 function tokenFrom(req) {
@@ -222,4 +241,6 @@ module.exports = {
   clearedCookie,
   tokenFrom,
   PRODUCTION,
+  DEMO_MODE,
+  DEV_PASSWORD,
 };
