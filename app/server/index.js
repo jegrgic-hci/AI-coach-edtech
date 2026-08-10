@@ -1983,7 +1983,25 @@ async function handleApi(req, res, user, route) {
 
 // ---------- static ----------
 
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
+// .png was missing until 2026-08-10, so the logo and every favicon went out as
+// application/octet-stream and the browser had to sniff the bytes before it
+// would treat them as images.
+const MIME = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.ico': 'image/x-icon',
+  '.webp': 'image/webp',
+};
+
+// Nothing here is content-hashed, so a long max-age on markup or code would
+// mean a deploy that users keep missing. Images are the exception: they are
+// stable, and the fix for a changed one is to change its filename.
+function cacheControl(route) {
+  return route.startsWith('/assets/') ? 'public, max-age=604800' : 'no-cache';
+}
 
 // Pages are gated here rather than in the browser. Serving the shell to a
 // signed-out visitor and letting api.js correct it on the first 401 meant the
@@ -2020,7 +2038,10 @@ function serveStatic(req, res, route) {
     res.writeHead(404);
     return res.end('not found');
   }
-  res.writeHead(200, { 'Content-Type': MIME[path.extname(full)] || 'application/octet-stream' });
+  res.writeHead(200, {
+    'Content-Type': MIME[path.extname(full)] || 'application/octet-stream',
+    'Cache-Control': cacheControl(route),
+  });
   fs.createReadStream(full).pipe(res);
 }
 
