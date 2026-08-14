@@ -139,14 +139,8 @@
 .roster-search input:focus { outline: none; border-color: var(--tau-forest); }
 .roster-search-count { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); white-space: nowrap; }
 
-/* A checkbox row is not in components.css — .field stacks a label above a
-   control, which is the wrong axis for a tick box. Layout only, on tokens.
-   If a second surface needs one, promote this into the component layer rather
-   than copying it. */
-.field-check { display: flex; gap: var(--tau-s3); align-items: flex-start; }
-.field-check input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--tau-forest); flex-shrink: 0; }
-.field-check label { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); cursor: pointer; }
-.field-check .field-help { display: block; font-weight: 400; margin-top: 2px; }
+/* .field-check moved to components.css (2026-08-15) — dashboard.html's class
+   research-consent modal became its second surface. */
 
 .modal-card { width: min(460px, 100%); max-height: 90vh; overflow-y: auto; }
 .modal-title { font-size: var(--tau-text-xl); font-weight: 700; letter-spacing: -0.3px; }
@@ -230,6 +224,15 @@
       <input id="teacherSchoolAdmin" type="checkbox">
       <label for="teacherSchoolAdmin">School administrator
         <span class="field-help">Also adds, edits, and suspends teacher accounts for their school. Does not change what they see of student work.</span>
+      </label>
+    </div>
+    <!-- Same tier rule and the same reason for staying visible as the grant
+         above. Grant it only against a signed agreement: it lets this teacher
+         mark a class, and a marked class is work that can leave the product. -->
+    <div class="field-check hidden" id="researchEligibleField">
+      <input id="teacherResearchEligible" type="checkbox">
+      <label for="teacherResearchEligible">Research contributor
+        <span class="field-help">Can mark their own classes as contributing work to improving the measurement. Nothing is contributed until they mark a class.</span>
       </label>
     </div>
     <p class="form-error hidden" id="teacherError"></p>

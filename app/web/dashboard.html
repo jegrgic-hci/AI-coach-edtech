@@ -1333,6 +1333,9 @@ let ASSIGNMENTS = [], STUDENTS = [], CLASSES = [], SUBMISSIONS = {};
 // roster/rollup the server built from it) — they exist here only so the
 // sidebar can offer the way back out of archiving.
 let ARCHIVED_CLASSES = [];
+// What this teacher's own account is permitted to do, as opposed to what it
+// owns. Only grants that change which controls render belong here.
+let VIEWER = {};
 
 async function loadDashboardData() {
   const res = await fetch('/api/teacher/dashboard');
@@ -1343,6 +1346,7 @@ async function loadDashboardData() {
   STUDENTS    = data.students;
   CLASSES     = data.classes;
   ARCHIVED_CLASSES = data.archivedClasses || [];
+  VIEWER      = data.viewer || {};
   SUBMISSIONS = {};
   for (const [key, subs] of Object.entries(data.submissions)) {
     SUBMISSIONS[key] = subs.map(s => ({ ...s, ts: new Date(s.ts) }));
@@ -3263,6 +3267,14 @@ function renderClassDetail(cid) {
     openCount ? `${openCount} open` : 'all closed',
   ];
   if (totalFlags) metaParts.push(`<span style="color:var(--tau-caution)">Worth a chat</span>`);
+  // Plain text in the meta line, not a chip: rare here but not actionable, and
+  // enclosure is reserved for values that are both (designsystem.md, Hard
+  // Constraints). It states the date because the stamp covers the class from
+  // then on, and that is the fact a teacher would want to check.
+  if (cls.research) {
+    const since = new Date(cls.research.grantedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    metaParts.push(`Contributing to research since ${since}`);
+  }
 
   return `
     <div class="content-header">
@@ -4918,6 +4930,13 @@ function classActionRow(cls) {
         label: 'Manage',
         items: [
           { icon: 'edit', title: 'Rename class', onClick: `openRenameClass('${cls.id}')` },
+          // Absent entirely unless the account has been granted the research
+          // eligibility — a teacher with no agreement in place should never
+          // see a control that implies they can give this consent. The server
+          // refuses the field on the same rule.
+          VIEWER.researchEligible ? (cls.research
+            ? { icon: 'checklist', title: 'Stop contributing to research', desc: 'Work already exported is unaffected', onClick: `openResearchClass('${cls.id}')` }
+            : { icon: 'checklist', title: 'Contribute to research', desc: 'Lets this class’s work improve the measurement', onClick: `openResearchClass('${cls.id}')` }) : null,
           { icon: 'archive', title: 'Archive class', desc: 'Keeps its records, clears it from the sidebar', onClick: `openArchiveClass('${cls.id}')` },
         ],
       },
@@ -4967,6 +4986,10 @@ function openObjModal({ title, subtitle = '', bodyHtml = '', confirmLabel, dange
   const btn = document.getElementById('obj-modal-confirm');
   btn.textContent = confirmLabel;
   btn.classList.toggle('btn-danger', danger);
+  // The button is shared across every modal this opens, and a caller can leave
+  // it disabled (the research attestation does, until it is ticked). Without
+  // this reset, dismissing that modal leaves the next one unconfirmable.
+  btn.disabled = false;
   objModalConfirm = onConfirm;
   clearObjModalError();
   document.getElementById('obj-modal-overlay').classList.add('open');
@@ -5046,6 +5069,63 @@ function openRenameClass(cid) {
       render();
     },
   });
+}
+
+// Research consent, on and off through one modal because the two directions
+// are the same decision read in opposite states.
+//
+// Turning it on is gated behind an explicit attestation rather than a bare
+// confirm button. The tick is not a preference — it is the teacher stating
+// that an agreement exists, and the confirm button stays disabled until they
+// make that statement, so the click that grants consent can never be the
+// reflexive one (per interaction-ux.md: prevent the error before submit, don't
+// validate it afterwards).
+//
+// The stamp covers the class as it stands, work already done included, which
+// is why the modal says so rather than leaving it to be discovered.
+function openResearchClass(cid) {
+  const cls = CLASSES.find(c => c.id === cid);
+  if (!cls) return;
+  const on = !!cls.research;
+
+  if (on) {
+    openObjModal({
+      title: `Stop contributing ${cls.name}?`,
+      subtitle: 'New work from this class stops being available for the measurement. Anything already exported is unaffected — withdrawing here does not reach back into a copy that has left.',
+      confirmLabel: 'Stop contributing',
+      onConfirm: async () => {
+        await api(`/api/classes/${cid}/edit`, { method: 'POST', body: { research: false } });
+        await loadDashboardData();
+        render();
+      },
+    });
+    return;
+  }
+
+  openObjModal({
+    title: `Contribute ${cls.name} to research`,
+    subtitle: 'Chat transcripts, essays and the assignment from this class become available to improve how the measurement works. Names are removed before anything leaves. This covers the class as it stands — work already done as well as work still to come.',
+    bodyHtml: `<div class="field-check">
+      <input type="checkbox" id="research-attest">
+      <label for="research-attest">Everyone in this class has agreed their work can be used this way
+        <span class="field-help">You can withdraw this at any time from the same menu.</span>
+      </label>
+    </div>`,
+    confirmLabel: 'Contribute this class',
+    onConfirm: async () => {
+      await api(`/api/classes/${cid}/edit`, { method: 'POST', body: { research: true } });
+      await loadDashboardData();
+      render();
+    },
+  });
+
+  // openObjModal has no gating hook, so the coupling is wired here against the
+  // body it just mounted.
+  const attest = document.getElementById('research-attest');
+  const confirm = document.getElementById('obj-modal-confirm');
+  confirm.disabled = true;
+  attest.addEventListener('change', () => { confirm.disabled = !attest.checked; });
+  attest.focus();
 }
 
 function openArchiveClass(cid) {

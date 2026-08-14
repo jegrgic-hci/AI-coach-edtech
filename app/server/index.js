@@ -1390,6 +1390,11 @@ async function handleApi(req, res, user, route) {
         neverSignedIn: !t.passwordSetAt,
         lastSend: sendSummary(t.id),
         schoolAdmin: t.schoolAdmin === true,
+        researchEligible: t.researchEligible === true,
+        // How many of this teacher's classes have actually been marked. The
+        // grant alone says nothing arrived — the teacher still has to tick the
+        // class — and without this the two are indistinguishable from here.
+        researchClassCount: classes.filter((c) => c.research).length,
         classCount: classes.length,
         studentCount: new Set(classes.flatMap((c) => c.studentIds || [])).size,
         assignmentCount: allAssignments.filter((a) => a.teacherId === t.id).length,
@@ -1476,6 +1481,11 @@ async function handleApi(req, res, user, route) {
       // administrator adds teachers; letting them mint peers would make the
       // grant self-propagating, so the tier that can create a tier is fixed.
       schoolAdmin: isPlatformAdmin(user) && body.schoolAdmin === true,
+      // Same tier rule, different reason: this one records that we hold a
+      // signed agreement with this person, so it can only be set by the tier
+      // that holds the agreement. It authorises nothing on its own — it makes
+      // the per-class consent control appear. See the class edit route.
+      researchEligible: isPlatformAdmin(user) && body.researchEligible === true,
       // Stays 'active'. "Invited but not signed in yet" is derived from the
       // absence of passwordSetAt, not from a third status value — a new status
       // would have to be understood by isSuspended(), the two status toggles,
@@ -1485,7 +1495,10 @@ async function handleApi(req, res, user, route) {
       createdAt: now(),
     });
     const sent = await sendInvite(teacher, user);
-    await recordAdminEvent(user, 'create', teacher, teacher.schoolAdmin ? 'teacher + school administrator' : 'teacher');
+    const grants = ['teacher'];
+    if (teacher.schoolAdmin) grants.push('school administrator');
+    if (teacher.researchEligible) grants.push('research contributor');
+    await recordAdminEvent(user, 'create', teacher, grants.join(' + '));
     if (!sent.accepted) await recordAdminEvent(user, 'invite-failed', teacher, sent.failureReason);
     return json(res, 200, {
       id: teacher.id, email, displayName,
@@ -1514,11 +1527,25 @@ async function handleApi(req, res, user, route) {
       // Same rule as creation: the grant is only editable by the tier above it,
       // and a school administrator editing a teacher must not be able to
       // silently promote them (or themselves) by replaying this field.
-      if (isPlatformAdmin(user)) patch.schoolAdmin = body.schoolAdmin === true;
+      if (isPlatformAdmin(user)) {
+        patch.schoolAdmin = body.schoolAdmin === true;
+        patch.researchEligible = body.researchEligible === true;
+      }
       await col('users').update(teacher.id, patch);
-      const grantChanged = isPlatformAdmin(user) && patch.schoolAdmin !== (teacher.schoolAdmin === true);
-      await recordAdminEvent(user, 'edit', { ...teacher, displayName },
-        grantChanged ? (patch.schoolAdmin ? 'granted school administrator' : 'revoked school administrator') : null);
+      // Both grants are named in the audit line rather than folded into a
+      // generic "edited": which permissions an account holds is the part of an
+      // edit that has to be reconstructable later, and the research one is the
+      // record that a consent agreement was in place on a given date.
+      const grantChanges = [];
+      if (isPlatformAdmin(user)) {
+        if (patch.schoolAdmin !== (teacher.schoolAdmin === true)) {
+          grantChanges.push(patch.schoolAdmin ? 'granted school administrator' : 'revoked school administrator');
+        }
+        if (patch.researchEligible !== (teacher.researchEligible === true)) {
+          grantChanges.push(patch.researchEligible ? 'granted research contributor' : 'revoked research contributor');
+        }
+      }
+      await recordAdminEvent(user, 'edit', { ...teacher, displayName }, grantChanges.join('; ') || null);
       return json(res, 200, { ok: true });
     }
 
@@ -1738,6 +1765,21 @@ async function handleApi(req, res, user, route) {
       patch.name = name;
     }
     if (typeof body.archived === 'boolean') patch.archived = body.archived;
+    // Research consent. Stored as a stamp rather than a boolean because the
+    // exporter has to be able to tell work that predates the agreement from
+    // work that followed it — a bare true loses the date, and the date is the
+    // only thing that makes "this class, all of it" a decision someone made
+    // rather than an assumption. Granting requires the platform-level
+    // researchEligible grant on the teacher; revoking never does, so consent
+    // can always be withdrawn even after the eligibility is taken away.
+    if (typeof body.research === 'boolean') {
+      if (body.research && user.researchEligible !== true) {
+        return json(res, 403, { error: 'this account is not set up to contribute work to research' });
+      }
+      patch.research = body.research
+        ? { grantedAt: now(), grantedBy: user.id, grantedByName: user.displayName }
+        : null;
+    }
     if (!Object.keys(patch).length) return json(res, 400, { error: 'nothing to change' });
     await col('classes').update(classDoc.id, patch);
     return json(res, 200, await col('classes').get(classDoc.id));
@@ -1990,7 +2032,15 @@ async function handleApi(req, res, user, route) {
         email: s.email,
         initials: s.displayName.split(' ').map((p) => p[0]).join(''),
       })),
-      classes: classes.map((c) => ({ id: c.id, name: c.name, studentIds: c.studentIds })),
+      classes: classes.map((c) => ({
+        id: c.id, name: c.name, studentIds: c.studentIds,
+        research: c.research || null,
+      })),
+      // The dashboard needs to know whether to offer the consent control at
+      // all. The server refuses the field regardless (see /api/classes/:id/
+      // edit) — this stops the menu from implying a teacher can do something
+      // no agreement covers.
+      viewer: { researchEligible: user.researchEligible === true },
       // Sent separately from `classes`, never merged into it: everything on
       // this page derives rosters and rollups from that list, and an archived
       // class appearing there would put a finished term back into every count.
