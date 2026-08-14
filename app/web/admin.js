@@ -197,14 +197,14 @@ function renderStatus() {
 
   const rate = s.llm.errorRate24h;
   const modelLine = s.llm.calls24h === 0
-    ? 'No model calls in the last 24 hours — nobody has used the coach today.'
+    ? 'No model calls in the last 24 hours — nobody has used the chat today.'
     : `${plural(s.llm.calls24h, 'model call', 'model calls')} in the last 24 hours, ${
         s.llm.failures24h === 0 ? 'none failed' : `${s.llm.failures24h} failed (${Math.round(rate * 100)}%)`}.${
         s.llm.lastFailureAt ? ` Last failure ${relativeTime(s.llm.lastFailureAt)}${s.llm.lastFailureCode ? ` (HTTP ${s.llm.lastFailureCode})` : ''}.` : ''}`;
 
   const capLine = s.caps.activeToday === 0
-    ? 'No students have used the coach today.'
-    : `${plural(s.caps.activeToday, 'student has', 'students have')} used the coach today. ${
+    ? 'No students have used the chat today.'
+    : `${plural(s.caps.activeToday, 'student has', 'students have')} used the chat today. ${
         s.caps.atSoftCap ? `${s.caps.atSoftCap} reached the ${s.caps.softLimit}-reply daily limit` : `None reached the ${s.caps.softLimit}-reply daily limit`}${
         s.caps.nearSoftCap ? `, ${s.caps.nearSoftCap} are close to it` : ''}. ${
         s.caps.atHardCap ? `${plural(s.caps.atHardCap, 'student has', 'students have')} hit the hard token limit — that should not happen in normal use and usually means a loop.` : ''}`;
@@ -389,7 +389,7 @@ function renderCost() {
     : `${money(c.last7Usd)} in the last 7 days, against ${money(c.prior7Usd)} the 7 before — ${
         Math.abs(delta) < 0.01 ? 'flat' : delta > 0 ? `up ${money(delta)}` : `down ${money(-delta)}`}.`;
 
-  const kindLabel = { chat: 'Coach chat', analysis: 'Draft analysis' };
+  const kindLabel = { chat: 'AI chat', analysis: 'Draft analysis' };
   const split = c.byKind.map((k) => `<span class="cost-split-item">${esc(kindLabel[k.key] || k.key)}
     <span class="cost-split-value">${money(k.usd)}</span> · ${plural(k.calls, 'call', 'calls')}</span>`).join('');
 
@@ -401,8 +401,8 @@ function renderCost() {
       figure: c.perStudent ? money(c.perStudent.median) : '—',
       label: 'Median per student',
       note: c.perStudent
-        ? `Across ${plural(c.perStudent.students, 'student', 'students')} who have used the coach. Costliest is ${money(c.perStudent.max)}.`
-        : 'Fills in once students start using the coach.',
+        ? `Across ${plural(c.perStudent.students, 'student', 'students')} who have used the chat. Costliest is ${money(c.perStudent.max)}.`
+        : 'Fills in once students start using the chat.',
     },
     { figure: compactTokens(c.inputTokens), label: 'Input tokens', note: 'Chat resends the whole conversation each turn, so this grows faster than reply count does.' },
     { figure: compactTokens(c.outputTokens), label: 'Output tokens', note: 'Includes thinking tokens, which bill as output.' },
@@ -530,7 +530,7 @@ function renderPatterns() {
     {
       figure: p.conversationsPerDraft ?? '—',
       label: 'Conversations per draft',
-      note: 'Median. One long thread rather than several focused ones is the pattern the coach was designed to break.',
+      note: 'Median. One long thread rather than several focused ones means less separation between lines of thinking.',
     },
     {
       figure: p.studentTurnsPerConversation ?? '—',

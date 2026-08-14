@@ -7,6 +7,10 @@
 
 const { col } = require('./store');
 const { complete } = require('./llm');
+// Lives under web/ because the student report loads it as a plain <script>
+// and a browser cannot require a server module. Pure, no I/O — see the header
+// there for why there is exactly one copy of it.
+const { detectPatterns } = require('../web/patterns-core');
 
 const CLASSIFY_CHUNK_SIZE = 20;
 const AI_TURN_MAX_CHARS = 400;
@@ -15,7 +19,7 @@ const AI_TURN_MAX_CHARS = 400;
 
 // One flat, chronological turn list across all cycle conversations.
 // Meta-turns (auditor) and superseded turns are excluded — same rule the
-// coach context uses. Conversation boundaries kept for enrichment.
+// chat context uses. Conversation boundaries kept for enrichment.
 async function gatherCycle(session) {
   const conversations = (await col('conversations').list({ sessionId: session.id }))
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -35,7 +39,7 @@ async function gatherCycle(session) {
 
 const CLASSIFY_PROMPT = (listed) => `Classify each student turn from an AI-assisted writing session.
 
-Each item shows what the coach said immediately before, then the student turn to classify.
+Each item shows what the AI said immediately before, then the student turn to classify.
 
 Labels and what they mean:
 - claim: student asserts their own position, thesis, or argument
@@ -50,11 +54,11 @@ Labels and what they mean:
 - challenge: student probes AI reasoning, asks for evidence or justification
 - pivot: student explicitly shifts to a new topic
 
-Also judge "responsive" for each turn: does the student engage with the substance of what the coach just said — answering it, building on it, disagreeing with it, or deliberately redirecting it?
+Also judge "responsive" for each turn: does the student engage with the substance of what the AI just said — answering it, building on it, disagreeing with it, or deliberately redirecting it?
 
-- Judge meaning, not wording. A student who restates the coach's point in their own words IS responsive. A student who reuses the coach's vocabulary while ignoring what it was for is NOT.
-- A turn that ignores the coach's turn and starts somewhere unrelated is not responsive.
-- If the item shows no preceding coach turn, responsive is false.
+- Judge meaning, not wording. A student who restates the AI's point in their own words IS responsive. A student who reuses the AI's vocabulary while ignoring what it was for is NOT.
+- A turn that ignores the AI's turn and starts somewhere unrelated is not responsive.
+- If the item shows no preceding AI turn, responsive is false.
 
 Turns to classify:
 ${listed}
@@ -93,7 +97,7 @@ function extractJSON(raw, kind) {
   throw new Error(`Truncated JSON ${kind} in LLM response`);
 }
 
-// Student turns paired with the coach turn they follow, in the same order
+// Student turns paired with the AI turn they follow, in the same order
 // enrich() walks them so turnIndex lines up. Responsiveness cannot be judged
 // without this pairing — the classifier used to see student turns alone, which
 // is why the signal fell back to a lexical guess.
@@ -120,8 +124,8 @@ async function classifyStudentTurns(paired, meta) {
       const listed = items
         .map(({ turn, priorCoach }, i) => {
           const context = priorCoach
-            ? `COACH: ${priorCoach.slice(0, AI_TURN_MAX_CHARS)}${priorCoach.length > AI_TURN_MAX_CHARS ? '…' : ''}`
-            : 'COACH: (nothing — this turn opens the conversation)';
+            ? `AI: ${priorCoach.slice(0, AI_TURN_MAX_CHARS)}${priorCoach.length > AI_TURN_MAX_CHARS ? '…' : ''}`
+            : 'AI: (nothing — this turn opens the conversation)';
           return `[${offset + i}]\n${context}\nSTUDENT: ${turn.text}`;
         })
         .join('\n\n');
@@ -143,12 +147,12 @@ async function classifyStudentTurns(paired, meta) {
 
 // Responsiveness is the classifier's judgement (see CLASSIFY_PROMPT). It used
 // to be a lexical test — turn-initial discourse markers, or ≥2 shared words
-// longer than 5 characters with the prior coach turn — which measured whether a
-// student echoed the coach's vocabulary, the opposite of what PQ is specified
+// longer than 5 characters with the prior AI turn — which measured whether a
+// student echoed the AI's vocabulary, the opposite of what PQ is specified
 // to measure. Paraphrasing scored lower than parroting. Measured on the seed
 // transcripts 2026-08-05, it fired on 0 of 12 turns for two of the four tiers.
 //
-// These four labels are *definitionally* about the coach's previous turn — you
+// These four labels are *definitionally* about the AI's previous turn — you
 // cannot reject, refine, validate or challenge nothing. They stand in when no
 // classifier judgement is available, which is the dev seed's path: it builds
 // demo analyses from hand-labeled transcripts without an LLM call. The fallback
@@ -355,7 +359,7 @@ function scoreTAU(classified, provenanceData) {
 
 // ---------- narrative snapshot ----------
 
-const SNAPSHOT_PROMPT = ({ transcript, tau, nextLevelLabel }) => `A student just submitted an essay draft after working with an AI writing coach. Write their process feedback — about HOW they worked with the AI, never about essay quality.
+const SNAPSHOT_PROMPT = ({ transcript, tau }) => `A student just submitted an essay draft after working with an AI assistant. Write their process feedback — about HOW they worked with the AI, never about essay quality.
 
 THEIR CONVERSATIONS THIS CYCLE:
 ${transcript || '(the student did not use the AI chat this cycle)'}
@@ -366,17 +370,17 @@ Return ONLY valid JSON:
 {
   "strengths": [{"quote": "short verbatim quote from a student turn", "note": "one sentence on why this was a strong move"}],
   "growthMoves": ["one concrete behavior to try next draft"],
-  "bridge": "one or two sentences preparing them for the next cycle${nextLevelLabel ? ` where the coach will be in ${nextLevelLabel} mode` : ''}"
+  "bridge": "one or two sentences preparing them for the next cycle"
 }
 
-Rules: 2-3 strengths (fewer if the conversation was very short), 1-2 growth moves. Quotes must be real student turns, not coach turns. Warm, direct, specific. Never mention grades or essay quality.`;
+Rules: 2-3 strengths (fewer if the conversation was very short), 1-2 growth moves. Quotes must be real student turns, not AI turns. Warm, direct, specific. Never mention grades or essay quality.`;
 
-async function generateSnapshot({ classified, tau, nextLevelLabel, meta }) {
+async function generateSnapshot({ classified, tau, meta }) {
   const transcript = classified
-    .map((t) => `${t.role === 'student' ? 'Student' : 'Coach'}: ${t.text.slice(0, 300)}`)
+    .map((t) => `${t.role === 'student' ? 'Student' : 'AI'}: ${t.text.slice(0, 300)}`)
     .join('\n');
   const raw = await complete({
-    messages: [{ role: 'user', content: SNAPSHOT_PROMPT({ transcript, tau, nextLevelLabel }) }],
+    messages: [{ role: 'user', content: SNAPSHOT_PROMPT({ transcript, tau }) }],
     temperature: 0.4,
     json: true,
     meta: { ...meta, purpose: 'snapshot' },
@@ -387,12 +391,9 @@ async function generateSnapshot({ classified, tau, nextLevelLabel, meta }) {
 
 // ---------- orchestrator ----------
 
-const LEVEL_LABELS = { full: 'full coach', questions: 'questions-only', 'sounding-board': 'sounding board' };
-
 async function runAnalysis(submissionId) {
   const submission = await col('submissions').get(submissionId);
   const session = await col('sessions').get(submission.sessionId);
-  const assignment = await col('assignments').get(submission.assignmentId);
 
   const analysis = await col('analyses').add({
     submissionId,
@@ -419,13 +420,13 @@ async function runAnalysis(submissionId) {
     const { concepts, flags } = await traceProvenance(classified, submission.essayText, meta);
     const tau = scoreTAU(classified, concepts);
 
-    const nextLevel = assignment.coachingLevels[session.cycleIndex + 1];
-    const snapshot = await generateSnapshot({
-      classified,
-      tau,
-      nextLevelLabel: nextLevel ? LEVEL_LABELS[nextLevel] : null,
-      meta,
-    });
+    // Pure and free — no LLM call, no extra latency. Stored rather than
+    // recomputed per render so the teacher surfaces can aggregate across
+    // students without shipping every transcript to the browser, which is
+    // what kept these patterns student-only until now.
+    const patterns = detectPatterns(classified);
+
+    const snapshot = await generateSnapshot({ classified, tau, meta });
 
     // Cycle activity from the event log — stored for display/teacher view;
     // not folded into scoring yet (parity with the CTA formulas).
@@ -443,8 +444,8 @@ async function runAnalysis(submissionId) {
       // Full text kept — the report renderers (turn list, chart tooltips,
       // turn modal) display it.
       classified,
+      patterns,
       eventCounts,
-      coachingLevel: session.coachingLevel,
       completedAt: new Date().toISOString(),
     });
   } catch (err) {
@@ -457,4 +458,6 @@ async function runAnalysis(submissionId) {
 // enrich + scoreTAU are exported for the dev seed, which builds demo analyses
 // from hand-labeled transcripts without LLM calls. Deriving the scores rather
 // than hardcoding them keeps seeded data honest if the formulas change.
-module.exports = { runAnalysis, enrich, scoreTAU };
+// detectPatterns is re-exported so the seed and any backfill get it from the
+// same place runAnalysis does, rather than reaching into web/ themselves.
+module.exports = { runAnalysis, enrich, scoreTAU, detectPatterns };

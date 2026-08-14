@@ -151,16 +151,11 @@ const TURN_VALUE = {
   stuck:      -2,
 };
 
-function getAILabelBefore(studentIdx, classified) {
-  const studentTurns = classified.filter(t => t.role === "student");
-  if (studentIdx >= studentTurns.length) return null;
-  const target = studentTurns[studentIdx];
-  const pos    = classified.indexOf(target);
-  for (let i = pos - 1; i >= 0; i--) {
-    if (classified[i].role === "ai") return classified[i].label || "content";
-  }
-  return null;
-}
+// getAILabelBefore and detectPatterns moved to patterns-core.js (2026-08-14)
+// and arrive as globals from the <script> tag ahead of this one. They left
+// because the server needs them too — the teacher dashboard was never able to
+// see a pattern while detection ran only in this file, at render time.
+// Everything below still calls them exactly as before.
 
 // Same walk-back as getAILabelBefore, returning the turn itself — used to
 // check whether the specific AI content a student pushed back on ever shows
@@ -174,149 +169,6 @@ function getAITurnBefore(studentIdx, classified) {
     if (classified[i].role === "ai") return classified[i];
   }
   return null;
-}
-
-function detectPatterns(classified) {
-  const student  = classified.filter(t => t.role === "student");
-  const labels   = student.map(t => t.label || "extraction");
-  const aiLabels = student.map((_, i) => getAILabelBefore(i, classified));
-  const n = labels.length;
-  const patterns = [];
-
-  const HIGH_LABELS    = new Set(["claim", "refinement", "challenge", "rejection"]);
-  const PASSIVE_LABELS = new Set(["extraction", "validation", "stuck"]);
-
-  // High agency: challenge arc (2+ consecutive challenges)
-  for (let i = 0; i < n - 1; i++) {
-    if (labels[i] === "challenge" && labels[i + 1] === "challenge") {
-      let end = i + 1;
-      while (end + 1 < n && labels[end + 1] === "challenge") end++;
-      patterns.push({ start: i, end, id: "challenge-arc", label: "Challenge Arc", tier: "high" });
-      i = end;
-    }
-  }
-
-  // High agency: rejection → redirect
-  for (let i = 0; i < n - 1; i++) {
-    if (labels[i] === "rejection" && labels[i + 1] === "refinement") {
-      patterns.push({ start: i, end: i + 1, id: "rejection-redirect", label: "Rejection → Redirect", tier: "high" });
-    }
-  }
-
-  // High agency: claim-support cycle (claim → conceptual → extraction → claim)
-  for (let i = 0; i < n - 3; i++) {
-    if (labels[i] === "claim" && labels[i+1] === "conceptual" && labels[i+2] === "extraction" && labels[i+3] === "claim") {
-      patterns.push({ start: i, end: i + 3, id: "claim-support", label: "Claim-Support Cycle", tier: "high" });
-    }
-  }
-
-  // High agency (AI-enhanced): student challenged/rejected/refined directly after an AI argument
-  for (let i = 0; i < n; i++) {
-    if (HIGH_LABELS.has(labels[i]) && aiLabels[i] === "argument") {
-      let end = i;
-      while (end + 1 < n && HIGH_LABELS.has(labels[end + 1]) && aiLabels[end + 1] === "argument") end++;
-      if (end > i || aiLabels[i] === "argument") {
-        patterns.push({ start: i, end, id: "argument-engaged", label: "Argument Engaged", tier: "high" });
-        i = end;
-      }
-    }
-  }
-
-  // Medium → High (AI-enhanced): extraction with landing — elevate to high if AI was arguing
-  for (let i = 0; i < n - 1; i++) {
-    if (labels[i] === "extraction" && HIGH_LABELS.has(labels[i + 1])) {
-      const tier = aiLabels[i] === "argument" ? "high" : "medium";
-      patterns.push({ start: i, end: i + 1, id: "extraction-landing", label: "Extraction → Insight", tier });
-    }
-  }
-
-  // Low: extraction loop (3+ consecutive extractions)
-  for (let i = 0; i < n - 2; i++) {
-    if (labels[i] === "extraction" && labels[i+1] === "extraction" && labels[i+2] === "extraction") {
-      let end = i + 2;
-      while (end + 1 < n && labels[end + 1] === "extraction") end++;
-      patterns.push({ start: i, end, id: "extraction-loop", label: "Extraction Loop", tier: "low" });
-      i = end;
-    }
-  }
-
-  // Low: validation spiral (extraction/validation alternating 4+ turns)
-  for (let i = 0; i < n - 3; i++) {
-    const EV = new Set(["extraction", "validation"]);
-    if (EV.has(labels[i]) && EV.has(labels[i+1]) && labels[i] !== labels[i+1]) {
-      let end = i + 1;
-      while (end + 1 < n && EV.has(labels[end + 1])) end++;
-      if (end - i >= 3) {
-        patterns.push({ start: i, end, id: "validation-spiral", label: "Validation Spiral", tier: "low" });
-        i = end;
-      }
-    }
-  }
-
-  // Low: helplessness loop (stuck followed by extraction/stuck sequence)
-  for (let i = 0; i < n - 1; i++) {
-    if (labels[i] === "stuck") {
-      let end = i;
-      while (end + 1 < n && (labels[end + 1] === "stuck" || labels[end + 1] === "extraction")) end++;
-      if (end > i) {
-        patterns.push({ start: i, end, id: "helplessness-loop", label: "Helplessness Loop", tier: "low" });
-        i = end;
-      }
-    }
-  }
-
-  // Low: flitting (3+ pivots with no substantive turns between)
-  for (let i = 0; i < n; i++) {
-    if (labels[i] === "pivot") {
-      let pivotCount = 1, end = i;
-      while (end + 1 < n && !HIGH_LABELS.has(labels[end + 1]) && labels[end + 1] !== "conceptual") {
-        end++;
-        if (labels[end] === "pivot") pivotCount++;
-      }
-      if (pivotCount >= 3) {
-        patterns.push({ start: i, end, id: "flitting", label: "Flitting", tier: "low" });
-        i = end;
-      }
-    }
-  }
-
-  // Low (AI-enhanced): student was passive while AI was arguing (3+ consecutive missed arguments)
-  for (let i = 0; i < n - 2; i++) {
-    if (PASSIVE_LABELS.has(labels[i]) && aiLabels[i] === "argument") {
-      let end = i;
-      while (end + 1 < n && PASSIVE_LABELS.has(labels[end + 1]) && aiLabels[end + 1] === "argument") end++;
-      if (end - i >= 2) {
-        patterns.push({ start: i, end, id: "missed-argument", label: "Missed Argument", tier: "low" });
-        i = end;
-      }
-    }
-  }
-
-  // Interaction moments (single-turn, keyed on the AI turn that set up the choice).
-  // The AI turn and the student's response carry opposite meanings depending on
-  // each other, so these can only be read from the two-sided record.
-  const ENGAGED_RESP = new Set(["challenge", "rejection", "refinement"]);
-  const FOLD_RESP    = new Set(["validation", "extraction"]);
-  for (let i = 0; i < n; i++) {
-    // Pushback moment: the AI corrected or disagreed with the student
-    if (aiLabels[i] === "correction") {
-      if (ENGAGED_RESP.has(labels[i])) {
-        patterns.push({ start: i, end: i, id: "correction-held", label: "Held Ground", tier: "high" });
-      } else if (FOLD_RESP.has(labels[i])) {
-        patterns.push({ start: i, end: i, id: "capitulation", label: "Capitulation", tier: "low" });
-      }
-    }
-    // Assertion moment: the AI stated a definition/fact as established
-    if (aiLabels[i] === "definition") {
-      if (labels[i] === "challenge" || labels[i] === "rejection") {
-        patterns.push({ start: i, end: i, id: "assertion-questioned", label: "Questioned Assertion", tier: "high" });
-      } else if (FOLD_RESP.has(labels[i])) {
-        patterns.push({ start: i, end: i, id: "assertion-unquestioned", label: "Unquestioned Assertion", tier: "low" });
-      }
-    }
-  }
-
-  return patterns;
 }
 
 function renderPatternGuide() {

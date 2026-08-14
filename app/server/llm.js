@@ -120,8 +120,8 @@ function providerError(status, body, surface) {
   const busy = status === 429 || status === 503;
   if (surface === 'chat') {
     return new Error(busy
-      ? 'The coach is busy right now. Wait a moment and try again.'
-      : 'The coach is unavailable right now. Your work is saved.');
+      ? 'The AI is busy right now. Wait a moment and try again.'
+      : 'The AI is unavailable right now. Your work is saved.');
   }
   return new Error(busy
     ? 'The analysis is queued behind other work. Your draft is submitted — try again in a moment.'

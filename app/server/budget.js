@@ -6,7 +6,7 @@
 // numbers are deliberately generous: the cost of generosity is cents, the cost
 // of stinginess is a student locked out of their homework at 9pm.
 //
-//   Soft — coach replies/day, ~40, visible to student and teacher.
+//   Soft — AI replies/day, ~40, visible to student and teacher.
 //   Hard — input tokens/day, ~1M, invisible, should page us if ever reached.
 //
 // Replies (not tokens) for the student-facing limit, because a token cap gives
@@ -83,7 +83,7 @@ async function checkChatBudget(studentId) {
     return {
       allowed: false,
       reason: 'hard',
-      message: 'Something has gone wrong on our side and coaching is paused for today. Your work is saved — please tell your teacher.',
+      message: 'Something has gone wrong on our side and the AI chat is paused for today. Your work is saved — please tell your teacher.',
       remaining: 0,
       limit,
     };
@@ -93,7 +93,7 @@ async function checkChatBudget(studentId) {
     return {
       allowed: false,
       reason: 'soft',
-      message: `You've used all ${limit} coach replies for today. Your work is saved, and it resets tomorrow — your teacher can also give you more.`,
+      message: `You've used all ${limit} AI replies for today. Your work is saved, and it resets tomorrow — your teacher can also give you more.`,
       remaining: 0,
       limit,
     };
@@ -107,7 +107,7 @@ async function checkChatBudget(studentId) {
     // Rule 2: the warning rides along with the allowed reply, so the student
     // sees it before the last one rather than at the wall.
     warning: remaining <= Math.ceil(limit * (1 - WARN_AT))
-      ? `About ${remaining} coach ${remaining === 1 ? 'reply' : 'replies'} left today.`
+      ? `About ${remaining} AI ${remaining === 1 ? 'reply' : 'replies'} left today.`
       : null,
   };
 }

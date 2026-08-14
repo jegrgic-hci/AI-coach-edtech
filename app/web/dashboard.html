@@ -1142,12 +1142,12 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
                 <div class="assign-schedule-panel">
                   <div class="form-row"><label>Due date <input type="date" id="newclass-assign-due"></label></div>
                   <div class="form-row"><label>Draft budget <input type="number" id="newclass-assign-budget" value="3" min="1" max="10" style="width:60px"></label></div>
-                  <label class="micro-label" style="margin-top:2px">Per draft — due date &amp; coaching level</label>
-                  <div class="level-selects" id="newclass-assign-levels"></div>
+                  <label class="micro-label" style="margin-top:2px">Per-draft due dates</label>
+                  <div class="draft-slot-rows" id="newclass-assign-draft-rows"></div>
                 </div>
 
                 <div class="eyebrow deemphasized" style="margin-top:6px">Note to yourself <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--tau-ink-faint)">— optional</span></div>
-                <textarea id="newclass-assign-note" rows="2" placeholder="A rubric-style reminder, shown to you, not the coach" class="deemphasized"></textarea>
+                <textarea id="newclass-assign-note" rows="2" placeholder="A rubric-style reminder, shown to you, not the AI" class="deemphasized"></textarea>
               </div>
             </div>
           </div>
@@ -1212,7 +1212,7 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
     <div class="tray-header">
       <div style="flex:1;min-width:0">
         <div class="tray-title">Goal &amp; requirements</div>
-        <div class="tray-subtitle">Shown to the coach at the start of every session.</div>
+        <div class="tray-subtitle">Shown to students at the start of every session.</div>
       </div>
       <button class="tray-close" id="goal-modal-close-btn" onclick="closeGoalModal()"></button>
     </div>
@@ -1225,7 +1225,7 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
     <div class="tray-header">
       <div style="flex:1;min-width:0">
         <div class="tray-title" id="new-assignment-title">New assignment</div>
-        <div class="tray-subtitle" id="new-assignment-subtitle">Description, purpose, and requirements are shown to students and seed what the coach knows going into every session.</div>
+        <div class="tray-subtitle" id="new-assignment-subtitle">Description, purpose, and requirements are shown to students at the top of every session. The AI chat is never told the assignment — students brief it themselves.</div>
       </div>
       <button class="tray-close" id="new-assignment-close-btn" onclick="guardedClose('new-assignment-modal-overlay')"></button>
     </div>
@@ -1264,12 +1264,12 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
           <div class="form-row">
             <label>Draft budget <input type="number" name="draftBudget" value="3" min="1" max="10" style="width:60px"></label>
           </div>
-          <label class="micro-label" style="margin-top:2px">Per draft — due date &amp; coaching level<span class="req-mark">*</span></label>
-          <div class="level-selects" id="newAssignmentLevelSelects"></div>
+          <label class="micro-label" style="margin-top:2px">Per-draft due dates<span class="req-mark">*</span></label>
+          <div class="draft-slot-rows" id="newAssignmentDraftRows"></div>
         </div>
 
         <div class="eyebrow deemphasized" style="margin-top:6px">Note to yourself <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--tau-ink-faint)">— optional</span></div>
-        <textarea name="teacherNote" rows="2" placeholder="A rubric-style reminder, shown to you, not the coach" class="deemphasized"></textarea>
+        <textarea name="teacherNote" rows="2" placeholder="A rubric-style reminder, shown to you, not the AI" class="deemphasized"></textarea>
 
         <!-- Inline, at the point of submit, replacing the chain of blocking
              alert()s this form used to fire one at a time — each of which had
@@ -2200,82 +2200,435 @@ function renderFirstRun() {
     </div>`;
 }
 
+// ── Behavioural patterns — the real detectors ─────────────────────────────────
+// patterns-core.js detects these off the turn sequence; runAnalysis stores them
+// and the dashboard payload ships the ids. Copy lives here because it is
+// teacher-facing: the student report keeps its own wording for the same ids
+// (report-render.js), and the NAMES must stay identical across the two.
+//
+// Two groups, taken from the report's own split. A passive pattern says who
+// needs help; a high-agency one says who can help. Both are actionable, which
+// is why both get a "What to try".
+const PATTERN_META = {
+  // --- Passive
+  'extraction-loop': { label: 'Extraction Loop', tier: 'low',
+    what: 'Three or more turns in a row of asking the AI to produce something, with nothing in between. The student is mining for content rather than working on it.',
+    tryThis: 'Ask what they would have written if the tool had returned nothing. The loop is a habit of not starting.' },
+  'validation-spiral': { label: 'Validation Spiral', tier: 'low',
+    what: 'Taking and confirming, alternating, with nothing breaking the run. A real sequence detector — it reads turn <b>order</b>, which no dimension does.',
+    tryThis: 'Ask what they would have done if the first answer had been wrong. The spiral is a habit of not leaving room for that.' },
+  'helplessness-loop': { label: 'Helplessness Loop', tier: 'low',
+    what: 'A stuck turn, then more passivity. The student is handing the difficulty to the AI rather than working through it.',
+    tryThis: 'Being stuck is the moment worth protecting. Ask them to write the question they are stuck on before they ask it.' },
+  'missed-argument': { label: 'Missed Argument', tier: 'low',
+    what: 'The AI was arguing a position and the student stayed passive through it.',
+    tryThis: 'Point at the turn. An argument they did not answer is the cheapest possible opening for one.' },
+  'capitulation': { label: 'Capitulation', tier: 'low',
+    what: 'The AI corrected them and they folded — took the correction without testing it.',
+    tryThis: 'Being corrected is not the same as being wrong. Ask them to say why the correction was right before accepting it.' },
+  'assertion-unquestioned': { label: 'Unquestioned Assertion', tier: 'low',
+    what: 'The AI stated something as established fact and the student took it.',
+    tryThis: 'A definition delivered confidently is still a claim. Name one they could have checked.' },
+  'flitting': { label: 'Flitting', tier: 'low',
+    what: 'Threads opened and dropped without being developed.',
+    tryThis: 'Ask which of the threads they abandoned was the one worth staying on.' },
+  // --- High agency
+  'challenge-arc': { label: 'Challenge Arc', tier: 'high',
+    what: 'Consecutive turns pressing the AI on the same point rather than accepting the first answer.',
+    tryThis: 'These students can model the move. Ask one to narrate what they were pushing for.' },
+  'rejection-redirect': { label: 'Rejection → Redirect', tier: 'high',
+    what: 'They rejected what came back and then said what they wanted instead — refusal plus direction, not just refusal.',
+    tryThis: 'The redirect is the hard half. Worth showing the class what a redirect sounds like.' },
+  'claim-support': { label: 'Claim-Support Cycle', tier: 'high',
+    what: 'They made a claim, developed it, drew on the AI for support, and returned to the claim.',
+    tryThis: 'This is the shape the weaker patterns are missing. Name it explicitly as a method.' },
+  'argument-engaged': { label: 'Argument Engaged', tier: 'high',
+    what: 'The AI argued a position and the student answered it rather than absorbing it.',
+    tryThis: 'Ask what the AI got right in the exchange. Engaging is the habit; conceding well is the next one.' },
+  'extraction-landing': { label: 'Extraction → Insight', tier: 'high',
+    what: 'They asked the AI to produce something and then did something of their own with it.',
+    tryThis: 'The turn after an extraction is where the work happens. Worth naming as the moment to slow down.' },
+  'correction-held': { label: 'Held Ground', tier: 'high',
+    what: 'The AI corrected them and they held their position instead of folding.',
+    tryThis: 'Holding ground is only right when they are right. Ask them how they decided.' },
+  'assertion-questioned': { label: 'Questioned Assertion', tier: 'high',
+    what: 'The AI stated something as established and the student questioned it.',
+    tryThis: 'Ask what made them suspicious. That instinct is teachable if it can be put into words.' },
+};
+
+// Aggregates the stored per-submission patterns across students. Replaces the
+// old REASON_TO_TREND path, which grouped dimension thresholds under prose
+// names rather than detecting anything (see patterns.md, "The finding").
+function detectPatternGroups(minCount = 2) {
+  const byPattern = {};
+  homeCohort().forEach(row => {
+    (row.patterns || []).forEach(id => {
+      if (!PATTERN_META[id]) return;
+      (byPattern[id] = byPattern[id] || []).push(row.student);
+    });
+  });
+  const cards = Object.entries(byPattern)
+    .filter(([, students]) => students.length >= minCount)
+    .map(([id, students]) => ({ id, students, meta: PATTERN_META[id] }))
+    .sort((a, b) => b.students.length - a.students.length);
+  return {
+    low:  cards.filter(c => c.meta.tier === 'low'),
+    high: cards.filter(c => c.meta.tier === 'high'),
+    all:  cards,
+  };
+}
+
+// ── Home aggregates ───────────────────────────────────────────────────────────
+// Ported from dashboard-lab.html on 2026-08-14. The CSS graduated to
+// components.css §17 and the ordinal ramp to tokens.css; what follows is the
+// rendering, rewired from the lab's fixtures onto the real payload.
+
+const LEVEL_GLOSS = [
+  'The AI did the thinking. The student set the task and took what came back.',
+  'The AI set the direction; the student improved what it handed them. Agency shows up in reaction, not initiation.',
+  'The student led. The AI worked to their brief, and the conversation went where they took it.',
+  'The student led and resisted. They pushed back where it mattered, and the thinking that survived is theirs.',
+];
+const DIM_KEYS  = ['pq', 'su', 'cs', 'oc'];
+const DIM_NAMES = ['Prompting Quality', 'Selective Use', 'Calibrated Skepticism', 'Original Contribution'];
+const BAND_MEANING = ["didn't happen", 'not where it counted', 'there, with gaps', 'held at the hard moments'];
+const DIM_WHAT = [
+  'Whether the student set the task or asked the AI what the task should be — who is directing the work.',
+  'What the student did with what came back: worked on it as a draft, or took it as finished.',
+  'Whether they checked what they were told, and whether they checked the claims that actually mattered.',
+  'Whether the ideas in the essay are ones the transcript shows them building, rather than ones handed to them.',
+];
+const DIM_TRY = [
+  'Have them write the brief before opening the chat. Stating the shape they want is a different act from asking what the shape should be.',
+  'What comes back is a draft, not a delivery. Name the move out loud: take it, then say what is wrong with it before any of it gets used.',
+  'The moment right after a source fails is when to check hardest — that is the habit to name out loud.',
+  'Have them mark, in their own draft, the two sentences they would still have written if the chat had never happened.',
+];
+
+// TEMPORARY ADAPTER — 2026-08-14. tau-dimensions.md settles each dimension as
+// an ordinal band 1–4 read from the transcript, essay and assignment together,
+// and scoreTAU cannot see any of those yet: its signature change gates all four
+// dimensions and is unbuilt. So the bands below are DERIVED FROM THE OLD 1–5
+// SCORES, which is exactly the "no band derived from a count" the design docs
+// prohibit. It is here so the surface can be built and tweaked against real
+// rosters rather than fixtures, and it is the first thing that gets deleted
+// when scoreTAU lands — the callers already speak bands, so nothing above this
+// function changes when it goes.
+//
+// Never read a threshold, a distribution shape or a finding off these numbers.
+function bandFromLegacyScore(v) {
+  if (v == null || v <= 0) return null;          // never analysed -> off-scale
+  return Math.min(4, Math.max(1, Math.round(v * 0.8)));
+}
+
+// One row per student: their most recent completed submission across every
+// assignment. "Most recent" rather than an average because a band is a reading
+// of a session, and averaging four ordinal readings is the operation this whole
+// scale change exists to remove.
+function homeCohort() {
+  return STUDENTS.map(st => {
+    let latest = null;
+    for (const a of ASSIGNMENTS) {
+      for (const sub of getSubs(st.id, a.id)) {
+        if (sub.analysisStatus !== 'complete') continue;
+        if (!latest || sub.ts > latest.ts) latest = sub;
+      }
+    }
+    if (!latest) return { student: st, level: null, bands: [null, null, null, null], patterns: [] };
+    return {
+      student: st,
+      level: samr(total(latest)).n,
+      bands: DIM_KEYS.map(k => bandFromLegacyScore(latest[k])),
+      patterns: latest.patterns || [],
+    };
+  });
+}
+
+// Level composition: counts across the four rungs, plus off-scale.
+// levels + off === n, always — the invariant both charts rest on.
+function levelComposition(cohort) {
+  const levels = [0, 0, 0, 0];
+  let off = 0;
+  cohort.forEach(c => { if (c.level) levels[c.level - 1]++; else off++; });
+  return { levels, off };
+}
+
+// Four partitions of the same cohort. Every student contributes exactly one
+// band to every dimension, so bands + off === n on every row. Never add across.
+function bandDistributions(cohort) {
+  return DIM_KEYS.map((_, i) => {
+    const bands = [0, 0, 0, 0];
+    let off = 0;
+    cohort.forEach(c => { const b = c.bands[i]; if (b) bands[b - 1]++; else off++; });
+    return { bands, off };
+  });
+}
+
+function sumArr(a) { return a.reduce((x, y) => x + y, 0); }
+
+function renderCompHTML(counts, off) {
+  const total = sumArr(counts) + off;
+  const max = Math.max(...counts);
+  const modal = counts.indexOf(max);
+  const tie = counts.filter(c => c === max).length > 1;
+  let html = '';
+  counts.forEach((c, i) => {
+    html += `<div class="comp-row comp-${i + 1}${i === modal && !tie ? ' is-modal' : ''}">
+      <div class="viz-row-head"><span class="comp-name">${SAMR_NAMES[i]}</span><span class="comp-count">${c}</span></div>
+      <div class="viz-plot"><span></span><span class="comp-track"><span class="comp-fill" style="width:${total ? (c / total * 100).toFixed(1) : 0}%"></span></span></div>
+    </div>`;
+  });
+  html += `<div class="comp-off">
+    <div class="viz-row-head"><span class="comp-name">Not enough evidence</span><span class="comp-count">${off}</span></div>
+    <div class="viz-plot"><span></span><span class="comp-off-track"></span></div></div>`;
+  return { html, modal, tie, max, total };
+}
+
+function tipText(band, count, dim) {
+  return `<b>Band ${band} — ${BAND_MEANING[band - 1]}</b><br>${count} student${count === 1 ? '' : 's'} · ${dim}`;
+}
+
+function dbarRowLabel(dim, bands, off) {
+  return `${dim}: ${bands.map((c, i) => `${c} at band ${i + 1}, ${BAND_MEANING[i]}`).join('; ')}. ${off} not enough evidence.`;
+}
+
+// One diverging bar, split at the 2|3 seam. EVERY ROW FILLS THE WHOLE TRACK —
+// only the ratio between the segments changes from row to row. That is what
+// makes the four dimensions comparable: the bar is a fixed measure of the same
+// cohort, so a segment's share is read against the same total on every row and
+// the seam's POSITION is the failure share directly.
+//
+// Sized by flex-grow, not by percentage width (changed 2026-08-14). Percentages
+// were arithmetic that could fall short of the track: min-width floors on tiny
+// segments, the 2px separators and the off-cell's break all came out of a total
+// that had already been spent, so a row with several small bands ended before
+// the track did. flex-grow distributes whatever the track actually is, so the
+// ends align by construction rather than by the numbers happening to sum.
+function dbarMarkup(bands, off, n, dim) {
+  const lastBand  = bands[3] ? 4 : bands[2] ? 3 : bands[1] ? 2 : 1;
+  const firstBand = bands[0] ? 1 : bands[1] ? 2 : bands[2] ? 3 : 4;
+  const seg = (count, band) => {
+    if (!count) return '';
+    const cap = (band === firstBand ? ' cap-l' : '') + (band === lastBand && !off ? ' cap-r' : '');
+    return `<span class="dbar-seg s${band}${cap}" style="flex:${count} 1 0"
+      data-band="${band}" data-tip="${tipText(band, count, dim)}"><span class="dbar-num">${count}</span></span>`;
+  };
+  return `<div class="dbar" role="img" aria-label="${dbarRowLabel(dim, bands, off)}">
+    <span class="dbar-gutter"><span class="dbar-out" data-band="1">${bands[0]}</span></span>
+    <span class="dbar-track">
+      ${seg(bands[0], 1)}${seg(bands[1], 2)}${seg(bands[2], 3)}${seg(bands[3], 4)}
+      <span class="dbar-off-cell${off ? ' has-any' : ''}" style="flex:${off} 1 0"
+        data-tip="<b>Not enough evidence</b><br>${off} session${off === 1 ? '' : 's'} too thin to read this one · ${dim}"></span>
+      <span class="dbar-seam" style="left:${((bands[0] + bands[1]) / n * 100).toFixed(3)}%"></span>
+    </span>
+  </div>`;
+}
+
+// Measured after layout, never predicted from a px scale. Band 1's numeral
+// moves to the outside gutter when its segment is too narrow — it is the one
+// mark this instrument is required never to render least legibly.
+function fitLabels(scope) {
+  scope.querySelectorAll('.dbar').forEach(bar => {
+    bar.querySelectorAll('.dbar-seg').forEach(s => {
+      const tight = s.offsetWidth < 20;
+      s.classList.toggle('is-tight', tight);
+      const o = bar.querySelector(`.dbar-out[data-band="${s.dataset.band}"]`);
+      if (o) o.classList.toggle('is-shown', tight);
+    });
+  });
+}
+
+// One tooltip node for the page, delegated. Hover, focus AND click — a
+// hover-only decoder does not exist for touch or keyboard.
+let tipEl = null, tipPinned = null;
+function showTip(m) {
+  tipEl.innerHTML = m.dataset.tip;
+  tipEl.classList.add('is-on');
+  const r = m.getBoundingClientRect(), w = tipEl.offsetWidth;
+  tipEl.style.left = Math.min(window.innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2)) + 'px';
+  const above = r.top - tipEl.offsetHeight - 8;
+  tipEl.style.top = (above < 8 ? r.bottom + 8 : above) + 'px';
+}
+function hideTip() { if (!tipPinned) tipEl.classList.remove('is-on'); }
+function initTips() {
+  if (tipEl) return;
+  tipEl = document.createElement('div');
+  tipEl.className = 'dbar-tip';
+  document.body.appendChild(tipEl);
+  document.addEventListener('mouseover', e => {
+    const m = e.target.closest && e.target.closest('[data-tip]');
+    if (m && !tipPinned) showTip(m);
+  });
+  document.addEventListener('mouseout', e => {
+    if (e.target.closest && e.target.closest('[data-tip]')) hideTip();
+  });
+  document.addEventListener('focusin', e => {
+    const m = e.target.closest && e.target.closest('[data-tip]');
+    if (m) showTip(m);
+  });
+  document.addEventListener('focusout', () => { if (!tipPinned) hideTip(); });
+  document.addEventListener('click', e => {
+    const dot = e.target.closest && e.target.closest('.tip-trigger');
+    if (tipPinned) {
+      tipPinned.setAttribute('aria-expanded', 'false');
+      const was = tipPinned; tipPinned = null;
+      tipEl.classList.remove('is-on');
+      if (was === dot) return;
+    }
+    if (!dot) return;
+    tipPinned = dot;
+    dot.setAttribute('aria-expanded', 'true');
+    showTip(dot);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && tipPinned) {
+      tipPinned.setAttribute('aria-expanded', 'false');
+      tipPinned = null;
+      tipEl.classList.remove('is-on');
+    }
+  });
+}
+
+// Templated, never free-generated — a deterministic sentence built from the
+// counts the bars already show, so the finding cannot claim what the evidence
+// doesn't back. Returns the floor index too, so the headline and the row flag
+// can never disagree.
+function bandsFinding(rows, n) {
+  const ranked = rows.map((r, i) => ({ i, lo: r.bands[0] + r.bands[1], off: r.off }))
+    .sort((a, b) => b.lo - a.lo);
+  const worst = ranked[0], next = ranked[1], best = ranked[ranked.length - 1];
+  const gap = worst.lo - next.lo;
+  const near = Math.max(2, Math.round(n * 0.08));
+
+  if (best.lo > n * 0.6) {
+    return { floorIdx: null, html: `<b>All four dimensions are at the floor.</b> Between ${best.lo} and ${worst.lo} of ${n} students are at band 1 or 2 on every one of them. There is no stronger dimension to lean on here — this is a finding about the room, not a dimension to teach into.` };
+  }
+  if (gap < near) {
+    return { floorIdx: null, html: `<b>No single floor this week.</b> ${DIM_NAMES[worst.i]} and ${DIM_NAMES[next.i]} are the two lowest and ${gap === 0 ? 'are tied' : `are within ${gap} student${gap === 1 ? '' : 's'} of each other`}, so there is no one dimension to teach into ahead of the others.` };
+  }
+  const others = ranked.slice(1);
+  const spread = others[0].lo - others[others.length - 1].lo;
+  const majority = worst.lo > (n - worst.off) / 2;
+  return { floorIdx: worst.i, html: `<b>${DIM_NAMES[worst.i]} is the floor.</b> ${worst.lo} of ${n} students are at band 1 or 2 — the behaviour either didn't happen, or didn't happen where it counted${majority ? ', and this is the only dimension where that is most of the room' : ''}. `
+    + (spread <= near
+        ? `The other three sit together, within ${spread} student${spread === 1 ? '' : 's'} of each other.`
+        : `The other three are spread from ${others[others.length - 1].lo} to ${others[0].lo} students.`)
+    + (worst.off >= Math.max(3, n * 0.1) ? ` It is also the hardest to read: ${worst.off} sessions gave it nothing to code.` : '') };
+}
+
+// The reading. Templated off the row's own counts, but its job is what the
+// distribution CANNOT show, not a recount of it.
+function dimNote(bands, off, n) {
+  const lo = bands[0] + bands[1], hi = bands[2] + bands[3], read = lo + hi;
+  const top = bands.indexOf(Math.max(...bands));
+  let s;
+  if (top === 0) {
+    s = `<b>${bands[0]} students didn't do it at all.</b> Band 1 is absence, not a weak attempt — there is nothing in those sessions to sharpen, so this is teaching the move from scratch rather than improving it.`;
+  } else if (top === 1) {
+    s = `<b>It happened, but not where it counted.</b> ${bands[1]} students sit at band 2: they did the thing somewhere in the session, just not at the moments that mattered. That is a smaller gap than band 1 and a different lesson — timing, not the behaviour.`;
+  } else if (read && Math.abs(lo - hi) <= Math.max(1, read * 0.06)) {
+    s = `<b>The room is split.</b> ${lo} students are at band 1 or 2 and ${hi} at band 3 or 4, with no middle that describes either group. Teaching to the average here reaches neither.`;
+  } else if (top === 3) {
+    s = `<b>This one held.</b> ${bands[3]} students carried it even at the hard moments. Worth naming out loud — it is the habit the weaker dimensions can borrow from.`;
+  } else {
+    s = `<b>Mostly there, with real gaps.</b> ${bands[2]} students sit at band 3: the behaviour is present but not yet dependable. ` + (bands[3] ? `${bands[3]} carried it through the hard moments.` : 'Nobody reached band 4.');
+  }
+  if (off >= Math.max(3, n * 0.12)) {
+    s += ` <b>${off} sessions were too thin to read this at all</b>, so the bar above describes the ${read} it could be read on.`;
+  }
+  return s;
+}
+
+function keyItem(b) {
+  return `<span class="dbar-key-item"><i style="background:var(--tau-scale-${b})"></i><span class="n">${b}</span> ${BAND_MEANING[b - 1]}</span>`;
+}
+
+// Same object as a class row — a count of students, click to go to them — so
+// it is one component used twice rather than two that happen to sit together.
+// The count sits in a phrase naming its unit, never as a bare numeral.
+function statRow(value, label, color, onclickFn) {
+  return `<div class="class-row"${onclickFn ? ` onclick="${onclickFn}"` : ''}>
+    <span class="class-row-name">${label}</span>
+    <span class="stat-row-count"><b style="color:${color}">${value}</b> students</span>
+    <span class="class-row-go">→</span></div>`;
+}
+
 function renderHome() {
   if (!CLASSES.length && !ARCHIVED_CLASSES.length) return renderFirstRun();
-  const trends = detectTrends(2);
+
+  const cohort   = homeCohort();
+  const n        = cohort.length;
+  const groups   = detectPatternGroups(2);
   const missingIds = new Set(ASSIGNMENTS.flatMap(a => studentsFor(a).filter(s => hasMissingCheckpoint(a, s.id)).map(s => s.id)));
   const reviewCount = STUDENTS.filter(s => getStudentSignal(s.id).status === 'review').length;
+  // Students unreadable on at least one dimension. Its own queue with its own
+  // conversation behind it — never added to the Worth-a-chat count, because
+  // that turns "we could not see it" into "you did not do it".
+  const notEnough = cohort.filter(c => c.bands.some(b => !b)).length;
 
-  function statTile(value, label, color, tintBg, onclickFn) {
-    const softBorder = `color-mix(in oklab, ${color} 35%, var(--tau-surface))`;
-    return `<div class="stat-tile${onclickFn ? ' stat-tile-clickable' : ''}" style="background:${tintBg};border:1px solid ${softBorder}" ${onclickFn ? `onclick="${onclickFn}"` : ''}>
-      <div class="stat-tile-val" style="color:${color}">${value}</div>
-      <div class="stat-tile-label" style="color:${color}">${label}</div>
+  // ── 1. Triage, and the same triage per class ──────────────────────────────
+  // The three counts do not sum: a student can be worth-a-chat AND missing
+  // work. Nothing here states a union, because the payload does not carry one
+  // and a wrong denominator is worse than none.
+  const tiles = statRow(reviewCount, 'Worth a chat', reviewCount ? 'var(--tau-caution)' : 'var(--tau-positive)', "gotoStudents('review')")
+    + statRow(notEnough, 'Not enough evidence', 'var(--tau-ink)', null)
+    + (missingIds.size ? statRow(missingIds.size, 'Missing work', 'var(--tau-attention)', "gotoStudents('missing')") : '');
+
+  const classesSection = CLASSES.map(cls => {
+    const students  = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
+    const flagCount = students.filter(s => getStudentSignal(s.id).status === 'review').length;
+    const rows = cohort.filter(c => cls.studentIds.includes(c.student.id) && c.level);
+    const lv = [0, 0, 0, 0];
+    rows.forEach(r => lv[r.level - 1]++);
+    const modal = lv.indexOf(Math.max(...lv));
+    const pill = flagCount
+      ? `<span class="chip chip-caution signal-pill-review">${flagCount} worth a chat</span>`
+      : `<span class="chip chip-positive">✓ On track</span>`;
+    return `<div class="class-row" onclick="gotoClass('${cls.id}')">
+      <span class="class-row-name">${cls.name}</span>
+      ${rows.length ? `<span class="chip chip-grey">Most at ${SAMR_NAMES[modal]}</span>` : ''}
+      ${pill}
+      <span class="class-row-go">→</span>
     </div>`;
-  }
+  }).join('');
 
-  // Home-only rollup, one level above the per-class views classAvgTotal()
-  // was built for — same source data, just compared across every class at
-  // once instead of read one class at a time. Feeds laggingClasses below,
-  // which the Classes at a glance pill uses per-row (see its own comment) —
-  // aiBornPct/classProvenanceMix isn't consumed here any more since the
-  // fleet-wide "AI-born drift" stat tile this used to feed was retired.
-  const classSummaries = CLASSES.map(cls => {
-    const students = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
-    const assignments = ASSIGNMENTS.filter(a => classesFor(a).some(c => c.id === cls.id));
-    return { cls, avgTotal: classAvgTotal(students, assignments) };
-  });
-
-  const validAvgs = classSummaries.filter(c => c.avgTotal != null);
-  const rosterAvg = validAvgs.length ? validAvgs.reduce((s, c) => s + c.avgTotal, 0) / validAvgs.length : null;
-  // 1.5 of 16 possible points (4-20 scale) — a real gap, not the noise two
-  // classes' averages always show against each other. Feeds the Classes at a
-  // glance pill below, not a stat tile — a tile whose count is >1 but whose
-  // click only ever opens one class was a real bug (see session notes).
-  const laggingClasses = (rosterAvg != null && validAvgs.length >= 2)
-    ? validAvgs.filter(c => c.avgTotal <= rosterAvg - 1.5).sort((a, b) => a.avgTotal - b.avgTotal)
-    : [];
-
-  const tiles = `<div style="display:flex;gap:10px;flex-wrap:wrap">
-    ${statTile(reviewCount, reviewCount ? 'Worth a chat' : 'No signals', reviewCount ? 'var(--tau-caution)' : 'var(--tau-positive)', reviewCount ? 'var(--tau-caution-bg)' : 'var(--tau-positive-bg)', "gotoStudents('review')")}
-    ${missingIds.size ? statTile(missingIds.size, 'Missing work', 'var(--tau-attention)', 'var(--tau-attention-bg)', "gotoStudents('missing')") : ''}
-  </div>`;
-
-  const teachingSection = renderTeachingSection();
-
-  // The count never renders as a bare numeral or a chip — it sits in the
-  // phrase that names its unit, weighted inside that sentence. The old chip
-  // failed the enclosure rule twice over (a chip on every card is neither
-  // rare nor actionable), and a chip is also the wrong shape for a number
-  // whose job is to be read, not clicked.
-  const patternCards = trends.map(({ id, students, meta }) => {
+  // ── 2. Behavioral patterns ────────────────────────────────────────────────
+  // Two groups. A passive pattern says who needs help; a high-agency one says
+  // who can help. The tier colour rides the GROUP LABEL, on the band ramp —
+  // never on the count, because amber on "8 students held their ground" states
+  // a caution the label contradicts, and amber already means "worth a chat" on
+  // the tiles above (Hard Constraints: one severity signal per surface).
+  const patternCard = ({ id, students, meta }) => {
     const classCounts = CLASSES.map(cls => {
-      const n = students.filter(x => x.classes.some(c => c.id === cls.id)).length;
-      return n ? `${cls.name} ${n}` : null;
+      const c = students.filter(x => cls.studentIds.includes(x.id)).length;
+      return c ? `${cls.name} ${c}` : null;
     }).filter(Boolean).join(' · ');
-    const n = students.length;
+    const c = students.length;
     return `<details class="pattern-card">
       <summary class="finding-summary">
         <span class="f-body">
           <span class="pattern-title">${meta.label}</span>
-          <span class="f-where"><span class="num">${n}</span> student${n !== 1 ? 's' : ''}${classCounts ? ` · ${classCounts}` : ''}</span>
+          <span class="f-where neutral"><span class="num">${c}</span> student${c !== 1 ? 's' : ''}${classCounts ? ` · ${classCounts}` : ''}</span>
         </span>
       </summary>
       <div class="f-detail">
         <p class="pattern-body"><b>What this looks like:</b> ${meta.what}</p>
-        <div class="pattern-try"><b>What to try:</b> ${meta.whatToTry}</div>
-        <span class="pattern-link" onclick="event.stopPropagation();logUse('dashboard','patterns-worth-noticing');gotoStudents('pattern', '${id}')">View the ${n} student${n !== 1 ? 's' : ''} →</span>
+        <div class="pattern-try"><b>What to try:</b> ${meta.tryThis}</div>
+        <span class="pattern-link" onclick="event.stopPropagation();logUse('dashboard','patterns-worth-noticing');gotoStudents('pattern', '${id}')">View the ${c} student${c !== 1 ? 's' : ''} →</span>
       </div>
     </details>`;
-  }).join('');
+  };
+
+  const patternGroup = (cards, label, colorVar, empty) => `
+    <div class="pattern-group-label" style="color:var(${colorVar})">${label}</div>
+    ${cards.length
+      ? `<div class="finding-list">${cards.map(patternCard).join('')}</div>`
+      : `<p class="pattern-group-empty">${empty}</p>`}`;
 
   // Missing checkpoints is a Tier-1 logistics fact, not a behavioral pattern —
-  // it gets its own card, visually and conceptually separate from the ones
-  // above, so "overdue" and "disengaged" don't collapse into one taxonomy.
-  // It carries no .pattern-try at all: an overdue draft is a date, not
-  // something the tool has a reading on, so there is nothing for the tool's
-  // own voice to say and no blue on this card.
-  const missingCard = missingIds.size ? `<details class="pattern-card">
+  // its own card, no blue, because an overdue draft is a date and the tool has
+  // no reading on it.
+  const missingCard = missingIds.size ? `<div class="finding-list" style="margin-top:var(--tau-s4)"><details class="pattern-card">
     <summary class="finding-summary">
       <span class="f-body">
         <span class="pattern-title">Missing checkpoints</span>
@@ -2284,70 +2637,104 @@ function renderHome() {
     </summary>
     <div class="f-detail">
       <p class="pattern-body"><b>What this looks like:</b> Drafts past their due date — a logistics
-        fact, not a behavioral pattern, kept separate from the engagement signals above.</p>
+        fact, not a behavioral pattern, kept separate from the signals above.</p>
       <span class="pattern-link" onclick="event.stopPropagation();gotoStudents('missing')">View missing work →</span>
     </div>
-  </details>` : '';
+  </details></div>` : '';
 
-  // Counts what the section is actually about, so the collapsed set still
-  // orients: how many patterns, and how much of the roster they touch.
-  // detectTrends() pushes { student, classes }, not a bare student — reading
-  // s.id here collapsed every entry to undefined, so the Set was always size 1
-  // and the denominator read "1 of 8 students" no matter how many were in the
-  // patterns. Caught in a browser, not by reading the code.
-  const patternStudentIds = new Set(trends.flatMap(t => t.students.map(s => s.student.id)));
+  const patternStudentIds = new Set(groups.all.flatMap(t => t.students.map(s => s.id)));
   const patternsSummary = [
-    `${trends.length} pattern${trends.length !== 1 ? 's' : ''}`,
-    patternStudentIds.size ? `${patternStudentIds.size} of ${STUDENTS.length} students` : null,
+    `${groups.all.length} pattern${groups.all.length !== 1 ? 's' : ''}`,
+    patternStudentIds.size ? `${patternStudentIds.size} of ${n} students` : null,
   ].filter(Boolean).join(' · ');
 
-  const patternsSection = (patternCards || missingCard) ? `<div class="section-head">
-    <div class="eyebrow">Behavioral patterns</div>
-    <div class="section-summary">${patternsSummary}</div>
-  </div>
-  <div class="finding-list">
-    ${patternCards}${missingCard}
-  </div>` : `<div style="text-align:center;padding:40px 24px;background:var(--tau-surface);border:1px solid var(--tau-line);border-radius:var(--tau-r-md);box-shadow:var(--tau-shadow)">
-    <div style="font-size:22px;margin-bottom:8px">✓</div>
-    <div style="font-weight:600;font-size:14px;color:var(--tau-positive)">All students on track</div>
-    <div style="font-size:12px;color:var(--tau-ink-soft);margin-top:4px">No behavioral patterns or missing work detected</div>
-  </div>`;
+  const patternsSection = `<div class="section-head">
+      <div class="eyebrow">Behavioral patterns</div>
+      <div class="section-summary">${patternsSummary}</div>
+    </div>
+    ${patternGroup(groups.low, 'Passive patterns', '--tau-scale-1', 'None showing across two or more students.')}
+    <div style="height:var(--tau-s5)"></div>
+    ${patternGroup(groups.high, 'High-agency patterns', '--tau-scale-4', 'None showing across two or more students yet.')}
+    ${missingCard}`;
 
-  const classesSection = `<div class="section-head">
-    <div class="eyebrow">Classes at a glance</div>
-  </div>
-  <div>
-    ${CLASSES.map(cls => {
-      const students  = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
-      const flagCount = students.filter(s => getStudentSignal(s.id).status === 'review').length;
-      const isLagging = laggingClasses.some(c => c.cls.id === cls.id);
-      // One pill per row, priority-ordered — same fix getStudentSignal() got
-      // 2026-08-03 (every true signal, roster pill shows the top one plus a
-      // quiet +N). Worth a chat outranks the aggregate-score flag; a class
-      // that's both gets a +1 rather than two stacked badges.
-      const pill = flagCount
-        ? `<span class="chip chip-caution signal-pill-review">${flagCount} worth a chat${isLagging ? '<span class="signal-pill-count">+1</span>' : ''}</span>`
-        : isLagging
-          ? `<span class="chip chip-tool-info">Avg. below your other classes</span>`
-          : `<span class="chip chip-positive">✓ On track</span>`;
-      return `<div class="class-row" onclick="gotoClass('${cls.id}')">
-        <span class="class-row-name">${cls.name}</span>
-        ${pill}
-        <span class="class-row-go">→</span>
-      </div>`;
-    }).join('')}
-  </div>`;
+  // ── 3. Students by level ──────────────────────────────────────────────────
+  const { levels, off: levelsOff } = levelComposition(cohort);
+  const comp = renderCompHTML(levels, levelsOff);
+  const levelHeadline = comp.tie || !comp.max
+    ? 'This group is split.'
+    : `Most of your students are at ${SAMR_NAMES[comp.modal]}.`;
+  const levelGloss = comp.tie || !comp.max
+    ? 'No level holds a plurality, so there is no "most" to report — and an average of the two would describe nobody in the room.'
+    : `${comp.max} of ${comp.total} across your classes. ${LEVEL_GLOSS[comp.modal]}`;
 
-  // No .content-header. "Home" is what the rail's active row already says and
-  // the date is what the OS clock says — ~70px of pane spent on neither being
-  // news. The bands below start at the top of the content padding instead.
+  const levelSection = `<div class="section-head">
+      <div class="head-with-info">
+        <div class="eyebrow">Students by level</div>
+        <button class="info-dot tip-trigger" type="button" aria-expanded="false"
+          aria-label="How to read students by level"
+          data-tip="<b>How to read these</b><br>Each bar is that level's share of the whole cohort, on the same scale as the dimension bands beside it — so an equal length means an equal number of students in both charts. The levels are a ladder of agency, read in order.">i</button>
+      </div>
+      <div class="section-summary">${n} student${n !== 1 ? 's' : ''} · ${CLASSES.length} class${CLASSES.length !== 1 ? 'es' : ''}</div>
+    </div>
+    <div class="viz-lede"><b>${levelHeadline}</b> <span>${levelGloss}</span></div>
+    <div class="viz-card">
+      <div class="comp">${comp.html}</div>
+      <p class="viz-card-foot">These levels describe <b>agency</b> — how much of the thinking stayed
+        the student's — not task transformation as SAMR was published.</p>
+    </div>`;
+
+  // ── 4. Dimension bands ────────────────────────────────────────────────────
+  const rows = bandDistributions(cohort);
+  const finding = bandsFinding(rows, n);
+  const dimRows = rows.map((r, i) => `<details class="dist-row${i === finding.floorIdx ? ' is-floor' : ''}"${i === finding.floorIdx ? ' open' : ''}>
+      <summary class="dist-summary">
+        <div class="viz-row-head">
+          <span class="dist-row-name">${DIM_NAMES[i]}</span>
+          <span class="dist-row-go">▾</span>
+        </div>
+        ${dbarMarkup(r.bands, r.off, n, DIM_NAMES[i])}
+      </summary>
+      <div class="dist-row-detail">
+        <p class="dist-what">${DIM_WHAT[i]}</p>
+        <p class="pattern-body">${dimNote(r.bands, r.off, n)}</p>
+        <div class="pattern-try"><b>Worth raising:</b> ${DIM_TRY[i]}</div>
+      </div>
+    </details>`).join('');
+
+  const dimSection = `<div class="section-head">
+      <div class="head-with-info">
+        <div class="eyebrow">Dimension bands</div>
+        <button class="info-dot tip-trigger" type="button" aria-expanded="false"
+          aria-label="How to read the dimension bands"
+          data-tip="<b>How to read these</b><br>Every student sits in exactly one band per dimension, so each row counts the whole cohort — which is why every bar is the same length. The tick marks where band 2 ends: left of it the behaviour didn't happen, or didn't happen where it counted.">i</button>
+      </div>
+      <div class="section-summary">${n} student${n !== 1 ? 's' : ''}</div>
+    </div>
+    <div class="viz-lede">${finding.html}</div>
+    <div class="dbar-key">
+      ${keyItem(1)}${keyItem(2)}<span class="dbar-key-seam"></span>${keyItem(3)}${keyItem(4)}
+      <span class="dbar-key-item off"><i></i>not enough evidence</span>
+    </div>
+    <div class="dist-panel" style="margin-top:var(--tau-s3)">${dimRows}</div>`;
+
+  // Layout: triage beside its own breakdown, patterns full width, then the two
+  // halves of the aggregate reading side by side — where the room sits, and why.
   return `
     <div class="home-stack">
-      <div class="home-band">${tiles}</div>
+      <div class="home-cols-top">
+        <div class="home-band home-col">
+          <div class="section-head"><div class="eyebrow">Students to follow up</div></div>
+          <div>${tiles}</div>
+        </div>
+        <div class="home-band home-col">
+          <div class="section-head"><div class="eyebrow">Classes at a glance</div></div>
+          <div>${classesSection}</div>
+        </div>
+      </div>
       <div class="home-band">${patternsSection}</div>
-      <div class="home-cols">
-        <div class="home-band home-col">${teachingSection}</div>
-        <div class="home-band home-col">${classesSection}</div>
+      <div class="home-cols-2up">
+        <div class="home-band home-col">${levelSection}</div>
+        <div class="home-band home-col">${dimSection}</div>
       </div>
     </div>
   `;
@@ -2356,7 +2743,9 @@ function renderHome() {
 // ── Browse Students ───────────────────────────────────────────────────────────
 
 function renderBrowseStudents() {
-  const patterns = detectTrends(1);
+  // Looser than Home's >=2: a pattern can be real and worth filtering on
+  // before it is common enough to earn a card.
+  const patterns = detectPatternGroups(1).all;
 
   const chips = ['all', 'review', 'missing'].map(f => {
     const label = f === 'all' ? `All (${STUDENTS.length})` : f === 'review' ? 'Worth a chat' : 'Missing work';
@@ -2392,8 +2781,10 @@ function browseRosterMatches(student) {
   const q = browseSearch.toLowerCase().trim();
   if (q && !student.name.toLowerCase().includes(q)) return false;
   if (browsePattern) {
-    const sig = getStudentSignal(student.id);
-    return sig.signals.some(s => s.tier === 'attention' && REASON_TO_TREND[s.reason] === browsePattern);
+    // Reads the stored detector output, not a dimension threshold wearing a
+    // prose name — see patterns.md, "The finding".
+    const row = homeCohort().find(c => c.student.id === student.id);
+    return !!row && (row.patterns || []).includes(browsePattern);
   }
   if (browseFilter === 'review')   return getStudentSignal(student.id).status === 'review';
   if (browseFilter === 'missing')  return ASSIGNMENTS.some(a => studentsFor(a).includes(student) && hasMissingCheckpoint(a, student.id));
@@ -3279,7 +3670,7 @@ function renderAssignmentTimeline(a, students) {
 }
 
 // The assignment's own goal — the teacher's description/purpose/requirements
-// (shown to the coach every session) and teacherNote (a whole-class rubric-style reminder,
+// (shown to students every session) and teacherNote (a whole-class rubric-style reminder,
 // distinct from a per-submission teacherNote). Both already existed on the
 // assignment record; neither had ever been rendered on the dashboard before
 // this redesign. Rendered as the teacher's own quoted words — violet/
@@ -4167,6 +4558,20 @@ function renderContent() {
   // DOM (and tauMenu's listeners) with it — so the menu is bound to the new
   // trigger/panel here rather than once at startup.
   mountObjActions();
+  // The band bars need a measured pass: which numerals fit is a fact about the
+  // rendered layout, never a prediction from a px constant. Re-run on resize
+  // for the same reason.
+  if (screen === 'home' && el.querySelector('.dbar')) {
+    initTips();
+    fitLabels(el);
+    if (!window.__dbarResize) {
+      window.__dbarResize = true;
+      window.addEventListener('resize', () => {
+        const c = document.getElementById('content');
+        if (c && c.querySelector('.dbar')) fitLabels(c);
+      });
+    }
+  }
 }
 
 function render() {
@@ -4836,34 +5241,28 @@ function openGrantReplies(sid) {
 // copy, pre-fills the fields, and routes the submit handler to
 // POST /api/assignments/:id/edit instead of POST /api/assignments.
 
-const NA_LEVEL_LABEL = { full: 'Full coach', questions: 'Questions only', 'sounding-board': 'Sounding board' };
 let editingAssignmentId = null;
 
-// Row markup factored out of naSyncLevelSelects() so the edit-open path can
-// build rows straight from an assignment's own draftDueDates/coachingLevels
-// instead of round-tripping through the DOM-scraped "existing" arrays
-// naSyncLevelSelects() reads for the create-and-resize case.
-function naLevelSelectsHtml(n, existingDates, existingLevels) {
+// Row markup factored out of naSyncDraftRows() so the edit-open path can
+// build rows straight from an assignment's own draftDueDates instead of
+// round-tripping through the DOM-scraped "existing" array
+// naSyncDraftRows() reads for the create-and-resize case.
+function naDraftRowsHtml(n, existingDates) {
   return Array.from({ length: n }, (_, i) => {
     const isFinal = i === n - 1;
-    const def = existingLevels[i] || (i >= n - 1 && n > 2 ? 'sounding-board' : i >= n - 2 && n > 1 ? 'questions' : 'full');
     return `<div class="draft-slot-row" data-slot="${i}">
       <span class="draft-slot-label">${isFinal ? 'Final' : `Draft ${i + 1}`}</span>
       <input type="date" class="draft-due-input" data-slot="${i}" value="${existingDates[i] || ''}" required>
-      <select class="draft-level-select" data-slot="${i}" title="${isFinal ? 'Final' : `Draft ${i + 1}`}">
-        ${Object.entries(NA_LEVEL_LABEL).map(([v, l]) => `<option value="${v}"${v === def ? ' selected' : ''}>${l}</option>`).join('')}
-      </select>
     </div>`;
   }).join('');
 }
 
-function naSyncLevelSelects() {
+function naSyncDraftRows() {
   const budgetInput = document.getElementById('newAssignmentForm').elements.draftBudget;
   const n = Math.max(1, Math.min(10, parseInt(budgetInput.value, 10) || 3));
-  const container = document.getElementById('newAssignmentLevelSelects');
-  const existingLevels = [...container.querySelectorAll('select')].map(s => s.value);
+  const container = document.getElementById('newAssignmentDraftRows');
   const existingDates  = [...container.querySelectorAll('input[type=date]')].map(i => i.value);
-  container.innerHTML = naLevelSelectsHtml(n, existingDates, existingLevels);
+  container.innerHTML = naDraftRowsHtml(n, existingDates);
   naApplyDueDateDefaults();
 }
 
@@ -4891,7 +5290,7 @@ function naDueDateSpacedDefaults(dueDateStr, n) {
 function naApplyDueDateDefaults() {
   if (naDraftDatesDirty) return;
   const due  = document.getElementById('na-due-date').value;
-  const rows = [...document.getElementById('newAssignmentLevelSelects').querySelectorAll('.draft-due-input')];
+  const rows = [...document.getElementById('newAssignmentDraftRows').querySelectorAll('.draft-due-input')];
   const dates = naDueDateSpacedDefaults(due, rows.length);
   rows.forEach((input, i) => { input.value = dates[i]; });
 }
@@ -5005,7 +5404,7 @@ function openNewAssignmentModal(preselect) {
   renderAssignClassChecklist(preselect || pendingAssignClassIds);
   pendingAssignClassIds = null;
   naDraftDatesDirty = false;
-  naSyncLevelSelects();
+  naSyncDraftRows();
   document.getElementById('new-assignment-modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -5018,7 +5417,7 @@ function openEditAssignmentModal(aid) {
   if (!a) return;
   editingAssignmentId = aid;
   document.getElementById('new-assignment-title').textContent = 'Edit assignment';
-  document.getElementById('new-assignment-subtitle').textContent = 'Changes apply immediately — students see the updated description, purpose, and requirements the next time they open the coach.';
+  document.getElementById('new-assignment-subtitle').textContent = 'Changes apply immediately — students see the updated description, purpose, and requirements the next time they open the assignment.';
   document.getElementById('new-assignment-submit-btn').textContent = 'Save changes';
   const form = document.getElementById('newAssignmentForm');
   form.reset();
@@ -5035,8 +5434,8 @@ function openEditAssignmentModal(aid) {
   // objects) — an <input type="date"> only accepts a bare YYYY-MM-DD value,
   // so slice off the time component before pre-filling.
   const editDates = (a.draftDueDates || []).map(d => new Date(d).toISOString().slice(0, 10));
-  document.getElementById('newAssignmentLevelSelects').innerHTML =
-    naLevelSelectsHtml(a.draftBudget || 1, editDates, a.coachingLevels || []);
+  document.getElementById('newAssignmentDraftRows').innerHTML =
+    naDraftRowsHtml(a.draftBudget || 1, editDates);
   // An existing assignment's per-draft dates are already deliberate — never
   // let the due-date auto-spacing below silently rewrite them.
   naDraftDatesDirty = true;
@@ -5051,11 +5450,11 @@ function closeNewAssignmentModal(e) {
   document.body.style.overflow = '';
 }
 
-document.getElementById('newAssignmentForm').elements.draftBudget.oninput = naSyncLevelSelects;
+document.getElementById('newAssignmentForm').elements.draftBudget.oninput = naSyncDraftRows;
 document.getElementById('na-due-date').oninput = naApplyDueDateDefaults;
-// Delegated so it survives naSyncLevelSelects()/naLevelSelectsHtml() replacing
+// Delegated so it survives naSyncDraftRows()/naDraftRowsHtml() replacing
 // the rows wholesale on every budget change or modal open.
-document.getElementById('newAssignmentLevelSelects').addEventListener('input', (e) => {
+document.getElementById('newAssignmentDraftRows').addEventListener('input', (e) => {
   if (e.target.classList.contains('draft-due-input')) naDraftDatesDirty = true;
 });
 function clearAssignFormErrors() {
@@ -5109,7 +5508,7 @@ document.getElementById('newAssignmentForm').onsubmit = async (e) => {
   }
   const dueEl = document.getElementById('na-due-date');
   if (!dueEl.value) return assignFormError('Set a due date for the assignment.', dueEl);
-  const dueInputs = [...document.getElementById('newAssignmentLevelSelects').querySelectorAll('.draft-due-input')];
+  const dueInputs = [...document.getElementById('newAssignmentDraftRows').querySelectorAll('.draft-due-input')];
   const draftDueDates = dueInputs.map(i => i.value);
   const missingAt = draftDueDates.findIndex(d => !d);
   if (missingAt !== -1) {
@@ -5129,7 +5528,6 @@ document.getElementById('newAssignmentForm').onsubmit = async (e) => {
     teacherNote: form.elements.teacherNote.value,
     draftBudget: parseInt(form.elements.draftBudget.value, 10),
     draftDueDates,
-    coachingLevels: [...document.getElementById('newAssignmentLevelSelects').querySelectorAll('.draft-level-select')].map(s => s.value),
   };
   const endpoint = editingAssignmentId ? `/api/assignments/${editingAssignmentId}/edit` : '/api/assignments';
   const wasCreate = !editingAssignmentId;
@@ -5448,36 +5846,35 @@ function toggleNewClassAssignPanel() {
   const panel = document.getElementById('newclass-att-assignment');
   const opening = !panel.classList.contains('open');
   panel.classList.toggle('open');
-  if (opening) ncSyncLevelSelects();
+  if (opening) ncSyncDraftRows();
 }
 
-// Mirrors naSyncLevelSelects()/naApplyDueDateDefaults() (New Assignment
+// Mirrors naSyncDraftRows()/naApplyDueDateDefaults() (New Assignment
 // modal) for the embedded copy of the same field set inside New Class's
-// Assignment panel — same naLevelSelectsHtml()/naDueDateSpacedDefaults()
+// Assignment panel — same naDraftRowsHtml()/naDueDateSpacedDefaults()
 // pure helpers, its own dirty flag since it's a separate form.
 let ncAssignDraftDatesDirty = false;
 
-function ncSyncLevelSelects() {
+function ncSyncDraftRows() {
   const budgetInput = document.getElementById('newclass-assign-budget');
   const n = Math.max(1, Math.min(10, parseInt(budgetInput.value, 10) || 3));
-  const container = document.getElementById('newclass-assign-levels');
-  const existingLevels = [...container.querySelectorAll('select')].map(s => s.value);
+  const container = document.getElementById('newclass-assign-draft-rows');
   const existingDates  = [...container.querySelectorAll('input[type=date]')].map(i => i.value);
-  container.innerHTML = naLevelSelectsHtml(n, existingDates, existingLevels);
+  container.innerHTML = naDraftRowsHtml(n, existingDates);
   ncApplyDueDateDefaults();
 }
 
 function ncApplyDueDateDefaults() {
   if (ncAssignDraftDatesDirty) return;
   const due = document.getElementById('newclass-assign-due').value;
-  const rows = [...document.getElementById('newclass-assign-levels').querySelectorAll('.draft-due-input')];
+  const rows = [...document.getElementById('newclass-assign-draft-rows').querySelectorAll('.draft-due-input')];
   const dates = naDueDateSpacedDefaults(due, rows.length);
   rows.forEach((input, i) => { input.value = dates[i]; });
 }
 
-document.getElementById('newclass-assign-budget').oninput = ncSyncLevelSelects;
+document.getElementById('newclass-assign-budget').oninput = ncSyncDraftRows;
 document.getElementById('newclass-assign-due').oninput = ncApplyDueDateDefaults;
-document.getElementById('newclass-assign-levels').addEventListener('input', (e) => {
+document.getElementById('newclass-assign-draft-rows').addEventListener('input', (e) => {
   if (e.target.classList.contains('draft-due-input')) ncAssignDraftDatesDirty = true;
 });
 
@@ -5494,7 +5891,7 @@ function resetNewClassAttachPanels() {
   document.getElementById('newclass-assign-note').value = '';
   document.getElementById('newclass-assign-due').value = '';
   document.getElementById('newclass-assign-budget').value = 3;
-  document.getElementById('newclass-assign-levels').innerHTML = '';
+  document.getElementById('newclass-assign-draft-rows').innerHTML = '';
   ncAssignDraftDatesDirty = false;
   document.getElementById('newclass-success-students-btn').hidden = false;
   document.getElementById('newclass-success-assignment-btn').hidden = false;
@@ -5608,8 +6005,7 @@ document.getElementById('hdrNewClassForm').onsubmit = async (e) => {
     const description = document.getElementById('newclass-assign-description').value.trim();
     const purpose = document.getElementById('newclass-assign-purpose').value.trim();
     const requirements = document.getElementById('newclass-assign-requirements').value.trim();
-    const draftDueDates = [...document.getElementById('newclass-assign-levels').querySelectorAll('.draft-due-input')].map(i => i.value);
-    const coachingLevels = [...document.getElementById('newclass-assign-levels').querySelectorAll('.draft-level-select')].map(s => s.value);
+    const draftDueDates = [...document.getElementById('newclass-assign-draft-rows').querySelectorAll('.draft-due-input')].map(i => i.value);
     if (!description || !purpose || !requirements || !draftDueDates.length || draftDueDates.some(d => !d)) {
       alert('The assignment needs a description, purpose, requirements, and a due date for every draft — fill those in, or close the Assignment panel and add work to this class later.');
       return;
@@ -5618,7 +6014,7 @@ document.getElementById('hdrNewClassForm').onsubmit = async (e) => {
       title: assignTitle, description, purpose, requirements,
       teacherNote: document.getElementById('newclass-assign-note').value.trim(),
       draftBudget: parseInt(document.getElementById('newclass-assign-budget').value, 10),
-      draftDueDates, coachingLevels,
+      draftDueDates,
     };
   }
 

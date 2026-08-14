@@ -44,7 +44,6 @@ const ELECTIVE_ASSIGNMENT = {
   purpose: 'Practice persuasive writing for a real audience — a school paper reader who can just as easily stop reading as agree with you.',
   requirements: '500–700 words. Take a clear position. Anticipate and address the strongest objection to your position.',
   draftBudget: 1,
-  coachingLevels: ['full'],
   draftDueInDays: [-3],
 };
 
@@ -62,7 +61,6 @@ const ENGLISH_EXTRA_ASSIGNMENT = {
   purpose: 'Practice close reading — building an argument from textual evidence rather than paraphrase.',
   requirements: '400–600 words. Quote directly from the poem at least three times. Connect at least one formal choice (meter, rhyme, line break) to meaning.',
   draftBudget: 1,
-  coachingLevels: ['full'],
   draftDueInDays: [-7],
 };
 
@@ -72,7 +70,6 @@ const LIT_EXTRA_ASSIGNMENT = {
   purpose: 'Practice connecting a literary text to its historical moment rather than reading it in isolation.',
   requirements: '500–700 words. Name the specific historical event or movement. Tie at least two textual details to it directly.',
   draftBudget: 1,
-  coachingLevels: ['full'],
   draftDueInDays: [-7],
 };
 
@@ -87,7 +84,6 @@ const GUIDE_ASSIGNMENT = {
   purpose: 'Translate technical knowledge into a form someone else could actually follow and present.',
   requirements: '1000 words. Usable as an oral presentation. Include references.',
   draftBudget: 1,
-  coachingLevels: ['full'],
   // Signed day offsets from "now" (negative = past, positive = future) — one
   // entry per draft, ascending, last one is the assignment's own final due date.
   draftDueInDays: [-1],
@@ -106,7 +102,6 @@ const OPEN_ASSIGNMENTS = {
     purpose: 'Build the skill of taking a position and defending it with evidence rather than just asserting it.',
     requirements: '600–900 words. Take a clear position. Support it with at least three distinct reasons. Address one counterargument. Cite evidence for your claims.',
     draftBudget: 3,
-    coachingLevels: ['full', 'questions', 'sounding-board'],
     // Draft 1 due yesterday — the class is squarely inside draft 1 right now.
     draftDueInDays: [-1, 6, 13],
     // Days-ago each already-submitted draft went in, paired with draftDueInDays
@@ -124,7 +119,6 @@ const OPEN_ASSIGNMENTS = {
     purpose: 'Practice grounding an argument in reporting — sourced claims a reader can check, not just an asserted position.',
     requirements: '500–800 words. Attribute every factual claim to a source. Include at least one direct quote.',
     draftBudget: 3,
-    coachingLevels: ['full', 'questions', 'sounding-board'],
     // Draft 1 well past, draft 2 due yesterday — the class is squarely inside draft 2.
     draftDueInDays: [-10, -1, 6],
     draftSubmittedDaysAgo: [9, 2],
@@ -136,7 +130,6 @@ const OPEN_ASSIGNMENTS = {
     purpose: 'Practice showing a change in thinking through a concrete scene rather than asserting that it happened.',
     requirements: '600–900 words. Ground the change in one specific, concrete moment. Show what you thought before and after.',
     draftBudget: 3,
-    coachingLevels: ['full', 'questions', 'sounding-board'],
     // Drafts 1 and 2 well past, draft 3 due in 2 days — the class is on the
     // final draft, and it has to still be due in the future or the
     // assignment reads as closed (status is derived from dueDate vs. now).
@@ -175,7 +168,6 @@ const ASSIGNMENTS = {
     purpose: 'Practice close reading — arguing from the actual language of a text rather than a general impression of it.',
     requirements: '700–1000 words. Identify the audience and the rhetorical strategies used. Argue which strategy did the most work. Ground every claim in specific language from the speech.',
     draftBudget: 3,
-    coachingLevels: ['full', 'questions', 'sounding-board'],
     draftDueInDays: [-32, -24, -15],
   },
 };

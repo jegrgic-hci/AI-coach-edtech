@@ -235,7 +235,7 @@ and send the URL. Nothing about that touches prod, which only ever moves on a pu
 
 Two things make that safe, and one rule keeps it that way:
 
-- **Spend is capped by construction.** The soft cap is 40 coach replies/day/account across 10 demo accounts, so a stranger maxing every one of them costs roughly a dollar a day; the hard tier bounds it absolutely. The $25 budget alert would fire long before anything ran away. This is the usage-cap work paying for itself — a public demo would have been an open tab on the Vertex bill without it.
+- **Spend is capped by construction.** The soft cap is 40 AI replies/day/account across 10 demo accounts, so a stranger maxing every one of them costs roughly a dollar a day; the hard tier bounds it absolutely. The $25 budget alert would fire long before anything ran away. This is the usage-cap work paying for itself — a public demo would have been an open tab on the Vertex bill without it.
 - **App auth is still enforced.** Removing Cloud Run's IAM gate didn't remove the session layer: `/api/*` returns 401 without a sign-in, and every role and ownership check is unchanged.
 - **`cta-pilot-dev` must never hold real student data while these credentials are public.** The demo password is published in this repo. This is the rule that was most likely to be forgotten under deadline, which is why it stopped depending on memory: real users live in `tau-thinking-prod`, and the demo seed cannot reach it (*Two projects*, above).
 
@@ -248,16 +248,16 @@ Two things make that safe, and one rule keeps it that way:
 
 Collections documented at the top of `server/store.js` — these *are* the Firestore collections now, not a shape standing in for them. Turns are **append-only**: edits and regenerations append a new turn with `meta.supersedes: [ids]`; live turns are derived at read time, the full record is the integrity artifact.
 
-## What's implemented (last updated 2026-08-06)
+## What's implemented (last updated 2026-08-14)
 
 - Assignment list → workspace with ChatGPT-style conversation sidebar (unlimited conversations, rename, no delete)
-- Streaming coach chat, blank-context per conversation, coaching level fixed per session (full / questions / sounding-board)
+- Streaming AI chat, blank-context per conversation. **No coaching as of 2026-08-14** — no system prompt, no persona, no assignment context; it behaves like any Gen AI chat (see `built-in-chat-plan.md`, *Coach: Scaffolding Fade — REMOVED*)
 - Evaluate button → auditor voice (meta-turns, excluded from future TAU)
-- Submit flow with confirmation friction: locks all cycle conversations, records submission, next open starts the next cycle at the next coaching level
+- Submit flow with confirmation friction: locks all cycle conversations, records submission, next open starts the next cycle
 - Event logging from day one: copy, regenerate, edit, stop, evaluate, episode-save/resume
 - Guardrails: maxOutputTokens capped (500 chat / 400 evaluate); `thinkingBudget: 0` on every call
 - **Cost accounting** (`server/llm.js` → `llmCalls`): one row per Vertex call with purpose, model, token counts, latency and attribution. Tokens never dollars — a price table lands with the admin cost view, so history stays comparable when prices move
-- **Two-tier usage caps** (`server/budget.js`): soft 40 coach replies/day (student-visible, warns at 80%, teacher can grant more via `POST /api/teacher/students/:id/grant-replies`); hard 1M input tokens/day (invisible, logs loudly — reaching it means a bug, not homework). Checked at the turn boundary before the student's turn is persisted. **Submitting is never blocked by chat budget**: analysis is excluded from the count, so a student who chatted a lot still gets their report
+- **Two-tier usage caps** (`server/budget.js`): soft 40 AI replies/day (student-visible, warns at 80%, teacher can grant more via `POST /api/teacher/students/:id/grant-replies`); hard 1M input tokens/day (invisible, logs loudly — reaching it means a bug, not homework). Checked at the turn boundary before the student's turn is persisted. **Submitting is never blocked by chat budget**: analysis is excluded from the count, so a student who chatted a lot still gets their report
 
 ### Model choice (measured 2026-08-05, not assumed)
 
@@ -274,7 +274,7 @@ With thinking off, 3.5 Flash loses the advantage that justified its 6× price �
 - `POST /api/submissions/:id/reanalyze` retry path with a Retry button on the report page. The Groq 429 retry loop is gone with the Vertex swap — it existed for a free-tier TPM limit that no longer applies
 
 - **Teacher triage dashboard** (`web/dashboard.html`): the existing `teacher-dashboard.html` ported whole (guide first, detail on demand — overview/class/assignment/student tabs, two-tier flag system, side tray, flag detection modal); its mock generator replaced by `/api/teacher/dashboard`, which serves the exact mock shape from real data. Drill panels link into the detail layer: per-submission "Report →" (teacher-mode report) and "Conversation view →" (`teacher.html#student/:aid/:sid`). Reflects the real `classes` collection now — a class tab per class, not a synthesized "My Class"
-- **Teacher detail layer** (`web/teacher.html`) — ⚠️ **flagged for a rebuild 2026-08-08; do not extend it, and read `teacher-dashboard-design.md`'s "`teacher.html`'s session view — needs a rebuild" section before touching it.** It predates the triage dashboard and was never reconciled with it: no rail, no way back, a duplicate assignment list, and a transcript with no way to reach the moment you came for. The per-submission teacher note moved onto the dashboard's own submission rows on that date, so the transcript is now the only thing this page uniquely provides. Original description follows: assignment creation (prompt, due date, draft budget, coaching level per slot with default-fade prefill), roster with per-cycle TAU/SAMR chips + flag markers, student detail view — trajectory strip (growth across the fade), conversation-ready moments (first turns, best challenge, pushback, unchallenged AI-born concepts), snapshots verbatim, integrity signals, full transcripts with turn labels/meta-turns/superseded turns/events interleaved, teacher note per submission (shown to the student on their report). Report page shows the integrity flags panel with misfire disclosure when a teacher is signed in
+- **Teacher detail layer** (`web/teacher.html`) — ⚠️ **flagged for a rebuild 2026-08-08; do not extend it, and read `teacher-dashboard-design.md`'s "`teacher.html`'s session view — needs a rebuild" section before touching it.** It predates the triage dashboard and was never reconciled with it: no rail, no way back, a duplicate assignment list, and a transcript with no way to reach the moment you came for. The per-submission teacher note moved onto the dashboard's own submission rows on that date, so the transcript is now the only thing this page uniquely provides. Original description follows: assignment creation (prompt, due date, draft budget, per-draft due dates), roster with per-cycle TAU/SAMR chips + flag markers, student detail view — trajectory strip (growth across drafts), conversation-ready moments (first turns, best challenge, pushback, unchallenged AI-born concepts), snapshots verbatim, integrity signals, full transcripts with turn labels/meta-turns/superseded turns/events interleaved, teacher note per submission (shown to the student on their report). Report page shows the integrity flags panel with misfire disclosure when a teacher is signed in
 
 - **Administration surface** (`web/admin.html`, `web/admin.js`): the third role. An admin creates
   teacher accounts (name + email; the teacher then builds their own classes/students/assignments),
@@ -298,7 +298,7 @@ With thinking off, 3.5 Flash loses the advantage that justified its 6× price �
   detail, assignment-edit, assignment-note and submission-note routes had no ownership check at all.
   Invisible with one seeded teacher; a cross-teacher leak of rosters, scores, and integrity flags the
   moment an admin can create a second one. All now scoped to the teacher's own classes/assignments.
-- **Login + student account view** (`web/login.html`, `web/api.js`): every `/api/*` route requires a session; a 401 lands on the login page from any surface. The student home (`web/index.html`) shows current work with the coaching level for the next draft, past assignments with per-draft score chips linking to their reports, and a teacher-note badge. The rail's dimension guidance uses the same fixed names (Prompting Quality, Selective Use, Calibrated Skepticism, Original Contribution) as the report page, per designsystem.md's Hard Constraints. The Google SSO button is present but disabled — Phase A fills it in
+- **Login + student account view** (`web/login.html`, `web/api.js`): every `/api/*` route requires a session; a 401 lands on the login page from any surface. The student home (`web/index.html`) shows current work, past assignments with per-draft score chips linking to their reports, and a teacher-note badge. The rail's dimension guidance uses the same fixed names (Prompting Quality, Selective Use, Calibrated Skepticism, Original Contribution) as the report page, per designsystem.md's Hard Constraints. The Google SSO button is present but disabled — Phase A fills it in
 
 ## Not yet
 

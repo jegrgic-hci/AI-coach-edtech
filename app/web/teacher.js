@@ -9,7 +9,6 @@ function esc(s) {
   return d.innerHTML;
 }
 
-const LEVEL_LABEL = { full: 'Full coach', questions: 'Questions only', 'sounding-board': 'Sounding board' };
 
 // ---------- overview ----------
 
@@ -35,7 +34,7 @@ async function showOverview() {
     card.innerHTML = `
       <h3>${esc(a.title)}</h3>
       <div style="font-size:13px;color:var(--muted);margin-bottom:6px">
-        ${a.draftBudget} drafts · fade: ${a.coachingLevels.map((l) => LEVEL_LABEL[l]).join(' → ')}
+        ${a.draftBudget} draft${a.draftBudget === 1 ? '' : 's'}
       </div>
       ${a.roster.map((r) => `
         <div class="list-row roster-row" data-student="${r.studentId}" data-assignment="${a.id}">
@@ -98,8 +97,8 @@ function renderTimeline(conv, events) {
     if (item.event) {
       const e = item.event;
       const desc = {
-        copy: `copied ${e.meta?.length || '?'} chars from a ${e.meta?.role || 'coach'} message`,
-        regenerate: 'regenerated the coach reply (implicit rejection)',
+        copy: `copied ${e.meta?.length || '?'} chars from ${e.meta?.role === 'auditor' ? 'an auditor' : 'an AI'} message`,
+        regenerate: 'regenerated the AI reply (implicit rejection)',
         edit: 'edited their message (refinement)',
         stop: 'stopped generation',
         evaluate: 'summoned the auditor (metacognitive check)',
@@ -138,7 +137,7 @@ async function showStudent(assignmentId, studentId) {
     strip.innerHTML = submitted.map(({ session, submission, analysis }) => {
       const done = analysis?.status === 'complete';
       return `<div class="card traj-card">
-        <div class="lvl">Draft ${session.cycleIndex + 1} · ${LEVEL_LABEL[session.coachingLevel]}</div>
+        <div class="lvl">Draft ${session.cycleIndex + 1}</div>
         ${done ? `
           <div class="samr">${analysis.tau.SAMR} · ${analysis.tau.totalScore}/20</div>
           <div class="dim-line">PQ ${analysis.tau.PQ} · SU ${analysis.tau.SU} · CS ${analysis.tau.CS} · OC ${analysis.tau.OC}</div>
@@ -155,7 +154,7 @@ async function showStudent(assignmentId, studentId) {
     const done = analysis?.status === 'complete';
 
     let html = `<h3>Draft ${session.cycleIndex + 1}
-      <span style="font-weight:400;font-size:13px;color:var(--muted)"> · coach: ${LEVEL_LABEL[session.coachingLevel]} · ${submission ? `submitted ${new Date(submission.submittedAt).toLocaleString()}` : 'in progress'}</span></h3>`;
+      <span style="font-weight:400;font-size:13px;color:var(--muted)"> · ${submission ? `submitted ${new Date(submission.submittedAt).toLocaleString()}` : 'in progress'}</span></h3>`;
 
     if (done) {
       const moments = computeMoments(analysis);

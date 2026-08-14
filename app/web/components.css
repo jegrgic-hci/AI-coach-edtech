@@ -579,7 +579,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 .new-assignment-form { display: flex; flex-direction: column; gap: 10px; }
 .form-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .form-row label { font-size: 13px; color: var(--tau-ink-soft); }
-.level-selects { display: flex; flex-direction: column; gap: 6px; }
+.draft-slot-rows { display: flex; flex-direction: column; gap: 6px; }
 .draft-slot-row { display: flex; align-items: center; gap: 8px; }
 .draft-slot-label { font-size: 13px; color: var(--tau-ink-soft); width: 52px; flex-shrink: 0; }
 
@@ -601,8 +601,8 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 }
 /* Used for irreversible steps, which for a student means submitting a draft.
    The list is the component's whole point: it names every consequence,
-   including the one nobody predicts — that the coach gets less helpful next
-   round. Keep it a list; a paragraph hides the fourth item. */
+   including the ones nobody predicts. Keep it a list; a paragraph hides
+   the last item. */
 .confirm {
   background: var(--tau-surface);
   border: 1px solid var(--tau-line);
@@ -1236,3 +1236,588 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
   color: var(--tau-ink-faint); font-size: var(--tau-text-sm); font-weight: 600; cursor: not-allowed;
 }
 .menu-future .mi-desc { color: var(--tau-ink-faint); }
+
+
+/* ============================================================================
+ * §17  HOME AGGREGATES — level composition, band distributions, chart chrome
+ *
+ * Graduated from dashboard-lab.html on 2026-08-14, verbatim apart from
+ * the gutter token's rename and the two :root blocks, which
+ * moved to tokens.css (§3, --tau-scale-N). The rationale comments came with
+ * the rules deliberately: most of them record a construction that was tried
+ * and measured wrong, and losing that is how the same shape comes back.
+ *
+ * Used by dashboard.html's renderHome(). The lab retains sections 3 and 4
+ * (Students by level / Dimension bands) only because they still have no real
+ * data behind them; everything visual now lives here.
+ * ========================================================================== */
+
+/* --- .comp — the level composition of a room.
+   The cohort form of report-lab.html's .ladder: same four rungs, same
+   named-never-numbered rule. It takes the --tau-scale ramp rather than
+   --tau-band-N, because four rungs plotted together is a chart and the
+   band tokens are a chip palette — see the fills below. The difference is
+   what sits on a rung — .ladder marks ONE student's level, .comp counts
+   how many are on each. Built as a sibling rather than a variant
+   because the ladder's is-here fill states "you are here", and a count
+   on every rung would make four rungs all look like "here".
+
+   The bar is proportional so the shape of the room is legible before a
+   number is read. Not a chart: one categorical axis, four ordered
+   cells, which is what the dataviz skill's form table sends to a
+   segmented bar rather than to anything with an axis. */
+/* THE SHARED CHART GRID. .comp and .dbar are two partitions of the SAME
+   cohort, so a length should mean the same number of students in both.
+   Equal columns alone does not deliver that — the two had different label
+   and trailing widths, so their tracks came out ~300px and ~180px inside
+   columns of identical width. These three values are what actually makes
+   the scales one scale: both components lay out
+   `lead | gutter | track | tail`, so the 1fr tracks resolve to the same
+   px and 11 students is the same length on either chart.
+
+   Change one of these and BOTH charts move. That is the point; it is also
+   the hazard, so they live here rather than as numbers in two rulesets. */
+/* TITLE ABOVE THE BAR, not beside it. A label column and a trailing value
+   column together took ~60% of the width on the dimension side, leaving a
+   146px track for a four-segment distribution at n=90 — most numerals fell
+   out of the marks and into the tooltip. Moving both to a header line
+   above gives the bar the full measure, and it makes the shared scale
+   easier to hold rather than harder: both charts are now simply "gutter +
+   everything else", so their tracks are the same width by construction. */
+.comp { display: flex; flex-direction: column; gap: 3px; }
+.comp-row { padding: 3px 0; }
+/* The header line, shared by both charts: name left, value right. */
+.viz-row-head {
+  display: flex; align-items: baseline; gap: var(--tau-s3);
+  margin-bottom: 3px;
+}
+.viz-row-head > :first-child { flex: 1; min-width: 0; }
+/* The plot line. The leading cell is deliberately empty in .comp: it has
+   no outside numerals, but the gutter has to be there or its track starts
+   1.6rem left of the other chart's. */
+.viz-plot {
+  display: grid;
+  grid-template-columns: var(--tau-chart-gutter) 1fr;
+  align-items: center;
+}
+.comp-name { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); }
+.comp-track { background: var(--tau-surface-2); border-radius: var(--tau-r-sm); height: 18px; overflow: hidden; }
+.comp-fill { display: block; height: 100%; border-radius: var(--tau-r-sm); }
+/* --tau-scale-N, not --tau-band-N-bg. The band tokens are a CHIP palette:
+   four hues (280/205/242/162) at one lightness, built to identify one
+   band at a time on one student's report. Four of them side by side as
+   bar fills have no ordinal reading at all — L 0.948-0.953 across the
+   whole set, a 0.005 spread. That is the same defect the dimension bars
+   below were rebuilt to fix, and it was living one section up in the
+   same column: two adjacent 1-4 scales in two contradictory colour
+   languages, one of which ran opposite in lightness to the other.
+   One ordinal ramp now serves both. See the token block below. */
+.comp-1 .comp-fill { background: var(--tau-scale-1); }
+.comp-2 .comp-fill { background: var(--tau-scale-2); }
+.comp-3 .comp-fill { background: var(--tau-scale-3); }
+.comp-4 .comp-fill { background: var(--tau-scale-4); }
+/* Tabular so four rows read as a column of magnitudes. The unit is
+   stated once by the section head; repeating "students" on four rows
+   would be noise, which is the one place this departs from the
+   count-never-stands-alone rule and does so deliberately. */
+/* Ink, not the ramp. "A band count -> Ink numeral, tabular" — the
+   distribution's SHAPE is the finding and the words beside it say so, so
+   the numerals stay neutral (teacher-dashboard-design.md, "Colour:
+   measured vs the tool talking"). These used to take --tau-band-N-fg,
+   which is that table's own rule broken in the row it governs. */
+/* On the header line now, right-aligned opposite the level name. */
+.comp-count {
+  font-size: var(--tau-text-sm); font-weight: 700; flex: 0 0 auto;
+  font-variant-numeric: tabular-nums; color: var(--tau-ink);
+}
+/* The modal row is the headline, so it is the only one that reads as a
+   statement rather than a row — weight, never colour alone: the ramp
+   has already spent colour on level identity. */
+.comp-row.is-modal .comp-name { font-weight: 700; }
+
+/* "Not enough here" is off the ladder, always. Not band 0: it never
+   shares a cell, a ramp position or a count with band 1
+   (teacher-dashboard-design.md, "The unit of every aggregate").
+   Encoded three ways at once so no single channel carries it — a rule
+   above it, no ramp colour, an outlined rather than filled track. A
+   reader who misses all three still reads the words. */
+.comp-off {
+  padding-top: var(--tau-s2);
+  margin-top: var(--tau-s2);
+  border-top: 1px dashed var(--tau-line-strong);
+}
+.comp-off .comp-name { color: var(--tau-ink-faint); font-weight: 500; }
+.comp-off .comp-count { color: var(--tau-ink-faint); font-weight: 600; }
+.comp-off-track { height: 18px; border-radius: var(--tau-r-sm); border: 1px dashed var(--tau-line-strong); }
+
+/* --- The band distribution: a DIVERGING STACKED BAR, split at the 2|3
+   seam. Replaces the four coloured count-cells, which failed for a
+   measurable reason — see the note below.
+
+   WHY THIS FORM. The data is an ordered-scale share (how a cohort
+   distributes across 1..4), which is the Likert case: the dataviz
+   skill's form table sends it to a diverging stacked bar centred on
+   neutral. The neutral here is not invented — tau-dimensions.md
+   already puts the seam between 2 and 3 ("two of the four bands
+   describe distinct failures"). The form and the measure agree.
+
+   The seam sits at the SAME x on all four rows, so the four dimensions
+   are comparable at a glance: mass left of the line is the share of the
+   room the behaviour didn't happen for. That comparison is the whole
+   job of this section and no arrangement of cells delivered it.
+
+   WHY THE COLOUR IS ONE HUE, NOT TWO. A diverging palette wants two
+   hues. This system cannot supply a non-semantic pair, and that is
+   checkable rather than a matter of taste:
+     - The only pair passing all six checks is violet/green, and its
+       green pole lands on oklch(0.46 0.13 162) — which is
+       --tau-positive (oklch(0.50 0.10 158)) in all but name. Hard
+       Constraints: semantic colour never touches a score.
+     - Every warm hue is already a semantic tier (caution 68,
+       attention 18).
+     - Two cool hues do not separate: violet 280 vs blue 242 scores
+       ΔE 0.9 (deutan). Hard fail.
+   So POLARITY IS CARRIED BY POSITION (which side of the seam) and
+   colour carries only the ordinal step. Position is the stronger
+   channel for polarity anyway, and this avoids rendering a class's
+   skepticism as red-vs-green, which is the verdict "voice is coach,
+   not judge" exists to prevent.
+
+   Hue 242 is the one hue in the system that is neither a semantic tier
+   nor a voice (auditor 300, tool-info 205) — it is a band-ramp hue.
+   Steps are monotonic in lightness 0.44/0.58/0.72/0.86, worst-adjacent
+   CVD ΔE 13.4 against a target of 8. Dark mode is SELECTED against the
+   dark surface (the ramp inverts), not flipped.
+
+   Band 1 is the darkest step. More visual weight on absence is
+   deliberate: sensitivity at the low end is this instrument's standing
+   requirement. */
+/* --- --tau-scale-N — THE ORDINAL RAMP. Graduates to tokens.css.
+   One scale, used wherever four bands are PLOTTED TOGETHER as magnitude
+   (.comp above, .dbar below). --tau-band-N-* keeps its own job and is
+   unchanged: it IDENTIFIES one band, one at a time, as a chip on one
+   student's report. The split is the rule —
+
+     --tau-band-N-*  identifies a band.   One at a time. A chip.
+     --tau-scale-N   orders four of them. Together. A chart.
+
+   Validated with the ORDINAL mode, which is the right test for ordered
+   tiers — an earlier pass used the categorical mode and shipped a light
+   end at 1.48:1 against the surface, i.e. a band that washes out on
+   white. Both ramps pass all four ordinal checks against the REAL tau
+   surfaces (#FFFFFF / #1C1F21): monotone lightness, adjacent ΔL >= 0.06,
+   light end clearing 2:1, single hue.
+
+   The dark ramp is SELECTED, not flipped, and two of its steps moved in
+   this pass for measured reasons. It was previously validated against
+   the dataviz skill's default dark surface (#1a1a19) rather than tau's
+   lighter #1C1F21, where its light end read 1.97:1 — under the 2:1
+   floor. And step 3 was #4f7ea1, which cleared neither 4.5:1 with ink
+   (3.63) nor with surface (3.81), so its numeral failed at 11px bold —
+   the exact failure "dark mode is selected, not flipped" exists to
+   catch, since the ramp inverts between themes but the numeral-colour
+   rules did not.
+
+   DIRECTION: band 1 is the step furthest from the ground in both themes
+   — darkest on white, lightest on the dark surface. This is a stated
+   amendment, not drift. Hard Constraints has "SAMR band foregrounds step
+   down in lightness 1->4 — never reorder", which governs
+   --tau-band-N-fg; this is a different token doing a different job, and
+   it runs the other way on purpose. The finding this chart exists to
+   carry is where the MASS sits at the low end, so weight belongs on
+   absence: sensitivity at the low end is this instrument's standing
+   requirement (tau-dimensions.md, "The scoring scale"). */
+
+/* --- .dbar — the band distribution. A diverging stacked bar split at
+   the 2|3 seam. The form is settled (teacher-dashboard-design.md,
+   "The form"); what changed here is the geometry, which used to be
+   arithmetic and is now structural.
+
+   ONE TRACK, WIDTH n — EQUAL-LENGTH BARS, ALIGNED EDGES. Two earlier
+   constructions were wrong in the same direction and are worth naming so
+   neither comes back:
+
+     1. A hardcoded 300px plot with a seam positioned at `left: <px>`,
+        which used under half of a fluid card and let the axis drift from
+        the data as an arithmetic result. Its axis LABELS were a separate
+        space-between row across the whole card, so the label reading
+        "the seam" floated at the card's centre while the line it named
+        sat ~155px in.
+     2. Proportional columns sized `minmax(0,{maxLo}fr)` /
+        `minmax(0,{maxHi}fr)`, packed against a shared seam. This fixed
+        the drift — the seam became a grid boundary nothing could detach —
+        but it bought a cross-row seam alignment at the cost of ragged
+        left and right ends, and that alignment served nothing: EACH BAR
+        SITS IN ITS OWN CARD, so there is no continuous plot for a shared
+        axis to run through.
+
+   Now the track is always the full n, which is legitimate precisely
+   because bands + off = n on every row (the invariant the whole section
+   rests on, asserted in barGeometry). Every bar starts and ends at the
+   same x; one student is the same width on every row, so segment length
+   still reads as an absolute count AND shares are directly comparable;
+   and the seam becomes a tick whose POSITION encodes the failure share,
+   read against a common left edge — position along a common scale, which
+   is the most accurate perceptual comparison available. */
+/* gutter | the bar | the off-scale count. The middle column is the only
+   proportional one and it is always the full n, so every bar starts and
+   ends at the same x. The two fixed columns are identical on every row,
+   so they cost that alignment nothing. */
+.dbar { display: grid; align-items: center;
+       grid-template-columns: var(--tau-chart-gutter) 1fr; }
+.dbar-gutter { display: flex; justify-content: flex-end; overflow: visible; }
+.dbar-track { position: relative; display: flex; align-items: center; min-width: 0; }
+/* The seam. A real axis line, not a divider — drawn in ink rather than the
+   hairline colour used for separators, and overrunning the bar top and
+   bottom so it reads as an axis rather than as a gap between two fills. It
+   sits above the fills because its POSITION is the finding: the further
+   right it falls, the more of the room the behaviour didn't happen for. */
+.dbar-seam {
+  position: absolute; top: -4px; bottom: -4px; width: 1px;
+  background: var(--tau-ink); pointer-events: none;
+}
+.dbar-seg {
+  height: 26px; box-sizing: border-box;
+  /* Flex is set inline, per segment: `flex: <count> 1 0`, so the segments
+     divide the track in the ratio of their counts and the row always fills
+     it exactly. Replaces `flex: 0 0 auto` + a percentage width (2026-08-14),
+     which made the bar's total an arithmetic result that the min-width floor
+     and the 2px separators could push short of the track.
+     Shrink is now 1 rather than 0: a segment forced up to the 6px floor takes
+     its extra from the others proportionally, which is a visible small count
+     paid for across four large ones rather than a bar that stops early. */
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+  min-width: 6px; overflow: hidden; white-space: nowrap;
+}
+/* The 2px surface gap between stacked segments, per the dataviz skill's
+   mark specs. Between segments only — never at an outer end, and never
+   at the seam, where the fill butts the axis. */
+.dbar-seg + .dbar-seg { border-left: 2px solid var(--tau-surface); }
+.dbar-seg.s1 { background: var(--tau-scale-1); color: var(--tau-scale-1-ink); }
+.dbar-seg.s2 { background: var(--tau-scale-2); color: var(--tau-scale-2-ink); }
+.dbar-seg.s3 { background: var(--tau-scale-3); color: var(--tau-scale-3-ink); }
+.dbar-seg.s4 { background: var(--tau-scale-4); color: var(--tau-scale-4-ink); }
+/* 4px rounded data-ends on the outer edges only — the seam edges stay
+   square because they butt against the axis, not against space. The cap
+   goes on whichever segment is actually outermost, which is not always
+   band 1 or band 4: a row with nobody at band 4 ended square before,
+   because the cap was pinned to a segment that wasn't rendered. */
+.dbar-seg.cap-l { border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
+.dbar-seg.cap-r { border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
+.dbar-seg:focus-visible { outline: var(--tau-focus-ring); outline-offset: 2px; }
+
+/* A count for a segment too narrow to hold it, placed just beyond the
+   bar's outer end. Only bands 1 and 4 can use this — they are the
+   extremities, so the position is stable and cannot collide with a
+   neighbour. Which segments are too narrow is MEASURED after layout
+   (fitLabels), not predicted from a px scale that no longer exists. */
+.dbar-seg.is-tight .dbar-num { visibility: hidden; }
+.dbar-out {
+  display: none; flex: 0 0 auto; padding: 0 5px;
+  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--tau-ink-soft); white-space: nowrap;
+}
+.dbar-out.is-shown { display: block; }
+
+/* "Not enough here" is off the plot entirely — not a segment, not a
+   cell, not band 0. It sits after a gap column, unfilled, dashed, and
+   shorter than the bar: three channels saying off-scale, so no single
+   one has to carry it. It stays adjacent to the bar end rather than in a
+   far-right column, because the bar is short precisely BECAUSE these
+   students could not be read, and adjacency is what joins those two
+   facts. It is drawn on the SAME student-unit as the bands, so the four
+   rows' off counts are comparable to each other and to the bands —
+   which a ragged inline chip was not. */
+.dbar-off-cell {
+  height: 18px; box-sizing: border-box; border-radius: 3px; flex: 0 0 auto;
+  border: 1px dashed var(--tau-line-strong);
+  /* A fourth channel, added once the Thin-sessions shape showed the cell
+     at half the plot's width: at that size the gap, the dash and the
+     short height were not enough to stop a big empty box reading as a
+     fifth band. Hatching says "not on this scale" at any size. */
+  background-image: repeating-linear-gradient(135deg,
+    var(--tau-line) 0 1px, transparent 1px 5px);
+}
+/* The break that puts it off the scale. 3px, and only when there is
+   something to break away from — a zero cell adds nothing, so the bars
+   stay exactly equal. */
+.dbar-off-cell.has-any { margin-left: 3px; min-width: 5px; }
+
+/* --- The scale strip. One decoder, sitting directly above the first
+   bar, laid out in the bar's own order: 1 2 | 3 4, then off-scale after
+   a break. That isomorphism is the point — once the key runs
+   left-to-right in the same order the marks do, POSITION is the primary
+   channel for which band a segment is and colour is redundant rather
+   than load-bearing (Hard Constraints: "colour is never the only
+   channel"; the marks themselves carry a COUNT, not a band identity).
+
+   It replaces two separate things that were both in the wrong place: a
+   pole row ("<- didn't happen" / "held up ->") whose text was already
+   bands 1 and 4's own descriptors restated, and a legend that sat FOUR
+   CARDS BELOW the chart it decodes, so a reader met the first bar with
+   nothing to read it by (Gestalt proximity). The seam needs no label of
+   its own now — the descriptors on either side say what it divides,
+   which is what "the seam" was standing in for. */
+.dbar-key {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 7px 13px;
+  font-size: 10.5px; color: var(--tau-ink-soft);
+}
+.dbar-key-item { display: inline-flex; align-items: center; gap: 5px; }
+.dbar-key-item i {
+  width: 11px; height: 11px; border-radius: 2px; font-style: normal; flex: 0 0 auto;
+}
+.dbar-key-item .n { font-weight: 700; color: var(--tau-ink); font-variant-numeric: tabular-nums; }
+/* --tau-ink-faint rather than --tau-line-strong, unlike the cell it
+   stands for: at 11px a hairline dash in the border colour disappears
+   against the dark surface, and this is the decoder — it has to be
+   legible before anything it decodes is. */
+.dbar-key-item.off i { background: none; border: 1px dashed var(--tau-ink-faint); }
+/* A legend item that is also a trigger. The dotted underline is the
+   conventional "there is a definition here" signal, so the affordance
+   rides on the term itself rather than needing a second glyph beside it.
+   ::after gives it the 44px hit area that --tau-target requires without
+   changing how it sits in the strip. */
+button.dbar-key-item {
+  appearance: none; background: none; border: 0; padding: 0;
+  font: inherit; color: inherit; cursor: pointer; position: relative;
+}
+button.dbar-key-item span {
+  text-decoration: underline dotted var(--tau-line-strong); text-underline-offset: 3px;
+}
+button.dbar-key-item::after { content: ''; position: absolute; inset: -15px -6px; }
+button.dbar-key-item:hover span,
+button.dbar-key-item[aria-expanded="true"] span {
+  color: var(--tau-ink); text-decoration-color: var(--tau-ink-faint);
+}
+button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-offset: 3px; }
+/* The strip's own copy of the axis — same ink, same job. */
+.dbar-key-seam { width: 1px; align-self: stretch; min-height: 15px; background: var(--tau-ink-faint); }
+
+/* The hover layer the dataviz skill requires on bar marks. Replaces
+   `title=`, which is ~1s delayed, unstyled, and never fires on keyboard
+   focus. Fixed-position and pointer-events:none so it can never sit
+   between the cursor and the mark it describes. */
+.dbar-tip {
+  position: fixed; z-index: 60; pointer-events: none; opacity: 0;
+  background: var(--tau-ink); color: var(--tau-surface);
+  font-size: 11.5px; line-height: 1.45; padding: 6px 9px;
+  border-radius: var(--tau-r-sm); box-shadow: var(--tau-shadow);
+  max-width: 230px;
+  transition: opacity var(--tau-dur-short) var(--tau-ease-standard);
+}
+.dbar-tip.is-on { opacity: 1; }
+.dbar-tip b { color: var(--tau-surface); }
+
+/* --- .info-dot — the affordance the descriptor rule hangs off. One per
+   visualisation, in its section head.
+
+   A BUTTON, and never a bare hover target on the chart itself: a
+   hover-only decoder does not exist for touch or for keyboard, and a
+   decoder nobody can reach is not a decoder. It answers to hover, focus
+   AND click.
+
+   The dot is 15px but its hit area is 44px via the ::after overlay —
+   --tau-target is a real minimum, and shrinking a control below it to
+   suit a type scale is the trade that rule exists to refuse. */
+.info-dot {
+  position: relative; appearance: none; background: none; padding: 0;
+  border: 1px solid var(--tau-line-strong); border-radius: 50%;
+  width: 15px; height: 15px; flex: 0 0 auto; cursor: pointer;
+  font-size: 10px; font-weight: 700; line-height: 1; color: var(--tau-ink-faint);
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: color var(--tau-dur-short) var(--tau-ease-standard),
+              border-color var(--tau-dur-short) var(--tau-ease-standard);
+}
+.info-dot::after { content: ''; position: absolute; inset: -14.5px; }
+.info-dot:hover, .info-dot[aria-expanded="true"] { color: var(--tau-ink); border-color: var(--tau-ink-faint); }
+.info-dot:focus-visible { outline: var(--tau-focus-ring); outline-offset: 3px; }
+.head-with-info { display: flex; align-items: center; gap: 7px; }
+
+/* --- .viz-lede — the sentence the tool leads a visualisation with. One
+   per chart, directly under the eyebrow, above the marks. It is the
+   conclusion-first block: bold claim, then the counts that carry it.
+
+   DELIBERATELY NOT --tau-tool-info BLUE, and this is the contested bit.
+   It takes .pattern-try's exact STRUCTURE — a 3px left rule, same offset,
+   same measure — so the two read as one family: blocks the tool wrote in
+   its own words. What separates them is the hue, and the hue is doing the
+   only job it can do here. Blue means "the tool authored this and you may
+   discount it" (Hard Constraints: it is a voice, not a tier). This block
+   is TEMPLATED off counts the bars below already show — it cannot claim
+   anything the evidence doesn't back — so it is measured, not authored,
+   and blue under a measured number tells a teacher the number is an
+   opinion. teacher-dashboard-design.md's "Colour: measured vs the tool
+   talking" puts the explainer at "neutral, no container" for exactly this
+   reason, and the 2026-08-08 removal of a blue card carrying
+   "Averaging 2.1 / 5" is the same mistake already made and corrected on
+   this page.
+
+   Neutral rule + ink text is what is left: the shape says "the tool is
+   addressing you", the absence of hue says "and this part is measured". */
+.viz-lede {
+  border-left: 3px solid var(--tau-line-strong);
+  padding: 1px 0 1px 13px; margin: 0 0 var(--tau-s4);
+  font-size: 13px; line-height: 1.55; color: var(--tau-ink);
+}
+.viz-lede b { font-weight: 700; }
+
+/* --- .dist-panel — the band-distribution panel. ONE card, four rows.
+   NAMED .dist-*, NOT .dim-*, and that is load-bearing: dashboard.html's inline
+   sheet already owns .dim-panel/.dim-row for the LEGACY three-column trend rows
+   still rendered at the class and assignment tiers. Those rules set
+   `display: flex` on the row, so while this component shared the name the
+   <summary> shrink-wrapped and its open detail laid out BESIDE the bar instead
+   of under it — a row that looked like it had not expanded. Renamed 2026-08-14.
+   The legacy .dim-* goes away when those two tiers move to band distributions.
+
+   ONE card, four rows. Was four cards, each with a title Was four cards, each with a title
+   line, a plot line and its own disclosure row: ~530px of chrome for four
+   numbers-and-a-bar. The rows now match .comp's shape one section over
+   (name | proportional track | value), which is what makes the two halves
+   of that line read as a pair — and cuts the section roughly in half.
+
+   THE BAR IS BACK INSIDE THE <summary>, reversing a change made earlier
+   in this file, and the reason it was moved out no longer holds. It was
+   moved out because the chart being a disclosure trigger meant clicking a
+   mark to inspect it COLLAPSED the thing you were inspecting, and the
+   hover state said "this will expand" rather than naming the segment.
+   With one row per dimension, clicking a bar expands detail ABOUT THAT
+   BAR — the click and the mark now agree, the row-wide hover is correct
+   feedback for a row-wide target, and the per-segment tooltip still
+   carries the segment-specific reading on hover. */
+.dist-panel {
+  background: var(--tau-surface); border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-md); box-shadow: var(--tau-shadow);
+}
+.dist-row { border-bottom: 1px solid var(--tau-line); }
+.dist-row:last-child { border-bottom: 0; }
+.dist-summary {
+  display: block; padding: 9px var(--tau-s5); min-height: var(--tau-target);
+  cursor: pointer; list-style: none;
+  transition: background var(--tau-dur-short) var(--tau-ease-standard);
+}
+.dist-summary::-webkit-details-marker { display: none; }
+.dist-summary:hover { background: var(--tau-hover-surface); }
+.dist-summary:focus-visible { outline: var(--tau-focus-ring); outline-offset: calc(-1 * var(--tau-focus-gap)); }
+/* No label column to size to any more — the name sits on its own line, so
+   "Calibrated Skepticism" can never be the thing that squeezes the plot.
+   Dimension names are fixed vocabulary with no synonyms and no per-surface
+   rewording (Hard Constraints), so this is the arrangement that stops the
+   longest name from costing every chart width. */
+.dist-row-name { font-size: 13px; font-weight: 600; color: var(--tau-ink); }
+/* The floor row states itself in weight, never colour — semantic colour
+   never touches a band. The same device .comp-row.is-modal uses for the
+   modal level, deliberately, so the two lists mark their notable row the
+   same way. It replaces an uppercase "THE FLOOR OF THE FOUR" tag that no
+   longer fits beside the name, and which the finding sentence above the
+   panel already states in a full clause. */
+.dist-row.is-floor .dist-row-name { font-weight: 800; }
+.dist-row-go {
+  font-size: 10px; color: var(--tau-ink-faint); text-align: right; line-height: 1;
+  transition: transform var(--tau-dur-short) var(--tau-ease-standard);
+}
+.dist-row[open] .dist-row-go { transform: rotate(180deg); }
+/* The dimension's definition — constant, quiet, and first. It is the
+   least newsworthy line in the block and the one without which the rest
+   doesn't parse, so it leads at low contrast rather than competing. */
+.dist-what {
+  font-size: 11.5px; color: var(--tau-ink-faint); line-height: 1.5;
+  margin: 0 0 7px; max-width: 62ch;
+}
+/* Indented to the plot, so an open row's reading sits under the bar it
+   reads rather than under the whole panel. */
+.dist-row-detail {
+  padding: 2px var(--tau-s5) var(--tau-s4) calc(var(--tau-s5) + var(--tau-chart-gutter));
+}
+
+/* --- Layout candidates for renderHome(). .home-cols is copied verbatim
+   below and stays untouched; these are the proposed replacements, so the
+   old and new proportions can be compared rather than one overwriting
+   the other in place. */
+/* Equal, so the two charts share a scale. Both are partitions of the SAME
+   cohort — .comp splits it by level, .dbar splits it by band — so once
+   their tracks are the same width, a length means the same number of
+   students in both, and "11 at Augmentation" is directly comparable to
+   "11 at band 2" by eye. Unequal columns made that comparison wrong while
+   looking available, which is worse than not offering it.
+   (Equal COLUMNS is necessary but not sufficient — see the note in the
+   lab header about the label and trailing columns.) */
+.home-cols-2up {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: var(--tau-s6); align-items: start;
+}
+.home-cols-2up > .home-col { min-width: 0; }
+/* Same 1200px breakpoint .home-cols already uses — one column below it,
+   in the same reading order. */
+@media (max-width: 1200px) { .home-cols-2up { grid-template-columns: 1fr; } }
+
+/* The top row: the triage counts, and the same counts per class. Same
+   1.45fr/1fr as .home-cols and for the same reason — but STRETCHED
+   rather than start-aligned, which .home-cols cannot be. That rule pairs
+   a grey band with a white card, where differing heights read as normal;
+   here it is two grey bands side by side, and a short one beside a tall
+   one reads as ragged rather than as two sections. */
+/* 1fr / 1fr, where every other split on this page is asymmetric. Equal
+   widths assert the two halves are a matched pair, and once the triage
+   queues are rows rather than tiles that is exactly what they are — two
+   lists of navigating count-rows over the same roster. The asymmetry was
+   right while one side was a metric readout and the other an entity
+   index; it stopped being right when they became the same component. */
+.home-cols-top {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: var(--tau-s6); align-items: stretch;
+}
+.home-cols-top > .home-col { min-width: 0; }
+@media (max-width: 1200px) { .home-cols-top { grid-template-columns: 1fr; } }
+/* The tiles used to be vertically centred here to disguise the fact that
+   their band started its content lower than the labelled band beside it.
+   Giving that band its own eyebrow fixes the cause — both now start at the
+   same y — so the centring is gone rather than kept as decoration. */
+
+/* The count keeps display weight — triage is the top of this page's
+   hierarchy — while the unit stays body-sized beside it, so the pair reads
+   as one phrase rather than as a number with a caption under it. */
+.stat-row-count { font-size: 12.5px; color: var(--tau-ink-soft); font-variant-numeric: tabular-nums; }
+/* Right-aligned in a fixed box so the three numerals form a column. Without
+   it the shared unit word right-aligns and the digits go ragged behind it,
+   which is the one comparison this list exists to support. */
+.stat-row-count b {
+  font-size: 17px; font-weight: 800; margin-right: 3px;
+  display: inline-block; min-width: 2.2ch; text-align: right;
+}
+
+
+/* --- Pattern group heading. The tier's only colour channel: it rides the
+   GROUP LABEL on the ordinal ramp, never the count. Amber on "8 students held
+   their ground" would state a caution the label contradicts, and amber already
+   means "worth a chat" on the triage rows above — a surface carries a severity
+   signal exactly once. The label text states the tier in words, so colour is
+   never the only channel.
+   Vocabulary is the student report's, verbatim (report-render.js): the same
+   detectors must not acquire two names across two surfaces. */
+.pattern-group-label {
+  font-family: var(--tau-font-mono); font-size: var(--tau-text-xs);
+  letter-spacing: var(--tau-track-label); text-transform: uppercase;
+  font-weight: 700; margin-bottom: var(--tau-s3);
+}
+/* Per group, not per section. "No passive patterns" is a real and good
+   finding when high-agency cards are showing — one shared all-clear state
+   would report it as an empty section instead. */
+.pattern-group-empty {
+  font-size: var(--tau-text-sm); color: var(--tau-ink-faint);
+  margin: 0; padding: var(--tau-s3) 0;
+}
+
+/* The white card a visualisation sits on, matching .pattern-card's chrome so
+   the chart and the finding cards read as one family. */
+.viz-card {
+  background: var(--tau-surface); border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-md); box-shadow: var(--tau-shadow);
+  padding: var(--tau-s4) var(--tau-s5);
+}
+.viz-card-foot {
+  font-size: 11.5px; color: var(--tau-ink-faint); line-height: 1.5;
+  margin: var(--tau-s4) 0 0;
+}
+.viz-card-foot b { color: var(--tau-ink-soft); }

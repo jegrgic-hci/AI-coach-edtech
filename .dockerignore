@@ -21,6 +21,12 @@ teacher-dashboard.html
 *.md
 **/*.md
 old/
+
+# Design sandboxes. Unlike the docs above these sit INSIDE app/web/, so they
+# are served by the static route and would be reachable in production (behind
+# login, but reachable) if they shipped. Verify by listing the built image.
+app/web/*-lab.html
+
 .claude/
 .vscode/
 .idea/

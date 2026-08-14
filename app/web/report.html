@@ -90,7 +90,7 @@
           <span class="report-section-title">Who's Driving</span>
           <span class="dim-info">
             <button class="dim-info-btn" type="button" aria-label="What this chart shows">i</button>
-            <span class="dim-tooltip" role="tooltip">Same turns, asking a different question: who was steering, not how agentic the turn was. <strong>Student-driven</strong> turns are moves you made yourself — a claim, a challenge, a pivot. <strong>AI-driven</strong> turns are ones where the coach authored the content even though you asked for it, like an extraction or a validation. <strong>Shared</strong> turns split the difference — a refinement redirects the coach's own draft. The line beneath the strip is a 5-turn rolling share of student- vs. AI-driven turns.</span>
+            <span class="dim-tooltip" role="tooltip">Same turns, asking a different question: who was steering, not how agentic the turn was. <strong>Student-driven</strong> turns are moves you made yourself — a claim, a challenge, a pivot. <strong>AI-driven</strong> turns are ones where the AI authored the content even though you asked for it, like an extraction or a validation. <strong>Shared</strong> turns split the difference — a refinement redirects the AI's own draft. The line beneath the strip is a 5-turn rolling share of student- vs. AI-driven turns.</span>
           </span>
         </span>
       </div>
@@ -104,7 +104,7 @@
     </div>
   </div>
 
-  <!-- Static record, not the live coach chat: every session from this draft,
+  <!-- Static record, not the live AI chat: every session from this draft,
        read-only. Toggled in place of #results by the nav's local
        Report/Sessions option — see report-boot.js. -->
   <div class="card card-lg conv-view hidden" id="conversationView">
@@ -147,6 +147,8 @@
 
 <script src="icons.js"></script>
 <script src="api.js"></script>
+<!-- Before report-render.js, which calls both of its globals. -->
+<script src="patterns-core.js"></script>
 <script src="report-render.js"></script>
 <script src="report-conversation.js"></script>
 <script src="report-boot.js"></script>

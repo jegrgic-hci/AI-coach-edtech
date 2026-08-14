@@ -1,16 +1,16 @@
 // The report's static session view: a read-only record of every session on
-// this draft, not the live coach chat. Left pane lists sessions, right pane
-// shows whichever one is selected. No composer, no streaming, no coach-mode
+// this draft, not the live AI chat. Left pane lists sessions, right pane
+// shows whichever one is selected. No composer, no streaming, no mode
 // chrome — the draft is locked, so none of that applies.
 //
 // Vocabulary note: the server's data model calls one chat thread a
 // "conversation" and calls a draft/cycle a "session" — but nothing here is
 // user-facing copy for the data model. To a student, "session" already means
-// one sitting with the coach (the workspace's own rail calls it that:
+// one sitting with the AI (the workspace's own rail calls it that:
 // "+ New session", "No sessions yet"), so this view follows that precedent —
 // every string a student reads says "session," never "conversation."
 
-const SPEAKER_STATIC = { student: 'You', coach: 'Coach', auditor: 'Auditor · on request' };
+const SPEAKER_STATIC = { student: 'You', coach: 'AI', auditor: 'Auditor · on request' };
 
 let convViewState = { conversations: null, activeId: null };
 
@@ -95,7 +95,7 @@ function renderConvViewTitle(submission) {
 function renderConvViewIntro(conversations) {
   const el = document.getElementById('convViewIntro');
   if (!conversations.length) {
-    el.textContent = 'No sessions with the coach on this draft.';
+    el.textContent = 'No sessions with the AI on this draft.';
     return;
   }
   const n = conversations.length;

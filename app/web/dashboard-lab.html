@@ -1,0 +1,1647 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard lab — Home — Tau Thinking</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<script src="theme.js"></script>
+
+<!-- ===================================================================
+     DASHBOARD LAB — HOME. Throwaway. Not linked from anywhere, excluded
+     from the image by .dockerignore's app/web/*-lab.html, never
+     deployed. Sibling of report-lab.html, same discipline.
+
+     SCOPE: the teacher dashboard's Home screen only, in the four
+     sections renderHome() actually renders —
+       1. stat tiles
+       2. behavioral patterns
+       3. the dimension rollup   (was "Dimension trends")
+       4. classes at a glance
+     Section order and band structure are copied from renderHome()
+     (dashboard.html:2343) unchanged. What changes is what sections 3
+     and 4 can say once there is no total and no mean.
+
+     THE DATA IS A DESIGN FIXTURE AND NOTHING ELSE.
+     scoreTAU cannot produce any of it — the signature change that gates
+     all four dimensions is unbuilt. Every number here is authored to
+     exercise a layout. tau-dimensions.md's "Do not validate against
+     seed data" applies with full force: no threshold, no wording and no
+     distribution shape gets calibrated on these numbers.
+
+     ONE DIFFERENCE FROM report-lab.html, worth knowing before editing:
+     report-lab loads report.css because the real report page has a
+     sheet. The dashboard's chrome lives in dashboard.html's own inline
+     <style> block, so the rules this page needs are copied verbatim
+     into the "REAL RULES COPIED FROM dashboard.html" block below and
+     are never edited here — if one is wrong, that is a finding to
+     record in teacher-dashboard-design.md, not a change to make in the
+     lab.
+     =================================================================== -->
+
+<style>
+  /* ============================================================
+     CANDIDATE CHANGES TO components.css
+     Nothing in this block exists in the shared layer yet. If it
+     survives review it moves into components.css and is deleted
+     from here. Everything OUTSIDE this block is either lab
+     scaffolding or a real component/rule used as it ships.
+     ============================================================ */
+
+  /* --- .comp — the level composition of a room.
+     The cohort form of report-lab.html's .ladder: same four rungs, same
+     named-never-numbered rule. It takes the --tau-scale ramp rather than
+     --tau-band-N, because four rungs plotted together is a chart and the
+     band tokens are a chip palette — see the fills below. The difference is
+     what sits on a rung — .ladder marks ONE student's level, .comp counts
+     how many are on each. Built as a sibling rather than a variant
+     because the ladder's is-here fill states "you are here", and a count
+     on every rung would make four rungs all look like "here".
+
+     The bar is proportional so the shape of the room is legible before a
+     number is read. Not a chart: one categorical axis, four ordered
+     cells, which is what the dataviz skill's form table sends to a
+     segmented bar rather than to anything with an axis. */
+  /* THE SHARED CHART GRID. .comp and .dbar are two partitions of the SAME
+     cohort, so a length should mean the same number of students in both.
+     Equal columns alone does not deliver that — the two had different label
+     and trailing widths, so their tracks came out ~300px and ~180px inside
+     columns of identical width. These three values are what actually makes
+     the scales one scale: both components lay out
+     `lead | gutter | track | tail`, so the 1fr tracks resolve to the same
+     px and 11 students is the same length on either chart.
+
+     Change one of these and BOTH charts move. That is the point; it is also
+     the hazard, so they live here rather than as numbers in two rulesets. */
+  /* TITLE ABOVE THE BAR, not beside it. A label column and a trailing value
+     column together took ~60% of the width on the dimension side, leaving a
+     146px track for a four-segment distribution at n=90 — most numerals fell
+     out of the marks and into the tooltip. Moving both to a header line
+     above gives the bar the full measure, and it makes the shared scale
+     easier to hold rather than harder: both charts are now simply "gutter +
+     everything else", so their tracks are the same width by construction. */
+  :root {
+    --lab-chart-gutter: 1.6rem;  /* the dbar's outside-numeral gutter */
+  }
+  .comp { display: flex; flex-direction: column; gap: 3px; }
+  .comp-row { padding: 3px 0; }
+  /* The header line, shared by both charts: name left, value right. */
+  .viz-row-head {
+    display: flex; align-items: baseline; gap: var(--tau-s3);
+    margin-bottom: 3px;
+  }
+  .viz-row-head > :first-child { flex: 1; min-width: 0; }
+  /* The plot line. The leading cell is deliberately empty in .comp: it has
+     no outside numerals, but the gutter has to be there or its track starts
+     1.6rem left of the other chart's. */
+  .viz-plot {
+    display: grid;
+    grid-template-columns: var(--lab-chart-gutter) 1fr;
+    align-items: center;
+  }
+  .comp-name { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); }
+  .comp-track { background: var(--tau-surface-2); border-radius: var(--tau-r-sm); height: 18px; overflow: hidden; }
+  .comp-fill { display: block; height: 100%; border-radius: var(--tau-r-sm); }
+  /* --tau-scale-N, not --tau-band-N-bg. The band tokens are a CHIP palette:
+     four hues (280/205/242/162) at one lightness, built to identify one
+     band at a time on one student's report. Four of them side by side as
+     bar fills have no ordinal reading at all — L 0.948-0.953 across the
+     whole set, a 0.005 spread. That is the same defect the dimension bars
+     below were rebuilt to fix, and it was living one section up in the
+     same column: two adjacent 1-4 scales in two contradictory colour
+     languages, one of which ran opposite in lightness to the other.
+     One ordinal ramp now serves both. See the token block below. */
+  .comp-1 .comp-fill { background: var(--tau-scale-1); }
+  .comp-2 .comp-fill { background: var(--tau-scale-2); }
+  .comp-3 .comp-fill { background: var(--tau-scale-3); }
+  .comp-4 .comp-fill { background: var(--tau-scale-4); }
+  /* Tabular so four rows read as a column of magnitudes. The unit is
+     stated once by the section head; repeating "students" on four rows
+     would be noise, which is the one place this departs from the
+     count-never-stands-alone rule and does so deliberately. */
+  /* Ink, not the ramp. "A band count -> Ink numeral, tabular" — the
+     distribution's SHAPE is the finding and the words beside it say so, so
+     the numerals stay neutral (teacher-dashboard-design.md, "Colour:
+     measured vs the tool talking"). These used to take --tau-band-N-fg,
+     which is that table's own rule broken in the row it governs. */
+  /* On the header line now, right-aligned opposite the level name. */
+  .comp-count {
+    font-size: var(--tau-text-sm); font-weight: 700; flex: 0 0 auto;
+    font-variant-numeric: tabular-nums; color: var(--tau-ink);
+  }
+  /* The modal row is the headline, so it is the only one that reads as a
+     statement rather than a row — weight, never colour alone: the ramp
+     has already spent colour on level identity. */
+  .comp-row.is-modal .comp-name { font-weight: 700; }
+
+  /* "Not enough here" is off the ladder, always. Not band 0: it never
+     shares a cell, a ramp position or a count with band 1
+     (teacher-dashboard-design.md, "The unit of every aggregate").
+     Encoded three ways at once so no single channel carries it — a rule
+     above it, no ramp colour, an outlined rather than filled track. A
+     reader who misses all three still reads the words. */
+  .comp-off {
+    padding-top: var(--tau-s2);
+    margin-top: var(--tau-s2);
+    border-top: 1px dashed var(--tau-line-strong);
+  }
+  .comp-off .comp-name { color: var(--tau-ink-faint); font-weight: 500; }
+  .comp-off .comp-count { color: var(--tau-ink-faint); font-weight: 600; }
+  .comp-off-track { height: 18px; border-radius: var(--tau-r-sm); border: 1px dashed var(--tau-line-strong); }
+
+  /* --- The band distribution: a DIVERGING STACKED BAR, split at the 2|3
+     seam. Replaces the four coloured count-cells, which failed for a
+     measurable reason — see the note below.
+
+     WHY THIS FORM. The data is an ordered-scale share (how a cohort
+     distributes across 1..4), which is the Likert case: the dataviz
+     skill's form table sends it to a diverging stacked bar centred on
+     neutral. The neutral here is not invented — tau-dimensions.md
+     already puts the seam between 2 and 3 ("two of the four bands
+     describe distinct failures"). The form and the measure agree.
+
+     The seam sits at the SAME x on all four rows, so the four dimensions
+     are comparable at a glance: mass left of the line is the share of the
+     room the behaviour didn't happen for. That comparison is the whole
+     job of this section and no arrangement of cells delivered it.
+
+     WHY THE COLOUR IS ONE HUE, NOT TWO. A diverging palette wants two
+     hues. This system cannot supply a non-semantic pair, and that is
+     checkable rather than a matter of taste:
+       - The only pair passing all six checks is violet/green, and its
+         green pole lands on oklch(0.46 0.13 162) — which is
+         --tau-positive (oklch(0.50 0.10 158)) in all but name. Hard
+         Constraints: semantic colour never touches a score.
+       - Every warm hue is already a semantic tier (caution 68,
+         attention 18).
+       - Two cool hues do not separate: violet 280 vs blue 242 scores
+         ΔE 0.9 (deutan). Hard fail.
+     So POLARITY IS CARRIED BY POSITION (which side of the seam) and
+     colour carries only the ordinal step. Position is the stronger
+     channel for polarity anyway, and this avoids rendering a class's
+     skepticism as red-vs-green, which is the verdict "voice is coach,
+     not judge" exists to prevent.
+
+     Hue 242 is the one hue in the system that is neither a semantic tier
+     nor a voice (auditor 300, tool-info 205) — it is a band-ramp hue.
+     Steps are monotonic in lightness 0.44/0.58/0.72/0.86, worst-adjacent
+     CVD ΔE 13.4 against a target of 8. Dark mode is SELECTED against the
+     dark surface (the ramp inverts), not flipped.
+
+     Band 1 is the darkest step. More visual weight on absence is
+     deliberate: sensitivity at the low end is this instrument's standing
+     requirement. */
+  /* --- --tau-scale-N — THE ORDINAL RAMP. Graduates to tokens.css.
+     One scale, used wherever four bands are PLOTTED TOGETHER as magnitude
+     (.comp above, .dbar below). --tau-band-N-* keeps its own job and is
+     unchanged: it IDENTIFIES one band, one at a time, as a chip on one
+     student's report. The split is the rule —
+
+       --tau-band-N-*  identifies a band.   One at a time. A chip.
+       --tau-scale-N   orders four of them. Together. A chart.
+
+     Validated with the ORDINAL mode, which is the right test for ordered
+     tiers — an earlier pass used the categorical mode and shipped a light
+     end at 1.48:1 against the surface, i.e. a band that washes out on
+     white. Both ramps pass all four ordinal checks against the REAL tau
+     surfaces (#FFFFFF / #1C1F21): monotone lightness, adjacent ΔL >= 0.06,
+     light end clearing 2:1, single hue.
+
+     The dark ramp is SELECTED, not flipped, and two of its steps moved in
+     this pass for measured reasons. It was previously validated against
+     the dataviz skill's default dark surface (#1a1a19) rather than tau's
+     lighter #1C1F21, where its light end read 1.97:1 — under the 2:1
+     floor. And step 3 was #4f7ea1, which cleared neither 4.5:1 with ink
+     (3.63) nor with surface (3.81), so its numeral failed at 11px bold —
+     the exact failure "dark mode is selected, not flipped" exists to
+     catch, since the ramp inverts between themes but the numeral-colour
+     rules did not.
+
+     DIRECTION: band 1 is the step furthest from the ground in both themes
+     — darkest on white, lightest on the dark surface. This is a stated
+     amendment, not drift. Hard Constraints has "SAMR band foregrounds step
+     down in lightness 1->4 — never reorder", which governs
+     --tau-band-N-fg; this is a different token doing a different job, and
+     it runs the other way on purpose. The finding this chart exists to
+     carry is where the MASS sits at the low end, so weight belongs on
+     absence: sensitivity at the low end is this instrument's standing
+     requirement (tau-dimensions.md, "The scoring scale"). */
+  :root {
+    --tau-scale-1: #1a5780;  --tau-scale-1-ink: var(--tau-surface);
+    --tau-scale-2: #44769b;  --tau-scale-2-ink: var(--tau-surface);
+    --tau-scale-3: #6a96b7;  --tau-scale-3-ink: var(--tau-ink);
+    --tau-scale-4: #91b6d4;  --tau-scale-4-ink: var(--tau-ink);
+  }
+  :root[data-theme="dark"] {
+    --tau-scale-1: #c2e6ff;  --tau-scale-1-ink: var(--tau-surface);
+    --tau-scale-2: #8ec0e4;  --tau-scale-2-ink: var(--tau-surface);
+    --tau-scale-3: #5c8fb3;  --tau-scale-3-ink: var(--tau-surface);
+    --tau-scale-4: #325f80;  --tau-scale-4-ink: var(--tau-ink);
+  }
+
+  /* --- .dbar — the band distribution. A diverging stacked bar split at
+     the 2|3 seam. The form is settled (teacher-dashboard-design.md,
+     "The form"); what changed here is the geometry, which used to be
+     arithmetic and is now structural.
+
+     ONE TRACK, WIDTH n — EQUAL-LENGTH BARS, ALIGNED EDGES. Two earlier
+     constructions were wrong in the same direction and are worth naming so
+     neither comes back:
+
+       1. A hardcoded 300px plot with a seam positioned at `left: <px>`,
+          which used under half of a fluid card and let the axis drift from
+          the data as an arithmetic result. Its axis LABELS were a separate
+          space-between row across the whole card, so the label reading
+          "the seam" floated at the card's centre while the line it named
+          sat ~155px in.
+       2. Proportional columns sized `minmax(0,{maxLo}fr)` /
+          `minmax(0,{maxHi}fr)`, packed against a shared seam. This fixed
+          the drift — the seam became a grid boundary nothing could detach —
+          but it bought a cross-row seam alignment at the cost of ragged
+          left and right ends, and that alignment served nothing: EACH BAR
+          SITS IN ITS OWN CARD, so there is no continuous plot for a shared
+          axis to run through.
+
+     Now the track is always the full n, which is legitimate precisely
+     because bands + off = n on every row (the invariant the whole section
+     rests on, asserted in barGeometry). Every bar starts and ends at the
+     same x; one student is the same width on every row, so segment length
+     still reads as an absolute count AND shares are directly comparable;
+     and the seam becomes a tick whose POSITION encodes the failure share,
+     read against a common left edge — position along a common scale, which
+     is the most accurate perceptual comparison available. */
+  /* gutter | the bar | the off-scale count. The middle column is the only
+     proportional one and it is always the full n, so every bar starts and
+     ends at the same x. The two fixed columns are identical on every row,
+     so they cost that alignment nothing. */
+  .dbar { display: grid; align-items: center;
+         grid-template-columns: var(--lab-chart-gutter) 1fr; }
+  .dbar-gutter { display: flex; justify-content: flex-end; overflow: visible; }
+  .dbar-track { position: relative; display: flex; align-items: center; min-width: 0; }
+  /* The seam. A real axis line, not a divider — drawn in ink rather than the
+     hairline colour used for separators, and overrunning the bar top and
+     bottom so it reads as an axis rather than as a gap between two fills. It
+     sits above the fills because its POSITION is the finding: the further
+     right it falls, the more of the room the behaviour didn't happen for. */
+  .dbar-seam {
+    position: absolute; top: -4px; bottom: -4px; width: 1px;
+    background: var(--tau-ink); pointer-events: none;
+  }
+  .dbar-seg {
+    height: 26px; box-sizing: border-box;
+    /* Never shrink. A segment at the 6px floor would otherwise push the
+       others below their own share to fit, which trades a visible small
+       count for four silently wrong large ones. */
+    flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+    min-width: 6px; overflow: hidden; white-space: nowrap;
+  }
+  /* The 2px surface gap between stacked segments, per the dataviz skill's
+     mark specs. Between segments only — never at an outer end, and never
+     at the seam, where the fill butts the axis. */
+  .dbar-seg + .dbar-seg { border-left: 2px solid var(--tau-surface); }
+  .dbar-seg.s1 { background: var(--tau-scale-1); color: var(--tau-scale-1-ink); }
+  .dbar-seg.s2 { background: var(--tau-scale-2); color: var(--tau-scale-2-ink); }
+  .dbar-seg.s3 { background: var(--tau-scale-3); color: var(--tau-scale-3-ink); }
+  .dbar-seg.s4 { background: var(--tau-scale-4); color: var(--tau-scale-4-ink); }
+  /* 4px rounded data-ends on the outer edges only — the seam edges stay
+     square because they butt against the axis, not against space. The cap
+     goes on whichever segment is actually outermost, which is not always
+     band 1 or band 4: a row with nobody at band 4 ended square before,
+     because the cap was pinned to a segment that wasn't rendered. */
+  .dbar-seg.cap-l { border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
+  .dbar-seg.cap-r { border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
+  .dbar-seg:focus-visible { outline: var(--tau-focus-ring); outline-offset: 2px; }
+
+  /* A count for a segment too narrow to hold it, placed just beyond the
+     bar's outer end. Only bands 1 and 4 can use this — they are the
+     extremities, so the position is stable and cannot collide with a
+     neighbour. Which segments are too narrow is MEASURED after layout
+     (fitLabels), not predicted from a px scale that no longer exists. */
+  .dbar-seg.is-tight .dbar-num { visibility: hidden; }
+  .dbar-out {
+    display: none; flex: 0 0 auto; padding: 0 5px;
+    font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+    color: var(--tau-ink-soft); white-space: nowrap;
+  }
+  .dbar-out.is-shown { display: block; }
+
+  /* "Not enough here" is off the plot entirely — not a segment, not a
+     cell, not band 0. It sits after a gap column, unfilled, dashed, and
+     shorter than the bar: three channels saying off-scale, so no single
+     one has to carry it. It stays adjacent to the bar end rather than in a
+     far-right column, because the bar is short precisely BECAUSE these
+     students could not be read, and adjacency is what joins those two
+     facts. It is drawn on the SAME student-unit as the bands, so the four
+     rows' off counts are comparable to each other and to the bands —
+     which a ragged inline chip was not. */
+  .dbar-off-cell {
+    height: 18px; box-sizing: border-box; border-radius: 3px; flex: 0 0 auto;
+    border: 1px dashed var(--tau-line-strong);
+    /* A fourth channel, added once the Thin-sessions shape showed the cell
+       at half the plot's width: at that size the gap, the dash and the
+       short height were not enough to stop a big empty box reading as a
+       fifth band. Hatching says "not on this scale" at any size. */
+    background-image: repeating-linear-gradient(135deg,
+      var(--tau-line) 0 1px, transparent 1px 5px);
+  }
+  /* The break that puts it off the scale. 3px, and only when there is
+     something to break away from — a zero cell adds nothing, so the bars
+     stay exactly equal. */
+  .dbar-off-cell.has-any { margin-left: 3px; min-width: 5px; }
+
+  /* --- The scale strip. One decoder, sitting directly above the first
+     bar, laid out in the bar's own order: 1 2 | 3 4, then off-scale after
+     a break. That isomorphism is the point — once the key runs
+     left-to-right in the same order the marks do, POSITION is the primary
+     channel for which band a segment is and colour is redundant rather
+     than load-bearing (Hard Constraints: "colour is never the only
+     channel"; the marks themselves carry a COUNT, not a band identity).
+
+     It replaces two separate things that were both in the wrong place: a
+     pole row ("<- didn't happen" / "held up ->") whose text was already
+     bands 1 and 4's own descriptors restated, and a legend that sat FOUR
+     CARDS BELOW the chart it decodes, so a reader met the first bar with
+     nothing to read it by (Gestalt proximity). The seam needs no label of
+     its own now — the descriptors on either side say what it divides,
+     which is what "the seam" was standing in for. */
+  .dbar-key {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 7px 13px;
+    font-size: 10.5px; color: var(--tau-ink-soft);
+  }
+  .dbar-key-item { display: inline-flex; align-items: center; gap: 5px; }
+  .dbar-key-item i {
+    width: 11px; height: 11px; border-radius: 2px; font-style: normal; flex: 0 0 auto;
+  }
+  .dbar-key-item .n { font-weight: 700; color: var(--tau-ink); font-variant-numeric: tabular-nums; }
+  /* --tau-ink-faint rather than --tau-line-strong, unlike the cell it
+     stands for: at 11px a hairline dash in the border colour disappears
+     against the dark surface, and this is the decoder — it has to be
+     legible before anything it decodes is. */
+  .dbar-key-item.off i { background: none; border: 1px dashed var(--tau-ink-faint); }
+  /* A legend item that is also a trigger. The dotted underline is the
+     conventional "there is a definition here" signal, so the affordance
+     rides on the term itself rather than needing a second glyph beside it.
+     ::after gives it the 44px hit area that --tau-target requires without
+     changing how it sits in the strip. */
+  button.dbar-key-item {
+    appearance: none; background: none; border: 0; padding: 0;
+    font: inherit; color: inherit; cursor: pointer; position: relative;
+  }
+  button.dbar-key-item span {
+    text-decoration: underline dotted var(--tau-line-strong); text-underline-offset: 3px;
+  }
+  button.dbar-key-item::after { content: ''; position: absolute; inset: -15px -6px; }
+  button.dbar-key-item:hover span,
+  button.dbar-key-item[aria-expanded="true"] span {
+    color: var(--tau-ink); text-decoration-color: var(--tau-ink-faint);
+  }
+  button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-offset: 3px; }
+  /* The strip's own copy of the axis — same ink, same job. */
+  .dbar-key-seam { width: 1px; align-self: stretch; min-height: 15px; background: var(--tau-ink-faint); }
+
+  /* The hover layer the dataviz skill requires on bar marks. Replaces
+     `title=`, which is ~1s delayed, unstyled, and never fires on keyboard
+     focus. Fixed-position and pointer-events:none so it can never sit
+     between the cursor and the mark it describes. */
+  .dbar-tip {
+    position: fixed; z-index: 60; pointer-events: none; opacity: 0;
+    background: var(--tau-ink); color: var(--tau-surface);
+    font-size: 11.5px; line-height: 1.45; padding: 6px 9px;
+    border-radius: var(--tau-r-sm); box-shadow: var(--tau-shadow);
+    max-width: 230px;
+    transition: opacity var(--tau-dur-short) var(--tau-ease-standard);
+  }
+  .dbar-tip.is-on { opacity: 1; }
+  .dbar-tip b { color: var(--tau-surface); }
+
+  /* --- .info-dot — the affordance the descriptor rule hangs off. One per
+     visualisation, in its section head.
+
+     A BUTTON, and never a bare hover target on the chart itself: a
+     hover-only decoder does not exist for touch or for keyboard, and a
+     decoder nobody can reach is not a decoder. It answers to hover, focus
+     AND click.
+
+     The dot is 15px but its hit area is 44px via the ::after overlay —
+     --tau-target is a real minimum, and shrinking a control below it to
+     suit a type scale is the trade that rule exists to refuse. */
+  .info-dot {
+    position: relative; appearance: none; background: none; padding: 0;
+    border: 1px solid var(--tau-line-strong); border-radius: 50%;
+    width: 15px; height: 15px; flex: 0 0 auto; cursor: pointer;
+    font-size: 10px; font-weight: 700; line-height: 1; color: var(--tau-ink-faint);
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: color var(--tau-dur-short) var(--tau-ease-standard),
+                border-color var(--tau-dur-short) var(--tau-ease-standard);
+  }
+  .info-dot::after { content: ''; position: absolute; inset: -14.5px; }
+  .info-dot:hover, .info-dot[aria-expanded="true"] { color: var(--tau-ink); border-color: var(--tau-ink-faint); }
+  .info-dot:focus-visible { outline: var(--tau-focus-ring); outline-offset: 3px; }
+  .head-with-info { display: flex; align-items: center; gap: 7px; }
+
+  /* --- .viz-lede — the sentence the tool leads a visualisation with. One
+     per chart, directly under the eyebrow, above the marks. It is the
+     conclusion-first block: bold claim, then the counts that carry it.
+
+     DELIBERATELY NOT --tau-tool-info BLUE, and this is the contested bit.
+     It takes .pattern-try's exact STRUCTURE — a 3px left rule, same offset,
+     same measure — so the two read as one family: blocks the tool wrote in
+     its own words. What separates them is the hue, and the hue is doing the
+     only job it can do here. Blue means "the tool authored this and you may
+     discount it" (Hard Constraints: it is a voice, not a tier). This block
+     is TEMPLATED off counts the bars below already show — it cannot claim
+     anything the evidence doesn't back — so it is measured, not authored,
+     and blue under a measured number tells a teacher the number is an
+     opinion. teacher-dashboard-design.md's "Colour: measured vs the tool
+     talking" puts the explainer at "neutral, no container" for exactly this
+     reason, and the 2026-08-08 removal of a blue card carrying
+     "Averaging 2.1 / 5" is the same mistake already made and corrected on
+     this page.
+
+     Neutral rule + ink text is what is left: the shape says "the tool is
+     addressing you", the absence of hue says "and this part is measured". */
+  .viz-lede {
+    border-left: 3px solid var(--tau-line-strong);
+    padding: 1px 0 1px 13px; margin: 0 0 var(--tau-s4);
+    font-size: 13px; line-height: 1.55; color: var(--tau-ink);
+  }
+  .viz-lede b { font-weight: 700; }
+
+  /* --- .dim-panel — ONE card, four rows. Was four cards, each with a title
+     line, a plot line and its own disclosure row: ~530px of chrome for four
+     numbers-and-a-bar. The rows now match .comp's shape one section over
+     (name | proportional track | value), which is what makes the two halves
+     of that line read as a pair — and cuts the section roughly in half.
+
+     THE BAR IS BACK INSIDE THE <summary>, reversing a change made earlier
+     in this file, and the reason it was moved out no longer holds. It was
+     moved out because the chart being a disclosure trigger meant clicking a
+     mark to inspect it COLLAPSED the thing you were inspecting, and the
+     hover state said "this will expand" rather than naming the segment.
+     With one row per dimension, clicking a bar expands detail ABOUT THAT
+     BAR — the click and the mark now agree, the row-wide hover is correct
+     feedback for a row-wide target, and the per-segment tooltip still
+     carries the segment-specific reading on hover. */
+  .dim-panel {
+    background: var(--tau-surface); border: 1px solid var(--tau-line);
+    border-radius: var(--tau-r-md); box-shadow: var(--tau-shadow);
+  }
+  .dim-row { border-bottom: 1px solid var(--tau-line); }
+  .dim-row:last-child { border-bottom: 0; }
+  .dim-summary {
+    display: block; padding: 9px var(--tau-s5); min-height: var(--tau-target);
+    cursor: pointer; list-style: none;
+    transition: background var(--tau-dur-short) var(--tau-ease-standard);
+  }
+  .dim-summary::-webkit-details-marker { display: none; }
+  .dim-summary:hover { background: var(--tau-hover-surface); }
+  .dim-summary:focus-visible { outline: var(--tau-focus-ring); outline-offset: calc(-1 * var(--tau-focus-gap)); }
+  /* No label column to size to any more — the name sits on its own line, so
+     "Calibrated Skepticism" can never be the thing that squeezes the plot.
+     Dimension names are fixed vocabulary with no synonyms and no per-surface
+     rewording (Hard Constraints), so this is the arrangement that stops the
+     longest name from costing every chart width. */
+  .dim-row-name { font-size: 13px; font-weight: 600; color: var(--tau-ink); }
+  /* The floor row states itself in weight, never colour — semantic colour
+     never touches a band. The same device .comp-row.is-modal uses for the
+     modal level, deliberately, so the two lists mark their notable row the
+     same way. It replaces an uppercase "THE FLOOR OF THE FOUR" tag that no
+     longer fits beside the name, and which the finding sentence above the
+     panel already states in a full clause. */
+  .dim-row.is-floor .dim-row-name { font-weight: 800; }
+  .dim-row-go {
+    font-size: 10px; color: var(--tau-ink-faint); text-align: right; line-height: 1;
+    transition: transform var(--tau-dur-short) var(--tau-ease-standard);
+  }
+  .dim-row[open] .dim-row-go { transform: rotate(180deg); }
+  /* The dimension's definition — constant, quiet, and first. It is the
+     least newsworthy line in the block and the one without which the rest
+     doesn't parse, so it leads at low contrast rather than competing. */
+  .dim-what {
+    font-size: 11.5px; color: var(--tau-ink-faint); line-height: 1.5;
+    margin: 0 0 7px; max-width: 62ch;
+  }
+  /* Indented to the plot, so an open row's reading sits under the bar it
+     reads rather than under the whole panel. */
+  .dim-row-detail {
+    padding: 2px var(--tau-s5) var(--tau-s4) calc(var(--tau-s5) + var(--lab-chart-gutter));
+  }
+
+  /* --- Layout candidates for renderHome(). .home-cols is copied verbatim
+     below and stays untouched; these are the proposed replacements, so the
+     old and new proportions can be compared rather than one overwriting
+     the other in place. */
+  /* Equal, so the two charts share a scale. Both are partitions of the SAME
+     cohort — .comp splits it by level, .dbar splits it by band — so once
+     their tracks are the same width, a length means the same number of
+     students in both, and "11 at Augmentation" is directly comparable to
+     "11 at band 2" by eye. Unequal columns made that comparison wrong while
+     looking available, which is worse than not offering it.
+     (Equal COLUMNS is necessary but not sufficient — see the note in the
+     lab header about the label and trailing columns.) */
+  .home-cols-2up {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: var(--tau-s6); align-items: start;
+  }
+  .home-cols-2up > .home-col { min-width: 0; }
+  /* Same 1200px breakpoint .home-cols already uses — one column below it,
+     in the same reading order. */
+  @media (max-width: 1200px) { .home-cols-2up { grid-template-columns: 1fr; } }
+
+  /* The top row: the triage counts, and the same counts per class. Same
+     1.45fr/1fr as .home-cols and for the same reason — but STRETCHED
+     rather than start-aligned, which .home-cols cannot be. That rule pairs
+     a grey band with a white card, where differing heights read as normal;
+     here it is two grey bands side by side, and a short one beside a tall
+     one reads as ragged rather than as two sections. */
+  /* 1fr / 1fr, where every other split on this page is asymmetric. Equal
+     widths assert the two halves are a matched pair, and once the triage
+     queues are rows rather than tiles that is exactly what they are — two
+     lists of navigating count-rows over the same roster. The asymmetry was
+     right while one side was a metric readout and the other an entity
+     index; it stopped being right when they became the same component. */
+  .home-cols-top {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: var(--tau-s6); align-items: stretch;
+  }
+  .home-cols-top > .home-col { min-width: 0; }
+  @media (max-width: 1200px) { .home-cols-top { grid-template-columns: 1fr; } }
+  /* The tiles used to be vertically centred here to disguise the fact that
+     their band started its content lower than the labelled band beside it.
+     Giving that band its own eyebrow fixes the cause — both now start at the
+     same y — so the centring is gone rather than kept as decoration. */
+
+  /* The count keeps display weight — triage is the top of this page's
+     hierarchy — while the unit stays body-sized beside it, so the pair reads
+     as one phrase rather than as a number with a caption under it. */
+  .stat-row-count { font-size: 12.5px; color: var(--tau-ink-soft); font-variant-numeric: tabular-nums; }
+  /* Right-aligned in a fixed box so the three numerals form a column. Without
+     it the shared unit word right-aligns and the digits go ragged behind it,
+     which is the one comparison this list exists to support. */
+  .stat-row-count b {
+    font-size: 17px; font-weight: 800; margin-right: 3px;
+    display: inline-block; min-width: 2.2ch; text-align: right;
+  }
+
+  /* ============================================================
+     REAL RULES COPIED FROM dashboard.html's inline <style>
+     Verbatim. NOT edited here — if one of these is wrong, that is a
+     finding to record in teacher-dashboard-design.md, not a change
+     to make in the lab. Present so the candidates above are judged
+     on the ground they will actually sit on.
+     ============================================================ */
+  .home-band { background: var(--tau-surface-2); border-radius: var(--tau-r-lg); padding: var(--tau-s5); }
+  .home-stack { display: flex; flex-direction: column; gap: var(--tau-s6); }
+  .home-cols { display: grid; grid-template-columns: 1.45fr 1fr; gap: var(--tau-s6); align-items: start; }
+  .home-col { min-width: 0; }
+  @media (max-width: 1200px) { .home-cols { grid-template-columns: 1fr; } }
+  .home-band .finding-summary:hover { background: var(--tau-surface-3); }
+
+  .finding-list { display: flex; flex-direction: column; gap: 10px; }
+  .pattern-card { background: var(--tau-surface); border: 1px solid var(--tau-line); border-radius: var(--tau-r-md); box-shadow: var(--tau-shadow); overflow: hidden; }
+  .finding-summary {
+    display: flex; align-items: center; gap: 14px;
+    padding: var(--tau-s3) var(--tau-s5); min-height: var(--tau-target);
+    cursor: pointer; list-style: none;
+    transition: background var(--tau-dur-short) var(--tau-ease-standard);
+  }
+  .finding-summary::-webkit-details-marker { display: none; }
+  .finding-summary:hover { background: var(--tau-hover-surface); }
+  .finding-summary:focus-visible { outline: var(--tau-focus-ring); outline-offset: calc(-1 * var(--tau-focus-gap)); }
+  .f-body { flex: 1; min-width: 0; }
+  .pattern-title { font-size: 14.5px; font-weight: 700; display: block; }
+  .f-where { font-size: 12px; color: var(--tau-ink-soft); margin-top: 3px; display: block; }
+  .f-where .num { color: var(--tau-caution); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .f-where.attn .num { color: var(--tau-attention); }
+  .f-where.neutral .num { color: var(--tau-ink); }
+  .f-detail { padding: var(--tau-s4) var(--tau-s5); border-top: 1px solid var(--tau-line); }
+  .pattern-body { font-size: 13px; color: var(--tau-ink-soft); margin: 0 0 var(--tau-s3); line-height: 1.55; }
+  .pattern-body b { color: var(--tau-ink); }
+  .pattern-try {
+    background: var(--tau-tool-info-bg); border-left: 3px solid var(--tau-tool-info);
+    border-radius: 0 var(--tau-r-sm) var(--tau-r-sm) 0; padding: 11px 13px;
+    font-size: 12.5px; color: var(--tau-ink-soft); line-height: 1.5; margin: 0 0 var(--tau-s3);
+  }
+  .pattern-try b { color: var(--tau-tool-info); }
+  .f-measure {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 9px;
+    background: var(--tau-surface); border: 1px solid var(--tau-line);
+    border-radius: var(--tau-r-sm); padding: 10px 12px;
+    font-size: 12.5px; color: var(--tau-ink-soft); line-height: 1.5; margin: 0 0 var(--tau-s3);
+  }
+  .f-measure b { color: var(--tau-ink); font-variant-numeric: tabular-nums; }
+  .f-detail > :last-child { margin-bottom: 0; }
+  .pattern-link { display: inline-block; font-size: 12.5px; font-weight: 600; color: var(--tau-forest); cursor: pointer; }
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--tau-s3); margin-bottom: var(--tau-s2); }
+  .section-head .eyebrow { margin-bottom: 0; }
+  .section-summary { font-size: 12px; color: var(--tau-ink-soft); }
+
+  .class-row {
+    display: flex; align-items: center; gap: var(--tau-s3);
+    min-height: var(--tau-target); padding: 0 var(--tau-s2);
+    border-bottom: 1px solid var(--tau-line); border-radius: var(--tau-r-sm);
+    cursor: pointer;
+    transition: background var(--tau-dur-short) var(--tau-ease-standard);
+  }
+  .class-row:last-child { border-bottom: 0; }
+  .class-row:hover { background: var(--tau-surface-3); }
+  .class-row-name { flex: 1; min-width: 0; font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-forest); }
+  .class-row-go {
+    flex-shrink: 0; color: var(--tau-ink-faint); font-size: 13px; line-height: 1;
+    transition: transform var(--tau-dur-short) var(--tau-ease-standard);
+  }
+  .class-row:hover .class-row-go { transform: translateX(2px); color: var(--tau-forest); }
+
+  /* ============================================================
+     LAB SCAFFOLDING — never graduates.
+     ============================================================ */
+  .lab-bar {
+    display: flex; align-items: center; gap: var(--tau-s3); flex-wrap: wrap;
+    padding: var(--tau-s3) var(--tau-s5);
+    background: var(--tau-auditor-bg);
+    border-bottom: 1px solid var(--tau-line);
+    font-size: var(--tau-text-sm);
+  }
+  .lab-bar-label { font-family: var(--tau-font-mono); font-size: var(--tau-text-xs);
+                   letter-spacing: var(--tau-track-label); color: var(--tau-auditor); }
+  .lab-bar-fill { margin-left: auto; }
+  /* The content pane, standing in for dashboard.html's .content. The rail
+     is deliberately absent — it is unchanged by any of this, and 272px of
+     unchanged navigation would just push the thing under review off to
+     the side. */
+  .pane { max-width: 1180px; margin: 0 auto; padding: var(--tau-s6) var(--tau-s5) var(--tau-s10); }
+  .lab-note {
+    font-size: 12.5px; line-height: 1.55; color: var(--tau-ink-soft);
+    border-left: 2px solid var(--tau-auditor); padding-left: var(--tau-s3);
+    margin-bottom: var(--tau-s6);
+  }
+  .lab-note b { color: var(--tau-ink); }
+</style>
+</head>
+
+<body>
+
+<header class="tau-nav">
+  <span class="tau-nav-mark">Tau Thinking</span>
+  <span class="tau-nav-fill"></span>
+  <button class="theme-toggle" type="button"><span class="theme-toggle-icon">☾</span></button>
+</header>
+
+<div class="lab-bar">
+  <span class="lab-bar-label">DASHBOARD LAB — HOME</span>
+  <span style="color:var(--tau-ink-faint)">Roster:</span>
+  <button class="btn btn-quiet btn-sm" type="button" data-n="8">8</button>
+  <button class="btn btn-quiet btn-sm" type="button" data-n="24">24</button>
+  <button class="btn btn-quiet btn-sm" type="button" data-n="90">90</button>
+  <span style="color:var(--tau-ink-faint);margin-left:var(--tau-s3)">Shape:</span>
+  <button class="btn btn-quiet btn-sm" type="button" data-shape="typical">Typical</button>
+  <button class="btn btn-quiet btn-sm" type="button" data-shape="sparse">Sparse</button>
+  <button class="btn btn-quiet btn-sm" type="button" data-shape="tail">Long tail</button>
+  <button class="btn btn-quiet btn-sm" type="button" data-shape="floor">At the floor</button>
+  <button class="btn btn-quiet btn-sm" type="button" data-shape="thin">Thin sessions</button>
+  <span class="lab-bar-fill"></span>
+  <span style="color:var(--tau-ink-faint)">fabricated data · tokens.css + components.css only</span>
+</div>
+
+<div class="pane">
+
+  <p class="lab-note">
+    <b>Home, under the band/level scale.</b> Two layout changes against <code>renderHome()</code>,
+    both pairing sections that answer each other. <b>Classes at a glance moves up beside the triage
+    tiles</b> — the class rows decompose the Worth-a-chat count, so the aggregate and its breakdown
+    sit on one line; this departs from the section order reaffirmed 2026-08-12 and is the change most
+    worth arguing with. <b>Students by level and Dimension bands go side by side</b> — one argument
+    in two parts, where the room sits and why. Behavioral patterns keeps the full width between them.
+    <br><br>
+    <b>Use the Shape switcher, not the Roster one, to judge the distributions.</b> Cohort size barely
+    moves this chart — four of the five shapes scale proportionally, so a segment renders at nearly
+    the same width at 8, 24 and 90. Roster size tests numeral widths and the prose. <b>Shape</b> is
+    what stresses the plot: <i>Sparse</i> has one-student bands and zeros, <i>Long tail</i> is
+    defined against <i>n</i> rather than scaled and is the only one that produces a genuinely
+    sub-pixel-scale band (it is what exercises the outside-numeral gutter), <i>At the floor</i>
+    pushes the tick to the far right on every row, and <i>Thin sessions</i> makes the off-scale tail
+    dominate. <b>Both switchers compose</b> — Long tail at 90 is a different test from Long tail at 8.
+  </p>
+
+  <div class="home-stack">
+
+    <!-- ─── 1. Triage, and the same triage per class ────────────────────
+         Tile structure is unchanged from renderHome(). What changes is
+         that the non-score needs a tile of its own: it is a real queue
+         with a different conversation behind it, and it can never be
+         added to the Worth-a-chat count without turning "we could not
+         see it" into "you did not do it".
+
+         RENAMED "not enough here" -> "NOT ENOUGH EVIDENCE" (2026-08-14).
+         The old phrase named nothing — "here" has no referent on screen,
+         so a reader has to be told what it means every time, which is why
+         this page carried a sentence explaining it. Two candidates were
+         weighed:
+
+         - "Incomplete data" says the wrong thing. Nothing is missing from
+           the record; the transcript is complete, it just does not contain
+           moments that show this behaviour. "Data" points at the pipeline
+           and invites "so fix your system", when the fact is about how the
+           student used the tool.
+         - "Not enough evidence" uses the product's own noun. tau-dimensions.md
+           makes evidence the actual output — a claim plus the quoted moments
+           supporting it — so this state is precisely "we could not find the
+           moments". It is also standard rubric vocabulary a teacher already
+           owns, rather than ours.
+
+         It sharpens the band-1 distinction rather than blurring it: band 1
+         is EVIDENCE OF ABSENCE (we read the session; the behaviour was not
+         there), this is ABSENCE OF EVIDENCE (the session was too thin to
+         tell). That is the classic phrasing of exactly this difference.
+
+         CROSS-CUTTING: the old term is fixed vocabulary in tau-dimensions.md,
+         teacher-dashboard-design.md and designsystem.md's Hard Constraints,
+         and it appears on the student report too. This lab is the proposal;
+         the rename is not done until those follow.
+
+         CLASSES AT A GLANCE MOVES UP HERE — a departure from the section
+         order teacher-dashboard-design.md reaffirmed on 2026-08-12, and
+         the reason is an IA one rather than a spatial one: the class rows
+         DECOMPOSE the first tile. 9 worth a chat is English 10's 6 plus
+         American Literature's 3 plus AP Language's none, and "which
+         class?" is the question a teacher asks the instant they read the
+         count. Sitting the aggregate beside its own breakdown answers it
+         without a click, which is the whole job of a glance rollup.
+
+         Two bands, not one — the band rule is one band per section, and
+         these are two sections that happen to sit on a line. -->
+    <div class="home-cols-top">
+      <div class="home-band home-col">
+        <!-- The eyebrow this band never had. Hard Constraints requires one on
+             every scanned section, and the gap only became visible once a
+             labelled section sat beside it. "Students to follow up" names the
+             subject in the first word, as "Classes at a glance" does — the
+             parallel is what makes the row read as two views of one roster
+             rather than two unrelated blocks.
+
+             NOT one shared eyebrow across both halves: the left counts
+             STUDENTS by what they need and the right lists CLASSES, and a
+             label covering two different subjects has to be generic enough to
+             name neither. "At a glance" in particular names how the thing is
+             read rather than what it is — the same failure "How your teaching
+             is landing" was renamed for on 2026-08-08.
+
+             OPEN: the three tiles must not be read as summing. A student can
+             be worth-a-chat AND missing work, so 9 + 5 + 2 is not 16 students.
+             The union is a real number the payload would have to carry (the
+             same way the dimension rows' off-scale union does) and it is not
+             in this fixture, so nothing here states it — rather than stating
+             a denominator that would be wrong. -->
+        <div class="section-head">
+          <div class="eyebrow">Students to follow up</div>
+        </div>
+        <div id="tiles"></div>
+      </div>
+      <div class="home-band home-col">
+        <div class="section-head">
+          <div class="eyebrow">Classes at a glance</div>
+        </div>
+        <div id="classes"></div>
+      </div>
+    </div>
+
+    <!-- ─── 2. Behavioral patterns ──────────────────────────────────── -->
+    <div class="home-band">
+      <div class="section-head">
+        <div class="eyebrow">Behavioral patterns</div>
+        <div class="section-summary" id="patternsSummary"></div>
+      </div>
+      <div class="finding-list" id="patterns"></div>
+    </div>
+
+    <!-- ─── 3 + 4. The two halves of the aggregate reading ──────────────
+         Side by side, not stacked. These two sections are one argument in
+         two parts — the level is WHERE the room sits, the dimensions are
+         WHY — and putting them on one line lets a teacher hold both at
+         once instead of scrolling between a claim and its explanation.
+         Reading order still runs level -> dimensions, so the section order
+         teacher-dashboard-design.md reaffirmed on 2026-08-12 is intact;
+         only the axis it runs along has changed.
+
+         The 1fr / 1.45fr split REVERSES renderHome()'s asymmetry, and the
+         original reason for that asymmetry is what reverses it: the wider
+         column goes to the section carrying long titles and caption
+         sentences, which is now Dimension bands. It also keeps the plot at
+         very close to the width it had when it was full-column (~630px),
+         so nothing about the bars had to be re-judged. Students by level
+         is five short rows and reads fine at ~440px. -->
+    <div class="home-cols-2up">
+
+      <div class="home-band home-col">
+        <div class="section-head">
+          <div class="head-with-info">
+            <div class="eyebrow">Students by level</div>
+            <button class="info-dot tip-trigger" type="button" aria-expanded="false"
+              aria-label="How to read students by level"
+              data-tip="<b>How to read these</b><br>Each bar is that level's share of the whole cohort, on the same scale as the dimension bands beside it — so an equal length means an equal number of students in both charts. The levels are a ladder of agency, read in order.">i</button>
+          </div>
+          <div class="section-summary" id="levelSummary"></div>
+        </div>
+        <!-- eyebrow -> lede -> visualisation. The lede moved OUT of the chart
+             card so both sections share one shape: the tool's sentence is
+             about the chart, not a row inside it. -->
+        <div class="viz-lede"><b id="levelHeadline"></b> <span id="levelGloss"></span></div>
+        <div style="background:var(--tau-surface);border:1px solid var(--tau-line);border-radius:var(--tau-r-md);box-shadow:var(--tau-shadow);padding:var(--tau-s4) var(--tau-s5)">
+          <div class="comp" id="levelComp"></div>
+          <p style="font-size:11.5px;color:var(--tau-ink-faint);line-height:1.5;margin:var(--tau-s4) 0 0">
+            These levels describe <b style="color:var(--tau-ink-soft)">agency</b> — how much of the
+            thinking stayed the student's — not task transformation as SAMR was published.
+          </p>
+        </div>
+      </div>
+
+      <div class="home-band home-col">
+        <div class="section-head">
+          <div class="head-with-info">
+            <div class="eyebrow">Dimension bands</div>
+            <!-- DECODER, not finding: what a mark means in general, identical
+                 on every render. Nothing here is a number about this cohort. -->
+            <button class="info-dot tip-trigger" type="button" aria-expanded="false"
+              aria-label="How to read the dimension bands"
+              data-tip="<b>How to read these</b><br>Every student sits in exactly one band per dimension, so each row counts the whole cohort — which is why every bar is the same length. The tick marks where band 2 ends: left of it the behaviour didn't happen, or didn't happen where it counted.">i</button>
+          </div>
+          <div class="section-summary" id="dimSummary"></div>
+        </div>
+        <div class="finding-list" id="dims"></div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── Fixture data ────────────────────────────────────────────────────────
+  // Authored to exercise layout. Not measurement, not seed data, not a
+  // calibration set. See the header comment.
+
+  var LEVELS = ['Substitution', 'Augmentation', 'Modification', 'Redefinition'];
+  var LEVEL_GLOSS = [
+    'The AI did the thinking. The student set the task and took what came back.',
+    'The AI set the direction; the student improved what it handed them. Agency shows up in reaction, not initiation.',
+    'The student led. The AI worked to their brief, and the conversation went where they took it.',
+    'The student led and resisted. They pushed back where it mattered, and the thinking that survived is theirs.'
+  ];
+  var DIMS = ['Prompting Quality', 'Selective Use', 'Calibrated Skepticism', 'Original Contribution'];
+
+  // One shape, scaled to three roster sizes. Holding the shape constant is
+  // the point: the only thing that changes across the three is magnitude,
+  // which is exactly what the density question is about.
+  // THE INVARIANT, and the reason the four rows are comparable: every
+  // student contributes exactly ONE band to every dimension, so each row is
+  // a different partition of the same cohort and each row sums to n.
+  // Bands + off === n, always. Never add across rows.
+  //
+  // "Not enough here" is PER DIMENSION, not per student. A six-turn
+  // transcript gives Calibrated Skepticism nothing to code while still
+  // showing Prompting Quality clearly — so a student can be band 3 on one
+  // and off-scale on another, and the off counts differ per row. An earlier
+  // pass of this file had off:1 on all four, which quietly asserted it was
+  // the same student every time. Real data will not behave that way.
+  //
+  // FOUR SHAPES, not one. The roster switcher alone could never answer the
+  // density question the lab note used to pose: SHAPE was scaled
+  // proportionally, so every segment rendered within half a pixel of the
+  // same width at 8, 24 and 90 students, and the seam moved 9px across the
+  // whole range. Magnitude is not what this chart is sensitive to — SHAPE
+  // is. These four are the cases that actually stress it: a one-student
+  // band, a zero band, a row with nothing on one side of the seam, and an
+  // off-scale count large enough to dominate its own column.
+  var SHAPES = {
+    typical: [
+      { bands: [2, 5, 12, 4], off: 1 },   // 23 + 1 = 24
+      { bands: [3, 9, 8, 2], off: 2 },    // 22 + 2 = 24
+      { bands: [8, 9, 3, 0], off: 4 },    // 20 + 4 = 24
+      { bands: [2, 6, 12, 3], off: 1 }    // 23 + 1 = 24
+    ],
+    // Single-student bands and zeros — the numeral-fit and min-width cases.
+    sparse: [
+      { bands: [1, 2, 20, 1], off: 0 },
+      { bands: [1, 19, 3, 1], off: 0 },
+      { bands: [11, 1, 1, 0], off: 11 },
+      { bands: [0, 1, 2, 20], off: 1 }
+    ],
+    // Almost nothing right of the seam: the high column is near-empty on
+    // every row, so the plot is mostly one-sided.
+    floor: [
+      { bands: [18, 4, 1, 0], off: 1 },
+      { bands: [20, 3, 0, 0], off: 1 },
+      { bands: [22, 1, 0, 0], off: 1 },
+      { bands: [15, 6, 2, 0], off: 1 }
+    ],
+    // Defined as a FUNCTION of n rather than scaled from 24, because
+    // scaling cannot produce this case: every other shape here keeps its
+    // smallest band at 1/24 of the room, so no segment ever falls below
+    // ~4.4% and the too-narrow-for-its-numeral path never runs. At 90 this
+    // puts a real 1-student band on the plot, which is ~5px.
+    tail: function (n) {
+      var big = n - 5;
+      return [
+        { bands: [1, 1, big, 2], off: 1 },
+        { bands: [2, big, 1, 1], off: 1 },
+        { bands: [big, 2, 1, 1], off: 1 },
+        { bands: [1, 2, 1, big], off: 1 }
+      ];
+    },
+    // Off-scale dominates — the case where the bars are short because the
+    // sessions were thin, not because the cohort is small.
+    thin: [
+      { bands: [2, 3, 4, 1], off: 14 },
+      { bands: [1, 4, 3, 2], off: 14 },
+      { bands: [3, 2, 1, 0], off: 18 },
+      { bands: [2, 3, 5, 2], off: 12 }
+    ]
+  };
+
+  var SHAPE = {
+    levels: [4, 11, 6, 2], levelsOff: 1,
+    dims: SHAPES.typical,
+    // The UNION — students unreadable on at least one dimension. Bounded
+    // below by the largest per-dimension off (4, on CS) and above by their
+    // sum (8). It is its own number and cannot be derived from the rows,
+    // which is exactly why the tile and the rows disagree legitimately.
+    review: 9, notEnough: 5, missing: 2,
+    classes: [
+      { name: 'English 10', review: 6, modal: 1 },
+      { name: 'American Literature', review: 3, modal: 2 },
+      { name: 'AP Language', review: 0, modal: 2 }
+    ]
+  };
+
+  // The note is templated per row (dimNote) — these are the dimension's own
+  // teaching move, which is a property of the dimension rather than of this
+  // week's distribution, so it is authored and constant. Blue, tool's
+  // voice, discountable: on the teacher surface the prescription is fine,
+  // because a teacher can weigh it against what they actually taught
+  // (teacher-dashboard-design.md, "The missing What to try").
+  var DIM_TRY = [
+    'Have them write the brief before opening the chat. Stating the shape they want is a different act from asking what the shape should be.',
+    'What comes back is a draft, not a delivery. Name the move out loud: take it, then say what is wrong with it before any of it gets used.',
+    'The moment right after a source fails is when to check hardest — that is the habit to name out loud.',
+    'Have them mark, in their own draft, the two sentences they would still have written if the chat had never happened.'
+  ];
+
+  function keyItem(b) {
+    return '<span class="dbar-key-item"><i style="background:var(--tau-scale-' + b + ')"></i>'
+      + '<span class="n">' + b + '</span> ' + BAND_MEANING[b - 1] + '</span>';
+  }
+
+  function sum(a) { return a.reduce(function (x, y) { return x + y; }, 0); }
+  function scale(arr, k) { return arr.map(function (c) { return Math.round(c * k); }); }
+
+  // Scaling a row to a different roster size has to preserve bands+off === n.
+  // Rounding each cell independently does not — it drifts by a student or two
+  // and the four rows stop being partitions of one cohort, which is the one
+  // property this whole section rests on. So: scale, round, then absorb the
+  // residual into the largest band (the one where ±1 changes the shape least).
+  function scaleRow(bands, off, n) {
+    var k = n / 24;
+    var b = scale(bands, k);
+    var o = Math.round(off * k);
+    var drift = n - (sum(b) + o);
+    if (drift !== 0) {
+      var big = b.indexOf(Math.max.apply(null, b));
+      b[big] = Math.max(0, b[big] + drift);
+    }
+    return { bands: b, off: o };
+  }
+
+  // ── Renderers ───────────────────────────────────────────────────────────
+
+  // CANDIDATE, replacing renderHome()'s statTile(). Same three queues, built
+  // on .class-row instead of .stat-tile, for three reasons that are checkable
+  // rather than aesthetic:
+  //
+  //  1. It is the same object. Both halves of this row are "a count of
+  //     students, click to go to them" — so they are one component used
+  //     twice, not two components that happen to sit together (the
+  //     component-reuse check in the product-design-review skill).
+  //  2. The count gets its unit. The tile rendered a bare numeral with the
+  //     label beneath it; the doc's rule is that a count "sits in the phrase
+  //     that names its unit" and is "never a bare numeral or a chip". The
+  //     pattern cards were rebuilt for exactly this on 2026-08-08 and the
+  //     tiles were left behind.
+  //  3. One severity channel, not four. The tile carried caution in a tint,
+  //     a border, the numeral and the label at once — "a surface carries a
+  //     severity signal exactly once" (Hard Constraints). The row carries it
+  //     in the numeral, and the label beside it states the same fact in
+  //     words, so colour is never the only channel.
+  //
+  // The numeral is deliberately larger than the row's other text: triage is
+  // the top of this page's hierarchy (teacher-dashboard-design.md, "Triage
+  // stays first"), and dropping the tile's display numeral to body size
+  // would have paid for the parallel with the thing the parallel is meant to
+  // make more readable.
+  //
+  // NOTE ON THE COMPONENT NAME: .class-row is doing a job that is not about
+  // classes. It is a navigating row with a name, a trailing value and a
+  // chevron. If this graduates, it wants a neutral name in components.css
+  // (.nav-row) with .class-row kept as an alias — renaming it here would put
+  // the lab out of step with the shipped sheet for no gain.
+  function statRow(value, label, color) {
+    return '<div class="class-row">'
+      + '<span class="class-row-name">' + label + '</span>'
+      + '<span class="stat-row-count"><b style="color:' + color + '">' + value + '</b> students</span>'
+      + '<span class="class-row-go">&rarr;</span></div>';
+  }
+
+  function renderComp(el, counts, off) {
+    var total = sum(counts) + off;
+    var max = Math.max.apply(null, counts);
+    var modal = counts.indexOf(max);
+    var tie = counts.filter(function (c) { return c === max; }).length > 1;
+    var html = '';
+    counts.forEach(function (c, i) {
+      // The empty leading <span> is the gutter that keeps this track aligned
+      // with the dimension bands' — see --lab-chart-gutter.
+      html += '<div class="comp-row comp-' + (i + 1) + (i === modal && !tie ? ' is-modal' : '') + '">'
+        + '<div class="viz-row-head">'
+        +   '<span class="comp-name">' + LEVELS[i] + '</span>'
+        +   '<span class="comp-count">' + c + '</span></div>'
+        + '<div class="viz-plot"><span></span>'
+        +   '<span class="comp-track"><span class="comp-fill" style="width:' + (c / total * 100).toFixed(1) + '%"></span></span>'
+        + '</div></div>';
+    });
+    html += '<div class="comp-off">'
+      + '<div class="viz-row-head">'
+      +   '<span class="comp-name">Not enough evidence</span>'
+      +   '<span class="comp-count">' + off + '</span></div>'
+      + '<div class="viz-plot"><span></span><span class="comp-off-track"></span></div></div>';
+    el.innerHTML = html;
+    return { modal: modal, tie: tie, max: max, total: total };
+  }
+
+  // Band 3 was "real gaps" — which is the second half of the canonical
+  // descriptor with the first half cut off. tau-dimensions.md:386 reads
+  // "There most of the time, with real gaps", and band 3 sits on the
+  // HELD-UP side of the seam. Keeping only the failure clause made the one
+  // band on the good side of the line read as a failure, and the seam stop
+  // making sense to anyone decoding the chart from the key.
+  var BAND_MEANING = ['didn\'t happen', 'not where it counted', 'there, with gaps', 'held at the hard moments'];
+
+  function tipText(band, count, dim) {
+    return '<b>Band ' + band + ' — ' + BAND_MEANING[band - 1] + '</b><br>'
+      + count + ' student' + (count === 1 ? '' : 's') + ' · ' + dim;
+  }
+
+  // One diverging bar. `geom` is shared across all four rows, so one
+  // student is the same width on every row and the seam falls on the same
+  // grid boundary everywhere — that shared unit is what makes the four
+  // dimensions comparable, and deriving it per row would silently destroy
+  // the comparison.
+  //
+  // No pixels. Every width here is a percentage of a column whose own
+  // width is a share of the student total, so the plot fills whatever
+  // column it is given. The old build hardcoded a 300px plot in a fluid
+  // card, which used under half the available width and made the fit of
+  // every numeral a function of a constant rather than of the layout.
+  function dbarMarkup(bands, off, geom, dim) {
+    var n = geom.n;
+    // The rightmost drawn thing takes the right cap: the off-scale cell when
+    // there is one, otherwise the highest non-empty band.
+    var lastBand = bands[3] ? 4 : bands[2] ? 3 : bands[1] ? 2 : 1;
+    var firstBand = bands[0] ? 1 : bands[1] ? 2 : bands[2] ? 3 : 4;
+
+    function seg(count, band) {
+      if (!count) return '';
+      var cap = (band === firstBand ? ' cap-l' : '')
+              + (band === lastBand && !off ? ' cap-r' : '');
+      return '<span class="dbar-seg s' + band + cap + '"'
+        + ' style="width:' + (count / n * 100).toFixed(3) + '%"'
+        + ' data-band="' + band + '" data-tip="' + tipText(band, count, dim) + '">'
+        + '<span class="dbar-num">' + count + '</span></span>';
+    }
+    // Band 1's numeral goes OUTSIDE, in the left gutter, when the segment is
+    // too narrow to hold it. That gutter is a fixed column, so it costs the
+    // edge alignment nothing. Only band 1 gets this: every other position is
+    // now interior (band 4 is followed by the off-scale cell), and band 1 is
+    // the one the doc requires never to be the least legible mark —
+    // sensitivity at the low end is this instrument's standing requirement.
+    // Every other tight segment drops its numeral and is covered by the
+    // tooltip and by the evidence block, which states all five counts in
+    // full. Which segments are tight is measured after layout by
+    // fitLabels(), never predicted.
+    //
+    // ONE TRACK, WIDTH n. Every row totals n students — bands + off = n is
+    // the invariant this whole section rests on — so every bar is the same
+    // length and both edges align. The seam is no longer a fixed column
+    // boundary with the sides packed against it; it is a tick whose POSITION
+    // encodes the failure share directly, read against a common left edge.
+    // The old construction aligned the seam across rows at the cost of
+    // ragged ends, which bought an alignment no reader could use: each bar
+    // sits in its own card, so there was never a continuous plot for a
+    // shared axis to serve.
+    return '<div class="dbar" role="img" aria-label="' + rowLabel(dim, bands, off) + '">'
+      + '<span class="dbar-gutter"><span class="dbar-out" data-band="1">' + bands[0] + '</span></span>'
+      + '<span class="dbar-track">'
+      +   seg(bands[0], 1) + seg(bands[1], 2) + seg(bands[2], 3) + seg(bands[3], 4)
+      // Inside the total, because it is part of n — a row with four
+      // unreadable students is not a shorter row, it is a row where four of
+      // its students are off the scale. Detached by a break, a hatch, no
+      // fill and a shorter height so it cannot be folded into band 4.
+      //
+      // Rendered even at zero: "not enough here" is a real state of a real
+      // student, and hiding it when empty is how a reader learns to stop
+      // looking for it (teacher-dashboard-design.md, "The unit of every
+      // aggregate").
+      +   '<span class="dbar-off-cell' + (off ? ' has-any' : '') + '"'
+      +     ' style="width:' + (off / n * 100).toFixed(3) + '%"'
+      +     ' data-tip="<b>Not enough evidence</b><br>' + off + ' session' + (off === 1 ? '' : 's')
+      +     ' too thin to read this one · ' + dim + '"></span>'
+      // The seam. Its x IS the finding now, so it is drawn over the fills
+      // rather than between two packed sides.
+      +   '<span class="dbar-seam" style="left:' + ((bands[0] + bands[1]) / n * 100).toFixed(3) + '%"></span>'
+      + '</span>'
+      // The off count is NOT rendered here any more — it sits on the row's
+      // header line beside the name, with a hatched swatch tying it back to
+      // this cell, so the bar gets the full measure of the card.
+      + '</div>';
+  }
+
+  // The text alternative for the whole mark. role="img" + one label is the
+  // right shape here: sixteen focusable segments would be sixteen tab stops
+  // carrying what one sentence carries.
+  function rowLabel(dim, bands, off) {
+    return dim + ': ' + bands.map(function (c, i) {
+      return c + ' at band ' + (i + 1) + ', ' + BAND_MEANING[i];
+    }).join('; ') + '. ' + off + ' not enough evidence.';
+  }
+
+  // Measured, not predicted. Runs on mount and on any resize of the
+  // section, so a numeral's fit is a fact about the rendered layout rather
+  // than a guess from a constant.
+  function fitLabels(scope) {
+    scope.querySelectorAll('.dbar').forEach(function (bar) {
+      bar.querySelectorAll('.dbar-seg').forEach(function (s) {
+        var tight = s.offsetWidth < 20;
+        s.classList.toggle('is-tight', tight);
+        var o = bar.querySelector('.dbar-out[data-band="' + s.dataset.band + '"]');
+        if (o) o.classList.toggle('is-shown', tight);
+      });
+    });
+  }
+
+  // The hover layer. One node for the whole page, delegated — a tooltip per
+  // mark would be 20 nodes doing one node's job.
+  var tipEl, tipPinned = null;
+  function showTip(m) {
+    tipEl.innerHTML = m.dataset.tip;
+    tipEl.classList.add('is-on');
+    var r = m.getBoundingClientRect(), w = tipEl.offsetWidth;
+    tipEl.style.left = Math.min(window.innerWidth - w - 8,
+      Math.max(8, r.left + r.width / 2 - w / 2)) + 'px';
+    // Below the mark when there is no room above it, so a tip on a section
+    // head near the top of the viewport is not drawn off-screen.
+    var above = r.top - tipEl.offsetHeight - 8;
+    tipEl.style.top = (above < 8 ? r.bottom + 8 : above) + 'px';
+  }
+  function hideTip() {
+    if (tipPinned) return;
+    tipEl.classList.remove('is-on');
+  }
+  // Hover, focus AND click. Hover alone is not an affordance on touch or
+  // keyboard, and the descriptor rule puts real explanation behind this —
+  // so it has to be reachable three ways, and pinnable once opened.
+  function initTips() {
+    if (tipEl) return;
+    tipEl = document.createElement('div');
+    tipEl.className = 'dbar-tip';
+    document.body.appendChild(tipEl);
+
+    document.addEventListener('mouseover', function (e) {
+      var m = e.target.closest && e.target.closest('[data-tip]');
+      if (m && !tipPinned) showTip(m);
+    });
+    document.addEventListener('mouseout', function (e) {
+      if (e.target.closest && e.target.closest('[data-tip]')) hideTip();
+    });
+    document.addEventListener('focusin', function (e) {
+      var m = e.target.closest && e.target.closest('[data-tip]');
+      if (m) showTip(m);
+    });
+    document.addEventListener('focusout', function () {
+      if (!tipPinned) hideTip();
+    });
+    document.addEventListener('click', function (e) {
+      var dot = e.target.closest && e.target.closest('.tip-trigger');
+      if (tipPinned) {
+        tipPinned.setAttribute('aria-expanded', 'false');
+        var was = tipPinned; tipPinned = null;
+        tipEl.classList.remove('is-on');
+        if (was === dot) return;
+      }
+      if (!dot) return;
+      tipPinned = dot;
+      dot.setAttribute('aria-expanded', 'true');
+      showTip(dot);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && tipPinned) {
+        tipPinned.setAttribute('aria-expanded', 'false');
+        tipPinned = null;
+        tipEl.classList.remove('is-on');
+      }
+    });
+  }
+
+  // Templated, not free-generated — the same discipline draftTimingNote()
+  // and assignmentCoachingNote() already follow: a deterministic sentence
+  // built from the numbers the bars below already show, so the finding can
+  // never claim something the evidence doesn't back.
+  // Returns the floor as well as the sentence, so the headline and the
+  // row's "THE FLOOR OF THE FOUR" flag can never disagree — they did, and
+  // the At-the-floor shape is what surfaced it: the headline said no
+  // dimension stood out while a row underneath was still badged as the one
+  // that did.
+  function bandsFinding(rows, n) {
+    var ranked = rows.map(function (r, i) {
+      return { i: i, lo: r.bands[0] + r.bands[1], off: r.off };
+    }).sort(function (a, b) { return b.lo - a.lo; });
+    var worst = ranked[0], next = ranked[1], best = ranked[ranked.length - 1];
+    var gap = worst.lo - next.lo;
+    var near = Math.max(2, Math.round(n * 0.08));   // closer than this is not a difference
+
+    // Every dimension at the floor. Checked BEFORE the no-distinct-floor
+    // case, because four dimensions tied at the bottom is not "no floor" —
+    // it is the worst reading this chart can produce, and the template used
+    // to call it "roughly even across all four": true, and the least useful
+    // true thing available. This is the wording turnover
+    // teacher-dashboard-design.md asks for, where a triage finding stops
+    // being a list and becomes the room.
+    if (best.lo > n * 0.6) {
+      return { floorIdx: null, html: '<b>All four dimensions are at the floor.</b> Between '
+        + best.lo + ' and ' + worst.lo + ' of ' + n + ' students are at band 1 or 2 on every one of '
+        + 'them. There is no stronger dimension to lean on here — this is a finding about the room, '
+        + 'not a dimension to teach into.' };
+    }
+    // No dimension stands out — say so rather than manufacturing a floor.
+    if (gap < near) {
+      return { floorIdx: null, html: '<b>No single floor this week.</b> ' + DIMS[worst.i] + ' and '
+        + DIMS[next.i] + ' are the two lowest and '
+        + (gap === 0 ? 'are tied' : 'are within ' + gap + ' student' + (gap === 1 ? '' : 's') + ' of each other')
+        + ', so there is no one dimension to teach into ahead of the others.' };
+    }
+    var others = ranked.slice(1);
+    var spread = others[0].lo - others[others.length - 1].lo;
+    var majority = worst.lo > (n - worst.off) / 2;
+    // "Left of the seam" was jargon in a teacher-facing sentence — it names
+    // the chart's internal construct rather than the finding. The bands say
+    // it directly, and "seam" survives only as the CSS/geometry name.
+    return { floorIdx: worst.i, html: '<b>' + DIMS[worst.i] + ' is the floor.</b> ' + worst.lo
+      + ' of ' + n + ' students are at band 1 or 2 — the behaviour either didn\'t happen, or didn\'t '
+      + 'happen where it counted'
+      + (majority ? ', and this is the only dimension where that is most of the room' : '')
+      + '. '
+      // The old template asserted the other three "sit together" whatever
+      // they did. On the Sparse shape they span 11 students, which is not
+      // together, and the sentence was the only thing on the page claiming
+      // otherwise.
+      + (spread <= near
+          ? 'The other three sit together, within ' + spread + ' student' + (spread === 1 ? '' : 's')
+            + ' of each other.'
+          : 'The other three are spread from ' + others[others.length - 1].lo + ' to '
+            + others[0].lo + ' students.')
+      + (worst.off >= Math.max(3, n * 0.1)
+          ? ' It is also the hardest to read: ' + worst.off + ' sessions gave it nothing to code.'
+          : '') };
+  }
+
+  // WHAT EACH DIMENSION MEASURES. Authored, constant, one line. This is the
+  // gap the rewrite below exposed: nowhere on this page did a teacher ever
+  // learn what "Selective Use" actually is. It leads the expanded row
+  // because meaning has to come before a reading of it — and it belongs in
+  // the disclosure rather than the tooltip, since it is per dimension and
+  // the section has one info-dot, not four.
+  var DIM_WHAT = [
+    'Whether the student set the task or asked the AI what the task should be — who is directing the work.',
+    'What the student did with what came back: worked on it as a draft, or took it as finished.',
+    'Whether they checked what they were told, and whether they checked the claims that actually mattered.',
+    'Whether the ideas in the essay are ones the transcript shows them building, rather than ones handed to them.'
+  ];
+
+  // The reading. Templated off the row's own counts, so it can never claim
+  // something the bars don't back — but its job is what the distribution
+  // CANNOT show, not a recount of it.
+  //
+  // REWRITTEN 2026-08-14. The previous version failed on its own terms:
+  //  - "without band 1 being the largest group" described which BRANCH the
+  //    template took, not the data. Plumbing in the copy.
+  //  - "the 82 students this could be read on" introduced a second
+  //    denominator two lines under a lede that had just said 90.
+  //  - "more of the room than not" restated 44-of-82 more vaguely.
+  //  - The band-2-dominant case — the most actionable shape there is —
+  //    had no branch of its own and fell through to that negative sentence.
+  // Every branch now names the shape, says what it means, and says why it
+  // changes what a teacher would do.
+  function dimNote(bands, off, n) {
+    var lo = bands[0] + bands[1], hi = bands[2] + bands[3], read = lo + hi;
+    var top = bands.indexOf(Math.max.apply(null, bands));
+    var s;
+    if (top === 0) {
+      s = '<b>' + bands[0] + ' students didn\'t do it at all.</b> Band 1 is absence, not a weak '
+        + 'attempt — there is nothing in those sessions to sharpen, so this is teaching the move '
+        + 'from scratch rather than improving it.';
+    } else if (top === 1) {
+      s = '<b>It happened, but not where it counted.</b> ' + bands[1] + ' students sit at band 2: '
+        + 'they did the thing somewhere in the session, just not at the moments that mattered. '
+        + 'That is a smaller gap than band 1 and a different lesson — timing, not the behaviour.';
+    } else if (read && Math.abs(lo - hi) <= Math.max(1, read * 0.06)) {
+      s = '<b>The room is split.</b> ' + lo + ' students are at band 1 or 2 and ' + hi
+        + ' at band 3 or 4, with no middle that describes either group. Teaching to the average '
+        + 'here reaches neither.';
+    } else if (top === 3) {
+      // Not "this is the strong one" — nothing stops two rows being band-4
+      // dominant at once, and a uniqueness claim the data doesn't guarantee
+      // is the same fault as the branch-describing sentence this rewrite
+      // removed.
+      s = '<b>This one held.</b> ' + bands[3] + ' students carried it even at the hard moments. '
+        + 'Worth naming out loud — it is the habit the weaker dimensions can borrow from.';
+    } else {
+      s = '<b>Mostly there, with real gaps.</b> ' + bands[2] + ' students sit at band 3: the '
+        + 'behaviour is present but not yet dependable. '
+        + (bands[3] ? bands[3] + ' carried it through the hard moments.' : 'Nobody reached band 4.');
+    }
+    if (off >= Math.max(3, n * 0.12)) {
+      s += ' <b>' + off + ' sessions were too thin to read this at all</b>, so the bar above '
+        + 'describes the ' + read + ' it could be read on.';
+    }
+    return s;
+  }
+
+  // The shared unit is now just n: every row is a partition of the same
+  // cohort, so every bar spans the same student count and one student is the
+  // same width on every row. Segment length still reads as an absolute
+  // count, shares are directly comparable, and both edges align — the
+  // max-based geometry this replaced could deliver only the first of those
+  // three. Asserted rather than assumed, because the whole construction
+  // rests on it.
+  function barGeometry(rows, n) {
+    rows.forEach(function (r, i) {
+      var t = r.bands.reduce(function (a, b) { return a + b; }, 0) + r.off;
+      if (t !== n) console.warn('dbar: row ' + i + ' sums to ' + t + ', not ' + n);
+    });
+    return { n: n };
+  }
+
+  // ── Mount ───────────────────────────────────────────────────────────────
+
+  function render(n) {
+    var k = n / 24;
+    // scaleRow, not scale — the level strip is a partition of the cohort
+    // exactly as the dimension rows are, so it has to preserve
+    // levels + off === n. Rounding each rung independently drifted, and at
+    // n=90 the card read "41 of 91 across your classes" under a section
+    // head saying 90 students.
+    var lv = scaleRow(SHAPE.levels, SHAPE.levelsOff, n);
+    var levels = lv.bands, levelsOff = lv.off;
+    var review = Math.round(SHAPE.review * k);
+    var notEnough = Math.round(SHAPE.notEnough * k);
+    var missing = Math.round(SHAPE.missing * k);
+
+    // 1. The triage queues.
+    var tiles = statRow(review, 'Worth a chat', 'var(--tau-caution)');
+    // Deliberately NOT caution. "Not enough here" is not a finding about the
+    // student's thinking, and giving it the same amber as a real signal
+    // would merge two queues the whole scale exists to keep apart.
+    tiles += statRow(notEnough, 'Not enough evidence', 'var(--tau-ink)');
+    if (missing) tiles += statRow(missing, 'Missing work', 'var(--tau-attention)');
+    document.getElementById('tiles').innerHTML = tiles;
+
+    // 2. Behavioral patterns. The three cards that die under the band scale
+    // are named on the card that replaces them rather than left as a silent
+    // gap — an empty section reads as "nothing found", which would be false.
+    var spiral = Math.round(5 * k), abandoned = Math.round(4 * k);
+    var patternIds = Math.min(n, spiral + abandoned);
+    document.getElementById('patternsSummary').textContent =
+      '2 patterns · ' + patternIds + ' of ' + n + ' students';
+    document.getElementById('patterns').innerHTML =
+      card('Validation spiral', spiral + ' student' + (spiral !== 1 ? 's' : '') + ' · English 10 ' + Math.max(1, spiral - 1) + ' · American Literature 1', '',
+        '<b>What this looks like:</b> Three or more turns in a row of taking and confirming, with nothing breaking the run. A real sequence detector — it reads turn <b>order</b>, which no dimension does.',
+        'Ask what they would have done if the first answer had been wrong. The spiral is a habit of not leaving room for that.',
+        'View the ' + spiral + ' students →')
+      + card('Abandoned challenge', abandoned + ' student' + (abandoned !== 1 ? 's' : '') + ' · across 3 classes', '',
+        '<b>What this looks like:</b> They pushed back, then took the answer anyway. <b>Calibrated Skepticism scores this as good</b> — it counts the pushback and never looks at what followed, which is why this needs its own detector.',
+        'These students already know how to challenge. The gap is following through, which is a smaller ask than starting from nothing.',
+        'View the ' + abandoned + ' students →')
+      + (missing ? card('Missing checkpoints', missing + ' student' + (missing !== 1 ? 's' : '') + ' with overdue drafts', 'attn',
+        '<b>What this looks like:</b> Drafts past their due date — a logistics fact, not a behavioral pattern, kept separate from the signals above.',
+        null,
+        'View missing work →') : '')
+      + '<p class="lab-note" style="margin:var(--tau-s2) 0 0">'
+      + '<b>Placeholder — but no longer for the reason this note used to give.</b> Three of the four '
+      + 'cards that render here today — Passive engagement, Low critical evaluation, AI-originated '
+      + 'ideas — are dimension thresholds with prose names, and lose their detectors entirely under '
+      + 'the band scale. That part stands. What was wrong was the claim that the replacements '
+      + '<b>do not exist in code</b>: <code>detectPatterns</code> had already shipped — thirteen '
+      + 'detectors, running client-side on the student report and never stored, so no teacher surface '
+      + 'could see them. As of 2026-08-14 it is server-side (<code>patterns-core.js</code>) and stored '
+      + 'on every analysis doc. What is missing now is the payload and this aggregation, not detection. '
+      + '<b>Two cards this lab still needs and does not mock:</b> a high-agency card (six of the '
+      + 'thirteen name a competence — "7 students held their ground when the AI corrected them" — and '
+      + 'this section has no treatment for one), and an interaction-moment card (four detectors with '
+      + 'no threshold, so they need no calibration before a teacher sees them).</p>';
+
+    // 3. Students by level.
+    var meta = renderComp(document.getElementById('levelComp'), levels, levelsOff);
+    document.getElementById('levelSummary').textContent = n + ' students · 3 classes';
+    // Bold claim, then the counts that carry it — the same two-part shape as
+    // the dimension lede, so the two sections read as one pattern.
+    if (meta.tie) {
+      document.getElementById('levelHeadline').textContent = 'This group is split.';
+      document.getElementById('levelGloss').textContent =
+        'No level holds a plurality, so there is no "most" to report — and an average of the two would describe nobody in the room.';
+    } else {
+      document.getElementById('levelHeadline').textContent =
+        'Most of your students are at ' + LEVELS[meta.modal] + '.';
+      document.getElementById('levelGloss').textContent =
+        meta.max + ' of ' + meta.total + ' across your classes. ' + LEVEL_GLOSS[meta.modal];
+    }
+
+    // 4. Dimension bands. Fixed PQ/SU/CS/OC order, every row always, the
+    // off-scale cell present even at zero.
+    var rows = typeof SHAPE.dims === 'function'
+      ? SHAPE.dims(n)
+      : SHAPE.dims.map(function (d) { return scaleRow(d.bands, d.off, n); });
+    var geom = barGeometry(rows, n);
+    // One computation feeds both the headline and the row flag, so they
+    // cannot contradict each other. floorIdx is null when no dimension is
+    // meaningfully lowest — and then no row is badged.
+    var finding = bandsFinding(rows, n);
+    var floorIdx = finding.floorIdx;
+
+    // Conclusion first, evidence after — the 2026-07-31 call for the
+    // coaching note, applied here for the same reason: three of the four
+    // rows usually look alike, and making a teacher compare four bars to
+    // find the one that differs is work the page can do for them.
+    //
+    // Every row counts the same n students, so the rows are four partitions
+    // of one cohort. Said out loud because the alternative reading — four
+    // unrelated tallies that happen to sit together — is the one that makes
+    // a reader add across rows.
+    var dimHtml = '<div class="viz-lede">' + finding.html + '</div>'
+      + '<div class="dim-panel">';
+
+    rows.forEach(function (r, i) {
+      var bands = r.bands, off = r.off;
+      dimHtml += '<details class="dim-row' + (i === floorIdx ? ' is-floor' : '') + '"'
+        + (i === floorIdx ? ' open' : '') + '>'
+        + '<summary class="dim-summary">'
+        // No per-row "N not enough evidence" here. The swatch repeated the
+        // legend below on every row, and the words repeated it four times —
+        // the hatched tail of the bar already shows the state, proportionally
+        // and with a tooltip, and the legend under the panel is what names it.
+        + '<div class="viz-row-head">'
+        +   '<span class="dim-row-name">' + DIMS[i] + '</span>'
+        +   '<span class="dim-row-go">&#9662;</span></div>'
+        + dbarMarkup(bands, off, geom, DIMS[i])
+        + '</summary>'
+        + '<div class="dim-row-detail">'
+        + '<p class="dim-what">' + DIM_WHAT[i] + '</p>'
+        + '<p class="pattern-body">' + dimNote(bands, off, n) + '</p>'
+        // The full count line is GONE (2026-08-14). Its first sentence
+        // restated numerals the marks already carry, and its second restated
+        // the lede's aggregate — two duplications stacked in the one block a
+        // reader opens expecting something new. What it was also quietly
+        // covering is noted where that gap now lives, not patched here.
+        // Blue, tool's voice, discountable — and on every row rather than
+        // two, since the advice is a property of the dimension, not of this
+        // week's distribution.
+        + '<div class="pattern-try"><b>Worth raising:</b> ' + DIM_TRY[i] + '</div>'
+        + '</div></details>';
+    });
+
+    // The scale strip sits BELOW the panel — moved 2026-08-14. It was above,
+    // on the Gestalt argument that a reader meets the first bar with nothing
+    // to decode it by. What changed is that the bars now carry their counts
+    // inline at every shape (the full-width rebuild), so the marks are
+    // readable before the key is; and this is a surface a teacher returns to
+    // weekly, where a decoder read once is footer material rather than a
+    // preamble. Still in the bar's own order — 1 2 | 3 4, then off-scale —
+    // so position, not colour, carries which band is which.
+    dimHtml += '</div>'
+      + '<div class="dbar-key" style="margin-top:11px">'
+      + [1, 2].map(keyItem).join('')
+      + '<span class="dbar-key-seam" aria-hidden="true"></span>'
+      + [3, 4].map(keyItem).join('')
+      // The caveat lives HERE now, on the term it defines — a reader who
+      // wonders what this is, or why the per-row counts differ from the
+      // tile, clicks the words themselves rather than hunting a dot in the
+      // section head. It stopped being a guard against a visible
+      // contradiction when the per-row counts left the collapsed rows, and
+      // a definition is decoder content.
+      + '<button type="button" class="dbar-key-item off tip-trigger" aria-expanded="false"'
+      +   ' data-tip="<b>Not enough evidence</b><br>The session was too thin to read this dimension'
+      +   ' — different from band 1, where the session was readable and the behaviour was absent.'
+      +   '<br><br>It is counted <b>per dimension</b>: one session can show Prompting Quality clearly'
+      +   ' and give Calibrated Skepticism nothing. That is why these counts differ from the '
+      + notEnough + ' on the tile above, which counts students unreadable on at least one.">'
+      +   '<i></i><span>not enough evidence</span></button>'
+      + '</div>';
+    document.getElementById('dims').innerHTML = dimHtml;
+    document.getElementById('dimSummary').textContent = n + ' students';
+    fitLabels(document.getElementById('dims'));
+
+    // 5. Classes at a glance. Rows, not cards — these navigate, they don't
+    // expand. The one change the scale forces: the old "Avg. below your
+    // other classes" pill was a mean comparison and is gone. A modal claim
+    // replaces it, which says more anyway — "most at Substitution" names a
+    // room, "below average" only names a rank.
+    // The layout now ASSERTS that the class rows decompose the Worth-a-chat
+    // tile — they sit on one line for that reason. So the fixture has to
+    // hold it at every roster size, rather than holding it at 24 and
+    // rounding apart elsewhere. Warned rather than silently corrected: if
+    // this ever fires, the two halves of that row are contradicting each
+    // other on screen and the fixture is what needs fixing.
+    var classReviews = SHAPE.classes.map(function (c) { return Math.round(c.review * k); });
+    if (classReviews.reduce(function (a, b) { return a + b; }, 0) !== review) {
+      console.warn('classes: per-class worth-a-chat does not sum to the tile');
+    }
+    document.getElementById('classes').innerHTML = SHAPE.classes.map(function (c, ci) {
+      var r = classReviews[ci];
+      var pill = r
+        ? '<span class="chip chip-caution signal-pill-review">' + r + ' worth a chat</span>'
+        : '<span class="chip chip-positive">✓ On track</span>';
+      return '<div class="class-row">'
+        + '<span class="class-row-name">' + c.name + '</span>'
+        + '<span class="chip chip-grey">Most at ' + LEVELS[c.modal] + '</span>'
+        + pill
+        + '<span class="class-row-go">→</span></div>';
+    }).join('');
+  }
+
+  function card(title, where, whereClass, body, tryText, link) {
+    return '<details class="pattern-card"><summary class="finding-summary"><span class="f-body">'
+      + '<span class="pattern-title">' + title + '</span>'
+      + '<span class="f-where ' + whereClass + '"><span class="num">' + where.split(' ')[0] + '</span>'
+      + where.slice(where.indexOf(' ')) + '</span>'
+      + '</span></summary><div class="f-detail">'
+      + '<p class="pattern-body">' + body + '</p>'
+      + (tryText ? '<div class="pattern-try"><b>What to try:</b> ' + tryText + '</div>' : '')
+      + '<span class="pattern-link">' + link + '</span>'
+      + '</div></details>';
+  }
+
+  // ── Switchers: roster size and distribution shape ───────────────────────
+  (function () {
+    var cur = { n: 24, shape: 'typical' };
+
+    function set(next) {
+      Object.assign(cur, next);
+      SHAPE.dims = SHAPES[cur.shape];
+      render(cur.n);
+      location.hash = cur.n + '-' + cur.shape;
+      [['data-n', String(cur.n)], ['data-shape', cur.shape]].forEach(function (p) {
+        document.querySelectorAll('.lab-bar [' + p[0] + ']').forEach(function (b) {
+          var on = b.getAttribute(p[0]) === p[1];
+          b.classList.toggle('btn-primary', on);
+          b.classList.toggle('btn-quiet', !on);
+        });
+      });
+    }
+
+    document.querySelectorAll('.lab-bar [data-n]').forEach(function (b) {
+      b.addEventListener('click', function () { set({ n: Number(b.dataset.n) }); });
+    });
+    document.querySelectorAll('.lab-bar [data-shape]').forEach(function (b) {
+      b.addEventListener('click', function () { set({ shape: b.dataset.shape }); });
+    });
+
+    var parts = (location.hash || '').replace('#', '').split('-');
+    initTips();
+    set({
+      n: [8, 24, 90].indexOf(Number(parts[0])) >= 0 ? Number(parts[0]) : 24,
+      shape: SHAPES[parts[1]] ? parts[1] : 'typical'
+    });
+
+    // One row open at a time. The point of the single panel is that the
+    // section has a predictable size; four rows each able to open
+    // independently gives it back four different heights. Bound once to the
+    // container, which survives render()'s innerHTML replacement — `toggle`
+    // does not bubble, hence the capture phase.
+    document.getElementById('dims').addEventListener('toggle', function (e) {
+      if (!e.target.open || !e.target.classList.contains('dim-row')) return;
+      e.target.parentNode.querySelectorAll('.dim-row[open]').forEach(function (d) {
+        if (d !== e.target) d.open = false;
+      });
+    }, true);
+
+    // Numeral fit is a fact about the rendered layout, so it is re-measured
+    // whenever the layout changes — not computed once from a constant.
+    if (window.ResizeObserver) {
+      new ResizeObserver(function () { fitLabels(document.getElementById('dims')); })
+        .observe(document.getElementById('dims'));
+    }
+  })();
+</script>
+
+</body>
+</html>

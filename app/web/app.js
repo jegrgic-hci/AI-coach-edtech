@@ -154,10 +154,10 @@ const DIMENSION_WINS = {
 // already gets the idea and just needs a reminder). This teaches the move
 // itself, with a concrete next step — not what went wrong on any one draft.
 const DIMENSION_EDUCATION = {
-  PQ: "A challenge question pushes back on something specific — \"Why does this argument assume X?\" — instead of just asking for more. Next session, pick one thing the coach says and ask why it's true, not what else you can add.",
-  SU: "Getting an answer isn't the finish line, it's the start of the next move. When the coach hands you something, restate it in your own words, test it against your own argument, or ask a follow-up before you use it — carrying it forward as-is is the pattern this dimension is catching.",
-  CS: "Disagreeing with the coach isn't a risk, it's the point. If something doesn't sit right, say so directly: \"I don't think that's right because...\" or \"Can you give me something different?\" The coach can only revise what you push back on.",
-  OC: "This dimension checks where the essay's ideas actually came from. Before you write a paragraph, work out what you think first — then use the coach to test or sharpen it, not to generate it. An idea you had before the session started counts as yours even if the coach agreed with it.",
+  PQ: "A challenge question pushes back on something specific — \"Why does this argument assume X?\" — instead of just asking for more. Next session, pick one thing the AI says and ask why it's true, not what else you can add.",
+  SU: "Getting an answer isn't the finish line, it's the start of the next move. When the AI hands you something, restate it in your own words, test it against your own argument, or ask a follow-up before you use it — carrying it forward as-is is the pattern this dimension is catching.",
+  CS: "Disagreeing with the AI isn't a risk, it's the point. If something doesn't sit right, say so directly: \"I don't think that's right because...\" or \"Can you give me something different?\" The AI can only revise what you push back on.",
+  OC: "This dimension checks where the essay's ideas actually came from. Before you write a paragraph, work out what you think first — then use the AI to test or sharpen it, not to generate it. An idea you had before the session started counts as yours even if the AI agreed with it.",
 };
 
 // Below this, on average, a dimension counts as "consistently low" rather
@@ -181,7 +181,7 @@ function recentAverage(scored, key) {
 // educational (floor): stayed low across recent drafts and isn't currently
 //   climbing — needs to learn the move, not just be reminded of it.
 // helpful: default — a tip on this dimension.
-// Never assumes every draft involved the coach; that's its own signal in the
+// Never assumes every draft involved the AI; that's its own signal in the
 // numbers, not something the copy needs to presuppose.
 function dimensionTier(key, tau, priorAvg, scored) {
   if (!priorAvg) return DIMENSION_EXPLAIN[key];
@@ -452,7 +452,7 @@ function renderRail(home) {
   if (!scored.length) {
     $('railSub').textContent = 'No drafts submitted yet';
     host.append(el('p', 'rail-empty',
-      `Submit your first draft, ${first}, and this is where you'll see how you're working with the coach.`));
+      `Submit your first draft, ${first}, and this is where you'll see how you're working with the AI.`));
     return;
   }
 
@@ -670,16 +670,15 @@ async function openAssignment(id) {
   wsPrompt.innerHTML = '';
   wsPrompt.append(assignmentBriefBody(data.assignment));
 
-  const mode = $('coachMode');
-  mode.innerHTML = '';
-  if (data.session) {
-    mode.append(el('strong', null, data.modeLead || 'The coach is helping with this draft.'));
-    mode.append(document.createTextNode(' ' + (data.modeNote || '')));
-  } else {
-    mode.append(el('strong', null, 'All drafts submitted.'));
-    mode.append(document.createTextNode(' These sessions stay readable, but you can\'t add to them.'));
+  // Only state left worth a banner now that coaching levels are gone: an
+  // active draft needs no announcement, a used-up budget does.
+  const banner = $('draftsDoneBanner');
+  banner.innerHTML = '';
+  if (!data.session) {
+    banner.append(el('strong', null, 'All drafts submitted.'));
+    banner.append(document.createTextNode(' These sessions stay readable, but you can\'t add to them.'));
   }
-  mode.classList.remove('hidden');
+  banner.classList.toggle('hidden', !!data.session);
   $('btnSubmit').disabled = !data.session;
 
   logEvent('episode-resume');
@@ -805,9 +804,9 @@ function renderConversation() {
   const locked = hasConv && state.conv.locked;
   $('composer').classList.toggle('hidden', !hasConv || locked);
   renderReadingBanner(locked);
-  // The mode banner describes the current draft's coaching level — showing it
-  // while reading an archived draft would misattribute it to that draft.
-  $('coachMode').classList.toggle('hidden', locked);
+  // Hidden while reading an archived draft: "all drafts submitted" is about
+  // the assignment as a whole, not the draft being read.
+  if (locked) $('draftsDoneBanner').classList.add('hidden');
 
   const box = $('messages');
   box.innerHTML = '';
@@ -842,12 +841,14 @@ function makeEmptyState() {
   const div = document.createElement('div');
   div.className = 'empty-state';
   div.id = 'emptyState';
-  div.innerHTML = `<p>Start a session with your writing coach.</p>
-    <p class="empty-sub">The coach knows your assignment prompt — but not your other sessions. Catch it up on anything it needs to know.</p>`;
+  div.innerHTML = `<p>Start a new chat.</p>
+    <p class="empty-sub">The AI starts with nothing — not your assignment, not your other chats. Tell it whatever it needs to know.</p>`;
   return div;
 }
 
-const SPEAKER = { student: 'You', coach: 'Coach', auditor: 'Auditor · on request' };
+// 'coach' is the stored turn role and stays as-is in the data; the label the
+// student reads is just "AI" now that there is no coaching persona.
+const SPEAKER = { student: 'You', coach: 'AI', auditor: 'Auditor · on request' };
 
 // Wrapper + label + bubble. The label is what lets the auditor be a read-out
 // rather than a third chat partner, so it is structural, not decoration.
@@ -1066,7 +1067,7 @@ $('btnRename').onclick = async () => {
 
 $('btnNewSession').onclick = startNewSession;
 
-// Copy from a coach/auditor message = observed extraction.
+// Copy from an AI/auditor message = observed extraction.
 document.addEventListener('copy', () => {
   const sel = document.getSelection();
   if (!sel || sel.isCollapsed) return;

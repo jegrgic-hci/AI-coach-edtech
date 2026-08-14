@@ -410,49 +410,46 @@ and they will ask what drove it.
 
 **No free-floating chat — sessions exist only inside assignments** (primary off-task mitigation).
 
-1. Teacher creates assignment: prompt, due date, **draft budget** (e.g. 3 before final), **coaching level per submission slot**. Prompt seeds coach context + off-task baseline embedding
+1. Teacher creates assignment: prompt, due date, **draft budget** (e.g. 3 before final), per-draft due dates. The prompt is shown to the student; since 2026-08-14 it is *not* given to the chat (see *Coach: Scaffolding Fade — REMOVED*)
 2. Student signs in (school Google SSO) → assignment list with status
-3. Student opens assignment → chats with the coach
+3. Student opens assignment → chats with the AI
 4. **Submission is a hard marker that ends the session.** Assignment = discrete revision cycles: Session 1 → draft 1 (locks) → offline feedback/reflection → Session 2 → draft 2 → … → final. Confirmation friction on submit ("ends your session, uses 1 of 3 drafts")
 5. Essay lives in Google Docs; student pastes current draft at each submission. Submission = (all of the cycle's conversations, essay draft N) → analysis → teacher dashboard + student agency snapshot
 
 **Conversations (mimic real generative AI):**
 - ChatGPT-style sidebar; **unlimited conversations per cycle**; submission locks and bundles ALL of them (no selective evidence)
 - Submitted conversations stay readable (revisit, copy quotes) but input-locked
-- **Blank-context coach** — new conversation knows only the assignment prompt. Student has full recall, coach has none → continuity is a student act (re-read, curate, re-articulate). Protects turn-order provenance
+- **Blank-context chat** — a new conversation knows nothing at all: not the assignment, not the other conversations (as of 2026-08-14 it is not even given the assignment brief). Student has full recall, the AI has none → continuity is a student act (re-read, curate, re-articulate), and briefing the AI is itself a measurable move. Protects turn-order provenance
 - Save & close button for the student's sense of control; auto-persist underneath; save/resume boundaries recorded as **work episodes** (temporal signal)
 - Three deliberate departures from real gen AI, all absences: no cross-chat memory, no delete (rename ok), no free-floating chat
 - Deferred (cost/scope, not measurability): web search, file upload, voice, canvas/in-tool editor
 
 **Three feedback routes for a draft:**
-1. *Writing feedback* — paste draft into a coach conversation (free; coach responds at current coaching level; **feedback, never rewriting**)
-2. *Agency feedback* — **Evaluate button**: on-demand rough auditor read of the current conversation. Two voices: coach converses; auditor speaks only when summoned, visually distinct. Evaluate exchanges = meta-turns excluded from TAU; Evaluate *events* logged as metacognitive signal. Available at every coaching level
+1. *Writing feedback* — paste draft into a conversation (free; the AI responds as any assistant would — since 2026-08-14 it will rewrite if asked, and that choice is a signal the analysis reads rather than a rule the tool enforces)
+2. *Agency feedback* — **Evaluate button**: on-demand rough auditor read of the current conversation. Two voices: the AI converses; the auditor speaks only when summoned, visually distinct. Evaluate exchanges = meta-turns excluded from TAU; Evaluate *events* logged as metacognitive signal
 3. *Formal review* — draft submission (spends a slot, ends session, full analysis)
 
 **Post-submission report (REVISED 2026-07-16 — full disclosure at the draft marker):**
 - Full TAU: all four dimension scores + total + SAMR level, with the divergence chart — the score is part of the learning, not a hidden teacher metric
-- Plus the narrative snapshot: 2–3 observed strengths quoted from their conversation; 1–2 growth moves; bridge to next cycle's coaching level (primes the blank-session first turn)
+- Plus the narrative snapshot: 2–3 observed strengths quoted from their conversation; 1–2 growth moves; bridge to the next cycle (primes the blank-session first turn)
 - Still never shown to students: integrity flags (teacher-only conversation-starters)
 - Timing: at the draft marker only, **never live during a session** (live meters induce performative behavior and break mimicry) — this boundary is what the original "no numbers" decision was actually protecting
 - One Flash-Lite call (~1¢) for the narrative; teacher sees the same report → shared artifact
 
 ---
 
-## Coach: Scaffolding Fade
+## Coach: Scaffolding Fade — **REMOVED 2026-08-14**
 
-Teacher configures a coaching level per submission slot (gradual release of responsibility). One session = one persona; no mid-conversation shifts.
+**The coach is gone. The chat is an ordinary Gen AI chat: no system prompt, no persona, no coaching level, no assignment context.** Coaching interfered too much with natural use — the thing the tool measures is how a student works with the AI they will actually meet, and a chaperoned assistant that refuses to draft is not that AI. Measuring behaviour against a modified assistant measures the modification.
 
-| Level | Does | Won't |
-|---|---|---|
-| **Full coach** | Brainstorms, explains, examples, challenges reasoning | Write the essay |
-| **Questions only** | Probing questions + feedback on student's claims | Introduce new content |
-| **Sounding board** | Clarifying questions only | Everything else |
+What this removed, in code: the three personas and their shared "never write the essay" rules (`server/coach.js`, now only the auditor prompt + a plain history builder), `coachingLevels` on assignments (creation, edit, validation, the per-draft picker in `dashboard.html`), `coachingLevel` on sessions and analyses, the mode banner in the workspace, and the snapshot's "next cycle will be in X mode" bridge. The `coach` turn role stays as the stored value — it is the AI side of the transcript, and renaming it would rewrite history for no gain. Students now read that side as **AI**.
 
-Default fade: full → full → questions → sounding board; teacher overrides per slot (flat profiles allowed). UI labels the mode ("Coach is in review mode") so the fade reads as pedagogy, not malfunction.
+What survives: the **auditor** (Evaluate), unchanged and still the only prompt that sees the assignment brief; the draft budget and per-draft due dates; every event type; the whole analysis pipeline.
 
 Measurement consequences:
-- **Coaching level stored with every session** — every analysis is "TAU at level X"
-- Trajectory = "does thinking quality hold as the scaffold withdraws" — the real measure of agency
+- **The "TAU at level X" qualifier is gone.** Every analysis is now TAU against the same unmodified assistant, which makes drafts comparable in a way they were not before — see `tau-dimensions.md`'s known-limitation note on coaching level, which this change resolves by deletion rather than by modelling.
+- The trajectory no longer reads as "does thinking hold as the scaffold withdraws" — there is no scaffold. It reads as growth against a constant, which is a weaker pedagogical story and a cleaner measurement one.
+- **Open question, not yet decided:** the fade was the mechanism for building independence. Nothing replaces it. If independence is still a goal, it has to come from assignment design or the report, not from crippling the assistant.
 - **We measure the ask, not just the answer** — extraction attempts against a refusing coach stay classified and visible
 
 ---
@@ -550,13 +547,33 @@ The correct rule set is `allow read, write: if false;`. Browsers never touch Fir
 >
 > Students already use generative AI invisibly, on personal accounts. This tool gives them a school-controlled AI chat that looks and feels like ChatGPT — then measures *how* they used it and turns that into feedback for the student and insight for the teacher. It does not grade essays; the essay stays the teacher's domain. It assesses the process: agency, skepticism, and original thinking while working with AI.
 >
-> Students sign in with school Google accounts, work on assignments through the built-in chat, submit drafts as deliberate milestones, and receive plain-language feedback on how they worked. AI coaching deliberately fades across drafts — full support early, minimal by the final — so independence is built, not hoped for. Teachers set the coaching levels, see the class at a glance, and get quoted moments from real conversations to anchor feedback — never accusations. Integrity signals are teacher-only conversation-starters; the tool is not a cheating detector and doesn't claim to be.
+> Students sign in with school Google accounts, work on assignments through the built-in chat, submit drafts as deliberate milestones, and receive plain-language feedback on how they worked. The chat is an ordinary AI assistant — nothing is withheld and nothing is coached, because the point is to measure how students work with the AI they will actually meet. Teachers set the draft schedule, see the class at a glance, and get quoted moments from real conversations to anchor feedback — never accusations. Integrity signals are teacher-only conversation-starters; the tool is not a cheating detector and doesn't claim to be.
 >
 > All data stays in the school's Google Cloud environment under a single data-processing agreement; student data is never used to train AI. Cost is negligible: under $50 per classroom per semester. Pilot: one class, one semester, five assignments.
 
 ---
 
 ## Session Log
+
+- **2026-08-14 — Coaching removed: the chat is now a plain Gen AI chat.**
+  The coach interfered too much with natural use. The three personas (full / questions-only /
+  sounding-board) and their shared hard rules — never draft, never rewrite, stay on-task — meant
+  every measurement was taken against a modified assistant, not the one students actually use.
+  `server/coach.js` is now the auditor prompt plus a history builder: **the chat sends no system
+  prompt at all**, and is not even given the assignment brief. Students brief it themselves, which
+  is a move the analysis can read. Removed with it: `coachingLevels` on assignments (creation,
+  edit, server validation, and the per-draft `<select>` column in `dashboard.html` — the per-draft
+  due-date rows stay, and `.level-selects` is now `.draft-slot-rows`), `coachingLevel` on sessions
+  and analyses, the workspace mode banner (kept only for its "all drafts submitted" state), the
+  snapshot's "next cycle will be in X mode" bridge, and the fade line on teacher assignment cards.
+  Kept: the auditor and its Evaluate button, unchanged — it only speaks when summoned, so it never
+  shaped ordinary use, and it is now the only prompt that sees the assignment. The stored turn role
+  is still `coach`; students read that side as **AI**, and the classifier prompt says AI too.
+  Verified end to end against the demo seed: a student asking "just give me the paragraph" now gets
+  the paragraph, the auditor still returns a process read, and assignment create/edit/delete
+  round-trip without the field. Legacy assignment docs keep a dead `coachingLevels` array; nothing
+  reads it. **Open: nothing replaces the fade as the mechanism for building independence** — if
+  that is still a goal it has to come from assignment design or the report.
 
 - **2026-08-10 — The landing rule moved to the server: an account now starts on its own page.**
   Signing in as the platform admin landed on the teacher dashboard. The mapping itself was never

@@ -46,10 +46,22 @@ not licence to improvise — say so and ask, don't invent.**
   the viewer chose via the toggle, never inherited from the OS.
 - **NEVER** add a sparkline, trend line, or mini line-chart as decoration. A trend value defaults
   to plain text ("+2 since draft 2") unless a chart there was explicitly requested.
-- Scores display as **1–5 per dimension, 4–20 total. Never a percentage.**
+- Scores display as **1–4 per dimension, or "not enough here". No total, ever. Never a percentage.**
+  A class-level figure is a **distribution** (how many students in each band), **never a mean** —
+  bands are ordinal. **Amended 2026-08-12** (was "1–5 per dimension, 4–20 total"); see
+  `tau-dimensions.md` *The scoring scale* for the scale and `teacher-dashboard-design.md`
+  *The unit of every aggregate* for the teacher surfaces.
+- **"Not enough here" is not band 0** — it never shares a cell, a ramp position or a count with
+  band 1, and it is never hidden or collapsed. Band 1 means the behaviour is absent; "not enough
+  here" means the session was too thin to judge.
 - Dimension names are fixed: **Prompting Quality, Selective Use, Calibrated Skepticism, Original
   Contribution.** No synonyms, no rewording per surface.
-- **SAMR is a subtitle, never the primary label.**
+- **SAMR leads.** The level is the primary label on the report and on every aggregate surface, and
+  it is **named, never numbered** — numbering the rungs makes Augmentation read as a failing grade.
+  **A deliberate reversal, 2026-08-12, recorded so it isn't read as drift:** this constraint said
+  *"SAMR is a subtitle, never the primary label"* from when SAMR was arithmetic off a total it
+  didn't deserve. It is now a reading in its own right. Wherever the ladder appears it states that
+  these levels describe **agency**, not task transformation as Puentedura published them.
 - **Semantic colour (positive/caution/attention) never touches a student's own score.** A level is
   a position on a path, not a verdict.
 - Forest has exactly **six jobs** (interactive text, primary fills, meter fills, system-message
@@ -62,6 +74,13 @@ not licence to improvise — say so and ask, don't invent.**
   an actual tier-worthy fact, that instance takes the matching tier colour instead — tool-info
   never sits underneath a red or amber finding pretending to be neutral.
 - **Colour is never the only channel** — pair with shape, weight, dash, or text.
+- **A chart's finding is never behind a tooltip.** Only the *decoder* (what a mark means in general,
+  no cohort numbers) may move there, on a focusable 44px control answering to hover/focus/click — and
+  a caveat may move only if the visual already prevents the misreading it guards. See *Chart
+  descriptors* below.
+- **Two charts on one screen that partition the same population share one track scale** — same
+  lead/gutter/track/tail grid — so an equal length means an equal count. Either make it true or don't
+  place them side by side; a comparison that looks available and is wrong is worse than none.
 - SAMR band foregrounds step down in lightness 1→4 — **never reorder.**
 - **Alert-tier colour (attention/caution) on a chip must match what the label text itself states.**
   Never carry an alert through colour alone on a descriptive/positional/taxonomic label.
@@ -251,6 +270,71 @@ Settled. Don't relitigate without a reason that's changed.
 ---
 
 ## Rules that constrain design choices
+
+### Chart descriptors: the decoder goes in the tooltip, the finding stays on the page — added 2026-08-14
+
+**Why this rule exists.** Explanatory prose around a visualisation accumulates: the dashboard's
+dimension section reached a templated finding, a three-line explainer, a legend and a per-row note
+before anyone asked whether all of it had to be visible at once. The obvious fix — "put the
+descriptions in tooltips" — is also the obvious way to hide a finding behind a hover, which is why
+the rule is a boundary rather than a permission.
+
+**Sort every sentence attached to a chart into one of three tiers. The tier decides where it lives.**
+
+| Tier | What it is | Where it goes |
+|---|---|---|
+| **The finding** | What this chart says about *this* cohort, *right now*. Contains numbers that change per render. | **On the page. Never behind an affordance.** It is the reason the section exists. |
+| **The decoder** | What a mark means *in general* — what band 1 is, what the hatch is, what the tick divides. Identical on every render; contains no cohort numbers. | **Eligible for the tooltip.** |
+| **The caveat** | A guard against a specific misreading — an invariant, or why two numbers on screen legitimately disagree. | **The test below.** |
+
+**The test for a caveat.** A caveat may move into the tooltip **only if the visual itself already
+prevents the misreading it guards against.** If the chart shows it, the sentence is confirming
+something visible and can move. If the chart doesn't, the sentence is the only thing standing between
+the reader and a wrong conclusion, and it stays.
+
+**The finding/decoder line is fuzzier than this table makes it look — added 2026-08-14, after the
+rule was applied too literally on its first use.** A *templated synthesis* sentence — "Calibrated
+Skepticism is the floor. 64 of 90 students are at band 1 or 2" — is simultaneously a computed fact
+and the tool addressing the reader in its own words, and reasonable people will place it on either
+side. What the table is actually protecting is narrower than "no synthesis in blue": it is that
+**`--tau-tool-info` marks content a teacher may discount**, so anything a teacher must *not* discount
+cannot wear it. Where a block is genuinely both, the resolution used on the dashboard is to take the
+recommendation's *structure* (the 3px left rule, same offset and measure) without its hue — the shape
+says the tool is addressing you, the absence of hue says this part is measured. Treat the tiers as a
+default with a stated reason, not a boundary to enforce against a designer's judgement.
+
+Worked both ways, from the dimension bands:
+
+- *"Every row counts all n students, which is why every bar is the same length."* → **moves.** Once
+  the bars are literally equal length, the reader can see it.
+- *"Not enough here is per dimension, so these differ from the count on the tile above."* → **stays.**
+  Two numbers on screen disagree, the chart does not explain why, and a reader who doesn't know
+  concludes one of them is broken.
+- *"These levels describe agency, not task transformation as SAMR published it."* → **stays**, and is
+  not eligible under any reading: `tau-dimensions.md` requires the departure stated wherever the
+  ladder appears, "one line of copy, not a footnote to hunt for."
+
+**A legend is a decoder but is normally NOT eligible**, because moving it makes colour the only
+channel on the page for what a mark means. It may move only where a non-colour channel already
+carries mark identity on its own — e.g. a key laid out in the same left-to-right order as the marks,
+where position is doing the work.
+
+**Mechanism — the tooltip must be all of these, or the content stays on the page:**
+
+- Hung on a **persistent, focusable control** (`.info-dot` in the section head), never on the marks
+  themselves and never on hover alone. A hover-only decoder does not exist for touch or keyboard.
+- Answers to **hover, focus and click**, dismissible with `Escape`, and pinned once clicked so it can
+  be read rather than chased.
+- Meets `--tau-target` (44px). The dot may be small; its hit area may not.
+- **Never the only place a number appears.** Numbers live in the finding, the evidence block, or the
+  mark's own accessible description.
+- **Placed on the thing it explains, not collected in one place.** One general "how to read this"
+  belongs on the section head; a definition of a *specific term* belongs on that term — a legend item
+  can be its own trigger (dotted underline, same hover/focus/click contract), so a reader clicks the
+  words they don't recognise rather than hunting for a dot. *(Amended 2026-08-14: this line
+  originally read "one per visualisation, if a chart needs two the chart needs simplifying." That was
+  wrong — it counted affordances instead of asking whether each one sits where the question is asked.
+  Two well-placed triggers beat one that everything is dumped into.)*
 
 ### Colour hierarchy — added 2026-07-29
 Four tiers, never mixed. Everything below is a name for a hierarchy the token
@@ -1095,6 +1179,30 @@ is the one exception and only because meter fills are already on forest's list.
 | `--tau-ease-standard`, `--tau-ease-decelerate`, `--tau-ease-accelerate` | No easing was ever declared explicitly (bare `ease` or nothing); these are M3's `standard` and `emphasized-decelerate`/`-accelerate` curves, giving symmetric and directional motion one deliberate curve each instead of the browser default. |
 
 ## Session log
+
+**2026-08-12 — two Hard Constraints amended for the band/level scale**
+
+No components, no CSS. Both amendments were named as blockers in `tau-dimensions.md`'s
+*What this requires of designsystem.md* and are recorded here so neither reads as drift later.
+
+- **The score constraint** — was *"1–5 per dimension, 4–20 total. Never a percentage."* Wrong in
+  both halves: the scale is 1–4 or "not enough here", and there is no total, because the four
+  dimensions are measured in four different units and are never summed. Added the ordinal
+  consequence in the same line, since it is the mistake most likely to be made downstream: **a
+  class-level figure is a distribution, never a mean.** A second bullet keeps "not enough here" off
+  the ramp — it is not band 0, and it is never hidden.
+- **The SAMR constraint** — was *"SAMR is a subtitle, never the primary label."* **Reversed.** It
+  was written when SAMR was arithmetic off a total it didn't deserve; the level is now read directly
+  and leads. Named, never numbered. The amended line also carries the requirement that the ladder
+  states its departure from Puentedura wherever it appears — these levels describe agency, not task
+  transformation — because that caveat is easy to drop and the reversal makes it load-bearing.
+
+The `--tau-band-1..4` ramp gains a third consumer (cohort distributions on the teacher dashboard)
+without changing: `.band-*`, `.samr-*`, and now the distribution strips are three treatments of one
+scale, not three scales. Teacher-surface specifics are in `teacher-dashboard-design.md`'s entry for
+the same day. **One open gap raised there and not solved:** quoted *student* transcript text has no
+voice treatment — violet is the teacher's words, blue is the tool's, and neither fits primary
+evidence. Flagged rather than improvised, per this file's own preamble.
 
 **2026-08-08 — object action menus, danger tier, inline form errors**
 

@@ -2,9 +2,90 @@
 
 ## Purpose
 
-A teacher-facing view of the Critical Thinking Auditor. Gives educators a structured way to monitor AI engagement across their classes, assignments, and individual students. Surfaces integrity flags without exposing them to students.
+A teacher-facing view of the Critical Thinking Auditor. Gives educators a structured way to see how
+their classes, assignments and individual students are working with AI. Surfaces integrity flags
+without exposing them to students.
 
-The guiding principle: **guide first, detail on demand.** Teachers have many students and limited time. The dashboard surfaces who needs attention and why in plain language — TAU scores and dimension breakdowns are available but never the primary display.
+The guiding principle: **guide first, detail on demand.** Teachers have many students and limited
+time. The dashboard surfaces who needs attention and why in plain language.
+
+**Rewritten 2026-08-12 for the band/level scoring model.** `tau-dimensions.md` settled that each
+dimension is **read as a band 1–4, or "not enough here"**, and that the overall is **a named level
+read directly** — no total, no average, no band derived from a count. Roughly a third of this page
+was arithmetic that has no inputs under that model. The principle above survives unchanged; what
+died is the arithmetic that had quietly become the primary display anyway (`12/20` on every roster
+row, "Averaging 2.1 of 5" on the fleet cards, a mean on every aggregate tile).
+
+**What the dashboard reports now: the composition of a room, and the evidence under each student.
+Never a rank.** Counts across the four levels and the four bands carry more than a mean ever did —
+*"most of this class improves what the AI hands them rather than directing it — 11 of 24 at
+Augmentation"* is a teaching decision; *"2.6"* is not.
+
+Three operations are prohibited on every surface in this file. Cite this line rather than
+re-arguing it locally:
+
+1. **No total.** The four dimensions are measured in four different units and are never summed.
+2. **No mean of a dimension, at any tier.** These are ordinal bands. A class figure is a
+   **distribution** — how many students in each band.
+3. **No band or level derived from a count.** Counts are displayed *beside* a band so a reader can
+   check it; they are never the input to one.
+
+**The headline rule that follows.** A class-level headline is a **modal claim with its
+denominator** — "11 of 24 at Augmentation" — never a central tendency. Where no band or level holds
+a plurality, the headline says the room is **split** and names the two groups. It never averages
+them into a middle that describes nobody. `split` replaces the old `skewed` flag (`cohort range
+≥ 2`), which was a spread measure on a continuous scale that no longer exists.
+
+---
+
+## The unit of every aggregate
+
+**Added 2026-08-12.** The one place this vocabulary is defined. No surface below re-derives it, and
+nothing on this page states a measurement in a unit that isn't in this table.
+
+| Thing | Unit | Rendering |
+|---|---|---|
+| A student, overall | One named level, never numbered | Level name |
+| A student, per dimension | Band 1–4, or "not enough here" | Band pill, count beside it |
+| A class/assignment, overall | Counts across the four levels | **Level composition strip** |
+| A class/assignment, per dimension | Counts across the four bands | **Band distribution row** |
+| Movement over time | Students who moved a band, up and down | A sentence carrying two counts |
+
+**The levels are never numbered.** Substitution / Augmentation / Modification / Redefinition, by
+name. Numbering the rungs makes Augmentation read as a failing grade, which is SAMR's documented
+failure mode and is not what the level says (`tau-dimensions.md`, *The overall*).
+
+### "Not enough here" sits outside the ladder, always
+
+It is **not band 0**. It never shares a cell, a colour-ramp position, or a count with band 1.
+Band 1 means *the behaviour is absent*; "not enough here" means *the session was too thin to judge*.
+Collapsing them converts "we could not see it" into "you did not do it" — a false finding with a
+number on it, and the specific error `tau-dimensions.md` created the non-score to prevent.
+
+They also route to different conversations, which is why they can never share a queue: band 1 is
+about the student's thinking, "not enough here" is about how much they used the tool.
+
+**It is never hidden and never collapsed.** A surface that shows the four band cells shows this one
+too, at zero, visibly. It is a real state of a real student, not an empty state — per the standing
+required-vs-hidden check in `.claude/skills/product-design-review`, a computed default is a starting
+point for review, not a reason to background something.
+
+### Colour
+
+The four levels and the four bands use the **existing `--tau-band-1..4` ramp**, stepping in
+lightness, never reordered — the same ramp `.band-*`/`.samr-*` already use, a third treatment of one
+scale rather than a second scale. "Not enough here" is visually detached from the ramp so it reads as
+off-scale rather than as its low end: `--tau-surface-2` ground, `--tau-ink-faint` text, an outline
+rather than a fill — the construction `.chip-grey` already uses (`components.css:668`).
+
+*(**There is no `--tau-grey` token.** *Visual Language* below names one for the "Not started" status
+chip; that reference is wrong and predates this section. `.chip-grey` is built from `--tau-surface-2`
++ `--tau-ink-soft` + a `--tau-line` border. Flagged here rather than silently propagated.)*
+
+**Semantic colour never touches any of it** — per `designsystem.md` Hard Constraints, *"semantic
+colour (positive/caution/attention) never touches a student's own score. A level is a position on a
+path, not a verdict."* This holds at class level too: a distribution sitting mostly in band 1 is
+rendered in the band ramp, and the *words* around it carry that it's a problem.
 
 ---
 
@@ -100,11 +181,47 @@ below); everything here is either a count, an aggregate, or a link into a filter
 assignments, total students. Clicking "Worth a chat" or "Missing work" opens Browse Students
 pre-filtered; the other tiles are informational only.
 
-**Section order (2026-08-04): tiles → Patterns worth noticing → Dimension trends →
-Classes at a glance.** Patterns moved above the teaching-landing section because it's the one most
-likely to need action today (per-student, time-sensitive); the teaching-landing section is a fleet-
-wide dimension rollup that rarely moves week to week, so it reads better as context underneath the
-thing worth acting on first, not competing with it for the top of the page.
+**Section order (2026-08-04, reaffirmed 2026-08-12): tiles → Patterns worth noticing → Students by
+level → Dimension bands → Classes at a glance.** Patterns stays above the dimension rollup because
+it's the one most likely to need action today (per-student, time-sensitive); the rollup rarely moves
+week to week, so it reads better as context underneath the thing worth acting on first, not
+competing with it for the top of the page.
+
+**Triage stays first — decided 2026-08-12, and it was a real fork.** The band/level model makes a
+strong case for leading with composition: Home would open on what the room is doing, and *"who needs
+a chat"* would demote to a filter, matching this file's own three-tier framework where the class tier
+asks *"do I need to teach differently?"* That was considered and turned down. A teacher opening this
+page on a Monday still needs today's list before this term's shape, and the composition strip is
+context for the queue rather than a replacement for it. Recorded as a decision, not an oversight —
+if Home later feels like it buries the teaching view, this is the paragraph to revisit.
+
+### Triage queue inputs — respec'd 2026-08-12
+
+**All five of the old Tier-2 conditions are gone**, because all five were arithmetic on averages
+(`avgTotal < 9`, three `avg* < 2.5` combinations, and a `last − first > 2` delta). Four replacements:
+
+| Input | Rule | Notes |
+|---|---|---|
+| **Band 1 on any dimension** | Absolute | "It didn't happen" — the behaviour is absent, not weak. The *number* of band-1 dimensions orders the queue |
+| **"Not enough here"** | Its own queue, its own copy | A thin-session problem, not a thinking problem. **Never counted with band 1** — see *The unit of every aggregate* |
+| **Integrity flags** | Unchanged | Four of the seven survive untouched; three need respec — see *Flag System* |
+| **Dropped a band across drafts** | An ordinal move, not a delta | The only survivor of the old `declining` signal |
+
+**The cohort-relative rule is retired — a reversal, recorded with its reason.** `patterns.md`'s
+*Level signals vs patterns* specifies bottom-decile scoring with an absolute floor underneath it, so
+triage volume stays bounded in a strong class. That was designed against a continuous score. On a
+four-value ordinal, a percentile is mostly ties and the absolute floor does all the work anyway —
+so **band 1 is the flag**, directly. The guardrail the decile rule existed to provide (don't flag a
+student doing fine just because someone has to be bottom) is inherent in an absolute band: a class
+where nobody is at band 1 correctly produces zero flags.
+
+**Volume is not capped, and that's deliberate.** In a weak class, "band 1 on any dimension" could be
+half the room. The tile states its denominator ("9 of 24") and the copy turns over past a
+proportion: at that point the finding is no longer a triage list, it *is* the room, and the card says
+so and points at *Students by level*. This is the direct answer to `patterns.md`'s objection that
+relative scoring makes a class-wide problem quieter the worse it gets. **The exact proportion where
+the wording turns over is unset** — it is a judgement about a real roster and there is no data to
+fix it on; leaving it unset is honest, guessing it is not.
 
 ### Patterns worth noticing
 
@@ -113,6 +230,41 @@ Passive AI engagement, Low critical evaluation, AI-originated ideas, Declining e
 a card only once **≥2 students** share it — a single student's pattern belongs in their own drill
 panel, not a class-wide card. Zero to four cards render depending on the day's data, never a fixed
 set.
+
+**Three of these four cards lose their detector entirely — 2026-08-12.** `patterns.md` already
+established that `low-skepticism` *is* `avgCS < 2.5`, `ai-ideas` *is* `avgOC < 2.5`, and `passive` is
+a co-decline of both: a naming layer, not a detection layer. When those thresholds go, the cards have
+nothing underneath them. `declining` survives, restated as the ordinal band move above.
+
+**So `detectPatterns` moves onto this page's critical path.** `patterns.md`'s *Pipeline* section
+(the six real detectors — sequence shapes read off `classified`, which is already stored on every
+analysis doc and needs no new LLM calls) was scoped as parallel work. It isn't: **this section is
+mostly empty until it ships.** Everything below about card anatomy, collapse behaviour, counts and
+colour is unaffected and carries straight over to the six — it's the detectors that change, not the
+card.
+
+**Corrected 2026-08-14 — "mostly empty until it ships" was wrong, and this page inherited the error.**
+`detectPatterns` had already shipped: **thirteen** detectors, not six, running client-side in
+`report-render.js` on every student report since before this section was written. They were invisible
+here because they ran in the browser at render time and were never stored — so the teacher surface saw
+nothing and the design docs concluded nothing existed. They are now server-side
+(`app/web/patterns-core.js` → `analysis.js`) and stored on the analysis doc.
+
+Three consequences for this page, all of them expansions:
+
+- **The section is not empty.** The blocker is the payload (`index.js:1968`) and this page's
+  aggregation, not detection. Everything about card anatomy, collapse and colour carries over
+  unchanged, as the paragraph above already anticipated.
+- **Some cards will name a competence, not a deficit.** Six of the thirteen are high-agency — Held
+  Ground, Questioned Assertion, Challenge Arc. Every pattern this page has ever rendered was a
+  deficit, and *Patterns worth noticing* was specced on that assumption. A card reading *"7 students
+  held their ground when the AI corrected them"* is a legitimate finding and this page currently has
+  no treatment for it. **It cannot borrow `--tau-positive`** — semantic colour never touches a score
+  or a level, and a high-agency pattern is the same class of object as a low-agency one. Open.
+- **Four detectors carry no threshold** (the interaction moments — Held Ground / Capitulation /
+  Questioned / Unquestioned Assertion, each a single AI turn paired with the student's reply). They
+  are the ones that can be surfaced without waiting on the calibration `patterns.md` is blocked on,
+  and are the right first cards for that reason alone.
 
 **Cards collapse — 2026-08-08.** Prompted by feedback that Home is "a lot of data." The volume was
 never the count of findings, it was the prose: the four `TREND_META` entries carry **343 words** of
@@ -181,10 +333,118 @@ box** rather than at card level: that sentence is the only thing on the card nam
 and a link two blocks below it leaves "view what?" to inference on a card whose own title is a
 dimension name. The link sits on its own line inside the box, never trailing the prose.
 
-**Open: these cards have no *What to try*.** The four patterns have `TREND_META.whatToTry`; the four
-dimensions have no authored recommendation copy anywhere, so there is nothing legitimate to put in a
-tool-voice block. Writing four is a content task, not a layout one. Until then a dimension card is
-measurement plus explanation, and no blue.
+**Split into two sections 2026-08-12 — see *Students by level* and *Dimension bands* below.** The
+card anatomy, the collapse behaviour, the fixed PQ/SU/CS/OC order and the outlier-box rules above
+all survive; the second line of the closed card ("Averaging 2.1 of 5") is the only thing that dies,
+and it takes the rest of the section's framing with it because a "trend" on an ordinal band isn't a
+trend, it's a movement between bands.
+
+### Students by level
+
+**Added 2026-08-12.** The level composition of every class at once: how many students are working at
+Substitution, Augmentation, Modification, Redefinition, plus "not enough here" detached beneath.
+**This is the section the whole page's aggregate story now rests on** — the four dimensions explain
+*why* a room sits where it does, but the level is where it sits.
+
+The closed card carries the **modal claim with its denominator**, per the headline rule in
+*Purpose* — `Most of your students are at Augmentation` · `11 of 24 across your classes`. When no
+level holds a plurality the card says the room is split and names both groups instead.
+
+**The label names its contents**, per the same Morville labeling rule that produced "Dimension
+trends" on 2026-08-08: it's students, counted by level. "How your students are working with AI" was
+drafted and rejected as the identical process-phrase mistake "How your teaching is landing" already
+made once on this page.
+
+**Where SAMR now leads.** `designsystem.md`'s *"SAMR is a subtitle, never the primary label"* is
+reversed as of 2026-08-12 — written when SAMR was arithmetic off a total it didn't deserve, and now
+that the level is a reading in its own right it leads. **The departure has to be stated wherever the
+ladder appears**: these levels describe *agency*, not task transformation as Puentedura published
+them, and the ladder is a communication frame rather than an instrument on the same footing as the
+four dimensions (`tau-dimensions.md`, *The overall*). One line of copy, not a footnote to hunt for.
+
+### Dimension bands
+
+**Added 2026-08-12, replacing *Dimension trends*' contents.** Four rows, canonical PQ/SU/CS/OC order,
+each a **band distribution** — how many students at each of 1/2/3/4, plus the "not enough here"
+cell. The fixed order is unchanged and still right: a dimension's position on the page is stable and
+learnable, and the *words* carry which one matters.
+
+| | |
+|---|---|
+| **Closed** | `Calibrated Skepticism — the floor of the four` · `9 at band 1, 10 at band 2, 4 at band 3 · 1 not enough here` |
+| **Open** | *What this looks like* (the row's `note`) → the outlier evidence box, when there is one → **the conversation prompt** |
+
+**The form — settled 2026-08-13 after building it.** A **diverging stacked bar split at the 2|3
+seam**, one row per dimension, with the seam locked to the same x on every row so the four are
+directly comparable. The data's job is an ordered-scale share (the Likert case), which is the form
+that fits it, and the seam is not invented — `tau-dimensions.md` already puts it between bands 2 and
+3. Mass left of the line is the share of the room the behaviour didn't happen for.
+
+Three things this replaced or fixed, each for a checkable reason:
+
+- **Four coloured count-cells, dropped.** They rendered in `--tau-band-1..4`, which is a *chip*
+  palette — one band at a time on one student's report. As a chart palette all four sit at
+  L 0.949–0.952 (a 0.005 spread, so no visual order at all) and bands 2↔3 are **ΔE 1.4** apart for
+  normal vision. Four near-identical pastels side by side is the rainbow anti-pattern.
+- **One hue, not a diverging pair.** A diverging palette wants two hues, and **this system cannot
+  supply a non-semantic pair**: the only pair passing all six checks is violet/green whose green pole
+  *is* `--tau-positive` in all but name; every warm hue is already a semantic tier (caution 68,
+  attention 18); and two cool hues fail hard (violet↔blue, **ΔE 0.9** deutan). So **polarity is
+  carried by position** — which side of the seam — and colour carries only the ordinal step. Hue 242
+  is the one hue that is neither a semantic tier nor a voice (auditor 300, tool-info 205). Validated
+  in the **ordinal** mode, not the categorical one: monotone lightness, adjacent ΔL ≥ 0.06, light end
+  clearing 2:1, single hue. *(Validating it as categorical the first time shipped a light end at
+  1.48:1 that would have washed out on white.)* This is also the better outcome on its own terms —
+  rendering a class's skepticism as red-versus-green is the verdict *"voice is coach, not judge"*
+  exists to prevent.
+- **Band 1 must never be the least legible mark.** A first pass dropped the numeral from any segment
+  under 20px, which made band 1 — the band this instrument is most required to be sensitive to —
+  invisible on three rows. Bands 1 and 4 are the extremities, so when too narrow their count renders
+  *outside* the bar end, a position that cannot collide; no non-zero segment renders below 6px.
+
+**A ridgeline plot was considered and rejected.** It needs a continuous x-axis with enough
+observations per row to estimate a density; ours is four ordinal bands, and there is no band 2.5 —
+the seam is a boundary, not a region. A smoothed curve would draw mass where no value can exist.
+This repeats a call this page already made: the Distributions histogram deliberately carries no
+fitted density overlay, for the same reason. The axis will not become continuous later either —
+`tau-dimensions.md` refuses a fifth band by design.
+
+- **The floor row's callout survives**, rewritten off band counts rather than `mean ± delta`. Which
+  dimension is "the floor" is now a statement about where the mass of the distribution sits, and the
+  card must be able to say that in words — *"nine students didn't do it at all"* is the finding, not
+  a position on a scale.
+- **The finding leads; the distributions are the evidence — 2026-08-13.** One templated sentence
+  above the four rows names the floor and its size (*"Calibrated Skepticism is the floor. 64 of 90
+  students sit left of the seam — the only dimension where most of the room does."*). Same
+  conclusion-first call the assignment tier's coaching note settled on 2026-07-31, for a sharper
+  reason here: three of the four rows usually look alike, so leading with the bars asks a teacher to
+  compare four near-identical distributions to find the one that differs. **Templated, never
+  free-generated**, so it cannot claim something the bars don't show — and when no dimension stands
+  out it says *that*, rather than manufacturing a floor.
+- **Each row counts every student, and the rows are four partitions of one cohort.** Bands + "not
+  enough here" = *n*, on every row. Never add across rows. **"Not enough here" is per dimension** — a
+  thin session can show Prompting Quality clearly and give Calibrated Skepticism nothing — so the
+  off-scale counts differ per row, and they differ from the Home tile, which counts students
+  unreadable on *at least one* dimension. That union cannot be derived from the rows (bounded below
+  by the largest, above by their sum) and must be carried as its own field in the payload. The
+  section states this in one line, because the alternative reading — that the rows and the tile
+  contradict each other — is the one a reader reaches first.
+- **The count is never a bare numeral**, unchanged rule: it sits in a phrase naming its unit.
+- **A distribution with no plurality reads as split**, and the note says which two groups. This is
+  where `split` earns itself: a class with nine students at band 1 and eleven at band 3 is the case
+  a mean was worst at describing, and it's common.
+
+**The missing *What to try* is now fillable** — this was flagged open on 2026-08-08 (the four
+dimensions had no authored recommendation copy, so there was nothing legitimate for a tool-voice
+block). `tau-dimensions.md` resolves it from the other end: the **instruction register comes out of
+the student report** — *"decide the structure before you ask for it"* — because it arrives without
+knowing what the class has covered and can contradict what was taught. **It belongs here instead**,
+as a conversation prompt, the same treatment integrity flags already get. Blue, tool's voice,
+discountable — the existing colour rule applies unchanged.
+
+The distinction that keeps it honest, from the same source: **the report names a gap; it doesn't
+prescribe a fix to the student.** On the teacher surface the prescription is fine, because a teacher
+can weigh it against what they actually taught.
 
 ### Colour: measured vs the tool talking
 
@@ -195,7 +455,8 @@ of this rebuild got it wrong in both directions:
 | Content | Treatment | Why |
 |---|---|---|
 | A count that is itself the signal | Amber numeral, in a phrase naming its unit | Pattern counts are caution-tier; the pattern name beside it means colour is never the only channel |
-| A score | Ink numeral | Semantic colour never touches a score — a level is a position on a path, and that holds at class level too |
+| A band or a level | Ink text, or the `--tau-band-N` ramp | Semantic colour never touches a score — a level is a position on a path, and that holds at class level too. Amended 2026-08-12: "a score" became "a band or a level"; the rule is unchanged, only its subject |
+| A band count | Ink numeral, tabular | It is measured. The distribution *shape* is the finding, and the words beside it say so — the numerals stay neutral |
 | A second computed fact | White, hairline, tabular | Blue under a measured number tells a teacher the number is an opinion |
 | **The explainer** ("What this looks like") | **Neutral, no container** | It *describes what was measured*, so it belongs to the metric. Tinting a definition makes it read as an opinion — this is the distinction the first draft collapsed, folding the explainer into the blue alongside the advice |
 | **The recommendation** ("What to try") | **Blue rule + tint** | The only block on a card the tool *authored* rather than computed, and the only one a teacher should feel free to discount |
@@ -239,11 +500,20 @@ longer reorders every other class's students underneath it, and a teacher scanni
 table doesn't have another class's rows scroll past mid-list. Search/filter/pattern selection
 still applies across all classes at once (unchanged); only sort is now per-class.
 
-**Row shape** — Student → **Average** → **How they're using AI** → Signal:
-- *Average*: mean total across every submission the student has, not the latest one — a bare score
-  only meant something when a column also named the assignment, and this screen no longer does.
-- *How they're using AI*: plain-language band (`.band-plain`), never a bare score leading, per the
-  existing design-system rule.
+**Row shape — revised 2026-08-12: Student → How they're using AI → Bands → Signal.** The
+**Average** column is deleted, not converted: it was a mean total across every submission, and there
+is no total and no mean. Its 12% goes to the Signal column, which the 2026-08-08 every-chip change
+already wanted room for.
+
+- *How they're using AI*: the level, by name (`.band-plain`) — unchanged in treatment, and now
+  load-bearing rather than a plain-language gloss on a number. The rule this column was built on
+  ("never a bare score leading") is what makes it survive the scale change untouched.
+- *Bands*: the student's four dimension bands, in canonical order, compact. **Not four numbers with
+  no labels** — the lab has to settle what this looks like at roster width; the requirement is that
+  a reader can tell which dimension is which without a legend.
+
+**Sorting** — by level (ordinal), or by count of band-1 dimensions. Both are orderings a teacher can
+act on. Neither is a rank, and there is no column left that could produce one.
 - *Signal*: **every** true signal as its own chip (2026-08-08), not one chip plus a `+N`. Overdue is
   the one thing that takes the whole cell instead — Act outranks Notice.
 - No separate Class column — redundant under a class group header.
@@ -355,6 +625,20 @@ full context.
 The last two weren't in the original spec — added once the reflection feature shipped and gave the
 tool a second source (the student's own words) to check scores against.
 
+**Three of these seven need respec'ing for bands — 2026-08-12.** The first four read the transcript
+and the provenance map and are untouched by the scale change.
+
+- `score-spike` becomes an **implausible band jump** in a short window. The thing it was ever trying
+  to catch is a discontinuity, not a magnitude, so it survives the unit change intact — but the
+  threshold is a fresh judgement, not a conversion of `+5`.
+- Both reflection mismatches read **band 1–2** where they read `< 2.5`. Deliberately the bottom half
+  of the scale, matching where `tau-dimensions.md` put the resolution: two of the four bands describe
+  distinct failures, so "the scores don't show it" has a natural band boundary.
+
+**And the evidence layer makes these flags checkable for the first time.** A `provenance-mismatch`
+can now cite the moment; a reflection mismatch can sit next to the counterexample it contradicts.
+Nothing about the flags changes, but the "Learn more" tray has something real to open onto.
+
 ### Tier 2 — Assignment-level signals
 Behavioral patterns computed across all submissions for a student on an assignment. Not tied to any
 single submission. **These no longer render as a per-student banner** — the original spec's "amber
@@ -363,6 +647,11 @@ text line at the bottom of the drill panel (`engagementNote` in `renderDrillPane
 background fill, no icon, no `●` glyph. There is also a cross-student rollup — see *Patterns worth
 noticing* under *Home* — which is where this tier gets most of its visual weight, plus (as of
 2026-07-28) a pill of its own everywhere a signal renders — see *Student Signal System* below.
+
+**Superseded wholesale 2026-08-12 — see *Triage queue inputs* under *Home*.** All five
+conditions below are arithmetic on averages that no longer exist. Kept because the reasons they
+render are the copy the four replacements have to beat, and because two of them are the exact
+overclaiming `patterns.md` diagnosed: "Passive engagement" is `avgTotal < 9` with a prose name on it.
 
 | Condition | Reason shown |
 |---|---|
@@ -390,6 +679,17 @@ noticing* under *Home* — which is where this tier gets most of its visual weig
 ## Student Signal System
 
 Converts raw TAU scores and flags into a plain-language status. Used everywhere a student name appears. `getStudentSignal(studentId, assignmentId?)` — if `assignmentId` is provided, scoped to that assignment only.
+
+**2026-08-12 — the conditions change, the structure doesn't.** `_computeStudentSignal()`'s return
+shape (`{ status, reason, learnMoreKey, signals }`, every true signal priority-ordered, with the
+first three mirroring `signals[0]` so existing callers keep working) survives the scale change
+untouched, and so does every rendering rule below it. What changes is what goes *in*: the four
+inputs in *Triage queue inputs* under *Home*, replacing the five average thresholds above.
+
+**One addition to the priority order: "not enough here" is its own status, not a reason under an
+existing one.** It cannot sort into the same list as band 1 — see *The unit of every aggregate*.
+A student can be both (a thin session on one assignment, absent behaviour on another), which the
+multi-signal return shape already handles correctly.
 
 ### Signal levels
 
@@ -457,6 +757,68 @@ single-label form; the paragraph above describes them.
 
 ---
 
+## Band distributions at the class and assignment tiers
+
+**Added 2026-08-12.** One substitution, applied identically at both tiers — described once here, and
+cited rather than restated by *Class View*, *Assignment View* and *Assignment Detail* below.
+
+**What changes.** `dimensionRowsFromCohort()`'s five-state trend classification — up / down / floor /
+ceiling / mid, thresholded at `|avg delta| ≥ 0.3`, `avg ≤ 2`, `avg ≥ 4` — is entirely arithmetic on a
+1–5 mean. It's replaced by a **band distribution plus a movement sentence**.
+
+**What survives, and it's most of it:**
+
+- The **three-column row shape** — Dimension → (what it's doing) → Note. Only the middle column's
+  content changes.
+- **Dimension leads, always** (the dataviz skill's `label → value → delta` stat-tile contract).
+- **Fixed PQ/SU/CS/OC order, never ranked by urgency** — a stable position per dimension is
+  learnable over repeated use; a ranking reshuffles every time.
+- **Every dimension keeps its full row and its note, always.** Explicitly considered and turned down
+  on 2026-07-31, and the reasoning holds harder now: a table whose shape changes assignment to
+  assignment makes a teacher re-learn what's on screen every time.
+- **Floor and ceiling stay distinct.** The same "no change" is a real problem at the floor and a
+  non-issue at the ceiling — conflating them was a corrected mistake once already. In band terms:
+  mass sitting at band 1–2 and mass sitting at band 4 are opposite findings, and the note says which.
+- **The note carries what the distribution can't.** Unchanged job, now with more to do — a split
+  distribution is exactly the case that needs a sentence.
+
+**Movement over time is two counts in a sentence**, never a delta: *"Six students moved up a band on
+Calibrated Skepticism since draft 1; two moved down."* Reporting both directions is not decoration —
+a net figure hides a class that churned, which is a different teaching situation from one that moved
+together.
+
+**Movement belongs to the assignment tier, not to Home — decided 2026-08-13.** Home is a
+**descriptive snapshot of current performance**: what the room looks like right now. Movement needs
+a baseline to be movement, and on Home the only available baseline is "some earlier draft of some
+assignment," which is not a thing a teacher can act on. Scoped to one assignment, draft 1 → draft 2
+is a real comparison against a fixed task, and that is where the sentence above earns its place.
+
+This also settles a question the band scale reopened: *what is Home for?* It answers **"what does
+this room look like today"**, and the class and assignment tiers answer **"is it changing"**. The
+three-tier framework already implied that split; the snapshot/movement boundary is what makes it
+checkable.
+
+**The Distributions tab is promoted, not invented.** `draftHistogramBins()`
+(`dashboard.html:2952`) already bins the total on the four SAMR bands and each dimension on its own
+integers — the exact shape every tier now needs, currently reachable only inside one tab of one
+screen. It gets retargeted (each dimension bins 1–4 plus a "not enough here" cell; the overall bins
+the level read directly rather than via `samr(total)`) and reused everywhere. **This is the one
+place the scale change reduces work rather than adding it**, and its own comment already stated the
+principle: *"bins are never arbitrary numeric buckets."*
+
+**The average line charts are deleted.** `svgLineChart()`, `assignmentDraftSeries()` and
+`seriesArcNote()` all plot per-draft means. They go with the mean. The 2026-07-31 reasoning that
+justified the chart as a deliberate exception — *every vertex is a real per-draft average, not a
+fitted value* — depended on the average being real, and it no longer is. Band-to-band movement is
+the sentence above, which also keeps this page on the right side of the standing no-sparkline
+constraint.
+
+**Stat tiles**: `Avg. TAU score — 13.4 / 20` + `bandChip()` becomes the modal level with its
+denominator. The tile stays inert (a fact, not a filter), same distinction that already separates it
+from the clickable Missing / Worth-a-chat pair.
+
+---
+
 ## Class View
 
 **Rebuilt 2026-07-31 as a timeline of assignments, not a sortable table.** Reached from the
@@ -480,7 +842,10 @@ blocks rather than inventing parallel ones:
   so this card can run the exact same behavioral-pattern rollup Home uses (≥2 students sharing a
   pattern), scoped to just this class's roster instead of every student — the same detector, not a
   second implementation of "who shares a pattern."
-- **Dimension trend across assignments** (`classDimensionTrend()`) — draft-over-draft's own
+- **Dimension trend across assignments** (`classDimensionTrend()`) — **superseded 2026-08-12 by
+  *Band distributions at the class and assignment tiers*, above**; the cohort-pairing logic (each
+  student's two most recent assignments with a completed submission) survives, the classification it
+  feeds does not. Original text follows — draft-over-draft's own
   classification math (`dimensionRowsFromCohort()`, extracted from `assignmentDimensionTrend()` so
   both tiers share one function) applied one level up: the cohort pairs each student's two most
   recent *assignments* with a completed submission, instead of two most recent drafts within one
@@ -699,7 +1064,7 @@ changed from the shape described above:
 - **New Assignment's "Customize schedule & coaching" `<details>` disclosure is gone.** It only ever
   wrapped `draftBudget`/per-draft rows/`teacherNote` (title/description/purpose/requirements were
   already outside it), but those first three are still server-required (`POST /api/assignments`
-  rejects a mismatched `draftDueDates`/`coachingLevels` count) — hiding required fields behind a click
+  rejects a mismatched `draftDueDates` count) — hiding required fields behind a click
   was flagged directly ("why are you hiding stuff? this is the opposite of make it easy and clear")
   and doesn't get a carve-out just because the fields are further down the form. The whole form is now
   one flat scroll, grouped under `.eyebrow` labels (*What students see* / *Who* / *When & how* / *Note
@@ -855,7 +1220,7 @@ that either) so both creating and editing can set the teacher's own note in one 
 
 **Server: new `POST /api/assignments/:id/edit`** (`index.js`), added to the existing teacher-only
 route guard alongside `/note`. Same field validation as creation (required text fields, one due date
-per draft slot, ascending order, one coaching level per slot) since the client reuses the exact same
+per draft slot, ascending order) since the client reuses the exact same
 form — plus one guard creation doesn't need: **`draftBudget` can't shrink below any student's
 already-reached checkpoint** (`Math.max` over existing submissions' `cycleIndex` for this assignment),
 since `checkpointStatus()`/`cycleIndex` assume the schedule only ever grows, never shrinks, out from
@@ -909,6 +1274,12 @@ range, and average conversations per student for that draft — followed by two 
   a handful of students per draft, fitting a smooth curve to 4–5 discrete points would be a
   statistical fiction, not a real fit; bars alone are the honest read at this sample size. Switching
   chips rescales the axis with it (0–20 vs. 0–5), not just the bars.
+  **Retargeted 2026-08-12, not replaced** — the TAU-score chip becomes the level, binned directly
+  rather than via `samr(total)`; each dimension bins on 1–4 plus a **"not enough here"** cell held
+  off the ramp; the axis rescale goes away with the two numeric scales. **Everything else here
+  survives, and this tab is now the model for the rest of the page** — the "bins are never arbitrary
+  numeric buckets" principle and the refusal of a density overlay are exactly right for ordinal
+  bands. See *Band distributions at the class and assignment tiers*.
 
 **In-progress card (checkpoint still open).** A submission-pace read — how many have submitted so
 far, compared to the previous checkpoint's pace at the same point before its own due date — plus a
@@ -929,6 +1300,13 @@ mid-flight" (the existing draft-over-draft Overview content); closed means "here
 a different question with its own card, not the same card plus an appendix. The first pass here
 rendered the Final Summary *underneath* the Overview card on every closed assignment — corrected the
 same day once it was pointed out the rule is a replacement, not an addition.
+
+> **Superseded in part, 2026-08-12** — see *Band distributions at the class and assignment tiers*.
+> The Overview tab's Avg. TAU stat and dimension-average row become the modal level with its
+> denominator plus four band distributions; the **Trend tab is deleted outright**, since its whole
+> content is line charts over per-draft means. The tab structure, the "where the class landed, not a
+> running average" scoping rule, and the Distributions tab all survive — Distributions is in fact
+> the surface the rest of this page is now built from.
 
 **Overview tab** — where the class ended up. A stat row (Avg. TAU score — with its SAMR band riding
 alongside via `bandChip()`, plain-language classification never leading the raw number, same rule as
@@ -1098,6 +1476,12 @@ terminates at a roster the way it used to.
 
 **Row format for dimension movement — settled shape, three columns:** Dimension → Trend → Note.
 
+> **Superseded in part, 2026-08-12.** The three-column shape, the dimension-leads rule, the fixed
+> order and the every-row-always rule all survive — see *Band distributions at the class and
+> assignment tiers*, above, which is now the specification for the middle column. The five trend
+> states and their thresholds below are historical: they are arithmetic on a 1–5 mean. Kept for the
+> reasoning, which is what produced the floor/ceiling distinction the band version inherits.
+
 - **Dimension leads, always.** Per the dataviz skill's stat-tile contract (`references/marks-and-
   anatomy.md`, `label → value → delta`) — a trend badge with no name attached is unreadable, the
   label is what the rest of the row is relative to.
@@ -1172,8 +1556,9 @@ the header itself, same as before.
 | Column | Width | Content |
 |---|---|---|
 | Assignment name | flex:1 | Title, truncated |
-| TAU score | 48px, right | `15/20` format |
-| SAMR badge | 150px | Band chip |
+| ~~TAU score~~ | ~~48px~~ | **Deleted 2026-08-12** — no total exists |
+| Level | 150px | The level by name, leading (was a SAMR band chip derived from the total) |
+| Bands | — | The four dimension bands, canonical order; width to be settled in the lab |
 | Signal pill | 150px | Empty container when no signal — widened 2026-07-28 from 80px, which was sized for the short "Worth a chat" text only and visually overlapped the next column once pattern names ("Passive engagement") started rendering here too |
 | Status chip | 88px, centered | Final / Draft N/Total / Not started |
 | Subs count | 44px, right | `3 subs` |
@@ -1193,11 +1578,73 @@ Fixed-width flex columns ensure alignment across all rows within a panel:
 | `#N` | 20px | Submission index |
 | Chip | 44px, centered | Final / Draft |
 | Date | 140px | `May 10, 3:42 PM` |
-| TAU total | 40px, right | `15/20` |
-| Dim scores | flex:1 | PQ / SU / CS / OC chips |
-| SAMR badge | 100px, centered | Level label |
+| ~~TAU total~~ | ~~40px~~ | **Deleted 2026-08-12** |
+| Dim bands | flex:1 | PQ / SU / CS / OC band pills, or "not enough here" |
+| Level | 100px, centered | The level by name |
 
 Submission-level flags appear as plain-text lines below the row (terra color), each with a "Learn more" link.
+
+---
+
+## Evidence on the teacher surface
+
+**Added 2026-08-12.** The only part of the scale change that is a genuine addition rather than a
+substitution, and the part that makes everything else on this page checkable. `tau-dimensions.md`:
+*"Every claim is falsifiable against the transcript. A teacher can check a quote. Nobody can check
+a 3."*
+
+### The three-slot shape
+
+Per dimension, in this order, always:
+
+1. **The claim** — what the student did, stated plainly.
+2. **The moments that support it** — quoted from the transcript, attributed.
+3. **The moment that doesn't** — the counterexample.
+
+**The third slot never folds.** Not at narrow width, not on a session that went well, not behind a
+disclosure. It is what makes the output feedback rather than praise, and it carries the standing
+requirement this instrument was built around — sensitivity at the low end. It has a fixed slot
+precisely so it can't be quietly dropped, which means a layout that would collapse it is the wrong
+layout. Per the standing required-vs-hidden check in `.claude/skills/product-design-review`: density
+is fixed by fixing the container, never by hiding something required.
+
+An all-high session says so once in slot 3 and stops. **Inventing a weakness to fill the slot is how
+feedback stops being believed** — the honest fill is naming the nearest thing the session didn't do,
+not manufacturing a failure.
+
+### The departure sentence
+
+One line under the level, present **only** when the level lands somewhere the four bands would not
+predict, stating in one sentence what was read to get there — and pointing at something checkable in
+the transcript or the assignment. When the level doesn't depart, it says nothing extra.
+
+This is not decoration. Holistic scoring's documented failure mode is collapsing into an average of
+the rubric rows, and without a stated residual the level is a mean wearing a name. The sentence is
+also the better reliability target: agreement on the level is weak evidence if both coders simply
+averaged; agreement on *what they read to depart* is the real test.
+
+### The conversation prompt
+
+The prescriptive material relocated out of the student report (see *Dimension bands*). Teacher-only,
+the same treatment integrity flags already get, and the only block here in `--tau-tool-info` blue —
+the tool authored it rather than measuring it, and it's the one thing on the surface a teacher
+should feel free to discount against what they actually taught.
+
+### Open — quoted student text has no treatment in the system
+
+**A gap, flagged rather than improvised.** `designsystem.md` assigns `--tau-auditor` (violet) to
+"the teacher's own words, quoted back to them" and `--tau-tool-info` (blue) to "the tool generated
+this." Neither fits a **student's** words quoted from their own transcript: it isn't the teacher's
+voice and it isn't generated, it's the primary evidence. The obvious move — reuse violet because
+it's already the quotation colour — collapses exactly the distinction violet was introduced to
+prevent, one layer down.
+
+Per the Hard Constraints preamble (*"if a decision isn't traceable to a line here, it's a gap in the
+system, not licence to improvise — say so and ask"*), this is stated and left open. The strawman
+worth arguing about: **no hue at all** — a neutral quoted block with attribution and a hairline
+rule, on the grounds that quoted evidence is measured material and this file's own colour table
+already says a measured fact takes no voice colour. That would need a `components.css` atom, since
+nothing there covers it.
 
 ---
 
@@ -1482,6 +1929,61 @@ see `app/README.md`'s file map if you need to work on that surface instead.
 *Added 2026-07-27. Going forward, log dashboard-affecting sessions here — same convention
 `designsystem.md` uses for the rest of `app/`. Retroactive entries below reconstruct what's
 already landed; write new ones going forward rather than editing history in place.*
+
+**2026-08-13 — the band distribution built and settled; Home defined as a snapshot**
+
+Built `app/web/dashboard-lab.html` (Home only; `dashboard.html` untouched, excluded from the image
+by `.dockerignore`'s `app/web/*-lab.html`). Three findings worth keeping:
+
+1. **The band chip palette is not a chart palette**, and it is measurable: all four `--tau-band-N`
+   backgrounds sit within 0.005 of each other in lightness, and bands 2↔3 are ΔE 1.4 apart. A chip
+   shows one band at a time; a distribution shows four at once. Replaced with an ordinal ramp on
+   hue 242 — see *Dimension bands* for why a diverging pair is unavailable in this system.
+2. **Home is a descriptive snapshot.** Asked directly what a teacher needs from this section, the
+   answer drew the line: Home says what the room looks like *now*; movement needs a fixed baseline
+   and belongs to the assignment tier, where draft 1 → draft 2 is a real comparison. Recorded under
+   *Band distributions at the class and assignment tiers*.
+3. **The finding leads.** Three of the four rows usually look alike, so the section states which
+   dimension is the floor and how big it is, with the distributions underneath as the evidence.
+
+Two defects the rendered screenshot caught that no amount of reading would have: band 1 rendering as
+an unlabelled sliver (the band the instrument is most required to detect), and the off-scale label
+sitting in a far right-aligned column where a shorter bar read as "fewer students" rather than "more
+we couldn't read." Both fixed. Deliberately *not* added, to keep Home descriptive: per-row links to
+the students, and any movement figure.
+
+**2026-08-12 — respec'd for the band/level scoring model (documentation only, no code)**
+
+Prompted by asking what the settled scale in `tau-dimensions.md` does to this page. The answer was
+larger than a scale swap: roughly a third of `dashboard.html` is arithmetic with no inputs under a
+model that has no total and no mean — `total()`/`/20` everywhere, all five Tier-2 signal conditions,
+the fleet cards' "Averaging 2.1 of 5", the mean-based outlier notes, the per-draft line charts.
+
+**The reframe, in the user's own framing:** counts per level and per band say more than an average
+did — *"most of your students are X"* rather than *"scoring 2.6."* The dashboard stops reporting a
+position on a scale and reports the composition of a room plus the evidence under each student.
+
+Sections added: *The unit of every aggregate*, *Triage queue inputs*, *Students by level*,
+*Dimension bands*, *Band distributions at the class and assignment tiers*, *Evidence on the teacher
+surface*. *Purpose* rewritten with three prohibited operations and the modal-claim headline rule.
+Superseding notes left on the arithmetic sections rather than deleting them — the reasoning in the
+floor/ceiling distinction and the trend-not-a-number rule is what the band version inherits.
+
+**Three decisions worth finding again.** (1) **Triage stays first on Home** — leading with
+composition was the stronger argument on paper and was turned down deliberately; the paragraph
+recording why is under *Home*. (2) **The cohort-relative bottom-decile rule is retired** — on a
+four-value ordinal, percentile is mostly ties and the absolute floor does all the work, so band 1 is
+the flag. (3) **Triage volume is uncapped**, with the wording turning over past a proportion so a
+class-wide problem gets louder, not quieter — the direct answer to `patterns.md`'s objection.
+
+**Two things this un-blocked and one it blocked.** `detectPatterns` moved onto the critical path
+(three of four Home pattern cards lose their detectors entirely). The *What to try* gap open since
+2026-08-08 is now fillable, from the other end — `tau-dimensions.md` moves the instruction register
+off the student report and onto this surface. And `draftHistogramBins()` turned out to be the one
+place the change *reduces* work: it already bins on bands, buried in one tab of one screen.
+
+Left open on purpose: the proportion at which the triage copy turns over, and a treatment for quoted
+student transcript text (neither violet nor blue fits — stated as a system gap, not invented).
 
 **2026-08-10 — Home rebuilt onto toned section bands, two columns, and no page header**
 

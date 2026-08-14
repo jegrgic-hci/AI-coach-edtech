@@ -12,7 +12,7 @@ const { authenticate, isSuspended, login, logout, sessionCookie, clearedCookie, 
 const { sendInvite, sendReset } = require('./invites');
 const { volume: mailVolume, settings: mailSettings } = require('./mail');
 const { streamChat, modelFor, MAX_EVAL_TOKENS } = require('./llm');
-const { LEVELS, coachMessages, auditorMessages } = require('./coach');
+const { chatMessages, auditorMessages } = require('./coach');
 const { runAnalysis } = require('./analysis');
 const { checkChatBudget, grantExtraReplies, usageToday, grantedToday, SOFT_REPLIES_PER_DAY, HARD_INPUT_TOKENS_PER_DAY } = require('./budget');
 const { config } = require('./school');
@@ -240,7 +240,7 @@ const USAGE_SURFACES = {
     },
   },
   workspace: {
-    label: 'Coach workspace',
+    label: 'Chat workspace',
     audience: 'student',
     areas: {
       'new-conversation': 'New conversation',
@@ -404,9 +404,10 @@ async function assignmentFor(session) {
   return await col('assignments').get(session.assignmentId);
 }
 
-// Composes the three teacher-authored fields into the one string the
-// blank-context coach/auditor see as "the assignment" — labeled so the model
-// gets the what/why/must-haves distinction, not a single run-on paragraph.
+// Composes the three teacher-authored fields into the one string the auditor
+// sees as "the assignment" — labeled so the model gets the what/why/must-haves
+// distinction, not a single run-on paragraph. The chat itself never receives
+// this: it runs with no system prompt at all (see coach.js).
 function assignmentBrief(a) {
   return [
     a.description ? `What the task is:\n${a.description}` : '',
@@ -415,7 +416,7 @@ function assignmentBrief(a) {
   ].filter(Boolean).join('\n\n');
 }
 
-// ---------- SSE coach/auditor streaming ----------
+// ---------- SSE chat/auditor streaming ----------
 
 function sseHead(res) {
   res.writeHead(200, {
@@ -1007,12 +1008,10 @@ async function handleApi(req, res, user, route) {
 
     if (!session && submissions.length < assignment.draftBudget) {
       const cycleIndex = submissions.length;
-      const levels = assignment.coachingLevels;
       session = await col('sessions').add({
         assignmentId: assignment.id,
         studentId: user.id,
         cycleIndex,
-        coachingLevel: levels[Math.min(cycleIndex, levels.length - 1)],
         status: 'active',
         startedAt: now(),
         submittedAt: null,
@@ -1051,9 +1050,6 @@ async function handleApi(req, res, user, route) {
       conversations,
       draftsUsed: submissions.length,
       hasActivity,
-      coachLabel: session ? LEVELS[session.coachingLevel].label : null,
-      modeLead: session ? LEVELS[session.coachingLevel].modeLead : null,
-      modeNote: session ? LEVELS[session.coachingLevel].modeNote : null,
     });
   }
 
@@ -1085,7 +1081,6 @@ async function handleApi(req, res, user, route) {
       return json(res, 200, {
         conversation,
         turns: liveTurns(await conversationTurns(conversation.id)),
-        coachingLevel: session.coachingLevel,
         locked: conversation.locked,
       });
     }
@@ -1114,7 +1109,7 @@ async function handleApi(req, res, user, route) {
       const prior = liveTurns(await conversationTurns(conversation.id));
       const supersedes = [];
       if (body.editOfTurnId) {
-        // Editing replaces the old student turn AND the coach reply that
+        // Editing replaces the old student turn AND the AI reply that
         // followed it — both stay in the record, superseded.
         const idx = prior.findIndex((t) => t.id === body.editOfTurnId);
         if (idx === -1 || prior[idx].role !== 'student') return json(res, 400, { error: 'bad editOfTurnId' });
@@ -1131,7 +1126,7 @@ async function handleApi(req, res, user, route) {
       });
 
       const turns = liveTurns(await conversationTurns(conversation.id));
-      const messages = coachMessages({ level: session.coachingLevel, assignmentPrompt: assignmentBrief(assignment), turns });
+      const messages = chatMessages({ turns });
       return streamReply({
         res, user, conversation, assignment, messages,
         role: 'coach',
@@ -1143,17 +1138,17 @@ async function handleApi(req, res, user, route) {
     // POST /api/conversations/:id/regenerate — implicit rejection signal
     if (req.method === 'POST' && seg3 === 'regenerate') {
       // Auditor meta-turns don't block regeneration — the target is the last
-      // coach turn in the real conversation.
+      // AI turn in the real conversation.
       const turns = liveTurns(await conversationTurns(conversation.id)).filter((t) => !t.meta?.metaTurn);
       const last = turns[turns.length - 1];
       if (!last || last.role !== 'coach') return json(res, 400, { error: 'nothing to regenerate' });
-      // A regeneration is a coach reply and costs the same as one.
+      // A regeneration is an AI reply and costs the same as one.
       const budget = await checkChatBudget(user.id);
       if (!budget.allowed) return json(res, 429, { error: budget.message, budget: { remaining: 0, limit: budget.limit } });
       await logEvent(user, { type: 'regenerate', sessionId: session.id, conversationId: conversation.id, meta: { turnId: last.id } });
 
       const context = turns.slice(0, -1);
-      const messages = coachMessages({ level: session.coachingLevel, assignmentPrompt: assignmentBrief(assignment), turns: context });
+      const messages = chatMessages({ turns: context });
       return streamReply({
         res, user, conversation, assignment, messages,
         role: 'coach',
@@ -1167,8 +1162,7 @@ async function handleApi(req, res, user, route) {
     // the metacognitive signal.
     if (req.method === 'POST' && seg3 === 'evaluate') {
       // The auditor is a Vertex call like any other, so it draws on the same
-      // daily budget — Evaluate is available at every coaching level, which
-      // makes it an easy loop to spin if it were free.
+      // daily budget — makes it an easy loop to spin if it were free.
       const budget = await checkChatBudget(user.id);
       if (!budget.allowed) return json(res, 429, { error: budget.message, budget: { remaining: 0, limit: budget.limit } });
       await logEvent(user, { type: 'evaluate', sessionId: session.id, conversationId: conversation.id });
@@ -1630,14 +1624,9 @@ async function handleApi(req, res, user, route) {
     const purpose = String(body.purpose || '').trim();
     const requirements = String(body.requirements || '').trim();
     const draftBudget = Math.max(1, Math.min(10, parseInt(body.draftBudget, 10) || 3));
-    const valid = new Set(Object.keys(LEVELS));
-    const coachingLevels = (Array.isArray(body.coachingLevels) ? body.coachingLevels : [])
-      .filter((l) => valid.has(l))
-      .slice(0, draftBudget);
     if (!title || !description || !purpose || !requirements) {
       return json(res, 400, { error: 'title, description, purpose, and requirements are required' });
     }
-    if (coachingLevels.length !== draftBudget) return json(res, 400, { error: 'one coaching level per draft slot required' });
     // No class picker in the creation form yet — an assignment with no
     // classIds sent defaults to every class this teacher has, so existing
     // creation flow behaves the same as before classes existed.
@@ -1664,7 +1653,6 @@ async function handleApi(req, res, user, route) {
       dueDate: draftDueDates[draftDueDates.length - 1],
       draftBudget,
       draftDueDates,
-      coachingLevels,
       createdAt: now(),
     });
     return json(res, 200, assignment);
@@ -1686,14 +1674,9 @@ async function handleApi(req, res, user, route) {
     const purpose = String(body.purpose || '').trim();
     const requirements = String(body.requirements || '').trim();
     const draftBudget = Math.max(1, Math.min(10, parseInt(body.draftBudget, 10) || 3));
-    const valid = new Set(Object.keys(LEVELS));
-    const coachingLevels = (Array.isArray(body.coachingLevels) ? body.coachingLevels : [])
-      .filter((l) => valid.has(l))
-      .slice(0, draftBudget);
     if (!title || !description || !purpose || !requirements) {
       return json(res, 400, { error: 'title, description, purpose, and requirements are required' });
     }
-    if (coachingLevels.length !== draftBudget) return json(res, 400, { error: 'one coaching level per draft slot required' });
     const draftDueDates = (Array.isArray(body.draftDueDates) ? body.draftDueDates : []).slice(0, draftBudget);
     if (draftDueDates.length !== draftBudget || draftDueDates.some((d) => !d || Number.isNaN(new Date(d).getTime()))) {
       return json(res, 400, { error: 'one due date per draft slot required' });
@@ -1714,7 +1697,7 @@ async function handleApi(req, res, user, route) {
     await col('assignments').update(assignment.id, {
       title, description, purpose, requirements, classIds,
       dueDate: draftDueDates[draftDueDates.length - 1],
-      draftBudget, draftDueDates, coachingLevels,
+      draftBudget, draftDueDates,
       teacherNote: typeof body.teacherNote === 'string' ? body.teacherNote.trim().slice(0, 2000) : (assignment.teacherNote || ''),
       teacherNoteAt: noteChanged ? now() : assignment.teacherNoteAt,
     });
@@ -1890,7 +1873,7 @@ async function handleApi(req, res, user, route) {
       // can span an archived section and a running one, and the archived id
       // would otherwise resolve to nothing on every lookup downstream.
       classIds: a.classIds && a.classIds.length ? a.classIds.filter((id) => allClassIds.includes(id)) : allClassIds,
-      // The assignment's own goal — shown to the coach every session
+      // The assignment's own goal — shown to the student every session
       // (description/purpose/requirements) and a whole-class rubric-style
       // reminder (teacherNote, distinct from a per-submission teacherNote).
       // Neither was ever sent to the teacher dashboard before the Assignment
@@ -1970,7 +1953,6 @@ async function handleApi(req, res, user, route) {
         cs: done ? analysis.tau.CS : 0,
         oc: done ? analysis.tau.OC : 0,
         analysisStatus: analysis?.status || 'missing',
-        coachingLevel: analysis?.coachingLevel || null,
         conversationCount: session ? convoCountBySession.get(session.id) || 0 : 0,
         // Per-submission origin mix (student-born/synthesized/ai-born
         // counts) — already computed for OC scoring, never surfaced
@@ -1984,6 +1966,15 @@ async function handleApi(req, res, user, route) {
         // prefill the edit form without a second round trip.
         teacherNote: sub.teacherNote || null,
         ...(done && analysis.flags?.length ? { integrityFlags: analysis.flags.map((f) => f.flag) } : {}),
+        // Behavioural patterns detected off the turn sequence — ids only.
+        // The turn spans stay on the analysis doc: the dashboard aggregates
+        // across students and never draws a single student's transcript, so
+        // shipping spans here would be payload for a view that doesn't exist.
+        // Written by runAnalysis since 2026-08-14; older analyses carry none
+        // until backfill-patterns.js has run over them.
+        ...(done && analysis.patterns?.length
+          ? { patterns: [...new Set(analysis.patterns.map((p) => p.id))] }
+          : {}),
       });
     }
 
@@ -2048,7 +2039,6 @@ async function handleApi(req, res, user, route) {
             submittedAt: sub.submittedAt,
             analysisStatus: analysis?.status || null,
             tau: analysis?.status === 'complete' ? { PQ: analysis.tau.PQ, SU: analysis.tau.SU, CS: analysis.tau.CS, OC: analysis.tau.OC, totalScore: analysis.tau.totalScore, SAMR: analysis.tau.SAMR } : null,
-            coachingLevel: analysis?.coachingLevel || null,
             flagCount: analysis?.flags?.length || 0,
             hasNote: !!sub.teacherNote,
           });

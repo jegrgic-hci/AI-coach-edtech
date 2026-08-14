@@ -74,6 +74,38 @@
   --tau-band-3-bg: oklch(0.948 0.018 242);  --tau-band-3-fg: oklch(0.34 0.052 244);
   --tau-band-4-bg: oklch(0.948 0.022 162);  --tau-band-4-fg: oklch(0.30 0.048 162);
 
+  /* --tau-scale-N — THE ORDINAL RAMP. Graduated from dashboard-lab.html
+   * 2026-08-14. Used wherever four bands are PLOTTED TOGETHER as magnitude
+   * (.comp, .dbar). --tau-band-N-* keeps its own job, unchanged —
+   *
+   *   --tau-band-N-*  identifies a band.   One at a time. A chip.
+   *   --tau-scale-N   orders four of them. Together. A chart.
+   *
+   * The band tokens cannot do this second job: all four sit at L 0.948-0.953,
+   * a 0.005 spread, so four of them side by side have no ordinal reading.
+   *
+   * One hue (242 — the only hue that is neither a semantic tier nor a voice).
+   * Polarity in the diverging bar is carried by POSITION relative to the seam,
+   * never by hue, so a class's skepticism never renders as red-versus-green.
+   * Validated in the ordinal mode against the real tau surfaces: monotone
+   * lightness, adjacent ΔL >= 0.06, light end clearing 2:1.
+   *
+   * DIRECTION: band 1 is the step furthest from the ground in both themes —
+   * darkest on white, lightest on dark. Deliberately opposite to
+   * --tau-band-N-fg's "step down in lightness 1->4", because the finding this
+   * chart carries is where the mass sits at the LOW end, so weight belongs on
+   * absence. Different token, different job. */
+  --tau-scale-1: #1a5780;  --tau-scale-1-ink: var(--tau-surface);
+  --tau-scale-2: #44769b;  --tau-scale-2-ink: var(--tau-surface);
+  --tau-scale-3: #6a96b7;  --tau-scale-3-ink: var(--tau-ink);
+  --tau-scale-4: #91b6d4;  --tau-scale-4-ink: var(--tau-ink);
+
+  /* The shared chart grid. .comp and .dbar are two partitions of the same
+   * cohort, so a length must mean the same student count in both. Both lay
+   * out `gutter | track`, so one gutter width is what makes the two 1fr
+   * tracks resolve to the same px. Change it and BOTH charts move. */
+  --tau-chart-gutter: 1.6rem;
+
   /* ---------------------------------------------------------------
    * 4. SEMANTIC
    * Kept off the accent hue deliberately. Never applied to a student's
@@ -285,6 +317,13 @@
     --tau-band-3-bg: oklch(0.26 0.032 242);  --tau-band-3-fg: oklch(0.83 0.065 242);
     --tau-band-4-bg: oklch(0.26 0.034 162);  --tau-band-4-fg: oklch(0.86 0.070 162);
 
+    /* The ordinal ramp, SELECTED against the dark surface, not flipped.
+       Band 1 stays the step furthest from the ground — lightest here. */
+    --tau-scale-1: #c2e6ff;  --tau-scale-1-ink: var(--tau-surface);
+    --tau-scale-2: #8ec0e4;  --tau-scale-2-ink: var(--tau-surface);
+    --tau-scale-3: #5c8fb3;  --tau-scale-3-ink: var(--tau-surface);
+    --tau-scale-4: #325f80;  --tau-scale-4-ink: var(--tau-ink);
+
     --tau-positive:  oklch(0.76 0.11 158);
     --tau-caution:   oklch(0.79 0.11 72);
     --tau-attention: oklch(0.74 0.10 18);
@@ -321,6 +360,13 @@
   --tau-band-2-bg: oklch(0.26 0.034 205); --tau-band-2-fg: oklch(0.85 0.075 205);
   --tau-band-3-bg: oklch(0.26 0.032 242); --tau-band-3-fg: oklch(0.83 0.065 242);
   --tau-band-4-bg: oklch(0.26 0.034 162); --tau-band-4-fg: oklch(0.86 0.070 162);
+
+  /* The ordinal ramp, SELECTED against the dark surface, not flipped.
+     Band 1 stays the step furthest from the ground — lightest here. */
+  --tau-scale-1: #c2e6ff;  --tau-scale-1-ink: var(--tau-surface);
+  --tau-scale-2: #8ec0e4;  --tau-scale-2-ink: var(--tau-surface);
+  --tau-scale-3: #5c8fb3;  --tau-scale-3-ink: var(--tau-surface);
+  --tau-scale-4: #325f80;  --tau-scale-4-ink: var(--tau-ink);
   --tau-positive: oklch(0.76 0.11 158); --tau-caution: oklch(0.79 0.11 72); --tau-attention: oklch(0.74 0.10 18);
   --tau-positive-bg: oklch(0.26 0.032 158); --tau-caution-bg: oklch(0.26 0.034 72); --tau-attention-bg: oklch(0.26 0.032 18);
   --tau-auditor: oklch(0.80 0.09 300); --tau-auditor-bg: oklch(0.25 0.035 300);

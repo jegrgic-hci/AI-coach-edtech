@@ -11,7 +11,7 @@
 
 const { col } = require('./store');
 const { setPassword, DEV_PASSWORD } = require('./auth');
-const { enrich, scoreTAU } = require('./analysis');
+const { enrich, scoreTAU, detectPatterns } = require('./analysis');
 const {
   STUDENTS, CLASSES, ASSIGNMENTS, ELECTIVE_ASSIGNMENT,
   ENGLISH_EXTRA_ASSIGNMENT, LIT_EXTRA_ASSIGNMENT, GUIDE_ASSIGNMENT,
@@ -79,7 +79,6 @@ async function upsertAssignment(teacherId, spec, daysAgo, classIds) {
     dueDate,
     draftDueDates,
     draftBudget: spec.draftBudget,
-    coachingLevels: spec.coachingLevels,
     createdAt: ts(daysAgo),
     ...(spec.teacherNote ? { teacherNote: spec.teacherNote, teacherNoteAt: ts(daysAgo - 1) } : {}),
   });
@@ -107,7 +106,6 @@ async function seedCycle({ student, assignment, tier, cycleIndex, daysAgo }) {
     assignmentId: assignment.id,
     studentId: student.id,
     cycleIndex,
-    coachingLevel: assignment.coachingLevels[cycleIndex],
     status: 'submitted',
     startedAt: ts(daysAgo + 2),
     submittedAt: ts(daysAgo),
@@ -156,12 +154,15 @@ async function seedCycle({ student, assignment, tier, cycleIndex, daysAgo }) {
     status: 'complete',
     createdAt: ts(daysAgo),
     completedAt: ts(daysAgo),
-    coachingLevel: session.coachingLevel,
     tau,
     provenance,
     flags: FLAGS[tier],
     snapshot: SNAPSHOTS[tier][cycleIndex],
     classified,
+    // Derived, never authored — same rule as tau above. A hand-written
+    // pattern list would make the demo agree with the detector by
+    // construction, which is the one thing seed data must not do.
+    patterns: detectPatterns(classified),
     eventCounts: {},
   });
   await col('submissions').update(submission.id, { analysisId: analysis.id });
@@ -180,7 +181,6 @@ async function seedIncompleteCycle({ student, assignment, tier, cycleIndex, days
     assignmentId: assignment.id,
     studentId: student.id,
     cycleIndex,
-    coachingLevel: assignment.coachingLevels[cycleIndex],
     status: 'submitted',
     startedAt: ts(daysAgo + 2),
     submittedAt: ts(daysAgo),
@@ -236,7 +236,6 @@ async function seedActiveDraft({ student, assignment, tier, cycleIndex, daysAgo 
     assignmentId: assignment.id,
     studentId: student.id,
     cycleIndex,
-    coachingLevel: assignment.coachingLevels[cycleIndex],
     status: 'active',
     startedAt: ts(daysAgo),
   });

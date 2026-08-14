@@ -48,15 +48,14 @@
 //                 pilot class running.
 //   assignments   { id, teacherId, classIds: [], title,
 //                   description, purpose, requirements, dueDate,
-//                   draftDueDates, draftBudget,
-//                   coachingLevels: ['full','full','questions','sounding-board'],
-//                   createdAt }
+//                   draftDueDates, draftBudget, createdAt }
 //                 description/purpose/requirements are three separate teacher-
 //                 authored fields (what the task is / why it matters / what
 //                 must be included) rather than one prompt blob — shown to the
 //                 student as labeled sections and composed into one string
-//                 (assignmentBrief() in index.js) to seed the coach's blank
-//                 context. The tool never grades against these — that stays
+//                 (assignmentBrief() in index.js) for the auditor. The chat
+//                 itself is never told the assignment — coaching was removed
+//                 2026-08-14. The tool never grades against these — that stays
 //                 the teacher's own rubric, untouched (see CLAUDE.md scope
 //                 boundary).
 //                 draftDueDates[i] is when draft i+1 is due, ascending, length
@@ -66,7 +65,7 @@
 //                 usually one, but a teacher can give the same assignment to
 //                 more than one section of the same course.
 //   sessions      one per revision cycle:
-//                 { id, assignmentId, studentId, cycleIndex, coachingLevel,
+//                 { id, assignmentId, studentId, cycleIndex,
 //                   status: 'active'|'submitted', startedAt, submittedAt }
 //   conversations { id, sessionId, title, createdAt, lastActiveAt, locked }
 //   turns         append-only integrity record — never updated, never deleted:
