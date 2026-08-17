@@ -46,6 +46,125 @@ not licence to improvise — say so and ask, don't invent.**
   the viewer chose via the toggle, never inherited from the OS.
 - **NEVER** add a sparkline, trend line, or mini line-chart as decoration. A trend value defaults
   to plain text ("+2 since draft 2") unless a chart there was explicitly requested.
+- **Change over time is a flow diagram, never a line.** Added 2026-08-16. A line asserts a rate of
+  change through the gap between two readings and nothing was measured in that gap; a ribbon
+  asserts only membership — these N students held this reading, then that one. **Strongest reading
+  at the top**, so a rising ribbon means more of the student's own thinking everywhere in the
+  product. Identity is carried by a **legend**, never by labels down both sides. Ribbons take the
+  source node's ramp step — **no semantic colour**, since green-up/red-down grades a room on
+  improvement. See `teacher-dashboard-design.md`, session log 2026-08-16.
+- **A flow's stages must be a comparison that survives the surface's scope.** Added 2026-08-16.
+  Calendar buckets where the scope spans classes running different work (Home); **draft slots where
+  the scope is one assignment** every student did. Never mix the two on one axis, and never pad an
+  axis with a stage nothing was measured in.
+- **Where the scope is a single shared task, composition leads and movement lives inside it** — the
+  distribution on the closed row, that dimension's flow on the open one. Where the scope is a
+  **room** (Home, a class), **movement leads**, because a room has no one task to land on. The rule
+  is about the scope, not how deep the tier is.
+- **A flow's column headers must be short and self-describing** — a date, a period. Where the stages
+  have long names, the header stays short and the **names are stated once in a caption under the
+  chart**, in order. **Never truncate a name into a header**: "Rhetorical ana… / Historical con…"
+  identifies nothing and is worse than the collision it fixes.
+- **Cap a flow at four stages**, most recent first, and **state the cap** where the scope is stated
+  ("last 4 of 7 closed assignments"). Past four the ribbons stop being separable at card width, and
+  a silent truncation of a term reads as the whole term.
+- **An empty state states the requirement, never a tally** it hasn't checked — "movement needs two
+  closed assignments", not "this class has one so far", which is wrong at zero.
+- **A distribution claim needs a cohort that can support it.** No "the room is split" off one
+  student and none; no composition headline on an assignment still open, where the readable group is
+  whoever submitted early. State the denominator instead.
+- **On an incomplete cohort, show what has a per-student denominator and withhold what has a
+  per-class one.** Added 2026-08-16. A pattern ("4 students ran an extraction loop") stays true as
+  more arrive; a distribution's *shape* is dominated by who has not submitted. **Never fix this with
+  a caveat** — a caveat under a misleading chart is weaker than not drawing the chart.
+- **Two counts that could contradict each other must share a scope.** "12 submitted draft 2" beside
+  "18 readable across the assignment" is true and unreadable as a pair.
+- **A disclosure cue names what is behind it** ("How the class got here"), never a bare chevron.
+- **The measurement layer is three organisms, not one.** Added 2026-08-17. **Composition** (a
+  cohort's levels), **Distribution** (a cohort's four dimension bands) and **Movement** (the trend
+  selector + one flow). They are separate because **both halves occur alone in the shipped app**:
+  Home and the class Trends tab render Movement with no distribution; an assignment with one closed
+  draft renders the distributions with no flow. A single "current state + trend" component would
+  have to be instantiated with half of itself suppressed, which is two components wearing one name.
+  The card composes them; the component never assumes its sibling.
+- **Extract a chart's renderer into its own file when a SECOND DEPLOYED file renders it.** Added
+  2026-08-17. Not before: the flow renderer reaches for nothing outside itself (DOM and stdlib only),
+  so the seam already exists and the lift stays mechanical. `class-lab.html` does not count — it is
+  throwaway, `.dockerignore`d and never deployed, so a copy there is not a second consumer.
+- **The measurement layer is four marks, and the fourth is for n=1.** Added 2026-08-17. **Trace** —
+  one student's readings across a sequence of drafts. It exists because **both cohort marks encode a
+  count**: a flow as ribbon width, a distribution as segment length, and a count of one carries no
+  information in either. What survives at n=1 is **position across a sequence**, which is neither of
+  them. Trace is still built from *Distribution*'s atom — the discrete 4-step band reading, one cell
+  per draft — which is what "band bars per draft, never Movement" asks for.
+- **On a single subject, the finding leads and the mark is subordinate.** Added 2026-08-17. A cohort
+  chart's job is to show a shape a teacher reads a finding off; a 4×N grid of one student's readings
+  has no shape, so it asks them to hunt through twelve cells for the story. **State which of the four
+  is worth the conversation, then show the grid with that row emphasised** — `bandsFinding()`'s shape
+  applied at n=1. **Which finding leads is case-dependent**, and the ranking is not a preference: a
+  **drop** outranks everything (the one per-student trend input the triage spec keeps), **band 1 on
+  the latest reading** outranks any rise elsewhere (absence, not weakness), a **rise** leads only when
+  nothing fell and nothing sits at the floor, and **flat-at-the-floor and flat-at-the-ceiling stay
+  distinct**. Emphasis on the leading row is **weight only, never colour** — colour there is the band
+  ramp and nothing else.
+- **"Nothing moved" and "nothing is comparable" are different findings.** Added 2026-08-17. The first
+  is about the student, the second about the data. A per-dimension reading can be missing on a session
+  the other three were read on, so a whole-surface readability guard does not cover it — check that
+  *some* dimension has two readable stages before claiming anything held.
+- **A cohort chart does not belong on a student-facing surface.** Added 2026-08-17. A flow's ribbon
+  widths are counts of classmates; putting one on a student's own report tells them where they rank,
+  which is the "coach, not judge" rule broken by the mark rather than by the copy. It also degenerates
+  at n=1 — every ribbon is width 1 — so a student's own movement needs its own mark, most naturally a
+  reuse of the *Distribution* organism (band bars per draft), never *Movement*.
+- **A chart component is CSS *and* its renderer.** Moving only the stylesheet gets you half a
+  component: geometry (node width, plot height, ribbon tension) lives in the renderer's constants, so
+  a "visual change" is one-file only when it is colour, type or chrome.
+- ~~**A selector that hides charts must carry each hidden chart's headline state on its own
+  control.**~~ **WITHDRAWN 2026-08-18.** Added 2026-08-16 to justify collapsing four always-visible
+  dimension rows into one chart: the state word on each chip was what made that a condensation
+  rather than a loss. The premise expired the same week. **Agency now has its own always-visible
+  chart** (Home, and the assignment summary), so the four behind the selector are facets of one
+  construct read one at a time by choice, not four readings being hidden. The state word was also
+  a third telling of one fact — the ribbons show direction, the finding states it in words — and it
+  is now in the finding, where it can be a sentence to a teacher instead of a category name.
+- **A chart's selector is `.card-tab`, and carries the reading's NAME and nothing else.** Added
+  2026-08-18, replacing the boxed `.trend-chip` above. Tabs are the quietest selector this system
+  has, and a chart's selector must not compete with the chart. `.tau-nav-local` is a destination
+  switch; a bordered card is an object in its own right; both read louder than the ribbons under
+  them. One tab component now serves the class overview's Overview/Patterns/Trends and Movement's
+  dimensions.
+- **Tabs belong on a SINGLETON card, never on a card that repeats in a list.** Added 2026-08-18. Six
+  assignment cards each holding their own tab state means one shows Agency while the next shows
+  Dimensions, and comparing across them is the only reason they are in a list. Where a repeated card
+  carries too much, cut it (see the class card below), do not tab it.
+- **Agency is never a tab beside the four dimensions.** Added 2026-08-18. A level reads the whole
+  session; the four are facets of one construct. Putting them in one selector asserts a peerage the
+  measurement model denies — the same rule that keeps Composition off the band panel. Home and the
+  assignment summary each mount Movement **twice**: agency alone (no selector, because a selector
+  offering one choice is not a selector), then the four behind tabs.
+- **A trend's finding is a sentence to the teacher, not a label on a chart.** Added 2026-08-18. Two
+  parts, in one paragraph, one ink colour: what happened (bold), then the detail that carries it,
+  both naming the ends of the sequence — *"Your students handed more of the thinking over. More of
+  them were taking what the AI gave them by Final than at Draft 1."* Then, in the tool's own blue
+  block, **What to try**. Four rules, each a correction: **no counts** (the ribbons are the counts,
+  at their real widths); **no dimension name** (the tab above says it); **no colour on the state**
+  (green-up/red-down grades a room on improvement, which is already forbidden on the ribbons
+  themselves — see the flow rule above); and **the action answers the state** (a rise wants the habit
+  NAMED, a floor wants it taught FROM SCRATCH, a ceiling wants no block at all rather than one that
+  refuses its label).
+- **A repeated summary card carries ONE chart and no prose.** Added 2026-08-18. The closed assignment
+  card in a class view is agency composition and the link out — no dimension bands, no finding
+  paragraph, no flows. The scanning surface gets the shape; everything else is one click away.
+- **Where the reader has already been handed the landing place, the detail page leads with
+  movement.** Added 2026-08-18, and it is a stated exception to *"composition leads and movement
+  lives inside it"* two rules above, which still governs everywhere else. On the assignment detail
+  page the **summary IS the movement**: a flow spans every draft, where the final draft is one slice
+  of it, and the class card the teacher clicked already showed them that slice. Naming the final
+  draft "summary" is what made the page read as two of the same thing. **The word "summary" belongs
+  to the trend charts and to nothing else on that page**; every draft is labelled a draft.
+- **An empty state distinguishes "we cannot see it" from "we looked and there is nothing."** They are
+  different findings and route to different responses. Neither gets the full scaffold of the
+  populated state wrapped around no content.
 - Scores display as **1–4 per dimension, or "not enough here". No total, ever. Never a percentage.**
   A class-level figure is a **distribution** (how many students in each band), **never a mean** —
   bands are ordinal. **Amended 2026-08-12** (was "1–5 per dimension, 4–20 total"); see
@@ -56,6 +175,8 @@ not licence to improvise — say so and ask, don't invent.**
   here" means the session was too thin to judge.
 - Dimension names are fixed: **Prompting Quality, Selective Use, Calibrated Skepticism, Original
   Contribution.** No synonyms, no rewording per surface.
+- **Band labels are per dimension and a numeral is never shown to a teacher.** Added 2026-08-16.
+  The generic descriptors are the *scale*, not the label — see *Dimension band labels* below.
 - **SAMR leads.** The level is the primary label on the report and on every aggregate surface, and
   it is **named, never numbered** — numbering the rungs makes Augmentation read as a failing grade.
   **A deliberate reversal, 2026-08-12, recorded so it isn't read as drift:** this constraint said
@@ -255,14 +376,14 @@ Settled. Don't relitigate without a reason that's changed.
 
 | Decision | Why |
 |---|---|
-| **Scores display as 1–5 per dimension, 4–20 total. Never a percentage.** | `scoreTAU()` in `app/server/analysis.js` already emits exactly this. Percentages were invented by the v7 doc, imply precision the plan explicitly disclaims, and read as letter grades — `62%` looks like a D. |
+| **Scores display as a band per dimension, or "not enough here". No total, ever. Never a percentage.** *(Amended 2026-08-12 — was "1–5 per dimension, 4–20 total", justified by what `scoreTAU()` emitted. The code still emits the old shape; that is stale build state, not the spec.)* | Percentages were invented by the v7 doc, imply precision the plan explicitly disclaims, and read as letter grades — `62%` looks like a D. The total went for a separate reason: it sums facets the measurement model says are correlated. See *Hard Constraints* for the binding form. |
 | **Dimension names: Prompting Quality, Selective Use, Calibrated Skepticism, Original Contribution.** | These are the engine's own names. v7 drifted to generic ed-speak; "Calibrated Skepticism" teaches something, "Critical Synthesis" doesn't. |
 | **The "friction line at 51%" does not exist.** | Undefined anywhere, re-imports pass/fail into a coach tool, and drove an untokenised blue into the score ring. |
-| **Students see the total and all four dimension scores.** | Confirmed 2026-07-20. Obliges two rules — see *Score display rules* below. |
+| **Students see their overall level and all four dimension readings.** *(Amended 2026-08-12 — was "the total and all four dimension scores"; there is no total. The disclosure decision it settled stands: nothing about a student's own reading is withheld from them.)* | Confirmed 2026-07-20. Obliges two rules — see *Score display rules* below. |
 | **The divergence chart is student-facing.** | It's the visual map of their interaction. Inherits the coach-voice rule: describes, never judges. |
 | **Dropped connections get real states, not a toast.** | Every turn is persisted server-side as sent, so the copy is allowed to promise the work is safe. |
 | **Forest-washed ground in light theme, card surfaces stay white.** *(Revised 2026-07-21 — was "white ground, forest as accent only.")* | The all-neutral ground was itself the "white-washed tool with a green accent" problem the product owner flagged — forest is the brand colour, not just an accent. The wash is whisper-quiet (`oklch` chroma 0.006–0.010, same hue as forest) so it doesn't repeat v7's mistake of a saturated brand-demo tint; `--tau-surface` (cards, panels) is untouched pure white so content still separates from the ground. Dark theme is unchanged — see the next row. |
-| **SAMR is a subtitle, never the primary label.** | PD jargon. Students don't know it; teachers who missed that inservice don't either. |
+| **SAMR leads — the level is the primary label, named and never numbered.** *(Reversed 2026-08-12 — was "SAMR is a subtitle, never the primary label", written when SAMR was arithmetic off a total it didn't deserve. It is now a reading in its own right. Recorded so the reversal isn't read as drift.)* | The original objection was PD jargon — students don't know the word, nor do teachers who missed that inservice. It is outweighed now that the level is the measurement rather than a derived label; wherever the ladder appears it states that these levels describe agency. |
 | **Both light and dark themes ship.** | Students write at night, on phones. Dark is charcoal, not forest — a brand-tinted dark theme becomes a green room. |
 | **Light is the default for everyone; the OS preference is ignored.** | Confirmed 2026-07-20. A teacher projecting the tool shouldn't get a different screen from the class because their laptop is in dark mode. Dark is a choice a reader makes, not one the device makes for them. |
 | **`index.html` is never touched.** | Revertibility guarantee. All work is `app/` only. |
@@ -540,7 +661,7 @@ assumed unaudited, not assumed correct because it predates this rule.
 - **Forest gets six jobs and no others:** interactive text, primary fills, meter fills, the rule marking a system message, the light-theme ground wash (2026-07-21), and — new the same day — a student's own score numerals (`.report-total-n`, `.dim-val .n`).
 - **Sage is fill-only.** It fails contrast as text.
 - **Neutrals stay neutral past the ground wash.** The page background (`--tau-bg`/`--tau-surface-2`/`--tau-surface-3`) carries a whisper of forest; card surfaces (`--tau-surface`), shadows, and panel fills do not. The wash is one deliberate, quiet exception — it is not licence to tint greys generally.
-- **Forest on a score numeral is brand identity, not a verdict, because it never varies with the value.** A 5/20 and a 20/20 render in the exact same colour and weight — this is the one place a value-keyed rule could look like it's being broken, so it's worth stating why it isn't: *semantic* colour (positive/caution/attention) still never touches a score. This is a fixed brand treatment applied uniformly regardless of the number, same category as the SAMR band pip.
+- **Forest on a score numeral is brand identity, not a verdict, because it never varies with the value.** The lowest and the highest reading render in the exact same colour and weight — this is the one place a value-keyed rule could look like it's being broken, so it's worth stating why it isn't: *semantic* colour (positive/caution/attention) still never touches a score. This is a fixed brand treatment applied uniformly regardless of the number, same category as the SAMR band pip.
 - **Semantic colour (positive/caution/attention) never touches a student's own score.** A level is a position on a path, not a verdict. Semantic is for direction-of-travel and teacher-side signals only.
 - **SAMR band foregrounds step down in lightness 1→4.** Do not reorder — the ramp carries meaning in greyscale and for colour-blind readers on its own.
 - **Colour is never the only channel.** Anything encoded by hue is also encoded by shape, weight, dash, or text.
@@ -729,6 +850,32 @@ and off a touch screen altogether.
 
 ---
 
+## Dimension band labels
+
+**Added 2026-08-16.** The four generic descriptors — *didn't happen* / *not where it counted* /
+*there, with gaps* / *held up* — are the **scale**. They are the right words for a key, and the
+wrong words for a row, because each dimension measures a different behaviour: band 2 means the
+wrong *claims* for Calibrated Skepticism and the wrong *edits* for Selective Use. Sixteen labels,
+and **a teacher never sees the numeral**.
+
+| | 1 · didn't happen | 2 · not where it counted | 3 · there, with gaps | 4 · held up |
+|---|---|---|---|---|
+| **Prompting Quality** | The AI set the agenda throughout | Steered on details, never on direction | Led most of it, handed over at the hard parts | Set the direction and held it |
+| **Selective Use** | Kept the AI's draft as it came | Changed the wording, not the substance | Changed what it said, not how it was built | Reshaped the work, not just the sentences |
+| **Calibrated Skepticism** | Took it at face value | Questioned small things only | Questioned often, let key claims through | Questioned what the work rested on |
+| **Original Contribution** | The ideas are the AI's | Their own examples on the AI's frame | Their own argument, the AI's structure | The frame and the argument are theirs |
+
+**Band 2 is the row that has to be specific.** *"It happened, but not where it counted"* is the
+distinction a teacher can act on — `tau-dimensions.md` puts the resolution deliberately in the
+bottom half of the scale — and each of these four phrasings is a claim about what the wrong kind of
+effort looks like for that behaviour. Selective Use falls out of its own scheme cleanly (wording /
+what it says / how it's built is surface, micro, macro revision, Faigley & Witte).
+
+In code: `DIM_BAND_LABELS` in `app/web/dashboard.html`, ordered strongest-first to match the flow
+diagram's top-to-bottom node order.
+
+---
+
 ## Component inventory
 
 **Read "State" as two separate questions: is it defined, and is it consumed?** After Step 3c
@@ -799,7 +946,7 @@ vocabularies that can't share code:
 | Concept | Built as | Target |
 |---|---|---|
 | A conversation turn | `.msg` + `.turn-*` (index) · `.turn-row` / `.turn-text` (report) | one turn shell |
-| Four dimensions at 1–5 | `.meters` / `.meter-*` (rail) · `.summary-card` / `.dim-*` (report) | `.dims` / `.dim` + `.steps` |
+| The four dimensions | `.meters` / `.meter-*` (rail) · `.summary-card` / `.dim-*` (report) | `.dims` / `.dim` + `.steps` |
 | A band + score | `.rail-hero` + `.rail-band` · `.samr-hero-*` · `.draft-chip[samr-*]` · `.pcard-outcome` | `.band` + `.band-sub` |
 | A legend | `.div-legend-*` · `.prov-legend-*` · `.dt-legend-*` | one legend |
 | A score trend line | `.trend-svg` (rail) · artifact `.traj` (report) | one sparkline |
@@ -1081,7 +1228,7 @@ the same line in the band and origin blocks, and a naive `^\s*--` reports 21 fal
    would let a teacher spot the flat ones instantly. Distinct component, not a resize.
 3. **What does the map look like when it's honestly empty?** A student who asked three questions
    and pasted the answers gets one short lane. That image is more eloquent than any score and
-   will land harder than a 6/20. Needs copy written *before* anyone meets it in a pilot.
+   will land harder than any band label. Needs copy written *before* anyone meets it in a pilot.
 4. **Interrupted submissions.** A draft slot must never be spent on a request that didn't land.
    Server-side idempotency as much as design.
 5. **Did collapsing the 17 `--label-*` pairs to 3 families lose anything?** `report.css` already

@@ -38,6 +38,125 @@ them into a middle that describes nobody. `split` replaces the old `skewed` flag
 
 ---
 
+## Where the surfaces stand — read this first (2026-08-17)
+
+**The dashboard was rebuilt across 2026-08-16/17 and large parts of this file now describe surfaces
+that no longer exist.** Sections marked **⚠ SUPERSEDED** below are kept for the arguments in them,
+not as a spec. This table is authoritative; where it and a body section disagree, this wins.
+
+| Surface | What it renders now | Entry point |
+|---|---|---|
+| **Home** | triage tiles · classes · **patterns (Layer 1)** · **two Movement mounts** — agency alone (no selector), then the four dimensions behind tabs. Calendar buckets. | `renderHome()` |
+| **Class** | overview card with Overview / Patterns / **Trends** (the same Movement organism, assignment axis) · then Open and Closed assignment cards | `renderClassDetail()` |
+| **Assignment card — open** | tiles · submitted-vs-readable pace line · patterns (Layer 1). **No distribution, no origin mix.** | `renderAssignmentAggregateContent(a, s, 'summary')` |
+| **Assignment card — closed** | tiles · **agency composition, and nothing else** (2026-08-18). No bands, no finding prose, no flows — the card repeats in a list, so it carries one chart and the link out. | same, `'summary'` |
+| **Assignment Detail** | draft schedule · **the summary is two Movement mounts on the draft axis** (2026-08-18) — agency, then the four dimensions behind tabs — plus coaching note, patterns, origin mix · timeline of per-draft snapshots, each closed one carrying **agency + bands side by side** (`.cols-2up`) | `renderAssignmentDetail()` |
+| **Student** | rows and drill panel read **level**, not a total. Each expanded assignment leads with a **Trace** — the finding, then agency + four dimension rows across the closed drafts (2026-08-17) | `renderStudentDetail()` · `renderStudentTrace()` |
+| **Browse Students** | Student · **Agency** (latest readable level) · Signal. The mean-of-totals column is gone. | `renderBrowseStudents()` |
+
+**There is no line chart anywhere in `dashboard.html`.** `svgLineChart`, `FINAL_METRICS`,
+`classAssignmentSeries`, `classSeriesOutlierNote`, `classDimensionTrend`, `dimensionRowsFromCohort`,
+`TAU_DIMENSIONS`, `renderTeachingSection` and the whole per-draft histogram are deleted.
+
+### The two rules the rebuild rests on
+
+1. **A bar is a reading of ONE TASK; a flow is a reading of A SEQUENCE.** A surface gets a bar only
+   if its scope names a shared task, and a flow only if it has two closed windows. This is why Home
+   has no composition — pooling levels across classes running different work asserts a comparison the
+   material does not support — and why the class tier's compositions live inside its assignment cards
+   rather than in a class-level strip.
+2. **On an incomplete cohort, show what has a per-student denominator; withhold what has a per-class
+   one.** A pattern stays true as more students arrive; a distribution's *shape* is dominated by who
+   has not submitted. **Never fix this with a caveat** — a caveat under a misleading chart is weaker
+   than not drawing the chart.
+
+### Invariants a change must not break
+
+- **The composition IS the flow's final column**, by construction — both read
+  `assignmentReadingCohort()`, i.e. the last closed draft. They disagreed once (2026-08-16, sixth
+  entry); do not reintroduce a second cohort function.
+- Every band/level on every surface is still a **shim** — `bandFromLegacyScore()` off the retired 1–5
+  ratios. Nothing here is validated until `scoreTAU`'s signature changes.
+- **Never calibrate a threshold or a distribution shape on the demo seed** (`tau-dimensions.md`).
+- **Three flow axes, and the surface's scope picks one.** `FLOW_AXIS_TIME` (calendar buckets — Home,
+  which spans classes running different work), `FLOW_AXIS_ASSIGNMENT` (one class, everyone did the
+  same ones), `FLOW_AXIS_DRAFT` (one assignment — the strongest of the three, since a column is a
+  fair comparison by construction). The axis carries its own decoder copy, which is why it is a
+  parameter and not three components.
+- **The trend finding, and everything it must not do**, is now a Hard Constraint in
+  `designsystem.md` (2026-08-18). Short version: a sentence to the teacher, no counts, no dimension
+  name, no colour, and the action answers the state. `dimensionCopy` / `agencyCopy` in `viz.js`.
+- **`.trend-lede`, not `.viz-lede`, above a flow.** The grey left rule is a container device; the
+  finding hands off to the blue action block directly beneath it, and two stacked rules read as two
+  unrelated notices. `renderComposition` took `.trend-lede` too on 2026-08-17, with `LEVEL_GLOSS`
+  rewritten to the second person to match.
+- **Movement's selector is `.card-tab`, and carries NO state word** (2026-08-17). Anything below
+  describing a boxed `.trend-chip` with "Improving" / "At the floor" under the name is history —
+  `.trend-chip*`, `.flow-state*`, `flowState()` and `flowStateShort()` are all deleted. The word was
+  a third telling of one fact (the ribbons show direction, the lede counts it), and the argument that
+  kept it — that one strip stood in for five readings — expired when agency got its own chart.
+  **Agency is never a tab beside the four**: a level reads the whole session, the four are facets of
+  one construct, so it is not their peer. Same rule that keeps Composition off the band panel.
+
+### Open, in the order agreed
+
+1. **Two pattern sources on one screen.** The class card's Patterns tab still calls `detectTrends()` —
+   the naming layer, where `low-skepticism` *is* `avgCS < 2.5` (`patterns.md`, *The finding*).
+   Everything else uses `assignmentPatternGroups`/`detectPatternGroups`, the real detectors. Convert
+   the class tab.
+2. ~~**Three trend controls.**~~ **Done 2026-08-17** — Home and class both mount `renderMovement()`.
+   What is left is deliberate, not residue: the assignment card's flows stay inside its band and
+   composition rows, because there the scope is a shared task and *composition leads, movement lives
+   inside it* (`designsystem.md` Hard Constraints).
+3. **Collapse the closed assignment list**, finding on the closed row, newest first, latest open.
+   Designed but not built: https://claude.ai/code/artifact/f7975efe-cd68-4cdd-b646-72e3b62ffd9b
+3b. **The flag and signal COPY** — the one pocket still speaking in totals: `FLAG_META`'s
+   `score-spike` / `reflection-score-mismatch` / `reflection-delta-mismatch`, the flag tray, the signal
+   `reason` strings, and the drill row's "Score jumped +N points". Their detectors are gated on
+   `scoreTAU` and the flag NAMES are part of the flag system's IA, so this is one job — half of it leaves
+   a row line contradicting its own "Learn more". Currently unreachable in the demo seed.
+4. ~~**The student tier**~~ **Done 2026-08-17** — see the fourth session-log entry. The original note
+   below is kept because its reasoning is what produced Trace: a cohort
+   flow degenerates at n=1 and does not belong on a student-facing report at all (`designsystem.md`).
+
+### Component layer
+
+**The organisms live in `app/web/viz.js`** — extracted from `dashboard.html` 2026-08-17. Colour, type
+and chrome are in `components.css` (`.comp-*`, `.dbar-*`, `.dist-*`, `.viz-*`, and since 2026-08-17
+`.flow-*` and `.trend-*`); geometry, copy and the flow's renderer (`drawFlow`, `flowSVG`,
+`mountFlows`, the geometry constants) are in `viz.js`. Two files, one axis each.
+
+**The boundary is one rule: `viz.js` reads no app state.** No `SUBMISSIONS`, no `STUDENTS`, no
+`ASSIGNMENTS`. Every function in it takes a cohort, a flow, or an array of readings and returns
+markup — which is what lets it be mounted against fixtures rather than only against a logged-in
+demo roster. **Choosing which students and which submissions is the host's job**, so the per-surface
+adapters stay in `dashboard.html`. The host owes `viz.js` exactly one thing back: `setFlowMetric(scope,
+key)`, the re-render hook Movement's chips call.
+
+Four organisms, deliberately not three: **Composition**, **Distribution**, **Movement**, **Trace**.
+Each occurs alone somewhere in the shipped app, so none may assume a sibling is on the page with it.
+
+**Each is one function with one entry point, and each takes a cohort, its flows, or its readings —
+never a surface's own object:**
+
+| Organism | Entry point (`viz.js`) | Adapters (`dashboard.html`) |
+|---|---|---|
+| **Composition** | `renderComposition(cohort, { label, flow?, noFlowNote? })` | `renderAgencyDistribution(a, students)` · `renderDraftAgency(a, slot, students)` |
+| **Distribution** | `renderBandSection(cohort, { label, summary, lede, flowFor? })` | `renderAssignmentDimensions(a, students)` · `renderDraftBands(a, slot, students)` |
+| **Movement** | `renderMovement(scope, entries, summary, axis, { title })` + `agencyEntries` / `dimensionEntries` / `movementEntries` | Home **twice** · assignment detail **twice** · class once |
+| **Trace** (n=1) | `renderTrace(stageNames, bands, levels)` + `traceMove` / `traceFinding` | `renderStudentTrace(a, studentId)` |
+
+**Trace is the odd one out and stays that way:** it takes a student and an assignment, not a cohort,
+because its subject *is* one student — a one-row cohort would be a cohort function pretending. The other
+three never render it and it never renders them.
+
+The optional argument on each is where its sibling plugs in — `flow`, `flowFor` — so a scope with no
+sequence renders the bars alone rather than an empty drawer, and Movement mounts with nothing above it.
+**Movement's scope is a string** (`'home'`, `'class:<id>'`), which is the whole reason one component
+can serve both rooms; `flowMetric[scope]` holds the selection.
+
+---
+
 ## The unit of every aggregate
 
 **Added 2026-08-12.** The one place this vocabulary is defined. No surface below re-derives it, and
@@ -136,7 +255,7 @@ not the 240px this page used to set.
 | Home | Sidebar "Home" link, default on load | Stat tiles, behavioral-pattern cards, a missing-checkpoints card, classes-at-a-glance rollup |
 | Class detail | Sidebar Classes list | Assignment list for that class (Draft / Due / Completed / Trends / Worth a chat), expandable per assignment |
 | Browse Assignments | Sidebar's "All assignments" row + its demoted "Open" sub-nav filter | Full assignment list (name, classes, due date, Open/Closed, students, missing, worth-a-chat), filterable by status (All/Open/Closed), searchable by name, expandable per assignment |
-| Assignment detail | "View full assignment →" inside an expanded row (Browse Assignments or Class detail) | A timeline: the assignment's goal, then one snapshot per closed draft (Overview/Distributions tabs), a live in-progress card, and ghosted future checkpoints — no student roster (rebuilt 2026-07-31, see *Assignment Detail — a timeline, not a roster*) |
+| Assignment detail | "View full assignment →" inside an expanded row (Browse Assignments or Class detail) | A timeline: the assignment's goal, then one snapshot per closed draft (Overview / Dimension bands tabs), a live in-progress card, and ghosted future checkpoints — no student roster (rebuilt 2026-07-31, see *Assignment Detail — a timeline, not a roster*) |
 | Browse Students | Sidebar's "All students" row + its two demoted sub-nav filters | Full student roster, grouped by class, filterable |
 | Student detail | Any student row/link anywhere | One student's assignments, grouped into a panel per class they belong to |
 
@@ -303,6 +422,11 @@ deliberate, not an oversight.
 check mark, "All students on track."
 
 ### Dimension trends
+
+> **⚠ SUPERSEDED 2026-08-16.** The section it describes (`renderTeachingSection`) is deleted —
+> it printed "Averaging 2.1 of 5" across every class, which is a mean of ordinals.
+>
+> Kept for the argument in it, not as a spec. See *Where the surfaces stand*, top of file.
 
 **Was "How your teaching is landing"; rebuilt and renamed 2026-08-08.** A fleet-wide rollup of the
 four TAU dimensions — `renderTeachingSection()` over `fleetDimensionTrend()`, same
@@ -759,6 +883,11 @@ single-label form; the paragraph above describes them.
 
 ## Band distributions at the class and assignment tiers
 
+> **⚠ SUPERSEDED IN PART, 2026-08-16.** Both tiers moved to bands and flows; the histogram is
+> deleted. What survives is the reasoning about what a distribution can honestly claim.
+>
+> Kept for the argument in it, not as a spec. See *Where the surfaces stand*, top of file.
+
 **Added 2026-08-12.** One substitution, applied identically at both tiers — described once here, and
 cited rather than restated by *Class View*, *Assignment View* and *Assignment Detail* below.
 
@@ -820,6 +949,11 @@ from the clickable Missing / Worth-a-chat pair.
 ---
 
 ## Class View
+
+> **⚠ SUPERSEDED IN PART, 2026-08-16.** The Trends tab is now a chip selector over one flow.
+> The arc line chart, `FINAL_METRICS` and outlier-note passages describe deleted code.
+>
+> Kept for the argument in it, not as a spec. See *Where the surfaces stand*, top of file.
 
 **Rebuilt 2026-07-31 as a timeline of assignments, not a sortable table.** Reached from the
 sidebar's Classes list, not from a tab-level "all classes" overview any more (see *Navigation
@@ -1147,6 +1281,12 @@ tracks which row is open, reset on every fresh entry via `gotoAssignments()`.
 
 ## Assignment Detail — a timeline, not a roster
 
+> **⚠ SUPERSEDED IN PART, 2026-08-16.** The timeline survives. The per-draft Distributions
+> histogram is now a Dimension bands tab — band bars, no metric chips, no 1–5 axis — and the
+> Overview/Trend tab pair is deleted.
+>
+> Kept for the argument in it, not as a spec. See *Where the surfaces stand*, top of file.
+
 **Rebuilt 2026-07-31 (later same day), replacing the student-roster page this section used to
 describe.** The old shape (Student / Draft / How they're using AI / Total / Change / Worth a chat,
 one row per student, grouped by class) is gone from this page entirely — prompted by a direct
@@ -1413,6 +1553,11 @@ this page rather than reviving the roster table here.
 
 ## Assignment View — aggregate-first, a teaching tool not a monitor
 
+> **⚠ SUPERSEDED IN PART, 2026-08-16.** "Aggregate-first, no roster" survives. The
+> dimension-trend table it specifies is replaced by bands and flows.
+>
+> Kept for the argument in it, not as a spec. See *Where the surfaces stand*, top of file.
+
 **Built 2026-07-31.** Designed and settled 2026-07-30 as a standalone artifact (three states — All
 assignments / expanded / clicked open — walking one real assignment through the flow); shipped the
 next day in `dashboard.html` — `assignmentDimensionTrend()`, `assignmentProvenanceMix()`,
@@ -1540,6 +1685,16 @@ to filter — see the *Consequence accepted, not overlooked* note above.
 ---
 
 ## Student View
+
+> **⚠ NOT YET REBUILT** — the one surface still emitting the retired totals and raw 1–5 dimension
+> numbers. **Those are not a measurement this product has**; the model is **agency (level + trend)**
+> and **the four dimensions (band + trend)**, and this surface owes both, scoped to one student.
+> Item 4 in *Open* at the top.
+>
+> **n=1 is what makes it its own build, not a re-mount.** A cohort flow degenerates here — every
+> ribbon is width 1 — and its widths are counts of classmates, which is a ranking a student must
+> never be handed (`designsystem.md` Hard Constraints). So the trend halves need their own mark:
+> most naturally the *Distribution* organism per draft, never *Movement*.
 
 Shows every class the student belongs to, each as its own panel of that class's assignments,
 expandable into submission history. **Rebuilt 2026-07-28** — a student can now genuinely be in more
@@ -1929,6 +2084,613 @@ see `app/README.md`'s file map if you need to work on that surface instead.
 *Added 2026-07-27. Going forward, log dashboard-affecting sessions here — same convention
 `designsystem.md` uses for the rest of `app/`. Retroactive entries below reconstruct what's
 already landed; write new ones going forward rather than editing history in place.*
+
+**2026-08-18 — the viz layer got a lab, and then got worked on in it**
+
+**`app/web/viz.js` and `app/web/viz-lab.html` exist now.** The four organisms came out of
+`dashboard.html` (958 lines) under one rule: **nothing in `viz.js` reads app state.** Every function
+takes a cohort, a flow or an array of readings and returns markup, which is what lets a lab drive
+them from fixtures. The per-surface adapters that pick real students stayed behind. The host owes
+`viz.js` exactly one thing back — `setFlowMetric(scope, key)`.
+
+**`renderStudentTrace(a, studentId)` became `renderTrace(stageNames, bands, levels)`**, with a
+five-line adapter keeping the old name. It was the only organism that reached for `draftSchedule()`
+and `getSubs()`, which made the n=1 mark the one thing a lab could not mount.
+
+**The lab is organised by SCREEN, not by chart** — and the first version wasn't, which was the
+mistake worth recording. Four sections, one per organism, answered "how does Composition behave" and
+could not answer the question actually being asked of it: "what will the assignment card look like."
+Screens are how the product is read and how the work gets scoped.
+
+**Three real defects the lab found in its first hour**, none of them reachable by clicking through
+the demo app:
+1. **Six classes `viz.js` emits were defined only in `dashboard.html`'s `<style>`** — `.agg-block-lbl`,
+   `.agg-sample-note`, `.section-head`, `.section-summary`, `.pattern-body`, `.no-signal`. Any page
+   mounting an organism with only `components.css` got unstyled markup. Moved to §17.
+2. **`.card-tabs` / `.card-tab` were also dashboard-only**, so Movement's new tabs would have cloned
+   a component instead of reusing it. Moved; one tab component now serves both.
+3. **The lab itself asked for `--tau-font-sans`, which does not exist** (the token is
+   `--tau-font-ui`), so every screenshot was rendering in the browser default serif. Found from a
+   screenshot, not from a grep.
+
+**What changed on the surfaces, in the order it was decided:**
+
+- **Home mounts Movement twice** — agency alone, then the four dimensions behind tabs. See the new
+  Hard Constraint: agency is not a peer of the four, so it does not belong in their selector.
+- **The state word came off the selector and went into the finding.** `.trend-chip`, `.ts-*`,
+  `.flow-state*`, `flowStateShort()` are deleted; `flowState()` survives because the finding needs
+  the five states in prose. The Hard Constraint that required the chip to carry it is withdrawn.
+- **The finding was rewritten three times**, and the sequence is the useful part: counts removed
+  (the ribbons are the counts), then the dimension name removed (the tab says it), then the state
+  label removed (the sentence already says which way it went), then rewritten as a span with both
+  ends named. What is left is two sentences and a **What to try** that answers the state.
+- **"Worth raising:" became "What to try:"** — the same `.pattern-try` component was carrying two
+  labels, three places to two.
+- **The closed assignment card in a class view is agency and nothing else.** It repeats in a list;
+  it was carrying up to five charts and a paragraph.
+- **The assignment detail page's summary is the movement.** Its old "summary" was
+  `assignmentReadingCohort()` — the last closed draft — so the top of the page and the last block of
+  the timeline were one reading printed twice, one of them mislabelled. This inverts
+  "composition leads" for that surface only; the exception is written into `designsystem.md` rather
+  than left to be rediscovered.
+- **The dimension chart's proportions were aligned to the agency chart** — 26px bars to 18px, two
+  hardcoded `11px` and one `13px` to tokens, 9px row padding to 5px. The grid columns already
+  matched by construction. One deliberate mismatch left: the in-bar numeral stays `--tau-text-xs`,
+  because 13px clips inside an 18px bar.
+- **`.cols-2up`** — generalised out of `.home-cols-2up` for the per-draft blocks, as a **container**
+  query rather than a viewport media query, because the columns care how wide their own box is.
+
+**A hazard this session demonstrated twice.** Two large `python` range-replacements on `viz.js` cut
+more than intended — one swallowed `FLOW_AXIS_TIME` and `FLOW_AXIS_ASSIGNMENT` (Home and the class
+tab threw outright), the other left the entire copy layer duplicated, 147 stale lines. **Both were
+caught by the same thing: a headless sweep of every screen × case in the lab, checking for throws
+and for `undefined`/`NaN` in the output.** Neither was caught by `node --check`, and the second one
+did parse. Run the sweep after every edit to `viz.js`, not at the end.
+
+**2026-08-17 (fifth) — two facts about verifying this layer, worth keeping**
+
+**There is no test suite in this repo, deliberately.** One was written this session and deleted the same
+day — it was never asked for, nothing runs it, and the harness it needed (a `vm` with a stubbed DOM) is
+fragile against any new global in `dashboard.html`. `designsystem.md`'s *Verifying visually* remains the
+only verification convention here. Two facts came out of the exercise and are the reason for this entry:
+
+**1. The demo seed cannot cover the case space, and this is measurable.** It contains **no band drop on
+any student, on any assignment** — the highest-priority branch in `traceFinding()`. So driving every
+screen against the seed exercises the app's wiring and says nothing about whether a finding is right.
+The seed is a fixture for laying out screens; it is good at that and it is not evidence. To check a
+case, construct the cohort that sits on it.
+
+**2. `drawFlow` — the flow's actual geometry — is exercised by nothing.** `flowSVG` emits only a mount
+div and pushes to `FLOW_PENDING`; the SVG is built after measure. So every "the flow renders" claim in
+this log covers the mount and not one line of the node heights, the 2.5px floor, the off-lane, the
+canvas sizing or a single ribbon path. Its failure mode is silent — a NaN coordinate makes a ribbon
+vanish without throwing. **Anyone touching those constants should draw it at a narrow and a wide width
+and look**, since nothing else will catch it.
+
+Both were confirmed by running it before the suite came out: no NaN at 420/720/1200px, height driven by
+the cohort rather than the width, and the 2.5px floor growing the canvas rather than clipping the last
+lane. That held on the day. It is not guarded.
+
+**2026-08-17 (fourth) — Trace: the n=1 mark, and the finding leads it**
+
+The last piece of the display rebuild. Neither cohort mark works for one student, and the reason is the
+same for both: **they encode a count.** A flow encodes it as ribbon width, so one student is four
+ribbons of width 1; a distribution encodes it as segment length, so one student is one full-width
+segment per row. What is left at n=1 is **position across a sequence** — a fourth mark, not a third
+instance. It is still built from Distribution's atom (`.steps` at four pips, the discrete band reading),
+which is what the constraint asks for.
+
+**Rows are the four dimensions, columns are closed draft slots.** That axis is the one a single
+assignment licenses. **Agency rides above as level chips, not a fifth row** — the same argument that
+keeps Composition off the band panel: a level is a reading of the whole session, not a peer of the four.
+
+**The finding leads; the grid is subordinate.** Asked for, and it is the right correction: a cohort chart
+shows a *shape* a teacher reads a finding off, and a 4×N grid of one student has no shape — it asks them
+to hunt through twelve cells. So `traceFinding()` writes one lead sentence and returns the index of the
+row it is about, which the grid emphasises with the same weight-only `.is-focus` device `.dist-row.is-floor`
+already uses. **Which finding leads is case-dependent, and every rung of the ranking is a rule settled
+elsewhere:**
+
+| Rank | Case | Why it outranks what is below it |
+|---|---|---|
+| 1 | A **drop** | The one per-student trend input the triage respec keeps ("dropped a band across drafts — an ordinal move, not a delta"). Largest drop wins; ties break on PQ/SU/CS/OC order so the same trace always leads with the same dimension |
+| 2 | **Band 1 on the latest reading** | Absolute — "the behaviour is absent, not weak" |
+| 3 | A **rise** | Only when nothing fell and nothing is at the floor; leading with good news over a floor buries the actionable half |
+| 4 | **Cannot be compared** | A finding about the data, not the student |
+| 5 | **Flat at the floor** / **flat at the ceiling** | Distinct, per `flowState`'s recorded correction — the same "held" is a Monday lesson at the floor and a non-issue at the ceiling |
+
+**Two bugs found by testing the branches the seed cannot reach.** The demo seed contains **no drop at
+all**, so the highest-priority lead would have shipped unexercised.
+
+1. **A band label got case-folded** — `.toLowerCase()` on it printed *"the ai set the agenda
+   throughout"*. This is the identical mistake `dimNote()` already carries a warning about, made again
+   two hundred lines away from the warning. Every sentence is now built so the label sits verbatim, set
+   off by an em dash rather than spliced mid-clause where its capital would need flattening.
+2. **The flat branch claimed "the readings held across every draft" off one readable reading.** "Nothing
+   moved" is a finding about the student; "nothing is comparable" is a finding about the data. A single
+   dimension can be unreadable on a session the other three were read on (a zero on one dimension of a
+   complete analysis), so the whole-trace readability guard upstream does not cover it — there is now a
+   `none` branch ahead of both flat cases.
+
+**Verified:** 15 synthetic cases covering every branch, plus 14 asserted ranking rules (a drop outranks
+a rise *and* focuses the dropped dimension; band 1 outranks a rise; floor and ceiling stay distinct; an
+unreadable middle stage is skipped rather than read as a fall and a recovery; no lead leaks
+`undefined`/`NaN`/`null`; no label is case-folded). Plus the full 129-view sweep still clean, 219 classes
+all resolving.
+
+**2026-08-17 (third) — the retired totals came off the display; mounting Composition found a live bug**
+
+The display vocabulary, not the measurement: every level and band is still the
+`bandFromLegacyScore`/`samr(total())` shim until `scoreTAU`'s signature changes. What changed is that
+no surface prints the shim's raw arithmetic any more.
+
+**`bandChip(t)` took a 4–20 total right up to today**, which is what kept totals being computed on
+surfaces that only ever wanted to name a level. It is now `levelChip(n)` — level ordinal or null — and
+`latestLevel(subs)` gets one in a hop. Three call sites, all converted.
+
+**The level's LABEL is now the SAMR name everywhere.** Roster rows printed "Steering a little" while
+the Composition organism inches away printed "Augmentation" for the same reading. The 2026-08-12
+reversal (*"SAMR leads … named, never numbered"*) had never reached `bandChip`, whose comment still
+cited the pre-reversal rule. `BAND_PLAIN` is the gloss now, which is what `LEVEL_GLOSS` already was.
+
+**Browse Students lost its Average column**, and it was wrong three ways at once: a total, a *mean* of
+totals, and a level chip computed as `samr(that mean)` — a named level off an average of ordinals. The
+sort comparator recomputed the same mean independently, so the two had to be kept in step by hand. Both
+now read the latest readable session's level; unreadable sorts *below* level 1, never as a zero. The
+header was `How they're using AI` — a question, not the content — and is now `Agency`.
+
+**A draft slot now gets a Composition**, since a slot is one shared task. `flow: null`, because a slot
+has no interior sequence — its movement is the assignment's flow one tier up, where the stages *are*
+the slots. That is the optional-sibling seam doing its job: bars alone, no empty drawer.
+
+**Mounting it there exposed a bug that was already live one tier up.** On a thin cohort the organism
+printed `Most read at Modification` beside `1 read of 5` — a distribution claim off one student, which
+Hard Constraints forbid explicitly. It reproduced on the shipped assignment card for any task most of a
+class had not finished. The fix reuses `isSplit()`'s **two-per-group floor** and its recorded reasoning
+rather than inventing a threshold, and splits what had been one message into two findings that route
+differently: *we cannot see enough* ("1 of 5 have a readable session") versus *we looked and there is no
+group* ("no two students read at the same level"). Also made the no-plurality copy scope-neutral — it
+said "nobody who sat this assignment" while now rendering at a draft slot.
+
+**Also gone:** the reflection arc's per-entry score (the strip's subject is what the student *said*; a
+level beside each excerpt invited reading the reflection as the cause of the reading); the drill row's
+raw `PQ 3 SU 2 CS 4 OC 3`; and the `score-delta` chip's bare total delta in a **`chip-positive` pill** —
+semantic colour on a student's own score, which Hard Constraints prohibit outright. It reads
+`Up a level` / `Back a level` / `Same level`, neutral in all three directions.
+
+**`classAvgTotal()` deleted — zero callers.** Third time this file has turned up a retired chart's
+helper still in place after the chart went (`sparklineSVG`, two duplicate render paths). The pattern is
+the finding, not the function.
+
+**Verified against the real seed, not fixtures.** Logged into the running dev server, pulled
+`/api/teacher/dashboard`, and drove **129 views** through a `vm` with a stubbed DOM and the page's three
+sibling scripts loaded for real: every screen, every class tab, every assignment, every student, every
+drill panel expanded, every draft snapshot, all five Movement readings on both scopes, and all three
+roster sort columns in both directions. 0 failures. Asserted absent: `/20`, `band-0`, the raw dimension
+strip, `.sub-total`/`.arc-score`/`.dim-scores`, `undefined`, `NaN`, semantic colour on a level delta.
+All 201 emitted classes resolve in a stylesheet. Level chips render only the four SAMR names.
+
+**Still on retired vocabulary — one pocket, deliberately left whole:** the flag and signal COPY.
+`FLAG_META`'s `score-spike` ("TAU score increased sharply"), `reflection-score-mismatch`,
+`reflection-delta-mismatch` (named *Delta–Score Mismatch*), the flag tray's paragraphs, the signal
+`reason` strings, and the drill row's `Score jumped +N points in M minutes`. Their detectors are gated
+on `scoreTAU` and their names are part of the flag system's own IA, so rewriting half of it would leave
+a line and its own "Learn more" disagreeing. One job, not a residue. **Note it is currently unreachable
+in the demo seed** — no submission pair trips the spike threshold — so it rendered in none of the 129
+views and is untested either way.
+
+**2026-08-17 (second) — the organisms got their entry points; Home stopped carrying a second copy**
+
+The split settled that morning was a naming of three organisms, not three components: in code only
+**Distribution** actually had the shape. **Composition** took an assignment, and **Movement** existed
+three times.
+
+**What made Movement uncopyable was one line.** `renderFlowSelector` wrote its state through
+`setClassTrendMetric(cid, …)`, so a surface with no class id could not call it — and Home, which is the
+other room-scoped surface in the product, had grown its own pair (`renderLevelFlowSection` +
+`renderDimMovementSection`) rather than being unable to render. **The scope is now a string**,
+`'home'` or `'class:<id>'`, keyed into one `flowMetric` map. That is the entire coupling that stood
+between one component and two, and every difference that remains between the two mounts is carried by
+the axis object.
+
+- `movementEntries(levelFlow, dimFlows)` builds the five readings once. The agency lede was previously
+  **byte-identical in two renderers**; so were `DIM_WHAT` and the movement counts.
+- **Home lost four disclosures and gained nothing hidden.** It is a trend-only surface that was
+  collapsing four of its five primary readings — the standing required-vs-hidden check, failed on the
+  one page where those readings *are* the page. The state word already rides on each chip, so the
+  comparison across all five survives the condensation (`designsystem.md` Hard Constraints).
+- **`try` was promoted into the entries.** Home's collapsed rows carried "Worth raising" and the chip
+  strip would have dropped it, so it now renders under the chart on both mounts. The class Trends tab
+  gains it; that is the consistency, not scope creep.
+- `renderComposition(cohort, opts)` now matches `renderBandSection(cohort, opts)`, with
+  `renderAgencyDistribution` reduced to a six-line adapter. **The disclosure only exists if the caller
+  hands in a flow or the note explaining its absence** — the organism does not assume Movement.
+- `gotoClass()` now deletes **one** key instead of clearing the map, since Home shares it.
+
+**Net −140 lines.** Verified by running the extracted script in a `vm` with a stubbed DOM: both mounts
+render, the empty-flow and null-dimension paths render, selection persists per scope and Home's
+selection survives a class visit, all three Composition shapes render with the disclosure present only
+when asked for, and all 24 emitted classes resolve in a stylesheet.
+
+**2026-08-17 — the flow graduated to `components.css`; the organism split settled**
+
+`.flow-*`, `.trend-chip*`, `.trend-block` and `.trend-cue` moved out of `dashboard.html`'s inline
+sheet into `components.css`. They were written when the flow was single-surface (Home only); it now
+renders on Home, the class Trends tab and the assignment card, and a second copy had already appeared
+in `class-lab.html` — which is the placement rule's own trigger.
+
+**Verified rather than assumed:** every class the dashboard's JS emits was checked against both
+sheets — no viz class is unresolved, and both stylesheets are brace-balanced. Full render sweep clean,
+flows still queue and draw.
+
+**The atomic split, and why it is three organisms and not one.** Asked whether "current state + trend"
+should be a single reusable organism. It should not, and the shipped app settles it: **both halves
+already occur alone.** Home and the class Trends tab render Movement with no distribution beneath it;
+an assignment with one closed draft renders the distributions with no flow. Binding them means
+instantiating a component with half of itself suppressed — two components wearing one name.
+
+So: **Composition** (levels), **Distribution** (four dimension bands), **Movement** (selector + flow).
+Cards compose them; no organism assumes its sibling is present. Below them the inventory is already
+right — molecules `.dbar`, `.comp-row`, `.dbar-key`, `.trend-chip` and the shared `.viz-row-head` /
+`.viz-plot` grid; atoms `.dbar-seg`, `.comp-fill`, `.flow-state`.
+
+**Still split across two files.** The flow's CSS is now a component; its RENDERER is not —
+`drawFlow`/`flowSVG`/`mountFlows` and the geometry constants (`FLOW_NODE`, `FLOW_PLOT`,
+`FLOW_TENSION`, `FLOW_OFF_GAP`) stay in `dashboard.html`. Colour, type and chrome are now a one-file
+change; geometry is not. A `viz-flow.js` would close it, and would also be what lets `report.html`
+use the same chart.
+
+**2026-08-16 (sixth) — the composition and the flow were reading different cohorts**
+
+**The bug.** `renderAgencyDistribution` and `renderAssignmentDimensions` read each student's **latest
+completed submission**; `draftFlow`'s final column reads the **last closed draft**. Those are the same
+set only when every student submitted every draft. Anyone who stopped earlier appeared in the bar at
+their draft-2 reading and in the flow with no reading at all — **two charts disagreeing about the same
+students, inches apart on one card**.
+
+Reproduced by dropping two students' final-draft submissions from the seed:
+
+```
+composition (latest completed sub)  : … Not enough evidence = 0
+flow last column (last closed draft): … not-enough        = 2
+```
+
+**The fix is structural, not a reconciliation.** `assignmentReadingCohort()` reads the last closed
+draft, so **the bar IS the flow's final column by construction** — they cannot drift apart again,
+rather than being two computations that happen to agree today. `assignmentBandNote` reads the same
+cohort, so the coaching note cannot claim a number the bars don't show. Verified both directions:
+agency composition against the level flow, and each of the four band bars against its own dimension
+flow's last column.
+
+**The section now names the draft it reads** — *"Agency, final"*, *"Dimension bands, final"*, with
+`N read of M`. Without it, the excluded students are excluded for a reason the teacher cannot see.
+
+**A consequence that needed its own fix: the off-lane copy became untrue.** That lane now holds
+students who submitted nothing on that draft *as well as* students whose session was too thin to
+code, and it said only the second (*"N sessions too thin to read this one"*). Grouping the two is
+deliberate and already argued on Home's triage tiles — an overdue draft and an unreadable session are
+the same finding, *you cannot see this student*, routing to the same conversation. The copy names both
+causes now. **The lane keeps the name "Not enough evidence"** rather than being renamed, because that
+vocabulary is fixed in `designsystem.md`'s Hard Constraints and is used product-wide; whether it is
+the right name for a lane with two causes is a separate question worth asking.
+
+**Where this leaves the component layer.** The bar family (`.comp-*`, `.dbar-*`, `.dist-*`, `.viz-*`)
+is in `components.css` and is a real shared component. **The flow family is not** — `.flow-*` lives in
+`dashboard.html`'s inline sheet and is already duplicated into `class-lab.html`. It now renders on
+three surfaces (Home, class Trends, the assignment card), so by the placement rule it has earned
+graduation to `components.css`. Same for `.trend-chip*` / `.trend-block` / `.trend-cue`, added today.
+Until that happens, a change to the flow's look is a change in two files.
+
+**2026-08-16 (fifth) — the class Trends tab condensed to one selector, one chart**
+
+The tab was a full-height agency chart stacked on four collapsed dimension rows — roughly 520px for a
+question that is singular. Now a five-chip selector (Agency, then PQ/SU/CS/OC in canonical order) over
+one chart, defaulting to Agency. About 360px.
+
+**Home's own rule already said this.** *"Four flows always visible would be four charts to compare,
+and only one is ever the question"* — the selector is that rule applied to the whole tab rather than
+to four rows inside half of it.
+
+**This reverses the chip deletion made earlier the same day, and the reversal is not drift.** The
+chips were deleted because of what they selected *between*: five line charts of means, where the chip
+existed to ration a form that should not have been on the page at all. Selecting between five flow
+diagrams is a different act — each is a legitimate chart, only one is ever being asked about, and each
+needs the full card width to be readable.
+
+**The state word rides on the chip, and that is what makes this a condensation rather than a loss.**
+The four collapsed rows carried one genuinely comparable reading — *which* dimensions moved. Hiding
+four charts behind an unlabelled selector would have thrown it away. On the chip, all five states are
+legible at once and the chart answers whichever the teacher picks.
+
+**A bug caught in review, and it was a repeat.** The first version keyed the chip's short state text
+on `flowState`'s `key`, which returns `flat` for **both** plain flat and flat-at-the-ceiling — so
+ceiling collapsed into flat. Floor and ceiling staying distinct is a correction this file has already
+recorded once: the same "flat" is a Monday lesson at the floor and a non-issue at the ceiling. Keyed
+on the label now. Ceiling stays neutral in colour, because it is not a gain.
+
+**Home is unchanged** — it still runs `renderLevelFlowSection` + `renderDimMovementSection`. Whether
+it should follow is a separate call: Home's four collapsed rows are its own reading, not a stack under
+a chart.
+
+**2026-08-16 (fourth) — open and closed assignment cards split on the denominator rule**
+
+Design proposal: https://claude.ai/code/artifact/2f87980a-5b87-417c-9b90-e3380c71749a
+
+**THE RULE, and it is the general one this page should have been using all along.** On an incomplete
+cohort, show what has a **per-student denominator**; withhold what has a **per-class** one.
+
+- *"Four students ran an extraction loop"* stays true whatever the other twenty do later. Adding
+  submissions adds patterns; it never restates the ones already there.
+- *"Calibrated Skepticism is the floor"* partitions all 24. With 15 in, the bar's shape is dominated
+  by **who has not submitted yet** — it answers "how far through the window are we" while labelled
+  "how did this class think".
+
+**This replaces the caveat sentence shipped earlier the same day.** The open card used to render the
+band bars under *"these bands describe them, not the class. Nothing about the room is settled until
+the assignment closes."* Wrong on three counts: redundant with the denominator sentence beside it;
+overstated, since the bars *are* real readings a teacher with 15 of 24 can act on; and not
+actionable, on a screen opened precisely because the assignment is live. **A caveat under a
+misleading chart is a weaker fix than not drawing the chart.**
+
+**The open card** is now stat tiles, a two-count pace line, and behavioural patterns. The two counts
+are deliberately separate facts — *submitted* is pace, *readable* is the denominator the patterns are
+drawn from — and **both are scoped to the whole assignment, never to the live draft**: scoping
+"submitted" to draft 2 while "readable" reads each student's latest session anywhere would print a
+readable count *higher* than the submitted one. True, and unreadable as a pair.
+
+**Patterns come from Layer 1, not the naming layer.** `assignmentPatternGroups()` aggregates
+`sub.patterns` — the real turn-sequence detectors — exactly as `detectPatternGroups` does for Home,
+scoped to one assignment. Building this on `detectTrends` instead would have replaced a distribution
+of the dimension scores with a *relabelling of the same scores* (`patterns.md`, *The finding*:
+`low-skepticism` **is** `avgCS < 2.5`) — a regression, since the bands at least show their
+denominator. Five detectors fire today; six are dead pending AI-turn labelling; none is validated.
+
+**The closed card at class scope is now a summary**: final agency distribution, final dimension
+distributions, how they worked. **Each distribution opens onto its own trend.** The coaching note,
+idea-origin mix and pattern list moved to the assignment's own page.
+
+**`renderAssignmentAggregateContent` takes a `variant`** — `'summary'` for the class card and Browse
+Assignments' drill row, `'full'` for Assignment Detail. One computation, two presentations. The
+one-function-three-wrappers shape held while every caller wanted the same thing; it stopped holding
+the moment the class card became a summary, and a `variant` is the cheap way to keep the computation
+single rather than letting two functions drift into different readings of one assignment.
+
+**Agency uses the composition form, not a fifth diverging bar**, and that is a claim about the
+measurement model. The four dimensions are facets of one construct; the level is a reading of the
+whole session. Making it a fifth row of the dimension panel would assert it is their peer. Different
+claim, different instrument — while both still partition the same students on the same track grid
+(`components.css`, *THE SHARED CHART GRID*), so a length means the same count in both.
+
+**The trend disclosure sits on the block for agency and on each row for dimensions.** There are four
+dimension flows because there are four dimensions, and exactly one agency flow. The cue is a labelled
+row — *"How the class got here — 3 moved up, 0 moved back"* — not a bare chevron, which leaves a
+teacher to discover what is behind it.
+
+**Three empty states, because two of them are not the same nothing.** No readable session is a gap in
+what we can *see*; readable sessions with no repeated behaviour is a real finding *about them*.
+Neither earns the two-group scaffold, which was otherwise a section head, a caveat and two headings
+wrapped around no content.
+
+**Still open.** Assignment Detail renders `'full'` unchanged — what that page should actually carry
+is the next conversation.
+
+**2026-08-16 (later still) — the class overview's Trends tab moved onto the flow charts**
+
+The last tier still running the retired arithmetic. `renderClassAggregateCard`'s **Trends** tab held
+an arc line chart (one metric at a time behind a chip row, y-axis 0–20 or 1–5) and, below three
+closed assignments, fell back to a three-column table of trend badges off a **mean delta**. Its
+**Overview** tab's coaching note read off the same means.
+
+**Home's two sections are now one pair of functions, used at both tiers.** The class tier asks
+Home's question — *is this room moving* — of a narrower cohort, so it is the same two sections with
+the stage axis swapped: `renderLevelFlowSection()` and `renderDimMovementSection()`, parameterised
+by a `FLOW_AXIS_*` object that carries the decoder copy, because what a column *means* is exactly
+what changes. Writing a second copy is how the two would drift into different readings of the same
+thing.
+
+**Movement leads here, unlike the assignment tier, and that is consistent rather than contradictory.**
+A class is a *room*, and a room has no single task to land on — the same reason Home leads on
+movement. An assignment is *one task*, which is why composition leads there. The rule is about the
+scope, not the tier depth.
+
+**The class tier gets the assignment axis Home is refused.** One room, everyone did the same
+assignments, so a column holds comparable readings. `classFlow()` takes only **closed** assignments
+in due order — an open one is a reading of whoever submitted early. A class stays a **filter** on
+which submissions are in scope, never a rollup of per-assignment rollups: chaining the tiers that
+way weights a student by how much they submitted.
+
+**Column headers are due dates; the assignment names go in a caption.** Assignment names run to a
+full sentence, and three as adjacent headers overlap into an unreadable band. The first fix was
+truncation, which produced *"Rhetorical ana… / Historical con… / Bicycle mainte…"* — worse than the
+collision, since it tells a teacher nothing. A date is short, unambiguous, and already the thing
+that orders the axis; the names are stated once beneath the chart, in order, and every ribbon's
+`<title>` still carries the pair it connects.
+
+**Capped at the last four closed assignments** (`CLASS_FLOW_STAGES`). Past four stages the ribbons
+stop being separable at card width. The cap is **stated in the section summary** — *"last 4 of 7
+closed assignments"* — rather than silently truncating the term.
+
+**Two empty-state strings asserted a count they never checked** — *"Students have one so far"*,
+*"This class has one so far"* — both wrong when the count is zero. Reworded to state the
+requirement, not the tally.
+
+**Deleted:** `svgLineChart`, `showLineTip`, `hideLineTip`, `chartAttrStr`, `FINAL_METRICS`,
+`finalMetricSeriesPoints`, `classAssignmentSeries`, `classSeriesOutlierNote`, `classDimensionTrend`,
+`classTrendCohort`, `dimensionRowsFromCohort`, `dimensionTrendNote`, `TAU_DIMENSIONS`, the
+`classMetric` state and `setClassMetric`, and the `.metric-chip` CSS. Also the entire
+`renderTeachingSection` chain (`fleetDimensionTrend`, `fleetAssignmentSeries`, `seriesOutlierIndex`,
+`dimensionStateLabel`, `teachingRowSignature`/`Changed`/`saveTeachingSnapshot`) — **defined but
+never called**, Home's old fleet-wide "Dimension trends" section, which printed *"Averaging 2.1 of
+5"*. There is no line chart left anywhere in `dashboard.html`.
+
+**Still open — the student tier.** `renderStudentDetail` and Browse Students still print `13/20` per
+submission via `bandChip`/`total()`. That is the one surface left on the retired scale, and it is the
+next conversion.
+
+**2026-08-16 (later) — the assignment tier moved onto bands and the draft flow**
+
+Home's rebuild earlier the same day stopped at Home. Everything below it still spoke the retired
+language, so the five places dimension data appeared on an assignment surface are rebuilt. Design
+proposal: https://claude.ai/code/artifact/62a56595-c877-4451-9ba0-fbcbfb44c782
+
+**What was there, and what each one broke.** (1) The dimension trend table — four rows of
+name/badge/note off a draft-over-draft delta of the **mean** 1–5 score, rendering in three wrappers.
+(2) The final Overview tab — `11.3 / 20` plus four mean dimension chips. (3) The final Trend tab —
+one line chart per metric behind a chip row. (4) The per-draft histogram, whose own caption read
+*"the number of students who scored that value (1–5)"*. (5) Four note generators phrased off
+averages. A total, a mean of ordinals, a line through unmeasured gaps, and a band numeral on an axis
+— one of each prohibition.
+
+**THE STAGE AXIS HERE IS DRAFTS, and this is the one tier allowed it.** Home spans classes running
+different work, so an assignment column would hold non-comparable readings. Here every student did
+the same Draft 1, Draft 2 and Final, which makes a column a fair comparison by construction.
+`draftFlow()` buckets on **closed** draft slots — a live or future draft is not a reading, and
+padding the axis with one would put an empty column between two real ones. It returns null below two
+closed drafts, which is most assignments, and that is the honest state rather than an error.
+
+**COMPOSITION LEADS HERE, WHERE MOVEMENT LEADS ON HOME — and this is the decision most worth
+arguing with.** An assignment is one task, so *where did the room land on it* is the first question
+and a distribution answers it. Movement across drafts is the second question, and on a single-draft
+assignment it does not exist at all. So the closed row carries the distribution and **opening it
+reveals that dimension's draft flow** — one section, not two. A room has no single task to land on,
+which is exactly why Home is the reverse.
+
+**Open and closed stopped being different components.** They had been two functions selecting
+between an Overview/Trend tab pair and a trend table. The difference was never a component: it is a
+caveat on the composition claim. An **open** assignment gets no finding sentence at all — with
+students still to submit, a headline would be a reading of whoever happened to be early, which is
+self-selected and the most quietly wrong number the card could print. The bars still render, with
+non-submitters reading off-scale on them. A **closed** one gets the finding, plus the two "how they
+worked" notes (timing and conversation habits) that only a finished assignment can carry — both
+counts, so both survived the scale change untouched.
+
+**Four defects in the shared band helpers, found only by rendering them against the real roster.**
+They were written for Home on 2026-08-15 and left dead; this change is their first caller, so none
+had ever been exercised:
+
+- `tipText`, `dbarRowLabel`, `dimNote` and `keyItem` all printed **"Band 1"**, which the same day's
+  constraint forbids. The generic descriptor is now the whole label.
+- `dimNote` lower-cased the per-dimension band label to fit it mid-sentence, turning *"The AI set
+  the agenda throughout"* into *"the ai set the agenda throughout"*. Labels are quoted verbatim now
+  and the sentences were reshaped around them.
+- `bandsFinding` said **"No single floor this week"** — Home's word, from when Home was the only
+  caller. An assignment is a task, not a period.
+- **A "the room is split" claim fired on 1 student versus 0.** The test was "the two sides are
+  within 6% of each other", which a near-empty row satisfies trivially. A split is a claim about two
+  groups and now requires two on each side (`isSplit()`), shared by both callers.
+
+**The post-render hook is no longer guarded on a screen name.** It was `screen === 'home'`, and
+before that `.dbar` — which the flow diagrams removed, so it silently stopped matching and took
+`initTips()` with it. Both failures were the same failure: a guard naming *where* the components
+were rather than *whether* they are present. It now tests the DOM, and redraws on any `<details>`
+toggle, since a chart in a closed row measures zero wide.
+
+**Deleted:** `renderFinalOverviewTab`, `renderFinalTrendTab`, `renderFinalAssignmentSummaryContent`,
+`assignmentDraftSeries`, `seriesArcNote`, `assignmentDimensionTrend`, `assignmentTrendCohort`,
+`assignmentCoachingNote`, `assignmentEngagementNote`, `renderDraftHistogram`, `draftHistogramBins`,
+`draftMetricValues`, `SAMR_RANGE`, the `finalTab`/`finalMetric`/`assignDraftMetric` state and its
+setters, and the `.bar-chart-*` / `.dim-avg-*` CSS. The per-draft card keeps its two tabs —
+Distributions is renamed **Dimension bands** — because a repeated card in a timeline is the one
+place the length still costs something.
+
+**Still open.** `svgLineChart`, `FINAL_METRICS`, `finalMetricSeriesPoints`, `classAssignmentSeries`
+and `classSeriesOutlierNote` all survive because **the class tier still runs the arc line chart and
+still prints `/20` on it** — `renderClassAggregateCard`'s Trends tab. That tier is the next
+conversion, not this one. Bands here still read `bandFromLegacyScore`, the same shim Home ships
+with, so every band on this page remains a band derived from the old ratio until `scoreTAU`'s
+signature changes.
+
+**2026-08-16 — Home rebuilt on movement; the flow diagram replaces both aggregate sections**
+
+Home's two aggregate sections — *Students by level* (a composition strip) and *Dimension bands*
+(four distribution bars) — are **replaced by flow diagrams**. Built in `dashboard.html` directly;
+`class-lab.html` carries the same form on an assignment axis. Artifact for the design:
+https://claude.ai/code/artifact/9d3b7bfe-bac5-4f98-b41b-e673bda396b1
+
+**This reverses *"Home is a descriptive snapshot"* (2026-08-13), deliberately.** That entry sent
+movement to the assignment tier because a snapshot was all the composition strip could carry. The
+reversal came from asking what a teacher wants rather than what the section could show: *"is any of
+this getting better"* was named as the thing most wanted and least supplied. A snapshot answers
+"where does this room sit" and cannot answer "is it moving", which is the question acted on first.
+
+**The four questions this page now serves**, in a teacher's own words and their own order — the
+test for anything on Home is which one it helps answer:
+
+1. Is the AI doing my students' thinking for them?
+2. Which students have handed the thinking over?
+3. Where does the class give up control?
+4. Are they holding onto more of it than they were?
+
+**Home's stages are calendar buckets, never assignments.** Home spans every class and they run
+different work, so an assignment axis puts non-comparable readings in one column — the level reads
+the assignment as an input (`tau-dimensions.md`, *How the overall is decided*). Time buckets ask
+each student only about themselves, which survives the mixed scope. The assignment axis is correct
+one tier down, where the task is shared; `class-lab.html` uses it.
+
+**Why a flow diagram is allowed where a line is not.** A line asserts a rate of change through the
+gap between two readings and nothing was measured in that gap. A ribbon asserts only membership:
+these N students held this reading, then that one. Every mark is a real count on a real day. That
+is how it clears the no-sparkline constraint rather than bending it.
+
+**What the form buys that two compositions cannot: churn.** "12 up, 5 back" is true of a class that
+moved together and of a class that split in half. Only the ribbons separate them. The old trend
+table had to disclaim this in its own caption — *"not how many individuals moved"* — which is the
+signal that the form was wrong, not the copy.
+
+**Vertical position is the scale.** Strongest reading at the top, so a rising ribbon means more of
+the student's own thinking on every diagram in the product. Identity is carried by a legend, never
+by labels down both sides: the band labels are full sentences and printing them twice squeezes out
+the ribbons. An explicit y-axis was built and then removed — the legend already states the order.
+
+**Dimension rows now carry a state word, not a distribution.** Five states — improving, declining,
+flat, flat (floor), flat (ceiling) — derived from movement counts, never from a mean. Floor and
+ceiling stay distinct for the reason they always did. Opening a row reveals that dimension's own
+flow, which is where the per-dimension chart belongs: four flows always visible would be four
+charts to compare, and only one is ever the question.
+
+**Band labels are per dimension — sixteen of them, and a teacher never sees a numeral.** The
+generic descriptors (*didn't happen*, *not where it counted*, *there with gaps*, *held up*) are the
+**scale**, not the label. Band 2 means the wrong claims for Calibrated Skepticism and the wrong
+edits for Selective Use. Full set in `designsystem.md`, *Dimension band labels*.
+
+**Movement counts first reading to last, per student — never a sum of per-transition moves.** A
+student who drops and recovers is not two events. Students at "not enough evidence" on either end
+are counted separately as *can't be compared*: there is no prior reading, and folding them into
+"held" is the same error as scoring a thin session band 1.
+
+**Layout: each chart gets its own full-width row.** The 2-up pairing went with the snapshot. It
+existed because both sections were a single stacked bar and the pair read as one object; a flow
+needs horizontal room per stage, and the two stopped being halves of one reading — one is where the
+room is, the other is what moved.
+
+**"Missing checkpoints" is deleted as a card.** It rendered under an eyebrow reading *Behavioral
+patterns* while its own comment said it was not one, and the separation it relied on — *"its
+attention-tier count and its wording rather than different chrome"* — cannot work, because a
+section heading outranks the copy inside a card. Its count moves to the tiles, grouped with the
+other gap in the read under **"No read on them yet"**: an overdue draft and a session too thin to
+score are the same finding — *you cannot see this student* — and route to the same conversation.
+Relabelled to describe the student rather than the system: *Sessions too thin to read*, *No draft
+submitted*.
+
+**Two bugs found and fixed in the renderer, both worth keeping as notes:**
+
+- **A scaled `viewBox` magnifies type along with geometry.** `width:100%` on a 640-wide viewBox in
+  a full-width card is a ~1.4× zoom, so 12px counts rendered at 17px and the whole chart read as an
+  oversized infographic. Charts here are drawn at 1:1 from the measured width and redrawn on resize
+  — and on `<details>` toggle, since a chart in a closed row measures 0 wide.
+- **A Sankey node needs two cursors, not one.** A middle column's node is a ribbon *target* in the
+  transition arriving at it and a *source* in the transition leaving it; one shared cursor means
+  outgoing ribbons start from the bottom of the node and cascade off the canvas. Presented as a
+  clipping bug; it was a correctness bug.
+
+Also: the post-render hook was guarded on `el.querySelector('.dbar')`, which the flow diagrams
+removed — so it silently stopped matching and took `initTips()` with it. Guard is on the screen now.
+
+**Still open.** The four dimensions read `bandFromLegacyScore` off the 1–5 ratios, so every band on
+this page is a shim until `scoreTAU`'s signature changes. `flowState`'s floor/ceiling thresholds
+(>0.5 of the readable cohort) are guesses. `FLOW_BUCKETS = 3` is a guess. `renderCompHTML`,
+`levelComposition`, `bandDistributions`, `bandsFinding`, `dimNote`, `dbarMarkup` and `keyItem` are
+now dead code, left in place for the class and assignment tiers.
 
 **2026-08-13 — the band distribution built and settled; Home defined as a snapshot**
 

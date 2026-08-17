@@ -11,6 +11,9 @@
 <link rel="stylesheet" href="components.css">
 <script src="theme.js"></script>
 <script src="icons.js"></script>
+<!-- The four viz organisms. Reads no app state — see viz.js's header for the
+     boundary and for the two things this page has to provide it. -->
+<script src="viz.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
@@ -319,7 +322,6 @@ table.roster tbody tr.group-row:not(:first-child) td { border-top: 1px solid var
 .browse-class-label { margin: 0 0 var(--tau-s2) var(--tau-s1); }
 .now-title { color: var(--tau-ink-soft); }
 
-.no-signal { color: var(--tau-ink-faint); font-size: var(--tau-text-sm); }
 
 /* ── Drill panel (submission history) ── */
 .drill-panel {
@@ -328,6 +330,15 @@ table.roster tbody tr.group-row:not(:first-child) td { border-top: 1px solid var
   padding: var(--tau-s4) var(--tau-s5);
 }
 .drill-panel-header { color: var(--tau-ink-soft); margin-bottom: var(--tau-s3); }
+
+/* The trace sits on the card ground the drill panel's own rows use (.drill-panel
+   is surface-2), so it reads as the panel's headline rather than as one more row
+   in the log below it. */
+.drill-trace {
+  background: var(--tau-surface); border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-md);
+  padding: var(--tau-s4) var(--tau-s5); margin-bottom: var(--tau-s4);
+}
 
 /* Assignment aggregate panel's own drill wrapper — a separate component from
    .drill-panel above (that one's the older submission-history drawer). This
@@ -424,8 +435,6 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .agg-link-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--tau-forest); background: var(--tau-surface); border: 1px solid var(--tau-line-strong); border-radius: var(--tau-r-md); padding: 6px 13px; min-height: 32px; cursor: pointer; text-decoration: none; transition: background var(--tau-dur-short) var(--tau-ease-standard); }
 .agg-link-btn:hover { background: var(--tau-surface-2); }
 
-.agg-block-lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tau-ink-soft); margin: 0 0 var(--tau-s2); }
-.agg-sample-note { font-size: 11px; color: var(--tau-ink-faint); margin: 0 0 var(--tau-s2); }
 
 /* ── Assignment Detail — timeline redesign, 2026-07-31 ──
    Replaces the roster + persisted-aggregate-card this page used to end
@@ -491,51 +500,23 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 /* Overview/Distributions tabs — plain underline, no boxed chrome; this page
    has no other in-card tab precedent, so the simplest "two views of the
    same thing" form was picked over inventing a heavier one. */
-.card-tabs { display: flex; gap: var(--tau-s5); border-bottom: 1px solid var(--tau-line); margin-bottom: var(--tau-s4); }
-.card-tab { background: none; border: none; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; color: var(--tau-ink-soft); padding: 0 0 9px; margin-bottom: -1px; border-bottom: 2px solid transparent; transition: color var(--tau-dur-short) var(--tau-ease-standard); }
-.card-tab:hover { color: var(--tau-ink); }
-.card-tab.active { color: var(--tau-forest); border-bottom-color: var(--tau-forest); }
-/* Count badge on a tab label — Class overview's Patterns tab, so a teacher
-   knows there's something inside before clicking in. Omitted entirely at
-   zero (renderClassAggregateCard), matching the app's existing
-   omit-inert-zero idiom for .stat-tile rather than showing a dead "0". */
-.card-tab .tab-count { display: inline-flex; font-size: 10.5px; font-weight: 700; background: var(--tau-surface-2); color: var(--tau-ink-soft); border-radius: var(--tau-r-pill); padding: 1px 7px; margin-left: 5px; }
-.card-tab.active .tab-count { background: var(--tau-positive-bg); color: var(--tau-positive); }
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
 
 .note-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
 .note-list li { padding-left: 13px; position: relative; }
 .note-list li::before { content: "–"; position: absolute; left: 0; color: var(--tau-tool-info); }
 .teach-note + .teach-note { margin-top: var(--tau-s3); }
 
-/* Distribution histogram — score on x, student count on y. Bins are never
-   arbitrary numeric buckets: TAU score bins on the four SAMR bands (samr()),
-   already meaningful elsewhere in this app; each dimension bins on its own
-   raw 1–5 integer, since that scale has nothing finer to bucket. No fitted
-   density-curve overlay — with a handful of students per draft, fitting a
-   curve to 4–5 discrete points would be a statistical fiction. */
-.metric-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: var(--tau-s5); }
-.metric-chip { font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; padding: 5px 11px; border-radius: var(--tau-r-pill); border: 1px solid var(--tau-line-strong); background: var(--tau-surface); color: var(--tau-ink-soft); transition: background var(--tau-dur-short) var(--tau-ease-standard), color var(--tau-dur-short) var(--tau-ease-standard), border-color var(--tau-dur-short) var(--tau-ease-standard); }
-.metric-chip:hover { background: var(--tau-surface-2); }
-.metric-chip.active { background: var(--tau-forest); border-color: var(--tau-forest); color: var(--tau-on-forest); }
-.bar-chart-wrap { display: flex; gap: var(--tau-s4); }
-.bar-chart-axis { display: flex; flex-direction: column; justify-content: space-between; height: 150px; font-size: 10.5px; color: var(--tau-ink-faint); font-variant-numeric: tabular-nums; text-align: right; }
-.bar-chart-main { flex: 1; display: flex; flex-direction: column; }
-.bar-chart-title { font-size: 11px; color: var(--tau-ink-faint); text-align: right; margin-bottom: 4px; }
-.bar-chart { position: relative; height: 150px; display: flex; align-items: flex-end; gap: var(--tau-s5); border-left: 1px solid var(--tau-line); border-bottom: 1px solid var(--tau-line); padding: 0 var(--tau-s4); }
-.bar-chart-grid { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
-.bar-chart-grid span { display: block; height: 1px; background: var(--tau-line); }
-.bar-col { position: relative; flex: 1; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
-.bar { width: 34px; max-width: 70%; border-radius: 4px 4px 0 0; background: var(--tau-forest); position: relative; transition: height var(--tau-dur-medium) var(--tau-ease-standard); }
-.bar-value { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 700; color: var(--tau-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.bar-chart-xlabels { display: flex; gap: var(--tau-s5); padding: 7px var(--tau-s4) 0; }
-.bar-xlabel { flex: 1; text-align: center; font-size: 11px; font-weight: 600; color: var(--tau-ink-soft); }
-.bar-xlabel .sub { display: block; font-size: 10px; font-weight: 400; color: var(--tau-ink-faint); margin-top: 1px; }
-.dim-avg-row { display: flex; gap: var(--tau-s3); flex-wrap: wrap; }
-.dim-avg-chip { flex: 1; min-width: 100px; border: 1px solid var(--tau-line); border-radius: var(--tau-r-sm); padding: 8px 10px; background: var(--tau-surface-2); }
-.dim-avg-label { display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--tau-ink-soft); }
-.dim-avg-val { display: block; font-size: 16px; font-weight: 700; color: var(--tau-ink); margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+/* --- .agg-pace — the open card's two counts. Submitted is a pace fact;
+   readable is the denominator every pattern below it is drawn from, so the
+   two are stated separately rather than collapsed into one number. */
+.agg-pace {
+  font-size: var(--tau-text-sm); color: var(--tau-ink-soft);
+  line-height: 1.55; margin: 0 0 var(--tau-s5);
+}
+.agg-pace b { color: var(--tau-ink); font-variant-numeric: tabular-nums; }
+
+
 .assignment-summary-row {
   display: flex; align-items: center; gap: var(--tau-s3);
   padding: 10px var(--tau-s4);
@@ -563,7 +544,6 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .sub-num  { font-size: var(--tau-text-xs); font-weight: 600; color: var(--tau-ink-soft); width: 20px; flex-shrink: 0; }
 .sub-date { color: var(--tau-ink-soft); width: 140px; flex-shrink: 0; font-size: var(--tau-text-xs); }
 .sub-chip { width: 44px; text-align: center; flex-shrink: 0; }
-.sub-total { font-size: var(--tau-text-md); font-weight: 700; width: 40px; text-align: right; flex-shrink: 0; }
 /* The row's two trailing actions. Plain interactive text, not buttons or
    chips — they sit at the end of a dense data row, and enclosure is reserved
    for values that are both actionable and rare (designsystem.md's salience
@@ -598,16 +578,9 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 }
 .flag-learn-more:hover { text-decoration: underline; }
 
-/* ── Dim scores ── */
-.dim-scores { display: flex; gap: 5px; }
-.dim-score {
-  font-size: var(--tau-text-xs); color: var(--tau-ink-soft);
-  background: var(--tau-surface-2);
-  padding: 2px 5px; border-radius: 3px;
-}
-.dim-score span { font-weight: 700; color: var(--tau-ink); }
-
-.tau-total { font-size: var(--tau-text-lg); font-weight: 700; }
+/* .dim-scores/.dim-score/.tau-total deleted 2026-08-17 with the raw "PQ 3 SU 2
+   CS 4 OC 3" strip and the /20 totals they styled. .tau-total already had zero
+   consumers before that. */
 .tau-denom { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); font-weight: 400; }
 
 
@@ -736,14 +709,6 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    marker left on the page. If this needs reversing, the fix is icons.js's
    expandMore at a size that is actually on the scale, not the 10px glyph. */
 .f-detail { padding: var(--tau-s4) var(--tau-s5); border-top: 1px solid var(--tau-line); }
-.pattern-body { font-size: 13px; color: var(--tau-ink-soft); margin: 0 0 var(--tau-s3); line-height: 1.55; }
-.pattern-body b { color: var(--tau-ink); }
-.pattern-try {
-  background: var(--tau-tool-info-bg); border-left: 3px solid var(--tau-tool-info);
-  border-radius: 0 var(--tau-r-sm) var(--tau-r-sm) 0; padding: 11px 13px;
-  font-size: 12.5px; color: var(--tau-ink-soft); line-height: 1.5; margin: 0 0 var(--tau-s3);
-}
-.pattern-try b { color: var(--tau-tool-info); }
 /* A measured fact inside an open card, and its link — which lives in this
    box rather than at card level so the sentence that names the assignment
    and the control that opens it are the same object. Own line, never
@@ -757,9 +722,6 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .f-measure b { color: var(--tau-ink); font-variant-numeric: tabular-nums; }
 .f-detail > :last-child { margin-bottom: 0; }
 .pattern-link { display: inline-block; font-size: 12.5px; font-weight: 600; color: var(--tau-forest); cursor: pointer; }
-.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--tau-s3); margin-bottom: var(--tau-s2); }
-.section-head .eyebrow { margin-bottom: 0; }
-.section-summary { font-size: 12px; color: var(--tau-ink-soft); }
 
 /* ── Home layout: one band per section ──
    Home was three sections of white cards on the white .content pane, told
@@ -823,20 +785,10 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 }
 .class-row:hover .class-row-go { transform: translateX(2px); color: var(--tau-forest); }
 
-/* ── Dimension trends (Home) — rebuilt 2026-08-08 ──
-   Fleet-wide counterpart to the class-tier dimension trend — same
-   dimensionRowsFromCohort() classification, same trend states, just scoped
-   to every class instead of one.
-
-   Was "How your teaching is landing," two visual tiers (a tinted card for a
-   dimension with news, a shared quiet-line group for the rest). Both are gone:
-   the label was a process phrase rather than the name of its contents, and the
-   two tiers put a *measured average* on a tool-info blue ground — blue
-   underneath a number, which inverts what that colour means. All four
-   dimensions now use the same .pattern-card as Behavioral patterns, and the
-   words carry which one matters ("lowest of the four" vs "holding steady")
-   instead of the chrome. The `.updated` marker is what survives of the old
-   eyebrow: the one thing this section needed that a card title can't say. */
+/* .f-updated — the "Updated" marker on a finding card. All that survives of
+   the fleet-wide "Dimension trends" section, deleted 2026-08-16: it averaged
+   the four dimensions to one decimal across every class, which is a mean of
+   ordinals, and the flow diagrams answer its question properly now. */
 .f-updated { color: var(--tau-tool-info); font-weight: 700; }
 
 /* ── Filter/search side tray, flag modal ──
@@ -948,7 +900,6 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
   padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
 }
 .arc-excerpt { color: var(--tau-ink-soft); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.arc-score { font-size: 10px; font-weight: 700; color: var(--tau-ink-soft); flex-shrink: 0; }
 .arc-arrow { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
 
 /* ── Per-submission reflection ── */
@@ -978,6 +929,18 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
 }
 .reflect-section { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); line-height: 1.5; }
 .reflect-label { color: var(--tau-ink-soft); margin-right: 5px; }
+
+  /* Groups the two "we have no reading on this student" rows under the one
+     tile card. A label rather than a second card: they are the same follow-up
+     list, split by whether the gap is the student's thinking or our sight of
+     it. */
+  .stat-group-lbl {
+    font-size: 10px; font-weight: 700; letter-spacing: var(--tau-track-label);
+    text-transform: uppercase; color: var(--tau-ink-faint);
+    margin: var(--tau-s3) 0 var(--tau-s1); padding-top: var(--tau-s3);
+    border-top: 1px solid var(--tau-line);
+  }
+
 </style>
 </head>
 <body>
@@ -1361,33 +1324,19 @@ async function loadDashboardData() {
 
 function total(sub) { return sub.pq + sub.su + sub.cs + sub.oc; }
 
-// Plain language leads, SAMR rides as a subtitle only — never the primary
-// label. Same rule the report follows.
-const BAND_PLAIN = {
-  1: 'Taking what it gives',
-  2: 'Steering a little',
-  3: 'Reshaping the answer',
-  4: 'Going past the answer',
-};
-const SAMR_NAMES = ['Substitution', 'Augmentation', 'Modification', 'Redefinition'];
 
 function samr(t) {
   const n = t >= 17 ? 4 : t >= 13 ? 3 : t >= 9 ? 2 : 1;
   return { n, label: SAMR_NAMES[n - 1], plain: BAND_PLAIN[n] };
 }
 
-// Roster rows always render this quiet (.band-plain) — added 2026-07-29. A
-// SAMR band is classification, not something to act on, and giving it full
-// chip chrome next to a real chip-attention/chip-caution signal in the same
-// row buried the actual alert under a second, equally loud pill of a
-// different colour. See designsystem.md's chip-reservation rule.
-// Pip dropped 2026-07-29: the label text ("Steering a little") already
-// states the classification in full, so a colour-coded dot beside it was
-// repeating a fact already on the page — the same "dot rule" this app
-// already applies to sidebar indicators, just never applied to this one.
-function bandChip(t, small) {
-  const b = samr(t);
-  return `<span class="band band-plain band-${b.n}"${small ? ' style="font-size:10px"' : ''}>${b.plain}</span>`;
+
+// A student's level from their latest readable session. ONE HOP, and never an
+// average: averaging a student's ordinal readings across a term is the operation
+// the scale change exists to remove (see homeCohort's note).
+function latestLevel(subs) {
+  const done = subs.filter(s => s.analysisStatus === 'complete');
+  return done.length ? samr(total(done[done.length - 1])).n : null;
 }
 
 // classIds is which class(es) an assignment was given to; unscoped
@@ -1858,29 +1807,33 @@ function currentlyOn(studentId) {
 }
 
 // All of a student's submissions across every assignment — same flatMap
-// _computeStudentSignal already does internally for its own averages, split
-// out because browseStudentRowTr needs the same set for a visible number,
-// not just an internal threshold check.
+// _computeStudentSignal already does internally for its own averages. Ordered by
+// time, because its callers read the LAST one; unordered it happened to work only
+// because ASSIGNMENTS is roughly chronological.
 function allSubsForStudent(studentId) {
-  return ASSIGNMENTS.flatMap(a => getSubs(studentId, a.id));
+  return ASSIGNMENTS.flatMap(a => getSubs(studentId, a.id)).sort((x, y) => x.ts - y.ts);
 }
 
 // Browse Students — a different row shape entirely from Assignment/Class
 // Detail: the roster's job is "what's this student's overall situation,"
-// not "how did one assignment go." Four columns now (Student, Average, How
-// they're using AI, Signal) — the Draft/checkpoint column is gone
-// (2026-07-29): "Draft 2/3" is a fact about the assignment, which this
-// screen no longer names at all, so a lone draft-stage chip had nothing left
-// to attach to. The one piece of that column worth keeping — overdue — is
-// genuinely a signal, not a status, so it moved into the Signal column
-// instead of staying its own thing.
+// not "how did one assignment go." Three columns now (Student, Agency,
+// Signal) — the Draft/checkpoint column is gone (2026-07-29): "Draft 2/3" is
+// a fact about the assignment, which this screen no longer names at all, so a
+// lone draft-stage chip had nothing left to attach to. The one piece of that
+// column worth keeping — overdue — is genuinely a signal, not a status, so it
+// moved into the Signal column instead of staying its own thing.
 //
-// Score is an average across every submission, not the latest one: a bare
-// "12/20" only meant something when the row also said which assignment it
-// was from, and that context is gone. Average answers "how's this student
-// generally doing," which is this screen's actual question — the
-// Assignment/Class Detail rows still show the latest submission, because
-// "how did this one go" is genuinely theirs to ask.
+// THE AVERAGE COLUMN WENT 2026-08-17, and it was wrong in three ways at once:
+// it printed a total, it printed a MEAN of totals, and the level chip beside it
+// was `samr(that mean)` — a named level derived from an average of ordinals,
+// which is the single operation this scale change exists to remove. It was
+// argued for on the grounds that "a bare 12/20 only meant something when the
+// row said which assignment it was from," which was the right observation and
+// the wrong fix: the answer to a number with no scope is a reading with a
+// stated scope, not a wider number.
+//
+// What replaces it is the LATEST readable session's level. One reading, one
+// student, and the same thing every other tier means by "where this student is."
 //
 // Signal shows every true behavioural/integrity signal as its own chip
 // (signalPill's `all` — 2026-08-08, replacing "one label + N"), with one
@@ -1895,21 +1848,19 @@ function browseStudentRowTr(student) {
   if (!co) {
     return `<tr class="row-clickable" onclick="gotoStudentFromClass('${student.id}')">
       <td><span style="font-weight:500">${student.name}</span></td>
-      <td colspan="2" style="color:var(--tau-ink-faint)">No assignments yet</td>
+      <td style="color:var(--tau-ink-faint)">No assignments yet</td>
       <td>${signalPill(sig, { all: true }) || '<span class="no-signal">—</span>'}</td>
     </tr>`;
   }
   const { assignment } = co;
   const late = hasMissingCheckpoint(assignment, student.id);
-  const allSubs = allSubsForStudent(student.id);
-  const avg = allSubs.length ? Math.round(allSubs.reduce((s, sub) => s + total(sub), 0) / allSubs.length) : null;
+  const level = latestLevel(allSubsForStudent(student.id));
   const signalHtml = late
     ? `<span class="chip chip-attention">Late</span>`
     : (signalPill(sig, { all: true }) || '<span class="no-signal">—</span>');
   return `<tr class="row-clickable" onclick="gotoStudentFromClass('${student.id}')">
     <td><span style="font-weight:500">${student.name}</span></td>
-    <td>${avg !== null ? `<span class="n" style="font-weight:700">${avg}</span><span style="font-size:11px;color:var(--tau-ink-soft)">/20</span>` : '<span class="no-signal">—</span>'}</td>
-    <td>${avg !== null ? bandChip(avg) : '<span class="no-signal">—</span>'}</td>
+    <td>${levelChip(level)}</td>
     <td>${signalHtml}</td>
   </tr>`;
 }
@@ -2051,128 +2002,6 @@ function runGlobalSearch(q) {
   box.innerHTML = `<div class="rail-search-results">${rows}</div>`;
 }
 
-// ── Fleet-tier dimension rollup (Home) ──────────────────────────────────────────
-// One tier above classDimensionTrend()/classAssignmentSeries() — no new
-// cohort-builder needed, since both already just walk whatever (students,
-// assignments) they're handed rather than assuming a single class's scope.
-
-function fleetDimensionTrend() {
-  return classDimensionTrend(STUDENTS, ASSIGNMENTS);
-}
-
-// "How your teaching is landing" is the one Home section whose rows rarely
-// move day to day, which is exactly why a real move is easy to miss —
-// nothing else on the row visually distinguishes "same as last time" from
-// "changed since you last looked." Snapshot is read once at page load, so
-// a badge set on the first render of a session stays put for the rest of
-// that session rather than clearing itself the instant renderHome() re-runs.
-const TEACHING_SNAPSHOT_KEY = 'tau-teaching-snapshot';
-let TEACHING_SNAPSHOT_PREV = null;
-try { TEACHING_SNAPSHOT_PREV = JSON.parse(localStorage.getItem(TEACHING_SNAPSHOT_KEY)); } catch (e) { TEACHING_SNAPSHOT_PREV = null; }
-
-function teachingRowSignature(row) {
-  return `${row.trend}|${row.skewed}|${Math.round(row.avgCurr * 10)}`;
-}
-
-// null on the very first-ever visit (no baseline to compare against) so
-// nothing gets marked "Updated" before there's something to be updated
-// relative to.
-function teachingRowChanged(row) {
-  if (!TEACHING_SNAPSHOT_PREV) return false;
-  const prevSig = TEACHING_SNAPSHOT_PREV[row.key];
-  return prevSig !== undefined && prevSig !== teachingRowSignature(row);
-}
-
-function saveTeachingSnapshot(rows) {
-  const snapshot = {};
-  rows.forEach(row => { snapshot[row.key] = teachingRowSignature(row); });
-  try { localStorage.setItem(TEACHING_SNAPSHOT_KEY, JSON.stringify(snapshot)); } catch (e) {}
-}
-
-function fleetAssignmentSeries() {
-  return classAssignmentSeries(STUDENTS, ASSIGNMENTS);
-}
-
-// Mirrors classSeriesOutlierNote()'s own "furthest from the mean" index,
-// exposed separately rather than changing that function's return type (a
-// string), so the outlier's assignment id can drive a real link.
-function seriesOutlierIndex(series, key, deltaThresh = 0.3) {
-  if (series.length < 3) return -1;
-  const values = series.map(s => s[key]);
-  const mean = values.reduce((a, b) => a + b, 0) / values.length;
-  let worstIdx = 0;
-  values.forEach((v, i) => { if (Math.abs(v - mean) > Math.abs(values[worstIdx] - mean)) worstIdx = i; });
-  return Math.abs(values[worstIdx] - mean) >= deltaThresh ? worstIdx : -1;
-}
-
-// The state a dimension is in, said in the words a teacher would use, as a
-// suffix to the dimension's own name. Kept apart from the .note (which
-// explains what the state means) because the card title must state the
-// finding on its own — a collapsed card that says only "Calibrated
-// Skepticism" has hidden the very thing the section exists to report.
-function dimensionStateLabel(row) {
-  if (row.skewed) return 'your classes are split';
-  return {
-    up:      'improving',
-    down:    'declining',
-    floor:   'lowest of the four',
-    ceiling: 'consistently strong',
-    mid:     'holding steady',
-  }[row.trend];
-}
-
-// Renders "Dimension trends" — one collapsed card per TAU dimension, in the
-// canonical PQ/SU/CS/OC order, so a dimension's position on the page is
-// stable rather than reshuffling by whichever had news today.
-// Returns '' when there isn't yet enough data (mirrors the "not enough data
-// yet" graceful-degradation idiom used throughout the class/assignment
-// tiers) rather than rendering an empty or misleading section.
-function renderTeachingSection() {
-  const trend = fleetDimensionTrend();
-  if (!trend) return '';
-  const series = fleetAssignmentSeries();
-
-  // Only the row classCoachingNote() would itself call out as the primary
-  // floor finding gets the outlier-assignment callout — the "why" belongs on
-  // the one card already flagged as the watch-item, not invented for others.
-  const floorRow = trend.rows.find(r => r.trend === 'floor' && !r.skewed);
-  const outlierIdx = floorRow ? seriesOutlierIndex(series, floorRow.key) : -1;
-  const outlierNote = outlierIdx >= 0 ? classSeriesOutlierNote(series, floorRow.key, floorRow.label) : null;
-  const outlierAssignment = outlierIdx >= 0 ? series[outlierIdx] : null;
-
-  const cards = trend.rows.map(row => {
-    const changed = teachingRowChanged(row);
-    const isOutlierRow = floorRow && row.key === floorRow.key && outlierAssignment;
-    // The link sits inside the evidence box, not at card level: that sentence
-    // is the only thing on the card naming an assignment, and a link two
-    // blocks below it leaves "view what?" to inference — especially on a card
-    // whose own title is a dimension name.
-    const measured = isOutlierRow ? `<div class="f-measure">
-        <span>${outlierNote}</span>
-        <span class="pattern-link" onclick="event.stopPropagation();logUse('dashboard','teaching-landing');gotoAssignment('${outlierAssignment.id}')">View ${outlierAssignment.label} →</span>
-      </div>` : '';
-    return `<details class="pattern-card">
-      <summary class="finding-summary">
-        <span class="f-body">
-          <span class="pattern-title">${row.label} — ${dimensionStateLabel(row)}</span>
-          <span class="f-where neutral">Averaging <span class="num">${row.avgCurr.toFixed(1)} of 5</span> across your classes${changed ? ' · <span class="f-updated">Updated</span>' : ''}</span>
-        </span>
-      </summary>
-      <div class="f-detail">
-        <p class="pattern-body"><b>What this looks like:</b> ${row.note}</p>
-        ${measured}
-      </div>
-    </details>`;
-  }).join('');
-
-  saveTeachingSnapshot(trend.rows);
-
-  return `<div class="section-head">
-    <div class="eyebrow">Dimension trends</div>
-    <div class="section-summary">Across your classes this month</div>
-  </div>
-  <div class="finding-list">${cards}</div>`;
-}
 
 // ── Home ──────────────────────────────────────────────────────────────────────
 
@@ -2287,27 +2116,6 @@ function detectPatternGroups(minCount = 2) {
 // components.css §17 and the ordinal ramp to tokens.css; what follows is the
 // rendering, rewired from the lab's fixtures onto the real payload.
 
-const LEVEL_GLOSS = [
-  'The AI did the thinking. The student set the task and took what came back.',
-  'The AI set the direction; the student improved what it handed them. Agency shows up in reaction, not initiation.',
-  'The student led. The AI worked to their brief, and the conversation went where they took it.',
-  'The student led and resisted. They pushed back where it mattered, and the thinking that survived is theirs.',
-];
-const DIM_KEYS  = ['pq', 'su', 'cs', 'oc'];
-const DIM_NAMES = ['Prompting Quality', 'Selective Use', 'Calibrated Skepticism', 'Original Contribution'];
-const BAND_MEANING = ["didn't happen", 'not where it counted', 'there, with gaps', 'held at the hard moments'];
-const DIM_WHAT = [
-  'Whether the student set the task or asked the AI what the task should be — who is directing the work.',
-  'What the student did with what came back: worked on it as a draft, or took it as finished.',
-  'Whether they checked what they were told, and whether they checked the claims that actually mattered.',
-  'Whether the ideas in the essay are ones the transcript shows them building, rather than ones handed to them.',
-];
-const DIM_TRY = [
-  'Have them write the brief before opening the chat. Stating the shape they want is a different act from asking what the shape should be.',
-  'What comes back is a draft, not a delivery. Name the move out loud: take it, then say what is wrong with it before any of it gets used.',
-  'The moment right after a source fails is when to check hardest — that is the habit to name out loud.',
-  'Have them mark, in their own draft, the two sentences they would still have written if the chat had never happened.',
-];
 
 // TEMPORARY ADAPTER — 2026-08-14. tau-dimensions.md settles each dimension as
 // an ordinal band 1–4 read from the transcript, essay and assignment together,
@@ -2348,204 +2156,6 @@ function homeCohort() {
   });
 }
 
-// Level composition: counts across the four rungs, plus off-scale.
-// levels + off === n, always — the invariant both charts rest on.
-function levelComposition(cohort) {
-  const levels = [0, 0, 0, 0];
-  let off = 0;
-  cohort.forEach(c => { if (c.level) levels[c.level - 1]++; else off++; });
-  return { levels, off };
-}
-
-// Four partitions of the same cohort. Every student contributes exactly one
-// band to every dimension, so bands + off === n on every row. Never add across.
-function bandDistributions(cohort) {
-  return DIM_KEYS.map((_, i) => {
-    const bands = [0, 0, 0, 0];
-    let off = 0;
-    cohort.forEach(c => { const b = c.bands[i]; if (b) bands[b - 1]++; else off++; });
-    return { bands, off };
-  });
-}
-
-function sumArr(a) { return a.reduce((x, y) => x + y, 0); }
-
-function renderCompHTML(counts, off) {
-  const total = sumArr(counts) + off;
-  const max = Math.max(...counts);
-  const modal = counts.indexOf(max);
-  const tie = counts.filter(c => c === max).length > 1;
-  let html = '';
-  counts.forEach((c, i) => {
-    html += `<div class="comp-row comp-${i + 1}${i === modal && !tie ? ' is-modal' : ''}">
-      <div class="viz-row-head"><span class="comp-name">${SAMR_NAMES[i]}</span><span class="comp-count">${c}</span></div>
-      <div class="viz-plot"><span></span><span class="comp-track"><span class="comp-fill" style="width:${total ? (c / total * 100).toFixed(1) : 0}%"></span></span></div>
-    </div>`;
-  });
-  html += `<div class="comp-off">
-    <div class="viz-row-head"><span class="comp-name">Not enough evidence</span><span class="comp-count">${off}</span></div>
-    <div class="viz-plot"><span></span><span class="comp-off-track"></span></div></div>`;
-  return { html, modal, tie, max, total };
-}
-
-function tipText(band, count, dim) {
-  return `<b>Band ${band} — ${BAND_MEANING[band - 1]}</b><br>${count} student${count === 1 ? '' : 's'} · ${dim}`;
-}
-
-function dbarRowLabel(dim, bands, off) {
-  return `${dim}: ${bands.map((c, i) => `${c} at band ${i + 1}, ${BAND_MEANING[i]}`).join('; ')}. ${off} not enough evidence.`;
-}
-
-// One diverging bar, split at the 2|3 seam. EVERY ROW FILLS THE WHOLE TRACK —
-// only the ratio between the segments changes from row to row. That is what
-// makes the four dimensions comparable: the bar is a fixed measure of the same
-// cohort, so a segment's share is read against the same total on every row and
-// the seam's POSITION is the failure share directly.
-//
-// Sized by flex-grow, not by percentage width (changed 2026-08-14). Percentages
-// were arithmetic that could fall short of the track: min-width floors on tiny
-// segments, the 2px separators and the off-cell's break all came out of a total
-// that had already been spent, so a row with several small bands ended before
-// the track did. flex-grow distributes whatever the track actually is, so the
-// ends align by construction rather than by the numbers happening to sum.
-function dbarMarkup(bands, off, n, dim) {
-  const lastBand  = bands[3] ? 4 : bands[2] ? 3 : bands[1] ? 2 : 1;
-  const firstBand = bands[0] ? 1 : bands[1] ? 2 : bands[2] ? 3 : 4;
-  const seg = (count, band) => {
-    if (!count) return '';
-    const cap = (band === firstBand ? ' cap-l' : '') + (band === lastBand && !off ? ' cap-r' : '');
-    return `<span class="dbar-seg s${band}${cap}" style="flex:${count} 1 0"
-      data-band="${band}" data-tip="${tipText(band, count, dim)}"><span class="dbar-num">${count}</span></span>`;
-  };
-  return `<div class="dbar" role="img" aria-label="${dbarRowLabel(dim, bands, off)}">
-    <span class="dbar-gutter"><span class="dbar-out" data-band="1">${bands[0]}</span></span>
-    <span class="dbar-track">
-      ${seg(bands[0], 1)}${seg(bands[1], 2)}${seg(bands[2], 3)}${seg(bands[3], 4)}
-      <span class="dbar-off-cell${off ? ' has-any' : ''}" style="flex:${off} 1 0"
-        data-tip="<b>Not enough evidence</b><br>${off} session${off === 1 ? '' : 's'} too thin to read this one · ${dim}"></span>
-      <span class="dbar-seam" style="left:${((bands[0] + bands[1]) / n * 100).toFixed(3)}%"></span>
-    </span>
-  </div>`;
-}
-
-// Measured after layout, never predicted from a px scale. Band 1's numeral
-// moves to the outside gutter when its segment is too narrow — it is the one
-// mark this instrument is required never to render least legibly.
-function fitLabels(scope) {
-  scope.querySelectorAll('.dbar').forEach(bar => {
-    bar.querySelectorAll('.dbar-seg').forEach(s => {
-      const tight = s.offsetWidth < 20;
-      s.classList.toggle('is-tight', tight);
-      const o = bar.querySelector(`.dbar-out[data-band="${s.dataset.band}"]`);
-      if (o) o.classList.toggle('is-shown', tight);
-    });
-  });
-}
-
-// One tooltip node for the page, delegated. Hover, focus AND click — a
-// hover-only decoder does not exist for touch or keyboard.
-let tipEl = null, tipPinned = null;
-function showTip(m) {
-  tipEl.innerHTML = m.dataset.tip;
-  tipEl.classList.add('is-on');
-  const r = m.getBoundingClientRect(), w = tipEl.offsetWidth;
-  tipEl.style.left = Math.min(window.innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2)) + 'px';
-  const above = r.top - tipEl.offsetHeight - 8;
-  tipEl.style.top = (above < 8 ? r.bottom + 8 : above) + 'px';
-}
-function hideTip() { if (!tipPinned) tipEl.classList.remove('is-on'); }
-function initTips() {
-  if (tipEl) return;
-  tipEl = document.createElement('div');
-  tipEl.className = 'dbar-tip';
-  document.body.appendChild(tipEl);
-  document.addEventListener('mouseover', e => {
-    const m = e.target.closest && e.target.closest('[data-tip]');
-    if (m && !tipPinned) showTip(m);
-  });
-  document.addEventListener('mouseout', e => {
-    if (e.target.closest && e.target.closest('[data-tip]')) hideTip();
-  });
-  document.addEventListener('focusin', e => {
-    const m = e.target.closest && e.target.closest('[data-tip]');
-    if (m) showTip(m);
-  });
-  document.addEventListener('focusout', () => { if (!tipPinned) hideTip(); });
-  document.addEventListener('click', e => {
-    const dot = e.target.closest && e.target.closest('.tip-trigger');
-    if (tipPinned) {
-      tipPinned.setAttribute('aria-expanded', 'false');
-      const was = tipPinned; tipPinned = null;
-      tipEl.classList.remove('is-on');
-      if (was === dot) return;
-    }
-    if (!dot) return;
-    tipPinned = dot;
-    dot.setAttribute('aria-expanded', 'true');
-    showTip(dot);
-  });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && tipPinned) {
-      tipPinned.setAttribute('aria-expanded', 'false');
-      tipPinned = null;
-      tipEl.classList.remove('is-on');
-    }
-  });
-}
-
-// Templated, never free-generated — a deterministic sentence built from the
-// counts the bars already show, so the finding cannot claim what the evidence
-// doesn't back. Returns the floor index too, so the headline and the row flag
-// can never disagree.
-function bandsFinding(rows, n) {
-  const ranked = rows.map((r, i) => ({ i, lo: r.bands[0] + r.bands[1], off: r.off }))
-    .sort((a, b) => b.lo - a.lo);
-  const worst = ranked[0], next = ranked[1], best = ranked[ranked.length - 1];
-  const gap = worst.lo - next.lo;
-  const near = Math.max(2, Math.round(n * 0.08));
-
-  if (best.lo > n * 0.6) {
-    return { floorIdx: null, html: `<b>All four dimensions are at the floor.</b> Between ${best.lo} and ${worst.lo} of ${n} students are at band 1 or 2 on every one of them. There is no stronger dimension to lean on here — this is a finding about the room, not a dimension to teach into.` };
-  }
-  if (gap < near) {
-    return { floorIdx: null, html: `<b>No single floor this week.</b> ${DIM_NAMES[worst.i]} and ${DIM_NAMES[next.i]} are the two lowest and ${gap === 0 ? 'are tied' : `are within ${gap} student${gap === 1 ? '' : 's'} of each other`}, so there is no one dimension to teach into ahead of the others.` };
-  }
-  const others = ranked.slice(1);
-  const spread = others[0].lo - others[others.length - 1].lo;
-  const majority = worst.lo > (n - worst.off) / 2;
-  return { floorIdx: worst.i, html: `<b>${DIM_NAMES[worst.i]} is the floor.</b> ${worst.lo} of ${n} students are at band 1 or 2 — the behaviour either didn't happen, or didn't happen where it counted${majority ? ', and this is the only dimension where that is most of the room' : ''}. `
-    + (spread <= near
-        ? `The other three sit together, within ${spread} student${spread === 1 ? '' : 's'} of each other.`
-        : `The other three are spread from ${others[others.length - 1].lo} to ${others[0].lo} students.`)
-    + (worst.off >= Math.max(3, n * 0.1) ? ` It is also the hardest to read: ${worst.off} sessions gave it nothing to code.` : '') };
-}
-
-// The reading. Templated off the row's own counts, but its job is what the
-// distribution CANNOT show, not a recount of it.
-function dimNote(bands, off, n) {
-  const lo = bands[0] + bands[1], hi = bands[2] + bands[3], read = lo + hi;
-  const top = bands.indexOf(Math.max(...bands));
-  let s;
-  if (top === 0) {
-    s = `<b>${bands[0]} students didn't do it at all.</b> Band 1 is absence, not a weak attempt — there is nothing in those sessions to sharpen, so this is teaching the move from scratch rather than improving it.`;
-  } else if (top === 1) {
-    s = `<b>It happened, but not where it counted.</b> ${bands[1]} students sit at band 2: they did the thing somewhere in the session, just not at the moments that mattered. That is a smaller gap than band 1 and a different lesson — timing, not the behaviour.`;
-  } else if (read && Math.abs(lo - hi) <= Math.max(1, read * 0.06)) {
-    s = `<b>The room is split.</b> ${lo} students are at band 1 or 2 and ${hi} at band 3 or 4, with no middle that describes either group. Teaching to the average here reaches neither.`;
-  } else if (top === 3) {
-    s = `<b>This one held.</b> ${bands[3]} students carried it even at the hard moments. Worth naming out loud — it is the habit the weaker dimensions can borrow from.`;
-  } else {
-    s = `<b>Mostly there, with real gaps.</b> ${bands[2]} students sit at band 3: the behaviour is present but not yet dependable. ` + (bands[3] ? `${bands[3]} carried it through the hard moments.` : 'Nobody reached band 4.');
-  }
-  if (off >= Math.max(3, n * 0.12)) {
-    s += ` <b>${off} sessions were too thin to read this at all</b>, so the bar above describes the ${read} it could be read on.`;
-  }
-  return s;
-}
-
-function keyItem(b) {
-  return `<span class="dbar-key-item"><i style="background:var(--tau-scale-${b})"></i><span class="n">${b}</span> ${BAND_MEANING[b - 1]}</span>`;
-}
 
 // Same object as a class row — a count of students, click to go to them — so
 // it is one component used twice rather than two that happen to sit together.
@@ -2556,6 +2166,386 @@ function statRow(value, label, color, onclickFn) {
     <span class="stat-row-count"><b style="color:${color}">${value}</b> students</span>
     <span class="class-row-go">→</span></div>`;
 }
+
+// ── Movement over time: cohort trajectories + the flow diagram ───────────────
+//
+// Added 2026-08-15, replacing Home's level composition strip and its band
+// distribution bars. Both were snapshots, and both had the same defect: they
+// answered "where does this room sit" and could not answer "is it moving",
+// which is the question a teacher asks second and acts on first.
+//
+// HOME'S STAGES ARE TIME, NEVER ASSIGNMENTS. Home spans every class, and
+// different classes run different work, so an assignment axis would put
+// non-comparable readings in one column. Calendar buckets ask each student
+// only about themselves, which is a comparison that survives the mixed scope.
+// The assignment axis is legitimate one tier down, where the task is shared —
+// see class-lab.html.
+//
+// WHY A FLOW AND NOT A LINE. A line asserts a rate of change through the gap
+// between two readings and nothing was measured in that gap. A ribbon asserts
+// only membership: these N students held this reading, then that one. Every
+// mark is a real count on a real day, which is also how it clears the standing
+// no-sparkline constraint.
+
+const FLOW_BUCKETS = 3;
+
+// Each student contributes at most one reading per bucket — their latest in
+// that window. One row per student per column, so the denominator stays people
+// and a column total always equals the cohort.
+function cohortFlow(students, valueOf) {
+  const all = [];
+  for (const st of students) {
+    for (const a of ASSIGNMENTS) {
+      for (const sub of getSubs(st.id, a.id)) {
+        if (sub.analysisStatus === 'complete') all.push({ sid: st.id, sub });
+      }
+    }
+  }
+  if (!all.length) return null;
+
+  const times = all.map(x => +x.sub.ts).sort((a, b) => a - b);
+  const t0 = times[0], t1 = times[times.length - 1];
+  if (t1 === t0) return null;
+
+  const edges = [];
+  for (let i = 0; i <= FLOW_BUCKETS; i++) edges.push(t0 + (t1 - t0) * i / FLOW_BUCKETS);
+  const bucketOf = ts => Math.min(FLOW_BUCKETS - 1, Math.max(0,
+    edges.findIndex((e, i) => i > 0 && ts <= e) - 1));
+
+  const latest = new Map();
+  for (const { sid, sub } of all) {
+    const b = bucketOf(+sub.ts);
+    const key = sid + '|' + b;
+    const prev = latest.get(key);
+    if (!prev || sub.ts > prev.ts) latest.set(key, sub);
+  }
+
+  // Index 0 is the top of the chart = the strongest reading; index 4 is
+  // off-scale, which is never a fifth rung.
+  const paths = students.map(st => {
+    const row = [];
+    for (let b = 0; b < FLOW_BUCKETS; b++) {
+      const sub = latest.get(st.id + '|' + b);
+      const v = sub ? valueOf(sub) : null;
+      row.push(v ? 4 - v : 4);
+    }
+    return row;
+  });
+
+  // Month alone collides whenever the term is short enough that two buckets
+  // land in the same one — two columns both reading "Jul" is a chart a teacher
+  // cannot orient in. Fall back to day precision only when it is needed, so the
+  // common case stays short.
+  const fmt = opts => i => new Date(edges[i + 1]).toLocaleDateString(undefined, opts);
+  let label = fmt({ month: 'short' });
+  const months = [];
+  for (let i = 0; i < FLOW_BUCKETS - 1; i++) months.push(label(i));
+  if (new Set(months).size < months.length) label = fmt({ month: 'short', day: 'numeric' });
+
+  const labels = [];
+  for (let i = 0; i < FLOW_BUCKETS; i++) {
+    labels.push(i === FLOW_BUCKETS - 1 ? 'Now' : label(i));
+  }
+  return { paths, labels };
+}
+
+
+// ── The assignment tier: bands on one shared task, flow across its drafts ─────
+//
+// Added 2026-08-16, replacing the dimension trend table, the "Avg. dimension
+// score" chips and the per-metric line chart. All three were arithmetic on the
+// retired 1–5 scale — a mean of ordinals, a total out of twenty, and a rate of
+// change asserted through gaps in which nothing was measured.
+//
+// THE STAGE AXIS HERE IS DRAFTS, and this is the one tier allowed it. Home spans
+// classes running different work, so an assignment column would hold
+// non-comparable readings; here every student did the same Draft 1, Draft 2 and
+// Final, which makes a column a fair comparison by construction.
+//
+// COMPOSITION LEADS HERE, WHERE MOVEMENT LEADS ON HOME — deliberately, and it is
+// the decision most worth arguing with. An assignment is ONE TASK, so "where did
+// the room land on it" is the first question and a distribution answers it.
+// Movement across drafts is the second question, and on a single-draft
+// assignment it does not exist at all. So the closed row carries the
+// distribution and opening it reveals that dimension's draft flow — one section,
+// not two. A room has no single task to land on, which is why Home is the
+// reverse.
+
+// One row per student: their latest completed submission on THIS assignment.
+// Submissions -> students in one hop, the same rule every other cohort follows,
+// so the denominator stays people and "19 of 24" keeps meaning what it says.
+// A student who never submitted contributes null bands — off-scale, never a
+// weak reading.
+function assignmentCohort(a, students) {
+  return students.map(st => {
+    const subs = getSubs(st.id, a.id).filter(s => s.analysisStatus === 'complete');
+    const latest = subs.length ? subs[subs.length - 1] : null;
+    return {
+      student: st,
+      level: latest ? samr(total(latest)).n : null,
+      bands: latest ? DIM_KEYS.map(k => bandFromLegacyScore(latest[k])) : [null, null, null, null],
+      patterns: latest ? (latest.patterns || []) : [],
+    };
+  });
+}
+
+// detectPatternGroups() scoped to one assignment. Same aggregation, same
+// {low, high} shape and therefore Home's exact card markup — a pattern found
+// in a session is a pattern wherever that session is being read from.
+//
+// WHY PATTERNS AND NOT BANDS ON AN OPEN ASSIGNMENT. A band bar partitions the
+// whole class, so with half the room still to submit its shape is dominated by
+// who has not submitted yet: it answers "how far through the window are we"
+// while labelled "how did this class think". A pattern's denominator is the
+// STUDENT — "4 students ran an extraction loop" stays true whatever the other
+// twenty do later. Adding submissions adds patterns; it never restates the
+// ones already there.
+function assignmentPatternGroups(a, students, minCount = 2) {
+  const byPattern = {};
+  assignmentCohort(a, students).forEach(row => {
+    row.patterns.forEach(id => {
+      if (!PATTERN_META[id]) return;
+      (byPattern[id] = byPattern[id] || []).push(row.student);
+    });
+  });
+  const cards = Object.entries(byPattern)
+    .filter(([, list]) => list.length >= minCount)
+    .map(([id, list]) => ({ id, students: list, meta: PATTERN_META[id] }))
+    .sort((x, y) => y.students.length - x.students.length);
+  return {
+    low:  cards.filter(c => c.meta.tier === 'low'),
+    high: cards.filter(c => c.meta.tier === 'high'),
+    all:  cards,
+  };
+}
+
+function patternCardHTML({ id, students, meta }) {
+  const c = students.length;
+  return `<details class="pattern-card">
+    <summary class="finding-summary">
+      <span class="f-body">
+        <span class="pattern-title">${meta.label}</span>
+        <span class="f-where neutral"><span class="num">${c}</span> student${c !== 1 ? 's' : ''}</span>
+      </span>
+    </summary>
+    <div class="f-detail">
+      <p class="pattern-body"><b>What this looks like:</b> ${meta.what}</p>
+      <div class="pattern-try"><b>What to try:</b> ${meta.tryThis}</div>
+      <span class="pattern-link" onclick="event.stopPropagation();gotoStudents('pattern','${id}')">View the ${c} student${c !== 1 ? 's' : ''} →</span>
+    </div>
+  </details>`;
+}
+
+
+// The assignment scope's adapter, the counterpart to renderAssignmentDimensions.
+function renderAgencyDistribution(a, students) {
+  const slot = lastClosedDraft(a);
+  return renderComposition(assignmentReadingCohort(a, students), {
+    label: `Agency${slot ? `, ${slot.label.toLowerCase()}` : ''}`,
+    flow: draftFlow(a, students, sub => samr(total(sub)).n),
+    noFlowNote: 'Movement needs two closed drafts to compare. This assignment does not have two.',
+  });
+}
+
+// One row per student for ONE draft slot — the same shape, scoped to a single
+// round rather than to the assignment's latest.
+function draftCohort(a, idx, students) {
+  return students.map(st => {
+    const sub = getSubs(st.id, a.id).find(s => s.cycleIndex === idx && s.analysisStatus === 'complete');
+    return {
+      student: st,
+      level: sub ? samr(total(sub)).n : null,
+      bands: sub ? DIM_KEYS.map(k => bandFromLegacyScore(sub[k])) : [null, null, null, null],
+    };
+  });
+}
+
+// The last CLOSED draft — the one every distribution on an assignment card is a
+// reading of, and the one draftFlow()'s final column lands on.
+function lastClosedDraft(a) {
+  const closed = draftSchedule(a).filter(s => s.state === 'closed');
+  return closed.length ? closed[closed.length - 1] : null;
+}
+
+// THE COHORT EVERY DISTRIBUTION ON AN ASSIGNMENT CARD READS, and the fix for a
+// correctness bug found 2026-08-16: the composition read each student's LATEST
+// completed submission while the flow's final column read the LAST CLOSED
+// DRAFT. Those diverge for anyone who stopped before the last draft, so the two
+// charts disagreed about the same students, inches apart on the same card —
+// the bar counting a student at their draft-2 reading while the flow showed
+// them with no reading at all. Reproduced by dropping two students' final-draft
+// submissions: the bar said "no reading 0", the flow said 2.
+//
+// Reading the last closed draft makes the bar the flow's final column BY
+// CONSTRUCTION, so they cannot drift apart again rather than being kept in
+// sync by two functions that happen to agree today.
+function assignmentReadingCohort(a, students) {
+  const slot = lastClosedDraft(a);
+  return slot ? draftCohort(a, slot.idx, students) : assignmentCohort(a, students);
+}
+
+// cohortFlow()'s counterpart on the draft axis. Stages are CLOSED draft slots —
+// a live or future draft is not a reading, and padding the axis with one would
+// put an empty column between two real ones. Returns null below two closed
+// drafts, which is the honest state on most assignments rather than an error.
+function draftFlow(a, students, valueOf) {
+  const slots = draftSchedule(a).filter(s => s.state === 'closed');
+  if (slots.length < 2) return null;
+  const paths = students.map(st => slots.map(slot => {
+    const sub = getSubs(st.id, a.id).find(s => s.cycleIndex === slot.idx && s.analysisStatus === 'complete');
+    const v = sub ? valueOf(sub) : null;
+    return v ? 4 - v : 4;
+  }));
+  // Every path off-scale means nobody was readable on any draft — a chart of
+  // one lane, which states nothing the "not enough evidence" copy doesn't.
+  if (!paths.some(p => p.some(v => v !== 4))) return null;
+  return { paths, labels: slots.map(s => s.label) };
+}
+
+// ── The two movement sections, shared by Home and the class tier ─────────────
+//
+// Factored out 2026-08-16 (later), when the class overview's Trends tab moved
+// onto these charts. The class tier asks Home's question — "is this room
+// moving" — of a narrower cohort, so it is the same two sections with the STAGE
+// AXIS SWAPPED, and writing a second copy is how the two would drift into
+// different readings of the same thing.
+//
+// `axis` is the whole difference, and it carries the decoder copy with it,
+// because what a column means is exactly what changes: Home's stages are
+// calendar buckets (it spans classes running different work), the class tier's
+// are assignments (one room, everyone did the same ones).
+
+
+// cohortFlow()'s counterpart on the assignment axis, for one class. THIS TIER
+// IS ALLOWED THE AXIS HOME IS NOT: a class is one room whose students all did
+// the same assignments, so a column holds comparable readings. Only CLOSED
+// assignments are stages — an open one is a reading of whoever submitted early.
+//
+// A class is a FILTER on which submissions are in scope, never a rollup of
+// per-assignment rollups: chaining the tiers that way would weight a student by
+// how much they submitted and derive a reading from a count.
+// The last four, not the whole term. Column headers here are assignment NAMES,
+// which are long where Home's are "Jul"/"Aug"/"Now", and past four stages the
+// ribbons stop being separable at card width. The cap is stated in the section
+// summary rather than left as a silent truncation of the term.
+const CLASS_FLOW_STAGES = 4;
+
+// COLUMN HEADERS ARE DUE DATES, AND THE NAMES GO IN A CAPTION. Assignment names
+// run to a full sentence ("Rhetorical analysis: a speech that changed
+// something"); three of those as adjacent headers overlap into an unreadable
+// band, and truncating them to fit ("Rhetorical ana…", "Historical con…") tells
+// a teacher less than nothing. A date is short, unambiguous and already the
+// thing that orders the axis. The names are stated once, in order, under the
+// chart — and every ribbon's <title> still carries the pair it connects.
+function flowCaption(names) {
+  return `Columns, in order: ${names.join(' → ')}.`;
+}
+
+function classFlow(students, assignments, valueOf) {
+  const seq = classAssignmentSequence(assignments)
+    .filter(a => a.status === 'closed')
+    .slice(-CLASS_FLOW_STAGES);
+  if (seq.length < 2) return null;
+  const paths = students.map(st => seq.map(a => {
+    const subs = getSubs(st.id, a.id).filter(s => s.analysisStatus === 'complete');
+    const v = subs.length ? valueOf(subs[subs.length - 1]) : null;
+    return v ? 4 - v : 4;
+  }));
+  if (!paths.some(p => p.some(v => v !== 4))) return null;
+  return {
+    paths,
+    labels: seq.map(a => a.due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+    caption: flowCaption(seq.map(a => a.name)),
+    stages: seq.length,
+  };
+}
+
+// One row per student: their latest completed submission anywhere in this
+// class. Submissions -> students in one hop, so the denominator stays people.
+function classCohort(students, assignments) {
+  return students.map(st => {
+    const subs = assignments
+      .flatMap(a => getSubs(st.id, a.id))
+      .filter(s => s.analysisStatus === 'complete')
+      .sort((a, b) => a.ts - b.ts);
+    const latest = subs[subs.length - 1];
+    return {
+      student: st,
+      bands: latest ? DIM_KEYS.map(k => bandFromLegacyScore(latest[k])) : [null, null, null, null],
+    };
+  });
+}
+
+
+// The assignment scope. An OPEN assignment gets no composition claim: with
+// students still to submit, any headline would be a reading of whoever happened
+// to be early, which is a self-selected group and the most quietly wrong number
+// this card could print. The bars still render — a non-submitter reads
+// off-scale on them, which is the honest mark — but the finding sentence is
+// replaced by its own denominator.
+function renderAssignmentDimensions(a, students) {
+  const slot = lastClosedDraft(a);
+  const cohort = assignmentReadingCohort(a, students);
+  const n = cohort.length;
+  const read = cohort.filter(c => c.bands.some(b => b)).length;
+  const closed = a.status === 'closed';
+  const rows = bandDistributions(cohort);
+
+  const lede = closed
+    ? `<div class="viz-lede">${bandsFinding(rows, n).html}</div>`
+    : `<p class="agg-sample-note">${read} of ${n} students have a completed session so far — these
+        bands describe them, not the class. Nothing about the room is settled until the assignment closes.</p>`;
+
+  return renderBandSection(cohort, {
+    label: `Dimension bands${slot ? `, ${slot.label.toLowerCase()}` : ''}`,
+    summary: `${read} read of ${n}`,
+    lede,
+    flowFor: i => draftFlow(a, students, sub => bandFromLegacyScore(sub[DIM_KEYS[i]])),
+  });
+}
+
+
+// The assignment scope's adapter for Trace, the counterpart to
+// renderAgencyDistribution and renderAssignmentDimensions. Closed slots only —
+// an open draft has no reading to place in a column.
+function renderStudentTrace(a, studentId) {
+  const slots = draftSchedule(a).filter(s => s.state === 'closed');
+  const subs = slots.map(s => getSubs(studentId, a.id)
+    .find(x => x.cycleIndex === s.idx && x.analysisStatus === 'complete') || null);
+  return renderTrace(
+    slots.map(s => s.label),
+    DIM_KEYS.map(k => subs.map(s => s ? bandFromLegacyScore(s[k]) : null)),
+    subs.map(s => s ? samr(total(s)).n : null));
+}
+
+// Replaces assignmentCoachingNote(), which classified a mean delta. Same
+// three-part shape — the floor, the split, the one reassurance — built from the
+// counts the bars already show, so the note can never claim what they don't back.
+function assignmentBandNote(a, students) {
+  if (a.status !== 'closed') return null;   // no group claim while it is open
+  const cohort = assignmentReadingCohort(a, students);
+  const n = cohort.length;
+  const rows = bandDistributions(cohort);
+  const { floorIdx } = bandsFinding(rows, n);
+  const parts = [];
+
+  if (floorIdx != null) {
+    const lo = rows[floorIdx].bands[0] + rows[floorIdx].bands[1];
+    parts.push(`${DIM_NAMES[floorIdx]} is where this class gave up the most control — ${lo} of ${n} students in the two weakest bands. Worth addressing directly before the next assignment.`);
+  }
+  const splitIdx = rows.findIndex((r, i) => i !== floorIdx && isSplit(r.bands));
+  if (splitIdx >= 0) {
+    const r = rows[splitIdx];
+    parts.push(`${DIM_NAMES[splitIdx]} splits the room — ${r.bands[0] + r.bands[1]} in the weaker two bands and ${r.bands[2] + r.bands[3]} in the stronger two, with no middle that describes either group.`);
+  }
+  const heldIdx = rows.findIndex((r, i) => i !== floorIdx && i !== splitIdx
+    && r.bands[3] && (r.bands[2] + r.bands[3]) > (r.bands[0] + r.bands[1]));
+  if (heldIdx >= 0 && parts.length) {
+    parts.push(`${DIM_NAMES[heldIdx]} held up — worth naming out loud, since it is the habit the weaker ones can borrow from.`);
+  }
+  return parts.length ? parts.join(' ') : null;
+}
+
 
 function renderHome() {
   if (!CLASSES.length && !ARCHIVED_CLASSES.length) return renderFirstRun();
@@ -2574,9 +2564,16 @@ function renderHome() {
   // The three counts do not sum: a student can be worth-a-chat AND missing
   // work. Nothing here states a union, because the payload does not carry one
   // and a wrong denominator is worse than none.
+  // Two groups, not one list — they answer different questions and route to
+  // different conversations. "Worth a chat" is about a student's thinking;
+  // the other two are gaps in the read, where the tool has nothing to say
+  // about them yet. A teacher's response to an overdue draft and to a session
+  // too thin to score is the same response, and it is not the response to a
+  // student who is working passively.
   const tiles = statRow(reviewCount, 'Worth a chat', reviewCount ? 'var(--tau-caution)' : 'var(--tau-positive)', "gotoStudents('review')")
-    + statRow(notEnough, 'Not enough evidence', 'var(--tau-ink)', null)
-    + (missingIds.size ? statRow(missingIds.size, 'Missing work', 'var(--tau-attention)', "gotoStudents('missing')") : '');
+    + `<div class="stat-group-lbl">No read on them yet</div>`
+    + statRow(notEnough, 'Sessions too thin to read', 'var(--tau-ink)', null)
+    + (missingIds.size ? statRow(missingIds.size, 'No draft submitted', 'var(--tau-attention)', "gotoStudents('missing')") : '');
 
   const classesSection = CLASSES.map(cls => {
     const students  = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
@@ -2629,22 +2626,14 @@ function renderHome() {
       ? `<div class="finding-list">${cards.map(patternCard).join('')}</div>`
       : `<p class="pattern-group-empty">${empty}</p>`}`;
 
-  // Missing checkpoints is a Tier-1 logistics fact, not a behavioral pattern —
-  // its own card, no blue, because an overdue draft is a date and the tool has
-  // no reading on it.
-  const missingCard = missingIds.size ? `<div class="finding-list" style="margin-top:var(--tau-s4)"><details class="pattern-card">
-    <summary class="finding-summary">
-      <span class="f-body">
-        <span class="pattern-title">Missing checkpoints</span>
-        <span class="f-where attn"><span class="num">${missingIds.size}</span> student${missingIds.size !== 1 ? 's' : ''} with overdue drafts</span>
-      </span>
-    </summary>
-    <div class="f-detail">
-      <p class="pattern-body"><b>What this looks like:</b> Drafts past their due date — a logistics
-        fact, not a behavioral pattern, kept separate from the signals above.</p>
-      <span class="pattern-link" onclick="event.stopPropagation();gotoStudents('missing')">View missing work →</span>
-    </div>
-  </details></div>` : '';
+  // The "Missing checkpoints" card used to render here, below the pattern
+  // groups. Deleted 2026-08-16: it sat under an eyebrow reading "Behavioral
+  // patterns", and its own comment said it was not one. The separation it
+  // relied on — "its attention-tier count and its wording rather than
+  // different chrome" — cannot work, because a section heading outranks the
+  // copy inside a card. Conflating overdue with disengaged is a mistake this
+  // dashboard already made once. The count now lives only in the tiles above,
+  // grouped with the other gap in the read.
 
   const patternStudentIds = new Set(groups.all.flatMap(t => t.students.map(s => s.id)));
   const patternsSummary = [
@@ -2658,71 +2647,46 @@ function renderHome() {
     </div>
     ${patternGroup(groups.low, 'Passive patterns', '--tau-scale-1', 'None showing across two or more students.')}
     <div style="height:var(--tau-s5)"></div>
-    ${patternGroup(groups.high, 'High-agency patterns', '--tau-scale-4', 'None showing across two or more students yet.')}
-    ${missingCard}`;
+    ${patternGroup(groups.high, 'High-agency patterns', '--tau-scale-4', 'None showing across two or more students yet.')}`;
 
-  // ── 3. Students by level ──────────────────────────────────────────────────
-  const { levels, off: levelsOff } = levelComposition(cohort);
-  const comp = renderCompHTML(levels, levelsOff);
-  const levelHeadline = comp.tie || !comp.max
-    ? 'This group is split.'
-    : `Most of your students are at ${SAMR_NAMES[comp.modal]}.`;
-  const levelGloss = comp.tie || !comp.max
-    ? 'No level holds a plurality, so there is no "most" to report — and an average of the two would describe nobody in the room.'
-    : `${comp.max} of ${comp.total} across your classes. ${LEVEL_GLOSS[comp.modal]}`;
+  // ── 3. Movement over time ─────────────────────────────────────────────────
+  // The Movement organism, the same one the class overview's Trends tab mounts.
+  // HOME'S STAGES ARE CALENDAR BUCKETS, NEVER ASSIGNMENTS: it spans every class
+  // and they run different work, so an assignment column would hold
+  // non-comparable readings. The assignment axis is legitimate one tier down,
+  // where the task is shared — which is exactly what the axis argument carries.
+  //
+  // WAS TWO SECTIONS UNTIL 2026-08-17: an always-open agency chart, then four
+  // dimension rows collapsed behind disclosures. Home is a trend-only surface,
+  // so that hid four of its five primary readings — and it was a second copy of
+  // a component that already existed one tier down.
+  //
+  // TWO CHARTS AGAIN SINCE 2026-08-17, and NOT the shape above: that one hid
+  // four readings behind collapsed rows, this one puts the four on tabs where
+  // each carries its state word. What splits them is the measurement model —
+  // a level reads the whole session, the four dimensions are facets of one
+  // construct, so agency is not their peer and does not belong in a selector
+  // with them. Same argument that keeps Composition off the band panel.
+  const nStr = `${n} student${n !== 1 ? 's' : ''}`;
+  const scopeStr = `${nStr} · ${CLASSES.length} class${CLASSES.length !== 1 ? 'es' : ''}`;
+  const agencySection = renderMovement('home-agency',
+    agencyEntries(cohortFlow(STUDENTS, sub => samr(total(sub)).n)),
+    scopeStr, FLOW_AXIS_TIME, { title: 'Agency over time' });
+  const dimensionSection = renderMovement('home-dims',
+    dimensionEntries(DIM_KEYS.map(key => cohortFlow(STUDENTS, sub => bandFromLegacyScore(sub[key])))),
+    scopeStr, FLOW_AXIS_TIME, { title: 'Dimensions over time' });
 
-  const levelSection = `<div class="section-head">
-      <div class="head-with-info">
-        <div class="eyebrow">Students by level</div>
-        <button class="info-dot tip-trigger" type="button" aria-expanded="false"
-          aria-label="How to read students by level"
-          data-tip="<b>How to read these</b><br>Each bar is that level's share of the whole cohort, on the same scale as the dimension bands beside it — so an equal length means an equal number of students in both charts. The levels are a ladder of agency, read in order.">i</button>
-      </div>
-      <div class="section-summary">${n} student${n !== 1 ? 's' : ''} · ${CLASSES.length} class${CLASSES.length !== 1 ? 'es' : ''}</div>
-    </div>
-    <div class="viz-lede"><b>${levelHeadline}</b> <span>${levelGloss}</span></div>
-    <div class="viz-card">
-      <div class="comp">${comp.html}</div>
-      <p class="viz-card-foot">These levels describe <b>agency</b> — how much of the thinking stayed
-        the student's — not task transformation as SAMR was published.</p>
-    </div>`;
-
-  // ── 4. Dimension bands ────────────────────────────────────────────────────
-  const rows = bandDistributions(cohort);
-  const finding = bandsFinding(rows, n);
-  const dimRows = rows.map((r, i) => `<details class="dist-row${i === finding.floorIdx ? ' is-floor' : ''}"${i === finding.floorIdx ? ' open' : ''}>
-      <summary class="dist-summary">
-        <div class="viz-row-head">
-          <span class="dist-row-name">${DIM_NAMES[i]}</span>
-          <span class="dist-row-go">▾</span>
-        </div>
-        ${dbarMarkup(r.bands, r.off, n, DIM_NAMES[i])}
-      </summary>
-      <div class="dist-row-detail">
-        <p class="dist-what">${DIM_WHAT[i]}</p>
-        <p class="pattern-body">${dimNote(r.bands, r.off, n)}</p>
-        <div class="pattern-try"><b>Worth raising:</b> ${DIM_TRY[i]}</div>
-      </div>
-    </details>`).join('');
-
-  const dimSection = `<div class="section-head">
-      <div class="head-with-info">
-        <div class="eyebrow">Dimension bands</div>
-        <button class="info-dot tip-trigger" type="button" aria-expanded="false"
-          aria-label="How to read the dimension bands"
-          data-tip="<b>How to read these</b><br>Every student sits in exactly one band per dimension, so each row counts the whole cohort — which is why every bar is the same length. The tick marks where band 2 ends: left of it the behaviour didn't happen, or didn't happen where it counted.">i</button>
-      </div>
-      <div class="section-summary">${n} student${n !== 1 ? 's' : ''}</div>
-    </div>
-    <div class="viz-lede">${finding.html}</div>
-    <div class="dbar-key">
-      ${keyItem(1)}${keyItem(2)}<span class="dbar-key-seam"></span>${keyItem(3)}${keyItem(4)}
-      <span class="dbar-key-item off"><i></i>not enough evidence</span>
-    </div>
-    <div class="dist-panel" style="margin-top:var(--tau-s3)">${dimRows}</div>`;
-
-  // Layout: triage beside its own breakdown, patterns full width, then the two
-  // halves of the aggregate reading side by side — where the room sits, and why.
+  // Layout: triage beside its own breakdown, then everything that carries a
+  // chart full width, one per row.
+  //
+  // THE 2-UP PAIRING WENT WITH THE SNAPSHOT, 2026-08-15. Level and dimension
+  // sat side by side because both were a single stacked bar and the pair read
+  // as one object — where the room sits, and why. A flow diagram needs
+  // horizontal room per stage: at half width the three columns crowd, the
+  // ribbons stop being separable, and the counts collide with the nodes. The
+  // charts also stopped being two halves of one reading — one is where the
+  // room is, the other is what moved — so pairing them was asserting a
+  // relationship the content no longer has.
   return `
     <div class="home-stack">
       <div class="home-cols-top">
@@ -2736,10 +2700,8 @@ function renderHome() {
         </div>
       </div>
       <div class="home-band">${patternsSection}</div>
-      <div class="home-cols-2up">
-        <div class="home-band home-col">${levelSection}</div>
-        <div class="home-band home-col">${dimSection}</div>
-      </div>
+      <div class="home-band">${agencySection}</div>
+      <div class="home-band">${dimensionSection}</div>
     </div>
   `;
 }
@@ -2811,12 +2773,11 @@ function browseRosterTables() {
         <div class="tbl-wrap">
         <table class="roster roster-browse">
           <colgroup>
-            <col style="width:24%"><col style="width:12%"><col style="width:26%"><col style="width:38%">
+            <col style="width:26%"><col style="width:30%"><col style="width:44%">
           </colgroup>
           <thead><tr>
             ${sortTh('Student', 'name', state, cls.id)}
-            ${sortTh('Average', 'tau', state, cls.id)}
-            <th>How they're using AI</th>
+            ${sortTh('Agency', 'agency', state, cls.id)}
             ${sortTh('Signal', 'signal', state, cls.id)}
           </tr></thead>
           <tbody>${students.map(browseStudentRowTr).join('')}</tbody>
@@ -2879,67 +2840,6 @@ function classNextDraftDue(assignment, students) {
 // canonical PQ/SU/CS/OC sequence — so it's a stable, learnable position per
 // dimension across every assignment a teacher checks, not a ranking that
 // reshuffles per assignment.
-const TAU_DIMENSIONS = [
-  { key: 'pq', label: 'Prompting Quality' },
-  { key: 'su', label: 'Selective Use' },
-  { key: 'cs', label: 'Calibrated Skepticism' },
-  { key: 'oc', label: 'Original Contribution' },
-];
-
-// A student only has a "trend" once they've moved from one completed draft
-// to the next — pending/error submissions carry a 0 placeholder score
-// (see /api/teacher/dashboard), which would corrupt an average, so only
-// analysisStatus 'complete' submissions count.
-function assignmentTrendCohort(assignment, students) {
-  return students
-    .map(s => getSubs(s.id, assignment.id).filter(sub => sub.analysisStatus === 'complete'))
-    .filter(subs => subs.length >= 2)
-    .map(subs => ({ prev: subs[subs.length - 2], curr: subs[subs.length - 1] }));
-}
-
-function dimensionTrendNote(trend, skewed, n) {
-  if (skewed) return `Group is split — some students well ahead, others not. Treat this as a midpoint, not a summary (n=${n}).`;
-  const BASE = {
-    up:      'Real movement across the group.',
-    down:    'Declining across the group — worth a look before the next checkpoint.',
-    floor:   'Consistently low across the group, not one student pulling it down — worth addressing directly.',
-    ceiling: 'Already high and consistent — flat here is expected, not a concern.',
-    mid:     'No clear movement either way.',
-  };
-  return BASE[trend];
-}
-
-// Shared by both the draft-over-draft (one assignment) and assignment-over-
-// assignment (one class) trend tiers — same classification math, applied to
-// whichever cohort of {prev, curr} pairs the caller built.
-function dimensionRowsFromCohort(cohort) {
-  const n = cohort.length;
-  return TAU_DIMENSIONS.map(({ key, label }) => {
-    const deltas   = cohort.map(c => c.curr[key] - c.prev[key]);
-    const currVals = cohort.map(c => c.curr[key]);
-    const avgDelta = deltas.reduce((a, b) => a + b, 0) / n;
-    const avgCurr  = currVals.reduce((a, b) => a + b, 0) / n;
-    const spread   = Math.max(...currVals) - Math.min(...currVals);
-    const skewed   = n >= 2 && spread >= 2;
-
-    let trend;
-    if (avgDelta >= 0.3) trend = 'up';
-    else if (avgDelta <= -0.3) trend = 'down';
-    else if (avgCurr <= 2) trend = 'floor';
-    else if (avgCurr >= 4) trend = 'ceiling';
-    else trend = 'mid';
-
-    return { key, label, trend, skewed, avgCurr, note: dimensionTrendNote(trend, skewed, n) };
-  });
-}
-
-// Returns null when nobody in the group has completed two drafts yet — the
-// caller shows an explicit "not enough data" state rather than an empty panel.
-function assignmentDimensionTrend(assignment, students) {
-  const cohort = assignmentTrendCohort(assignment, students);
-  if (!cohort.length) return null;
-  return { n: cohort.length, rows: dimensionRowsFromCohort(cohort) };
-}
 
 // Origin mix (student-born / synthesized / AI-born), aggregated across each
 // student's latest completed submission for this assignment — "where the
@@ -2963,22 +2863,6 @@ function assignmentProvenanceMix(assignment, students) {
   };
 }
 
-// Templated, not free-form generated — deterministic sentences built from
-// the same trend/skewed flags the rows already show, so the note can never
-// claim something the rows don't back up. Surfaces at most the one floor
-// finding, the one skewed finding, and one reassuring ceiling finding.
-function assignmentCoachingNote(trend) {
-  if (!trend) return null;
-  const floor   = trend.rows.find(r => r.trend === 'floor' && !r.skewed);
-  const skewed  = trend.rows.find(r => r.skewed);
-  const ceiling = trend.rows.find(r => r.trend === 'ceiling');
-  const parts = [];
-  if (floor)   parts.push(`${floor.label} is flat and low for the group — worth addressing directly before the next checkpoint.`);
-  if (skewed)  parts.push(`${skewed.label}'s average looks like progress, but the group is split — worth checking who's still behind before assuming everyone moved.`);
-  if (ceiling && (floor || skewed)) parts.push(`${ceiling.label} is flat too, but already near the ceiling, so that one's fine.`);
-  return parts.length ? parts.join(' ') : null;
-}
-
 // ── Class aggregate — dimension trend across assignments, not drafts ────────
 // The class tier of the three-tier framework (teacher-dashboard-design.md,
 // "Assignment View — aggregate-first"): "how is the class doing over time,
@@ -2990,27 +2874,6 @@ function classAssignmentSequence(assignments) {
   return [...assignments].sort((a, b) => a.due - b.due);
 }
 
-// A student only contributes once they have a completed submission on at
-// least two of the class's assignments — same "no placeholder zeros" rule as
-// assignmentTrendCohort(), just walking assignments instead of draft slots.
-function classTrendCohort(students, assignments) {
-  const seq = classAssignmentSequence(assignments);
-  return students
-    .map(s => seq
-      .map(a => {
-        const subs = getSubs(s.id, a.id).filter(sub => sub.analysisStatus === 'complete');
-        return subs.length ? subs[subs.length - 1] : null;
-      })
-      .filter(Boolean))
-    .filter(perAssignment => perAssignment.length >= 2)
-    .map(perAssignment => ({ prev: perAssignment[perAssignment.length - 2], curr: perAssignment[perAssignment.length - 1] }));
-}
-
-function classDimensionTrend(students, assignments) {
-  const cohort = classTrendCohort(students, assignments);
-  if (!cohort.length) return null;
-  return { n: cohort.length, rows: dimensionRowsFromCohort(cohort) };
-}
 
 // "Where the class's ideas are coming from right now" — each student's
 // single most recent completed submission across every assignment in the
@@ -3037,38 +2900,41 @@ function classProvenanceMix(students, assignments) {
   };
 }
 
-// Same "latest completed submission per student" snapshot classProvenanceMix
-// uses, averaged on total() instead of provenance — the Home "Class needs
-// attention" tile's cross-class comparison, one level up from
-// classDimensionTrend()'s single-class view.
-function classAvgTotal(students, assignments) {
-  let sum = 0, n = 0;
-  students.forEach(s => {
-    const subs = assignments
-      .flatMap(a => getSubs(s.id, a.id))
-      .filter(sub => sub.analysisStatus === 'complete')
-      .sort((a, b) => a.ts - b.ts);
-    const latest = subs[subs.length - 1];
-    if (!latest) return;
-    sum += total(latest);
-    n++;
-  });
-  return n ? sum / n : null;
-}
+// classAvgTotal() was deleted here, 2026-08-17. It averaged total() across a
+// class for the Home "class needs attention" tile — a tile that reads counts
+// now — and had ZERO CALLERS by the time it was found. Third time this file has
+// turned up a retired chart's helper still sitting in place after the chart went
+// (sparklineSVG, two duplicate render paths); noted rather than quietly removed,
+// because the pattern is what to look for, not this one function.
 
 
-// Same templated shape as assignmentCoachingNote() — floor/skewed/ceiling,
-// at most one of each — with "checkpoint" reworded to "assignment" since
-// this tier's next unit of progression is a whole assignment, not a draft.
-function classCoachingNote(trend) {
-  if (!trend) return null;
-  const floor   = trend.rows.find(r => r.trend === 'floor' && !r.skewed);
-  const skewed  = trend.rows.find(r => r.skewed);
-  const ceiling = trend.rows.find(r => r.trend === 'ceiling');
+// Templated off the class's own band counts — floor, split, and the one
+// reassurance, at most one of each. It classified a mean delta until
+// 2026-08-16; the shape is unchanged, the quantity inside it is a count now.
+// Scoped to each student's LATEST reading anywhere in the class, so the
+// sentence and the Trends tab's last column describe the same cohort.
+function classCoachingNote(students, assignments) {
+  const cohort = classCohort(students, assignments);
+  const n = cohort.length;
+  if (!n || !cohort.some(c => c.bands.some(b => b))) return null;
+  const rows = bandDistributions(cohort);
+  const { floorIdx } = bandsFinding(rows, n);
   const parts = [];
-  if (floor)   parts.push(`${floor.label} is flat and low across assignments — worth addressing directly before the next one.`);
-  if (skewed)  parts.push(`${skewed.label}'s average looks like progress, but the class is split — worth checking who's still behind before assuming everyone moved.`);
-  if (ceiling && (floor || skewed)) parts.push(`${ceiling.label} is flat too, but already near the ceiling, so that one's fine.`);
+
+  if (floorIdx != null) {
+    const lo = rows[floorIdx].bands[0] + rows[floorIdx].bands[1];
+    parts.push(`${DIM_NAMES[floorIdx]} is where this class gives up the most control — ${lo} of ${n} students in the two weakest bands on their most recent work. Worth addressing directly before the next assignment.`);
+  }
+  const splitIdx = rows.findIndex((r, i) => i !== floorIdx && isSplit(r.bands));
+  if (splitIdx >= 0) {
+    const r = rows[splitIdx];
+    parts.push(`${DIM_NAMES[splitIdx]} splits the class — ${r.bands[0] + r.bands[1]} in the weaker two bands and ${r.bands[2] + r.bands[3]} in the stronger two. Teaching to the middle here reaches neither group.`);
+  }
+  const heldIdx = rows.findIndex((r, i) => i !== floorIdx && i !== splitIdx
+    && r.bands[3] && (r.bands[2] + r.bands[3]) > (r.bands[0] + r.bands[1]));
+  if (heldIdx >= 0 && parts.length) {
+    parts.push(`${DIM_NAMES[heldIdx]} is holding up — the habit the weaker ones can borrow from.`);
+  }
   return parts.length ? parts.join(' ') : null;
 }
 
@@ -3083,14 +2949,12 @@ function classCoachingNote(trend) {
 // time"). Idea-origin mix stays in Overview per direct instruction, not
 // folded into Trends even though it's also a "where things stand" read.
 // Reuses the exact .card-tabs/.tab-panel component
-// renderFinalAssignmentSummaryContent() already established, not a second
+// the assignment tier already established, not a second
 // tab idiom invented for this card.
 function renderClassAggregateCard(cid, students, assignments, missingCount, flagCount) {
   const patterns = detectTrends(2, new Set(students.map(s => s.id)));
-  const trend  = classDimensionTrend(students, assignments);
   const origin = classProvenanceMix(students, assignments);
-  const note   = classCoachingNote(trend);
-  const series = classAssignmentSeries(students, assignments);
+  const note   = classCoachingNote(students, assignments);
 
   const statTile = (value, label, color, bg, onclick) => `<div class="stat-tile${onclick ? ' stat-tile-clickable' : ''}" style="background:${bg};border:1px solid ${color}"${onclick ? ` onclick="${onclick}"` : ''}>
     <div class="stat-tile-val" style="color:${color}">${value}</div>
@@ -3139,49 +3003,26 @@ function renderClassAggregateCard(cid, students, assignments, missingCount, flag
       </details>`).join('')}
     </div>` : `<p class="agg-sample-note">No recurring patterns across this class's assignments yet.</p>`;
 
-  const TREND_LABEL = { up: 'Trending up', down: 'Trending down', floor: 'Flat (floor)', ceiling: 'Flat (ceiling)', mid: 'Flat' };
-  // Fallback for <3 closed assignments — the same 2-point pairwise badge
-  // this card always showed, before there's enough data for the arc below
-  // to mean anything (see classSeriesOutlierNote's own >=3 guard).
-  const fallbackTrend = trend ? `
-    <div class="agg-block-lbl">Dimension trend, most recent two assignments</div>
-    <p class="agg-sample-note">Based on the ${trend.n} student${trend.n !== 1 ? 's' : ''} who've completed two or more assignments so far. A full-term chart needs three closed assignments — this class isn't there yet.</p>
-    <div class="dim-head">
-      <span class="c-name">Dimension</span>
-      <span class="c-trend">Trend</span>
-      <span class="c-note">Note</span>
-    </div>
-    <div class="dim-panel">
-      ${trend.rows.map(r => `<div class="dim-row">
-        <div class="dim-name">${r.label}</div>
-        <div class="dim-badge ${r.trend}">${TREND_LABEL[r.trend]}</div>
-        <div class="dim-note">${r.note}</div>
-      </div>`).join('')}
-    </div>`
-    : `<p class="agg-sample-note">Not enough data yet — no student has completed two assignments.</p>`;
-
-  const metric = classMetric[cid] || 'tau';
-  const trendsPanel = series.length >= 3 ? (() => {
-    const isTotal = metric === 'tau';
-    const metricDef = FINAL_METRICS.find(m => m.key === metric);
-    const chart = svgLineChart({
-      points: finalMetricSeriesPoints(series, metric),
-      yMin: isTotal ? 0 : 1, yMax: isTotal ? 20 : 5,
-      yTicks: isTotal ? [0, 5, 10, 15, 20] : [1, 2, 3, 4, 5],
-      color: 'var(--tau-tool-info)',
-      valueFmt: isTotal ? v => `${v.toFixed(1)}/20` : v => v.toFixed(1),
-    });
-    const outlier = isTotal
-      ? classSeriesOutlierNote(series, 'totalAvg', 'TAU score', { deltaThresh: 1.2, fmt: v => `${v.toFixed(1)}/20` })
-      : classSeriesOutlierNote(series, metric, metricDef.label);
-    return `
-      <p class="agg-sample-note">One point per closed assignment — hover or tab to a point for its exact value.</p>
-      <div class="metric-chips" role="group" aria-label="Select a dimension">
-        ${FINAL_METRICS.map(m => `<button class="metric-chip ${metric === m.key ? 'active' : ''}" onclick="event.stopPropagation();setClassMetric('${cid}','${m.key}')">${m.label}</button>`).join('')}
-      </div>
-      ${chart}
-      ${outlier ? `<div class="teach-note stacked" style="margin-top:var(--tau-s4)"><span class="eyebrow-lbl">${iconSVG('chat')}Worth flagging</span>${outlier}</div>` : ''}`;
-  })() : fallbackTrend;
+  // TRENDS — the same two movement sections Home runs, on the assignment axis.
+  // Replaces an arc line chart (one metric at a time, behind a chip row, y-axis
+  // 0-20 or 1-5) and, below three closed assignments, a three-column table of
+  // trend badges off a mean delta. A line asserted a rate of change through the
+  // gap between two assignments and nothing was measured in that gap; the badge
+  // table classified an average of ordinals. The ribbons assert only
+  // membership, which is the only claim the readings support.
+  const nStr = `${students.length} student${students.length !== 1 ? 's' : ''}`;
+  const closedCount = assignments.filter(a => a.status === 'closed').length;
+  const lvFlow = classFlow(students, assignments, sub => samr(total(sub)).n);
+  // States the cap when there is one, so four columns out of a longer term
+  // never reads as the whole term.
+  const scopeStr = lvFlow && closedCount > lvFlow.stages
+    ? `${nStr} · last ${lvFlow.stages} of ${closedCount} closed assignments`
+    : `${nStr} · ${closedCount} closed assignment${closedCount !== 1 ? 's' : ''}`;
+  // Same organism Home mounts; this tier only swaps the flows and the axis.
+  const trendsPanel = renderMovement(`class:${cid}`,
+    movementEntries(lvFlow,
+      DIM_KEYS.map(key => classFlow(students, assignments, sub => bandFromLegacyScore(sub[key])))),
+    scopeStr, FLOW_AXIS_ASSIGNMENT);
 
   const tab = classTab[cid] || 'overview';
   const panels = { overview: overviewPanel, patterns: patternsPanel, trends: trendsPanel };
@@ -3197,15 +3038,15 @@ function renderClassAggregateCard(cid, students, assignments, missingCount, flag
   </div>`;
 }
 
-// One card per assignment, same open/closed split Assignment Detail itself
-// uses: open renders renderAssignmentAggregateContent() (draft-over-draft
-// dimension trend, idea-origin mix, a coaching note — "where things stand
-// today"); closed renders renderFinalAssignmentSummaryContent() (the
-// Overview/Trend tabs, line charts, "How they worked"/"How the class
-// engaged" — the whole arc, once there's a final answer to show). Neither
-// is a summary invented for this page — both are the exact same functions
-// Assignment Detail's own Overview/Final Summary cards call, just embedded
-// under this card's own name/status header instead of their own eyebrow.
+// One card per assignment, rendering renderAssignmentAggregateContent() —
+// dimension bands, idea-origin mix, a coaching note, and (once closed) how the
+// class worked. It is not a summary invented for this page: it is the exact
+// function Assignment Detail's own card calls, embedded under this card's
+// name/status header instead of its own eyebrow.
+//
+// The open/closed split here went away on 2026-08-16 with the tab pair it
+// selected between. Open and closed are the same object now — what differs is a
+// caveat on the composition claim, which the content itself carries.
 // The header states whichever fact is still live (current checkpoint + its
 // due date while open) or settled (its own due date once closed), and the
 // content below degrades gracefully via the same "not enough data yet"
@@ -3231,7 +3072,7 @@ function renderClassAssignmentCard(a, students) {
       </div>
       <a class="agg-link-btn" onclick="gotoAssignment('${a.id}')">View full assignment →</a>
     </div>
-    ${closed ? renderFinalAssignmentSummaryContent(a, students) : renderAssignmentAggregateContent(a, students)}
+    ${renderAssignmentAggregateContent(a, students, 'summary')}
   </div>`;
 }
 
@@ -3331,7 +3172,7 @@ function draftDueStr(due) {
 // Every complete submission for this draft slot, across every student the
 // assignment was given to — pending/error submissions carry a 0 placeholder
 // score (see /api/teacher/dashboard) and would corrupt an average, so only
-// 'complete' counts, matching assignmentTrendCohort()'s own rule.
+// 'complete' counts, the same rule every cohort on this page follows.
 function draftCompleteSubs(a, idx, students) {
   return students
     .map(s => getSubs(s.id, a.id).find(sub => sub.cycleIndex === idx && sub.analysisStatus === 'complete'))
@@ -3340,27 +3181,6 @@ function draftCompleteSubs(a, idx, students) {
 
 function draftAnySubs(a, idx, students) {
   return students.filter(s => getSubs(s.id, a.id).some(sub => sub.cycleIndex === idx));
-}
-
-const SAMR_RANGE = ['4–8', '9–12', '13–16', '17–20'];
-
-function draftMetricValues(subs, metric) {
-  return metric === 'tau' ? subs.map(total) : subs.map(s => s[metric]);
-}
-
-// Bins are never arbitrary numeric buckets: TAU score bins on the four SAMR
-// bands (samr(), already meaningful elsewhere in this app); each dimension
-// bins on its own raw 1–5 integer, since that scale has nothing finer to
-// bucket in the first place.
-function draftHistogramBins(subs, metric) {
-  const values = draftMetricValues(subs, metric);
-  if (metric === 'tau') {
-    return [1, 2, 3, 4].map(n => ({
-      label: SAMR_NAMES[n - 1], sub: SAMR_RANGE[n - 1],
-      count: values.filter(v => samr(v).n === n).length,
-    }));
-  }
-  return [1, 2, 3, 4, 5].map(v => ({ label: String(v), sub: '', count: values.filter(x => x === v).length }));
 }
 
 // Templated, not free-generated — a deterministic sentence built from the
@@ -3397,162 +3217,79 @@ function draftSessionNote(subs) {
   return { avg, note };
 }
 
-// Which dimension(s) were strongest/weakest this round — same templated
-// approach as dimensionTrendNote(), scoped to one draft's raw averages
-// instead of draft-over-draft movement.
-function draftEngagementNote(subs) {
-  if (!subs.length) return null;
-  const avgs = TAU_DIMENSIONS.map(d => ({ ...d, avg: subs.reduce((a, b) => a + b[d.key], 0) / subs.length }));
-  const min = Math.min(...avgs.map(d => d.avg));
-  const max = Math.max(...avgs.map(d => d.avg));
-  if (min === max) return 'All four dimensions landed about the same this round — no single area stood out from the rest.';
-  const low  = avgs.filter(d => d.avg <= min + 0.25).map(d => d.label);
-  const high = avgs.filter(d => d.avg >= max - 0.25).map(d => d.label);
-  const parts = [`${low.join(' and ')} came in lowest of the four dimensions this round — the class leaned on AI answers fairly directly rather than pushing back on them.`];
-  if (max >= 4) parts.push(`${high.join(' and ')} held up well.`);
+// Which dimension(s) held and which didn't this round — templated off the same
+// band counts the bars show, replacing a read of four raw averages.
+function draftEngagementNote(a, slot, students) {
+  const cohort = draftCohort(a, slot.idx, students);
+  const n = cohort.length;
+  if (!cohort.some(c => c.bands.some(b => b))) return null;
+  const rows = bandDistributions(cohort);
+  const { floorIdx } = bandsFinding(rows, n);
+  if (floorIdx == null) return 'No single dimension was the floor this round — the four sit close enough together that there is no one behaviour to teach into ahead of the others.';
+  const lo = rows[floorIdx].bands[0] + rows[floorIdx].bands[1];
+  const held = rows.findIndex((r, i) => i !== floorIdx && r.bands[3] && (r.bands[2] + r.bands[3]) > (r.bands[0] + r.bands[1]));
+  const parts = [`${DIM_NAMES[floorIdx]} was the floor this round — ${lo} of ${n} students in the two weakest bands.`];
+  if (held >= 0) parts.push(`${DIM_NAMES[held]} held up.`);
   return parts.join(' ');
 }
 
-function renderDraftHistogram(subs, metric) {
-  const bins = draftHistogramBins(subs, metric);
-  const maxCount = Math.max(1, ...bins.map(b => b.count));
-  const ticks = [];
-  for (let t = maxCount; t >= 0; t--) ticks.push(t);
-  const dimLabel = (TAU_DIMENSIONS.find(d => d.key === metric) || {}).label;
-
-  return `<div class="bar-chart-wrap">
-    <div class="bar-chart-axis">${ticks.map(t => `<span>${t}</span>`).join('')}</div>
-    <div class="bar-chart-main">
-      <div class="bar-chart-title">Students</div>
-      <div class="bar-chart">
-        <div class="bar-chart-grid">${ticks.map(() => `<span></span>`).join('')}</div>
-        ${bins.map(b => `<div class="bar-col">${b.count > 0 ? `<div class="bar" style="height:${(b.count / maxCount * 100).toFixed(1)}%"><div class="bar-value">${b.count}</div></div>` : ''}</div>`).join('')}
-      </div>
-      <div class="bar-chart-xlabels">${bins.map(b => `<div class="bar-xlabel">${b.label}${b.sub ? `<span class="sub">${b.sub}</span>` : ''}</div>`).join('')}</div>
-    </div>
-  </div>
-  <p class="agg-sample-note" style="margin-top:var(--tau-s3)">${metric === 'tau'
-    ? 'Each bar is the number of students whose total TAU score fell in that SAMR band this draft.'
-    : `Each bar is the number of students who scored that value (1–5) on ${dimLabel} this draft.`}</p>`;
+// The per-draft distribution. Same four band bars as the assignment scope, with
+// no flow inside them: a single draft slot has no interior axis to move along.
+// Replaces a histogram that binned students on the raw 1-5 integer and printed
+// the band numeral on its own x-axis.
+// A DRAFT SLOT IS ONE SHARED TASK, so it earns a composition — the same rule that
+// gives the assignment card one, applied one tier down. Added 2026-08-17: this tab
+// showed the four dimension bands and no agency reading, which is the pair split in
+// half, and the assignment card above it had both.
+//
+// NO FLOW, and that is the point of the argument being optional. A slot has no
+// interior sequence to move along — its movement is the assignment's flow, one tier
+// up, where the stages ARE the slots. Passing neither a flow nor a note renders the
+// bars alone rather than a drawer with an apology in it.
+//
+// Order matches the assignment card exactly: composition, then bands.
+function renderDraftAgency(a, slot, students) {
+  return renderComposition(draftCohort(a, slot.idx, students), { label: 'Agency' });
 }
 
-// ── Line chart — trend over an ordered sequence (dataviz skill's own job
-// table: "trend over time" → line) ───────────────────────────────────────────
-// Straight segments between real per-draft averages only — no curve fitting.
-// Same discipline draftHistogramBins() already applies by skipping a fitted
-// density overlay on 4-5 discrete points: every vertex here is a real,
-// completed draft's average, not an interpolation.
-function chartAttrStr(s) {
-  return esc(String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+function renderDraftBands(a, slot, students) {
+  const cohort = draftCohort(a, slot.idx, students);
+  const n = cohort.length;
+  const read = cohort.filter(c => c.bands.some(b => b)).length;
+  return renderBandSection(cohort, {
+    label: `Dimension bands, ${slot.label.toLowerCase()}`,
+    summary: `${read} read of ${n}`,
+    lede: `<div class="viz-lede">${bandsFinding(bandDistributions(cohort), n).html}</div>`,
+  });
 }
 
-function svgLineChart({ points, yMin, yMax, yTicks, color, valueFmt = v => String(v), width = 520, height = 140 }) {
-  const padTop = 24, padBottom = 22, padLeft = 30, padRight = 14;
-  const plotW = width - padLeft - padRight;
-  const plotH = height - padTop - padBottom;
-  const n = points.length;
-  const xAt = i => padLeft + (n > 1 ? (i / (n - 1)) * plotW : plotW / 2);
-  const yAt = v => padTop + (1 - (v - yMin) / (yMax - yMin)) * plotH;
 
-  const gridlines = yTicks.map(t => {
-    const y = yAt(t).toFixed(1);
-    return `<line x1="${padLeft}" x2="${width - padRight}" y1="${y}" y2="${y}" stroke="var(--tau-line)" stroke-width="1"/>
-      <text x="${padLeft - 6}" y="${(Number(y) + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--tau-ink-faint)">${t}</text>`;
-  }).join('');
-
-  const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xAt(i).toFixed(1)},${yAt(p.value).toFixed(1)}`).join(' ');
-
-  // Hit target (r=12, well past the 8px marker spec) carries the hover/focus
-  // tooltip; the last point also gets a direct end-label per the skill's
-  // "lines → value at the end" rule, so the final value is reachable without
-  // hovering at all.
-  const dots = points.map((p, i) => {
-    const x = xAt(i).toFixed(1), y = yAt(p.value).toFixed(1);
-    const label = chartAttrStr(p.label), val = chartAttrStr(valueFmt(p.value));
-    return `<circle cx="${x}" cy="${y}" r="4" fill="${color}" stroke="var(--tau-surface)" stroke-width="2"/>
-      <circle cx="${x}" cy="${y}" r="12" fill="transparent" style="cursor:pointer"
-        onmouseenter="showLineTip(event,'${label}','${val}')" onmouseleave="hideLineTip()"
-        onfocus="showLineTip(event,'${label}','${val}')" onblur="hideLineTip()" tabindex="0"/>
-      ${i === n - 1 ? `<text x="${x}" y="${(Number(y) - 10).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--tau-ink)">${esc(valueFmt(p.value))}</text>` : ''}`;
-  }).join('');
-
-  const xLabels = points.map((p, i) => `<text x="${xAt(i).toFixed(1)}" y="${height - 6}" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--tau-ink-soft)">${esc(p.label)}</text>`).join('');
-
-  return `<svg viewBox="0 0 ${width} ${height}" style="width:100%;height:${height}px;overflow:visible" role="img" aria-label="Line chart, ${points.length} points">
-    ${gridlines}
-    <path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    ${dots}
-    ${xLabels}
-  </svg>`;
-}
-
-// One shared tooltip element for every line chart on the page — tooltips
-// enhance, they never gate (every value is already reachable via the axis
-// tick, the end-label, or the analysis text below the chart).
-function showLineTip(evt, label, value) {
-  let tip = document.getElementById('lineChartTip');
-  if (!tip) {
-    tip = document.createElement('div');
-    tip.id = 'lineChartTip';
-    tip.style.cssText = 'position:fixed;z-index:80;pointer-events:none;background:var(--tau-ink);color:var(--tau-surface);font-size:11px;padding:4px 8px;border-radius:4px;box-shadow:var(--tau-shadow);white-space:nowrap;';
-    document.body.appendChild(tip);
-  }
-  tip.innerHTML = '';
-  const strong = document.createElement('strong');
-  strong.textContent = value;
-  const span = document.createElement('span');
-  span.style.opacity = '.75';
-  span.textContent = ` · ${label}`;
-  tip.appendChild(strong);
-  tip.appendChild(span);
-  tip.style.left = (evt.clientX + 12) + 'px';
-  tip.style.top  = (evt.clientY - 28) + 'px';
-  tip.style.display = 'block';
-}
-function hideLineTip() {
-  const tip = document.getElementById('lineChartTip');
-  if (tip) tip.style.display = 'none';
-}
-
-// Per-draft tab/metric state, keyed `${assignmentId}::${cycleIndex}` — each
-// draft's tab/chip selection is independent of every other draft's.
-let assignDraftTab    = {};
-let assignDraftMetric = {};
+// Per-draft tab state, keyed `${assignmentId}::${cycleIndex}` — each draft's
+// selection is independent of every other draft's. The metric half of this
+// pair went with the histogram it selected a series for (2026-08-16); the four
+// dimensions now render together, which is what makes them comparable.
+let assignDraftTab = {};
 
 function setAssignDraftTab(key, tab) {
   assignDraftTab[key] = tab;
   renderContent();
 }
-function setAssignDraftMetric(key, metric) {
-  assignDraftMetric[key] = metric;
-  renderContent();
-}
 
-// Final assignment summary's own tab/chip state, keyed by assignment id —
-// one summary card per assignment page, unlike the per-draft state above.
-let finalTab    = {};
-let finalMetric = {};
+// The final assignment summary's Overview/Trend tab state is gone with the
+// tabs — a closed assignment renders the same single card as an open one.
 
-function setFinalTab(aid, tab) {
-  finalTab[aid] = tab;
-  renderContent();
-}
-function setFinalMetric(aid, metric) {
-  finalMetric[aid] = metric;
-  renderContent();
-}
+// Class overview card's tab state, keyed by class id. The metric half of this
+// pair went with the arc line chart it selected a series for (2026-08-16) —
+// the Trends tab now renders every dimension at once, as flows.
+let classTab = {};
 
-// Class overview card's own tab/chip state, keyed by class id — mirrors
-// finalTab/finalMetric's shape one tier up (renderClassAggregateCard).
-let classTab    = {};
-let classMetric = {};
 
 function setClassTab(cid, tab) {
   classTab[cid] = tab;
   renderContent();
 }
-function setClassMetric(cid, metric) {
-  classMetric[cid] = metric;
+function setFlowMetric(scope, key) {
+  flowMetric[scope] = key;
   renderContent();
 }
 
@@ -3560,16 +3297,14 @@ function renderDraftSnapshot(a, slot, students) {
   const key = `${a.id}::${slot.idx}`;
   const subs = draftCompleteSubs(a, slot.idx, students);
   const anySubs = draftAnySubs(a, slot.idx, students);
-  const totals = subs.map(total);
-  const avg = totals.length ? totals.reduce((x, y) => x + y, 0) / totals.length : null;
-  const range = totals.length ? `${Math.min(...totals)}–${Math.max(...totals)}` : '—';
   const { avg: avgSessions, note: sessionNote } = draftSessionNote(subs);
   const timingNote = draftTimingNote(subs, slot.due);
-  const engagementNote = draftEngagementNote(subs);
+  const engagementNote = draftEngagementNote(a, slot, students);
 
+  // The "TAU average" and "Range" tiles went on 2026-08-16: both printed a
+  // total out of twenty, and a range of totals is that same total twice. What
+  // is left in this row are counts — how many came in, and how they worked.
   const tab = assignDraftTab[key] || 'overview';
-  const metric = assignDraftMetric[key] || 'tau';
-  const metricDefs = [{ key: 'tau', label: 'TAU score' }, ...TAU_DIMENSIONS];
 
   return `<div class="tl-card">
     <div class="tl-head">
@@ -3579,14 +3314,12 @@ function renderDraftSnapshot(a, slot, students) {
 
     <div class="draft-stat-row">
       <div class="draft-stat"><div class="draft-stat-val">${anySubs.length} / ${students.length}</div><div class="draft-stat-label">Submitted</div></div>
-      <div class="draft-stat"><div class="draft-stat-val">${avg !== null ? `${avg.toFixed(1)} / 20` : '—'}</div><div class="draft-stat-label">TAU average</div></div>
-      <div class="draft-stat"><div class="draft-stat-val">${range}</div><div class="draft-stat-label">Range</div></div>
       <div class="draft-stat"><div class="draft-stat-val">${avgSessions !== null ? avgSessions.toFixed(1) : '—'}</div><div class="draft-stat-label">Avg conversations / student</div></div>
     </div>
 
     <div class="card-tabs">
       <button class="card-tab ${tab === 'overview' ? 'active' : ''}" onclick="setAssignDraftTab('${key}','overview')">Overview</button>
-      <button class="card-tab ${tab === 'distributions' ? 'active' : ''}" onclick="setAssignDraftTab('${key}','distributions')">Distributions</button>
+      <button class="card-tab ${tab === 'bands' ? 'active' : ''}" onclick="setAssignDraftTab('${key}','bands')">Agency &amp; bands</button>
     </div>
 
     ${tab === 'overview' ? `
@@ -3605,10 +3338,11 @@ function renderDraftSnapshot(a, slot, students) {
       </div>
     ` : `
       <div class="tab-panel active">
-        <div class="metric-chips">
-          ${metricDefs.map(m => `<button class="metric-chip ${metric === m.key ? 'active' : ''}" onclick="setAssignDraftMetric('${key}','${m.key}')">${m.key === 'tau' ? 'TAU score' : m.label}</button>`).join('')}
-        </div>
-        ${subs.length ? renderDraftHistogram(subs, metric) : '<p class="agg-sample-note">No completed submissions for this draft yet.</p>'}
+        ${subs.length ? `<div class="cols-2up">
+            <div class="col card">${renderDraftAgency(a, slot, students)}</div>
+            <div class="col card">${renderDraftBands(a, slot, students)}</div>
+          </div>`
+          : '<p class="agg-sample-note">No completed submissions for this draft yet.</p>'}
       </div>
     `}
   </div>`;
@@ -3832,23 +3566,40 @@ function setBrowseAssignSearch(q) {
 // wrappers. Keeping this as one function is what guarantees the two never
 // drift into two independently-maintained versions of "how is this
 // assignment doing in aggregate."
-function renderAssignmentAggregateContent(a, students) {
+// The assignment card, in three presentations of one computation.
+//
+// `variant` — 'summary' for the class-view card and Browse Assignments' drill
+// row, 'full' for Assignment Detail. Added 2026-08-16: it used to be one
+// rendering for all three callers, which held while every caller wanted the
+// same thing. It stopped holding when the class-view closed card became a
+// summary — final distributions and how they worked — while the full
+// assignment page keeps everything. ONE computation, two presentations, rather
+// than two functions that drift into different readings of the same
+// assignment: that is the property this shape has always been protecting.
+//
+// OPEN AND CLOSED CARRY DIFFERENT CLAIMS, AND THE RULE IS THE DENOMINATOR.
+// Anything whose denominator is the CLASS — the band bars, the agency
+// composition, the finding sentence, the coaching note, the origin mix — needs
+// every student in before its shape means anything, so none of it renders while
+// the assignment is open: the readable group is whoever submitted early, which
+// is self-selected. Anything whose denominator is the STUDENT — the stat tiles,
+// the behavioural patterns — is valid at any point in the window.
+//
+// This replaces a caveat sentence that used to sit under the band bars on an
+// open assignment. A caveat under a misleading chart is a weaker fix than not
+// drawing the chart.
+function renderAssignmentAggregateContent(a, students, variant = 'full') {
+  const closed = a.status === 'closed';
   const missingTotal = students.filter(s => hasMissingCheckpoint(a, s.id)).length;
   const flagTotal = students.filter(s => {
     const subs = getSubs(s.id, a.id);
     return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
   }).length;
 
-  const trend = assignmentDimensionTrend(a, students);
-  const origin = assignmentProvenanceMix(a, students);
-  const note = assignmentCoachingNote(trend);
-
   // Missing/Worth-a-chat tiles link to Browse Students, same filter keys
-  // Home's own stat tiles use (gotoStudents('missing')/('review')) — the
-  // global roster, not scoped to this one assignment, since there's no
-  // per-assignment student list on this page any more (see *Assignment
-  // Detail — a timeline, not a roster*). Students tile stays inert; it's a
-  // count, not a filter.
+  // Home's own stat tiles use. Students tile stays inert; it's a count, not a
+  // filter. All three are counts of people with the denominator on the tile,
+  // so they survive an incomplete cohort.
   const statTile = (value, label, color, bg, onclick) => `<div class="stat-tile${onclick ? ' stat-tile-clickable' : ''}" style="background:${bg};border:1px solid ${color}"${onclick ? ` onclick="${onclick}"` : ''}>
     <div class="stat-tile-val" style="color:${color}">${value}</div>
     <div class="stat-tile-label" style="color:${color}">${label}</div>
@@ -3860,26 +3611,101 @@ function renderAssignmentAggregateContent(a, students) {
     ${flagTotal ? statTile(flagTotal, 'Worth a chat', 'var(--tau-caution)', 'var(--tau-caution-bg)', `event.stopPropagation();gotoStudents('review')`) : ''}
   </div>`;
 
-  const TREND_LABEL = { up: 'Trending up', down: 'Trending down', floor: 'Flat (floor)', ceiling: 'Flat (ceiling)', mid: 'Flat' };
-  const trendBlock = trend ? `
-    <div class="agg-block-lbl">Dimension trend, most recent draft-over-draft movement</div>
-    <p class="agg-sample-note">Based on the ${trend.n} student${trend.n !== 1 ? 's' : ''} who've completed two drafts so far.</p>
-    <div class="dim-head">
-      <span class="c-name">Dimension</span>
-      <span class="c-trend">Trend</span>
-      <span class="c-note">Note</span>
-    </div>
-    <div class="dim-panel" style="margin-bottom:var(--tau-s4)">
-      ${trend.rows.map(r => `<div class="dim-row">
-        <div class="dim-name">${r.label}</div>
-        <div class="dim-badge ${r.trend}">${TREND_LABEL[r.trend]}</div>
-        <div class="dim-note">${r.note}</div>
-      </div>`).join('')}
-    </div>`
-    : `<p class="agg-sample-note">Not enough data yet — no student has completed two drafts.</p>`;
+  // How the assignment was WORKED — timing and conversation habits across every
+  // closed draft. Counts, so the scale change left them untouched.
+  const allSubs = closed ? allClosedCompleteSubs(a, students) : [];
+  const timingNote  = closed ? assignmentTimingNote(allSubs) : null;
+  const sessionNote = closed ? assignmentSessionNote(allSubs) : null;
+  const workedBlock = (timingNote || sessionNote) ? `<div class="teach-note stacked" style="margin-top:var(--tau-s5)">
+      <span class="eyebrow-lbl">${iconSVG('chat')}How they worked</span>
+      <ul class="note-list">
+        ${timingNote ? `<li>${timingNote}</li>` : ''}
+        ${sessionNote ? `<li>${sessionNote}</li>` : ''}
+      </ul>
+    </div>` : '';
+
+  // ── Open: what is knowable mid-window, and nothing else ───────────────────
+  if (!closed) {
+    const cohort = assignmentCohort(a, students);
+    const readable = cohort.filter(c => c.bands.some(b => b)).length;
+    const submitted = students.filter(s => getSubs(s.id, a.id).length).length;
+    const groups = assignmentPatternGroups(a, students);
+
+    // Two counts, not one, and they are different facts: submitted is a pace
+    // question, readable is the denominator the patterns below are drawn from.
+    // Collapsing them would hide that denominator, which is the whole point.
+    // Both counts are scoped to the whole assignment, not to the live draft.
+    // Scoping "submitted" to draft 2 while "readable" reads each student's
+    // latest session anywhere on the assignment can print a readable count
+    // HIGHER than the submitted one — true, and unreadable as a pair.
+    const pace = `<p class="agg-pace"><b>${submitted} of ${students.length}</b> have submitted work on
+      this assignment. <b>${readable}</b> ${readable === 1 ? 'has' : 'have'} a session complete enough
+      to read.</p>`;
+
+    const group = (cards, label, colorVar) => `
+      <div class="pattern-group-label" style="color:var(${colorVar})">${label}</div>
+      <div class="finding-list">${cards.map(patternCardHTML).join('')}</div>`;
+
+    // Three states, because two of them are not the same "nothing here". No
+    // readable session is a gap in what we can see; readable sessions with no
+    // repeated pattern is a real finding about them. Neither earns the full
+    // two-group scaffold, which is otherwise a section head, a caveat and two
+    // headings wrapped around no content.
+    let patternBlock;
+    if (!readable) {
+      patternBlock = `<p class="agg-sample-note">No sessions are complete enough to read yet.</p>`;
+    } else if (!groups.all.length) {
+      patternBlock = `<p class="agg-sample-note">No behaviour has shown up in two or more of the
+        ${readable} session${readable !== 1 ? 's' : ''} read so far.</p>`;
+    } else {
+      patternBlock = `
+        <div class="section-head">
+          <div class="agg-block-lbl" style="margin:0">Behavioural patterns</div>
+          <div class="section-summary">Across the ${readable} session${readable !== 1 ? 's' : ''} read so far</div>
+        </div>
+        <p class="agg-sample-note">Each pattern counts the students it was found in. Nothing here
+          describes the class as a whole — that waits until everyone is in.</p>
+        ${groups.low.length ? group(groups.low, 'Passive patterns', '--tau-scale-1') : ''}
+        ${groups.low.length && groups.high.length ? `<div style="height:var(--tau-s5)"></div>` : ''}
+        ${groups.high.length ? group(groups.high, 'High-agency patterns', '--tau-scale-4') : ''}`;
+    }
+
+    return `${statRow}${pace}${patternBlock}`;
+  }
+
+  // ── Closed, summary: the two final distributions and how they worked ──────
+  // Each distribution opens onto its own trend. The full set — coaching note,
+  // idea origin, patterns — lives on the assignment's own page.
+  // ── Closed, SUMMARY: agency, and the way out. Nothing else. ───────────────
+  //
+  // Cut back 2026-08-17 from agency + four dimension bands + five draft flows +
+  // the "how they worked" notes. THE CARD REPEATS — it is one item in a list of
+  // assignment cards, and the operation on that list is scanning across it. A
+  // five-chart card is the detail page hiding inside a list item, and the
+  // dimension finding underneath it was a paragraph of prose per card.
+  //
+  // The bands, their flows and the per-draft breakdown are all one click away
+  // and none of them were deleted; "View full assignment →" in the card header
+  // is the route, and it was already there.
+  //
+  // NO FLOW ON THE COMPOSITION EITHER. Movement across drafts is a question
+  // asked about ONE assignment, which is the state a reader is in only after
+  // they have clicked into it.
+  if (variant === 'summary') {
+    const slot = lastClosedDraft(a);
+    return `${statRow}
+      ${renderComposition(assignmentReadingCohort(a, students), {
+        label: `Agency${slot ? `, ${slot.label.toLowerCase()}` : ''}`,
+      })}`;
+  }
+
+  // ── Closed, full: everything ──────────────────────────────────────────────
+  const origin = assignmentProvenanceMix(a, students);
+  const note = assignmentBandNote(a, students);
+  const groups = assignmentPatternGroups(a, students);
 
   const originBlock = origin ? `
-    <div class="agg-block-lbl">Where this draft's ideas are coming from</div>
+    <div class="agg-block-lbl">Where this assignment's ideas came from</div>
     <div class="origin-mix" style="margin-bottom:var(--tau-s4)">
       <span class="origin-pill" style="background:var(--tau-origin-you-bg)"><span class="origin-dot" style="background:var(--tau-origin-you)"></span>Student-born ${origin.studentBornPct}%</span>
       <span class="origin-pill" style="background:var(--tau-origin-together-bg)"><span class="origin-dot" style="background:var(--tau-origin-together)"></span>Synthesized ${origin.synthesizedPct}%</span>
@@ -3888,10 +3714,42 @@ function renderAssignmentAggregateContent(a, students) {
 
   const noteBlock = note ? `<div class="teach-note stacked"><span class="eyebrow-lbl">${iconSVG('chat')}Coaching note</span>${note}</div>` : '';
 
-  // Conclusion first, evidence after: the note is the one sentence that
-  // synthesizes everything below it into "what to actually do" — it used to
-  // render last, after a table a teacher had to read through to get there.
-  return `${statRow}${noteBlock}${trendBlock}${originBlock}`;
+  const patternBlock = groups.all.length ? `
+    <div class="agg-block-lbl">Behavioural patterns</div>
+    <div class="finding-list" style="margin-bottom:var(--tau-s5)">${groups.all.map(patternCardHTML).join('')}</div>` : '';
+
+  // Conclusion first, evidence after: the note synthesizes everything below it
+  // into "what to actually do".
+  // ── Closed, FULL: the summary is the MOVEMENT ─────────────────────────────
+  //
+  // Settled in viz-lab.html 2026-08-18. This block used to render the same two
+  // marks the draft timeline below it renders — and worse, the same reading:
+  // renderAgencyDistribution reads assignmentReadingCohort(), which IS the last
+  // closed draft, so the top of the page and the last block of the timeline
+  // were one reading printed twice, one of them mislabelled "summary".
+  //
+  // A flow spans every draft, so it genuinely summarises the assignment; the
+  // final draft is one slice of it. And the teacher arrived here from a class
+  // card that already showed them that slice, so repeating it at the top said
+  // the same thing a third time.
+  //
+  // THIS INVERTS "composition leads, movement lives inside it" for this surface
+  // ONLY, and the exception is written down in designsystem.md rather than left
+  // for a future session to discover and "fix". The rule still holds where the
+  // reader has not already been handed the landing place — which is everywhere
+  // except here.
+  const scope = `${students.length} student${students.length !== 1 ? 's' : ''} · ${draftSchedule(a).filter(s => s.state === 'closed').length} closed drafts`;
+  const agencyTrend = renderMovement(`assign-agency:${a.id}`,
+    agencyEntries(draftFlow(a, students, sub => samr(total(sub)).n)),
+    scope, FLOW_AXIS_DRAFT, { title: 'Summary · agency across the drafts' });
+  const dimTrend = renderMovement(`assign-dims:${a.id}`,
+    dimensionEntries(DIM_KEYS.map(k => draftFlow(a, students, sub => bandFromLegacyScore(sub[k])))),
+    scope, FLOW_AXIS_DRAFT, { title: 'Summary · dimensions across the drafts' });
+
+  return `${statRow}${noteBlock}
+    <div style="margin-bottom:var(--tau-s6)">${agencyTrend}</div>
+    <div style="margin-bottom:var(--tau-s5)">${dimTrend}</div>
+    ${patternBlock}${originBlock}${workedBlock}`;
 }
 
 function renderAssignmentAggregatePanel(a) {
@@ -3901,7 +3759,7 @@ function renderAssignmentAggregatePanel(a) {
       <span class="eyebrow">${a.name}</span>
       <a class="agg-link-btn" onclick="gotoAssignment('${a.id}');event.stopPropagation()">View full assignment →</a>
     </div>
-    ${renderAssignmentAggregateContent(a, students)}
+    ${renderAssignmentAggregateContent(a, students, 'summary')}
   </div>`;
 }
 
@@ -3917,102 +3775,19 @@ function renderAssignmentOverviewCard(a, students) {
 }
 
 // ── Final assignment summary — the whole arc, once the assignment is closed ─
-// Distinct from renderAssignmentAggregateContent()'s usual dimension-trend
-// block above, which only ever compares the two most recent drafts (see
-// assignmentTrendCohort()) — this walks every completed draft at once, so it
-// needs its own cohort function and its own note, not a reuse of the
-// draft-over-draft one. Only rendered once the assignment itself is closed
-// (see renderAssignmentDetail) — "what do we show the teacher when the
-// assignment is done."
-function assignmentDraftSeries(a, students) {
-  return draftSchedule(a)
-    .filter(slot => slot.state === 'closed')
-    .map(slot => {
-      const subs = draftCompleteSubs(a, slot.idx, students);
-      if (!subs.length) return null;
-      const avg = key => subs.reduce((sum, s) => sum + s[key], 0) / subs.length;
-      return {
-        label: slot.label,
-        n: subs.length,
-        totalAvg: subs.reduce((sum, s) => sum + total(s), 0) / subs.length,
-        pq: avg('pq'), su: avg('su'), cs: avg('cs'), oc: avg('oc'),
-      };
-    })
-    .filter(Boolean);
-}
-
-// First completed draft vs last, not draft-over-draft — same floor/ceiling
-// distinction assignmentCoachingNote() already uses (flat-low is a problem,
-// flat-high isn't), applied to the whole arc instead of the last two points.
-// opts lets the TAU total (0-20 scale) reuse this against different
-// thresholds than a dimension (1-5 scale) rather than needing a second copy.
-function seriesArcNote(series, key, label, opts = {}) {
-  const { deltaThresh = 0.3, floor = 2, ceiling = 4, fmt = v => v.toFixed(1), scope = 'the assignment' } = opts;
-  const first = series[0][key], last = series[series.length - 1][key];
-  const delta = last - first;
-  if (delta >= deltaThresh)  return `${label} rose across ${scope} (${fmt(first)} → ${fmt(last)}).`;
-  if (delta <= -deltaThresh) return `${label} fell across ${scope} (${fmt(first)} → ${fmt(last)}) — worth a look before the next one.`;
-  if (last <= floor)         return `${label} stayed low and flat throughout (avg ${fmt(last)}) — worth addressing directly.`;
-  if (last >= ceiling)       return `${label} stayed high and consistent throughout (avg ${fmt(last)}).`;
-  return `${label} held steady across ${scope} (avg ${fmt(last)}).`;
-}
-
-// One point per *closed* assignment (classAssignmentSequence() order), each
-// averaging every student's own latest completed submission on that
-// assignment — the class-tier counterpart to assignmentDraftSeries(), same
-// "skip an assignment with zero completed subs, never interpolate" rule.
-function classAssignmentSeries(students, assignments) {
-  return classAssignmentSequence(assignments)
-    .filter(a => a.status === 'closed')
-    .map(a => {
-      const subs = students
-        .map(s => {
-          const complete = getSubs(s.id, a.id).filter(sub => sub.analysisStatus === 'complete');
-          return complete.length ? complete[complete.length - 1] : null;
-        })
-        .filter(Boolean);
-      if (!subs.length) return null;
-      const avg = key => subs.reduce((sum, s) => sum + s[key], 0) / subs.length;
-      return {
-        id: a.id, label: a.name,
-        n: subs.length,
-        totalAvg: subs.reduce((sum, s) => sum + total(s), 0) / subs.length,
-        pq: avg('pq'), su: avg('su'), cs: avg('cs'), oc: avg('oc'),
-      };
-    })
-    .filter(Boolean);
-}
-
-// Names the single assignment that swung furthest from the series' own mean
-// — the "was this a real trend or one hard assignment" check discussed
-// alongside the arc chart. Reuses seriesArcNote()'s own deltaThresh so this
-// only fires on a swing large enough to already register as "rose/fell"
-// there — a flat term never gets a callout invented for it.
-function classSeriesOutlierNote(series, key, label, opts = {}) {
-  const { deltaThresh = 0.3, fmt = v => v.toFixed(1) } = opts;
-  if (series.length < 3) return null;
-  const values = series.map(s => s[key]);
-  const mean = values.reduce((a, b) => a + b, 0) / values.length;
-  let worstIdx = 0;
-  values.forEach((v, i) => { if (Math.abs(v - mean) > Math.abs(values[worstIdx] - mean)) worstIdx = i; });
-  const deviation = values[worstIdx] - mean;
-  if (Math.abs(deviation) < deltaThresh) return null;
-  const rest = values.filter((_, i) => i !== worstIdx);
-  const restAvg = rest.reduce((a, b) => a + b, 0) / rest.length;
-  const direction = deviation < 0 ? 'below' : 'above';
-  return `${series[worstIdx].label} is the outlier — ${label} averaged ${fmt(values[worstIdx])}, well ${direction} the ${fmt(restAvg)} average the other ${rest.length} assignment${rest.length !== 1 ? 's' : ''} hold${rest.length !== 1 ? '' : 's'}. The rest sit in a steadier band, so this reads as one assignment, not a term-long shift.`;
-}
-
-// TAU-score metric definition, standing in for `total` the same way
-// renderDraftSnapshot's own metricDefs does for its Distributions chips.
-const FINAL_METRICS = [{ key: 'tau', label: 'TAU score' }, ...TAU_DIMENSIONS];
-
-function finalMetricSeriesPoints(series, metricKey) {
-  return metricKey === 'tau'
-    ? series.map(s => ({ label: s.label, value: s.totalAvg }))
-    : series.map(s => ({ label: s.label, value: s[metricKey] }));
-}
-
+//
+// REBUILT 2026-08-16. This used to be a second, competing summary: its own
+// draft series (assignmentDraftSeries), its own arc note (seriesArcNote), an
+// Overview tab printing "11.3 / 20" over four mean dimension chips, and a Trend
+// tab holding one line chart per metric behind a chip row. All of it was
+// arithmetic the scoring model no longer has — a total, a mean of ordinals, and
+// a line through gaps nothing was measured in.
+//
+// A closed assignment now renders the SAME content as an open one
+// (renderAssignmentAggregateContent), because the difference between them was
+// never a different component: it is a caveat line on the composition claim,
+// plus the two "how they worked" notes that only a finished assignment can
+// carry. The wrappers below survive only to name the card.
 // Every completed submission across every *closed* draft, each tagged with
 // its own draft's due date — the assignment-wide counterpart to
 // draftCompleteSubs()'s single-draft cohort. Feeds the "How they worked" /
@@ -4049,143 +3824,14 @@ function assignmentSessionNote(subs) {
   return `${single} of ${counts.length} draft submissions across the assignment stayed in a single continuous conversation; the rest started fresh at least once — worth the same nudge if a conversation runs long.`;
 }
 
-// Same strongest/weakest read as draftEngagementNote(), reworded for the
-// whole assignment rather than "this round."
-function assignmentEngagementNote(subs) {
-  if (!subs.length) return null;
-  const avgs = TAU_DIMENSIONS.map(d => ({ ...d, avg: subs.reduce((sum, s) => sum + s[d.key], 0) / subs.length }));
-  const min = Math.min(...avgs.map(d => d.avg));
-  const max = Math.max(...avgs.map(d => d.avg));
-  if (min === max) return 'All four dimensions landed about the same across the assignment — no single area stood out from the rest.';
-  const low  = avgs.filter(d => d.avg <= min + 0.25).map(d => d.label);
-  const high = avgs.filter(d => d.avg >= max - 0.25).map(d => d.label);
-  const parts = [`${low.join(' and ')} came in lowest of the four dimensions across the assignment — the class leaned on AI answers fairly directly rather than pushing back on them.`];
-  if (max >= 4) parts.push(`${high.join(' and ')} held up well throughout.`);
-  return parts.join(' ');
-}
-
-// Overview tab — where the class ended up (the final closed draft's own
-// numbers), not the arc. The arc lives in the Trend tab below, one metric's
-// line chart at a time — showing all five at once was the first pass here
-// and got corrected: this tab answers "how did it go," the other answers
-// "how did we get there," and conflating them just repeated the same numbers
-// twice on one card. "How they worked" / "How the class engaged" mirror the
-// per-draft snapshot's own two callouts (renderDraftSnapshot), generalized
-// across every closed draft instead of one — same voice, same tool-info
-// colour, same "not enough data yet" fallback.
-function renderFinalOverviewTab(a, students, series) {
-  const missingTotal = students.filter(s => hasMissingCheckpoint(a, s.id)).length;
-  const flagTotal = students.filter(s => {
-    const subs = getSubs(s.id, a.id);
-    return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
-  }).length;
-
-  if (!series.length) {
-    return `<p class="agg-sample-note">No completed drafts yet to summarize.</p>`;
-  }
-  const last = series[series.length - 1];
-  const allSubs = allClosedCompleteSubs(a, students);
-  const timingNote     = assignmentTimingNote(allSubs);
-  const sessionNote     = assignmentSessionNote(allSubs);
-  const engagementNote = assignmentEngagementNote(allSubs);
-
-  // Missing/Worth-a-chat render as the same clickable `.stat-tile` component
-  // and route to the same global Browse Students filters
-  // (gotoStudents('missing')/('review')) as every other stat tile that shows
-  // these two counts (Home, renderAssignmentAggregateContent) — this card
-  // had shipped them as plain, inert `.draft-stat` tiles instead, the one
-  // place in the app these two counts didn't behave like they do everywhere
-  // else.
-  const statTile = (value, label, color, bg, onclick) => `<div class="stat-tile${onclick ? ' stat-tile-clickable' : ''}" style="background:${bg};border:1px solid ${color}"${onclick ? ` onclick="${onclick}"` : ''}>
-    <div class="stat-tile-val" style="color:${color}">${value}</div>
-    <div class="stat-tile-label" style="color:${color}">${label}</div>
-  </div>`;
-
-  return `
-    <div class="agg-stat-row">
-      <div class="draft-stat"><div class="draft-stat-val">${last.totalAvg.toFixed(1)} / 20 ${bandChip(last.totalAvg, true)}</div><div class="draft-stat-label">Avg. TAU score</div></div>
-      ${missingTotal ? statTile(missingTotal, 'Missing work', 'var(--tau-attention)', 'var(--tau-attention-bg)', `event.stopPropagation();gotoStudents('missing')`) : ''}
-      ${flagTotal ? statTile(flagTotal, 'Worth a chat', 'var(--tau-caution)', 'var(--tau-caution-bg)', `event.stopPropagation();gotoStudents('review')`) : ''}
-    </div>
-    <div class="agg-block-lbl">Avg. dimension score, final draft</div>
-    <div class="dim-avg-row">
-      ${TAU_DIMENSIONS.map(d => `<div class="dim-avg-chip">
-        <span class="dim-avg-label">${d.label}</span>
-        <span class="dim-avg-val">${last[d.key].toFixed(1)}</span>
-      </div>`).join('')}
-    </div>
-    ${(timingNote || sessionNote) ? `<div class="teach-note stacked" style="margin-top:var(--tau-s4)">
-      <span class="eyebrow-lbl">${iconSVG('chat')}How they worked</span>
-      <ul class="note-list">
-        ${timingNote ? `<li>${timingNote}</li>` : ''}
-        ${sessionNote ? `<li>${sessionNote}</li>` : ''}
-      </ul>
-    </div>` : ''}
-    ${engagementNote ? `<div class="teach-note stacked">
-      <span class="eyebrow-lbl">${iconSVG('chat')}How the class engaged</span>
-      <ul class="note-list"><li>${engagementNote}</li></ul>
-    </div>` : ''}`;
-}
-
-// Trend tab — the whole arc for exactly one selected metric, mirroring the
-// Distributions tab's own metric-chip pattern (renderDraftSnapshot) rather
-// than inventing a second chip idiom. Deliberately one chart at a time, not
-// five simultaneously — the first pass here rendered all five charts
-// permanently, which was corrected in favor of this reused chip mechanic.
-function renderFinalTrendTab(a, series, metricKey) {
-  if (series.length < 2) {
-    return `<p class="agg-sample-note">Not enough completed drafts to chart a trend — this needs at least two.</p>`;
-  }
-  const isTotal = metricKey === 'tau';
-  const metricDef = FINAL_METRICS.find(m => m.key === metricKey);
-  const chart = svgLineChart({
-    points: finalMetricSeriesPoints(series, metricKey),
-    yMin: isTotal ? 0 : 1, yMax: isTotal ? 20 : 5,
-    yTicks: isTotal ? [0, 5, 10, 15, 20] : [1, 2, 3, 4, 5],
-    color: 'var(--tau-tool-info)',
-    valueFmt: isTotal ? v => `${v.toFixed(1)}/20` : v => v.toFixed(1),
-  });
-  const note = isTotal
-    ? seriesArcNote(series, 'totalAvg', 'TAU score', { deltaThresh: 1.2, floor: 8, ceiling: 16, fmt: v => `${v.toFixed(1)}/20` })
-    : seriesArcNote(series, metricKey, metricDef.label);
-
-  return `
-    <div class="metric-chips">
-      ${FINAL_METRICS.map(m => `<button class="metric-chip ${metricKey === m.key ? 'active' : ''}" onclick="setFinalMetric('${a.id}','${m.key}')">${m.label}</button>`).join('')}
-    </div>
-    ${chart}
-    <div class="teach-note stacked" style="margin-top:var(--tau-s4)">
-      <span class="eyebrow-lbl">${iconSVG('chat')}Analysis</span>
-      ${note}
-    </div>`;
-}
-
-// Tabs + tab panel only, no outer card or eyebrow — shared by
-// renderFinalAssignmentSummary() (Assignment Detail's own wrapper, adds the
-// "Final assignment summary — how the class did over N drafts" eyebrow) and
-// renderClassAssignmentCard() (Class View's timeline card, which already has
-// its own name/status header and needs no second title). Same one-
-// computation-two-wrappers shape as renderAssignmentAggregateContent().
-function renderFinalAssignmentSummaryContent(a, students) {
-  const series = assignmentDraftSeries(a, students);
-  const tab    = finalTab[a.id] || 'overview';
-  const metric = finalMetric[a.id] || 'tau';
-
-  return `
-    <div class="card-tabs">
-      <button class="card-tab ${tab === 'overview' ? 'active' : ''}" onclick="setFinalTab('${a.id}','overview')">Overview</button>
-      <button class="card-tab ${tab === 'trend' ? 'active' : ''}" onclick="setFinalTab('${a.id}','trend')">Trend</button>
-    </div>
-    <div class="tab-panel active">
-      ${tab === 'overview' ? renderFinalOverviewTab(a, students, series) : renderFinalTrendTab(a, series, metric)}
-    </div>`;
-}
-
+// The two wrappers that survive the tab rebuild. Both render the same content
+// as an open assignment — see the block comment directly above.
+// They exist to name the card, which is the only thing that ever differed.
 function renderFinalAssignmentSummary(a, students) {
-  const series = assignmentDraftSeries(a, students);
+  const drafts = draftSchedule(a).filter(s => s.state === 'closed').length;
   return `<div class="overview-card">
-    <div class="overview-eyebrow">Final assignment summary — how the class did over ${series.length || 'its'} draft${series.length !== 1 ? 's' : ''}</div>
-    ${renderFinalAssignmentSummaryContent(a, students)}
+    <div class="overview-eyebrow">Final assignment summary — how the class did over ${drafts || 'its'} draft${drafts !== 1 ? 's' : ''}</div>
+    ${renderAssignmentAggregateContent(a, students)}
   </div>`;
 }
 
@@ -4274,8 +3920,7 @@ function renderStudentDetail(sid) {
     const sections = classAssignments.map(a => {
       const subs     = getSubs(s.id, a.id);
       const st       = checkpointStatus(subs, a);
-      const lat      = latestSub(subs);
-      const t        = lat ? total(lat) : null;
+      const level    = latestLevel(subs);
       const key      = `${cls.id}::${a.id}`;
       const expanded = expandedInStudent === key;
       const asig     = getStudentSignal(s.id, a.id);
@@ -4287,8 +3932,7 @@ function renderStudentDetail(sid) {
         <div class="assignment-summary-row list-row-boxed ${expanded ? 'expanded' : ''}" onclick="toggleStudentDrill('${key}')">
           <span class="chevron">${iconSVG('expandMore')}</span>
           <span style="font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}</span>
-          <span style="width:48px;text-align:right;flex-shrink:0;font-weight:700;font-size:13px">${t !== null ? `${t}<span style="font-size:11px;font-weight:400;color:var(--tau-ink-soft)">/20</span>` : '<span style="font-size:12px;color:var(--tau-ink-soft)">—</span>'}</span>
-          <span style="width:150px;flex-shrink:0">${t !== null ? bandChip(t, true) : ''}</span>
+          <span style="width:150px;flex-shrink:0">${levelChip(level, true)}</span>
           <span style="width:150px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${signalPill(asig)}</span>
           <span style="width:108px;text-align:center;flex-shrink:0">${checkpointChip(st, true)}</span>
           <span style="width:44px;text-align:right;flex-shrink:0;font-size:11px;color:var(--tau-ink-soft)">${subs.length} sub${subs.length !== 1 ? 's' : ''}</span>
@@ -4323,10 +3967,13 @@ function renderStudentDetail(sid) {
 
 // ── Shared drill panel (submission history) ──────────────────────────────────
 
+// The score went off each entry 2026-08-17. This strip's subject is what the
+// student SAID about their own work across drafts; a level beside each excerpt
+// invited reading the reflection as the cause of the reading, which is a claim
+// nothing here measures. The level is already on the submission row above.
 function reflectionArc(subs) {
   if (!subs.some(s => s.reflection)) return '';
   const entries = subs.map((sub, i) => {
-    const t = total(sub);
     const isFull = sub.reflectionType === 'full';
     const text = isFull
       ? (sub.reflection?.connect || '')
@@ -4338,7 +3985,6 @@ function reflectionArc(subs) {
     return `<div class="arc-entry" onclick="this.closest('.sub-history').children[${subs.length - 1 - i}].scrollIntoView({behavior:'smooth',block:'nearest'})">
       <span class="arc-badge ${badgeCls}">${badge}</span>
       <span class="arc-excerpt">${excerpt}</span>
-      <span class="arc-score">${t}/20</span>
     </div>`;
   });
   return `<div class="reflection-arc">
@@ -4360,11 +4006,16 @@ function renderReflectionSection(sub, prevSub) {
       <div class="reflect-section"><span class="reflect-label eyebrow">Challenge</span>${sub.reflection.challenge || ''}</div>`;
   } else {
     badgeLabel = 'What shifted?';
+    // WAS A BARE TOTAL DELTA in a chip-positive pill (`+5`), which broke two rules
+    // at once: the number is a total, and semantic colour "never touches a student's
+    // own score" (designsystem.md Hard Constraints) — a level is a position on a
+    // path, not a verdict. What the chip is for is answering the student's own "what
+    // shifted?" with whether the reading shifted, so it says that in words and stays
+    // neutral in all three directions.
     if (prevSub) {
-      const change = total(sub) - total(prevSub);
-      const cls = change > 0 ? 'chip-positive' : 'chip-grey';
-      const sign = change > 0 ? '+' : '';
-      scoreDelta = `<span class="score-delta ${cls}">${sign}${change}</span>`;
+      const move = samr(total(sub)).n - samr(total(prevSub)).n;
+      scoreDelta = `<span class="score-delta chip-grey">${
+        move > 0 ? 'Up a level' : move < 0 ? 'Back a level' : 'Same level'}</span>`;
     }
     fullContent = `<div class="reflect-section">${sub.reflection.delta || ''}</div>`;
   }
@@ -4426,14 +4077,8 @@ function renderDrillPanel(subs, label, sig, ctx) {
         <span class="sub-num">#${i + 1}</span>
         ${statusChip}
         <span class="sub-date">${formatDate(sub.ts)}</span>
-        <span class="sub-total">${t}<span style="font-size:11px;font-weight:400;color:var(--tau-ink-soft)">/20</span></span>
-        <div class="dim-scores" style="flex:1">
-          <span class="dim-score">PQ <span>${sub.pq}</span></span>
-          <span class="dim-score">SU <span>${sub.su}</span></span>
-          <span class="dim-score">CS <span>${sub.cs}</span></span>
-          <span class="dim-score">OC <span>${sub.oc}</span></span>
-        </div>
-        <span style="min-width:150px;flex-shrink:0">${bandChip(t, true)}</span>
+        <div style="flex:1"></div>
+        <span style="min-width:150px;flex-shrink:0">${levelChip(samr(t).n, true)}</span>
         ${sub.id ? `<a class="sub-row-link" onclick="event.stopPropagation();openSubmissionNote('${sub.id}', ${i + 1})">${sub.teacherNote ? 'Edit note' : 'Add note'}</a>` : ''}
         ${sub.id ? `<a href="/report.html?id=${sub.id}&role=teacher" target="_blank" onclick="event.stopPropagation()" class="sub-row-link">Report →</a>` : ''}
       </div>
@@ -4469,8 +4114,25 @@ function renderDrillPanel(subs, label, sig, ctx) {
     ? `<a href="/teacher.html#student/${ctx.assignmentId}/${ctx.studentId}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;float:right;color:var(--tau-forest)">Transcript →</a>`
     : '';
 
+  // THE TRACE LEADS. The submission rows below are a log — one line per session,
+  // in order, which answers "what did they hand in" and leaves "did any of it
+  // change" to the reader. That question is the one a teacher opens this panel for,
+  // so it is answered at the top, in a sentence, before the log they would
+  // otherwise have to read the answer out of.
+  //
+  // Only when this panel knows which assignment it is looking at: a trace needs the
+  // draft schedule, and `subs` alone cannot say which slots closed.
+  const assignment = ctx ? ASSIGNMENTS.find(x => x.id === ctx.assignmentId) : null;
+  const trace = assignment && ctx.studentId
+    ? `<div class="drill-trace">
+         <div class="eyebrow" style="margin:0 0 var(--tau-s3)">Across the drafts</div>
+         ${renderStudentTrace(assignment, ctx.studentId)}
+       </div>`
+    : '';
+
   return `<div class="drill-panel">
     <div class="drill-panel-header eyebrow">Submission history — ${label}${convLink}</div>
+    ${trace}
     ${reflectionArc(subs)}
     <div class="sub-history">${rows}</div>
     ${engagementNote}
@@ -4510,15 +4172,15 @@ function sortBrowseStudents(students, clsId) {
   const m = dir === 'asc' ? 1 : -1;
   return [...students].sort((a, b) => {
     if (col === 'name') return m * a.name.localeCompare(b.name);
-    if (col === 'tau') {
-      // Keyed to the same average browseStudentRowTr displays — sorting
-      // this column by the latest submission instead would silently put
-      // rows in an order that doesn't match the number shown beside them.
-      const avgOf = s => {
-        const subs = allSubsForStudent(s.id);
-        return subs.length ? subs.reduce((sum, sub) => sum + total(sub), 0) / subs.length : -1;
-      };
-      return m * (avgOf(a) - avgOf(b));
+    if (col === 'agency') {
+      // Keyed to the SAME reading browseStudentRowTr displays — its own mean was
+      // duplicated here until 2026-08-17, so the two had to be kept in step by
+      // hand and a row's position could stop matching the chip beside it. A
+      // student with no readable session sorts below level 1, not as a zero:
+      // "we cannot see this" is off the scale, never its low end
+      // (teacher-dashboard-design.md, "Not enough here sits outside the ladder").
+      const levelOf = s => latestLevel(allSubsForStudent(s.id)) || -1;
+      return m * (levelOf(a) - levelOf(b));
     }
     if (col === 'signal') {
       // Matches the same priority browseStudentRowTr renders — Late
@@ -4560,6 +4222,17 @@ function renderContent() {
     if (USAGE_AREA_BY_SCREEN[screen]) logUse('dashboard', USAGE_AREA_BY_SCREEN[screen]);
   }
   const el = document.getElementById('content');
+  // #content IS the scroll container (`.content { overflow-y: auto }`), and the
+  // whole screen is re-rendered through innerHTML — so every in-place update
+  // threw the reader back to the top. Reported 2026-08-18 against Home's
+  // dimension tabs, but it was never about tabs: setClassTab, setAssignDraftTab,
+  // toggleStudentDrill and the browse filters all did it.
+  //
+  // PRESERVED HERE, RESET IN render(). The split those two already make is
+  // exactly the right one — navigation calls render(), an in-place update calls
+  // renderContent() directly — so keeping the position is the correct default
+  // and arriving at a new screen is the exception.
+  const keepY = el.scrollTop;
   if      (screen === 'home')        el.innerHTML = renderHome();
   else if (screen === 'class')       el.innerHTML = renderClassDetail(activeClass);
   else if (screen === 'assignment')  el.innerHTML = renderAssignmentDetail(activeAssignment);
@@ -4570,25 +4243,55 @@ function renderContent() {
   // DOM (and tauMenu's listeners) with it — so the menu is bound to the new
   // trigger/panel here rather than once at startup.
   mountObjActions();
-  // The band bars need a measured pass: which numerals fit is a fact about the
-  // rendered layout, never a prediction from a px constant. Re-run on resize
-  // for the same reason.
-  if (screen === 'home' && el.querySelector('.dbar')) {
-    initTips();
-    fitLabels(el);
-    if (!window.__dbarResize) {
-      window.__dbarResize = true;
-      window.addEventListener('resize', () => {
+  // The flow diagrams and the band bars both need a measured pass: their
+  // layout is a fact about the rendered box, never a prediction from a px
+  // constant. Re-run on resize for the same reason.
+  //
+  // NOT GUARDED ON A SCREEN NAME any more (2026-08-16). It was `screen ===
+  // 'home'` because Home was the only surface carrying these components, and
+  // before that the guard was `.dbar` — which the flow diagrams removed, so it
+  // silently stopped matching and took initTips() with it. Both failures were
+  // the same failure: a guard naming WHERE the components were rather than
+  // WHETHER they are present. The assignment tier renders both now, so the
+  // guard is the DOM itself.
+  initTips();
+  if (el.querySelector('.dbar')) fitLabels(el);
+  mountFlows(el);
+  if (!window.__vizResize) {
+    window.__vizResize = true;
+    let t;
+    window.addEventListener('resize', () => {
+      clearTimeout(t);
+      t = setTimeout(() => {
         const c = document.getElementById('content');
-        if (c && c.querySelector('.dbar')) fitLabels(c);
-      });
-    }
+        if (!c) return;
+        if (c.querySelector('.dbar')) fitLabels(c);
+        redrawFlows(c);
+      }, 120);
+    });
   }
+  // A flow or a bar inside a closed <details> measures 0 wide, so it is drawn
+  // at the minimum and would stay there. Redraw when the row actually opens —
+  // and that includes the assignment cards' own outer disclosure rows, not just
+  // the dimension rows inside them.
+  el.querySelectorAll('details').forEach(row => {
+    row.addEventListener('toggle', () => {
+      if (row.open) { redrawFlows(row); fitLabels(row); }
+    });
+  });
+
+  // Last, after mountFlows and fitLabels have settled the height — restoring
+  // before them clamps against a shorter document and lands short.
+  el.scrollTop = keepY;
 }
 
 function render() {
   renderSidebar();
   renderContent();
+  // A NEW SCREEN STARTS AT THE TOP. renderContent() now preserves the scroll
+  // position for in-place updates, so navigation has to say it wants otherwise.
+  const el = document.getElementById('content');
+  if (el) el.scrollTop = 0;
 }
 
 function goHome() { screen = 'home'; render(); }
@@ -4596,16 +4299,13 @@ function goHome() { screen = 'home'; render(); }
 function gotoClass(cid) {
   screen = 'class';
   activeClass = cid;
-  // The timeline can render several closed assignments' Final Summary cards
-  // at once now (renderClassAssignmentCard) — reset so a fresh visit starts
-  // every one of them on Overview, same "start clean" convention
-  // gotoAssignment() already follows for its own copy of this state. The
-  // class overview card's own tab/chip state resets alongside it for the
-  // same reason.
-  finalTab = {};
-  finalMetric = {};
+  // Reset so a fresh visit starts the class overview card on Overview — the
+  // same "start clean" convention gotoAssignment() follows for its own state.
+  // Only THIS class's Movement selection is cleared, not the whole map: Home's
+  // mount shares it now, and blowing it away here would silently reset a
+  // surface the teacher did not navigate to.
   classTab = {};
-  classMetric = {};
+  delete flowMetric[`class:${cid}`];
   render();
 }
 
@@ -4613,9 +4313,6 @@ function gotoAssignment(aid) {
   screen = 'assignment';
   activeAssignment = aid;
   assignDraftTab = {};
-  assignDraftMetric = {};
-  finalTab = {};
-  finalMetric = {};
   render();
 }
 

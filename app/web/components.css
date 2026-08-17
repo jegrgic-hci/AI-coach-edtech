@@ -1261,6 +1261,53 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
  * data behind them; everything visual now lives here.
  * ========================================================================== */
 
+/* --- .card-tabs — THE TAB COMPONENT, wherever a card switches between views
+   of itself. Moved out of dashboard.html 2026-08-17 when Movement's selector
+   became tabs: the alternative was a second component that looked identical
+   and was maintained separately, which is how two vocabularies for one control
+   start. Class overview's Overview/Patterns/Trends and Movement's four
+   dimensions are now the same object.
+
+   Flat text with a forest underline, deliberately the quietest of the three
+   selectors this system has. A chart's selector must not compete with the
+   chart: .tau-nav-local is a destination switch and .trend-chip was a boxed
+   card, and both read louder than the ribbons underneath them. */
+
+.card-tabs { display: flex; gap: var(--tau-s5); border-bottom: 1px solid var(--tau-line); margin-bottom: var(--tau-s4); }
+.card-tab { background: none; border: none; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; color: var(--tau-ink-soft); padding: 0 0 9px; margin-bottom: -1px; border-bottom: 2px solid transparent; transition: color var(--tau-dur-short) var(--tau-ease-standard); }
+.card-tab:hover { color: var(--tau-ink); }
+.card-tab.active { color: var(--tau-forest); border-bottom-color: var(--tau-forest); }
+/* Count badge on a tab label — Class overview's Patterns tab, so a teacher
+   knows there's something inside before clicking in. Omitted entirely at
+   zero (renderClassAggregateCard), matching the app's existing
+   omit-inert-zero idiom for .stat-tile rather than showing a dead "0". */
+.card-tab .tab-count { display: inline-flex; font-size: 10.5px; font-weight: 700; background: var(--tau-surface-2); color: var(--tau-ink-soft); border-radius: var(--tau-r-pill); padding: 1px 7px; margin-left: 5px; }
+.card-tab.active .tab-count { background: var(--tau-positive-bg); color: var(--tau-positive); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* --- THE ORGANISMS' OWN CHROME. Moved out of dashboard.html 2026-08-17, with
+   the renderers, and for the same reason: viz.js emits every one of these
+   classes, so a page that mounts an organism and links only components.css was
+   getting unstyled markup. Found by building viz-lab.html, which is what that
+   page is for. Nothing here is dashboard-specific — the two containers that ARE
+   (.overview-card, .drill-trace) stayed behind. */
+
+.no-signal { color: var(--tau-ink-faint); font-size: var(--tau-text-sm); }
+.agg-block-lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tau-ink-soft); margin: 0 0 var(--tau-s2); }
+.agg-sample-note { font-size: 11px; color: var(--tau-ink-faint); margin: 0 0 var(--tau-s2); }
+.pattern-body { font-size: 13px; color: var(--tau-ink-soft); margin: 0 0 var(--tau-s3); line-height: 1.55; }
+.pattern-body b { color: var(--tau-ink); }
+.pattern-try {
+  background: var(--tau-tool-info-bg); border-left: 3px solid var(--tau-tool-info);
+  border-radius: 0 var(--tau-r-sm) var(--tau-r-sm) 0; padding: 11px 13px;
+  font-size: 12.5px; color: var(--tau-ink-soft); line-height: 1.5; margin: 0 0 var(--tau-s3);
+}
+.pattern-try b { color: var(--tau-tool-info); }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--tau-s3); margin-bottom: var(--tau-s2); }
+.section-head .eyebrow { margin-bottom: 0; }
+.section-summary { font-size: 12px; color: var(--tau-ink-soft); }
+
 /* --- .comp — the level composition of a room.
    The cohort form of report-lab.html's .ladder: same four rungs, same
    named-never-numbered rule. It takes the --tau-scale ramp rather than
@@ -1486,7 +1533,11 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
   background: var(--tau-ink); pointer-events: none;
 }
 .dbar-seg {
-  height: 26px; box-sizing: border-box;
+  /* 18px, matching .comp-track exactly (2026-08-18). These are two partitions
+     of ONE cohort in one column, and at 26px against the composition's 18px they
+     read as two instruments that happen to be adjacent. The in-bar numeral is
+     11.5px, which centres in 18px without clipping — checked, not assumed. */
+  height: 18px; box-sizing: border-box;
   /* Flex is set inline, per segment: `flex: <count> 1 0`, so the segments
      divide the track in the ratio of their counts and the row always fills
      it exactly. Replaces `flex: 0 0 auto` + a percentage width (2026-08-14),
@@ -1496,7 +1547,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
      its extra from the others proportionally, which is a visible small count
      paid for across four large ones rather than a bar that stops early. */
   display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+  font-size: var(--tau-text-xs); font-weight: 700; font-variant-numeric: tabular-nums;
   min-width: 6px; overflow: hidden; white-space: nowrap;
 }
 /* The 2px surface gap between stacked segments, per the dataviz skill's
@@ -1524,7 +1575,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 .dbar-seg.is-tight .dbar-num { visibility: hidden; }
 .dbar-out {
   display: none; flex: 0 0 auto; padding: 0 5px;
-  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+  font-size: var(--tau-text-xs); font-weight: 700; font-variant-numeric: tabular-nums;
   color: var(--tau-ink-soft); white-space: nowrap;
 }
 .dbar-out.is-shown { display: block; }
@@ -1701,8 +1752,13 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
 }
 .dist-row { border-bottom: 1px solid var(--tau-line); }
 .dist-row:last-child { border-bottom: 0; }
+/* 5px, not 9px (2026-08-18) — a .comp-row pads 3px and the two charts stack in
+   one column, so the extra 6px per row put the dimension rows on a visibly
+   looser rhythm than the composition above them. --tau-target still floors the
+   whole row at 44px, which is what the padding was standing in for; the floor
+   does that job without also setting the rhythm. */
 .dist-summary {
-  display: block; padding: 9px var(--tau-s5); min-height: var(--tau-target);
+  display: block; padding: 5px var(--tau-s5); min-height: var(--tau-target);
   cursor: pointer; list-style: none;
   transition: background var(--tau-dur-short) var(--tau-ease-standard);
 }
@@ -1714,7 +1770,10 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
    Dimension names are fixed vocabulary with no synonyms and no per-surface
    rewording (Hard Constraints), so this is the arrangement that stops the
    longest name from costing every chart width. */
-.dist-row-name { font-size: 13px; font-weight: 600; color: var(--tau-ink); }
+/* The token, not the number it happens to equal — .comp-name takes the same
+   step, and a hardcoded 13px here is how the two drift apart on the next
+   type change. */
+.dist-row-name { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); }
 /* The floor row states itself in weight, never colour — semantic colour
    never touches a band. The same device .comp-row.is-modal uses for the
    modal level, deliberately, so the two lists mark their notable row the
@@ -1752,6 +1811,40 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
    looking available, which is worse than not offering it.
    (Equal COLUMNS is necessary but not sufficient — see the note in the
    lab header about the label and trailing columns.) */
+/* --- .cols-2up — two equal columns for a pair of marks that read as one
+   object. Generalised out of .home-cols-2up 2026-08-18, when the assignment
+   page's per-draft blocks needed the same thing: agency beside its dimensions,
+   to stop three drafts running to three screens of vertical scroll.
+
+   ONLY WHERE NEITHER HALF IS A FLOW. Home dropped its own 2-up on 2026-08-15
+   for a measured reason — a flow needs horizontal room per stage, and at half
+   width three columns crowd, the ribbons stop separating and the counts collide
+   with the nodes. A draft block is bars only, which is why the pairing is
+   available here and not there.
+
+   CONTAINER-RELATIVE, not viewport-relative. .home-cols-2up breaks at a 1200px
+   MEDIA query, which asks the wrong question: these columns care how wide their
+   own box is, and the same grid sits in a full-width page and in a narrower
+   card. A container query asks the box. */
+.cols-2up {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: var(--tau-s6); align-items: stretch;
+  container-type: inline-size;
+}
+/* STRETCH, not start. Bare columns can end at different heights and read as
+   normal; two CARDS at different heights read as two unrelated boxes that
+   happen to be adjacent, which is the opposite of what pairing them says. The
+   same distinction .home-cols-top already records against .home-cols. */
+.cols-2up > .col { min-width: 0; }
+/* Below this the four-segment bar has no room to hold its numerals, and
+   fitLabels starts pushing them all to the gutter. */
+@container (max-width: 720px) {
+  .cols-2up { grid-template-columns: 1fr; }
+}
+@supports not (container-type: inline-size) {
+  @media (max-width: 1200px) { .cols-2up { grid-template-columns: 1fr; } }
+}
+
 .home-cols-2up {
   display: grid; grid-template-columns: 1fr 1fr;
   gap: var(--tau-s6); align-items: start;
@@ -1830,3 +1923,160 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
   margin: var(--tau-s4) 0 0;
 }
 .viz-card-foot b { color: var(--tau-ink-soft); }
+
+
+/* --- .flow-* / .trend-* — MOVEMENT. Graduated out of dashboard.html's inline
+   sheet 2026-08-17. It had been single-surface when it was written for Home;
+   it now renders on Home, the class Trends tab and the assignment card, and a
+   second copy had already appeared in class-lab.html — which is the placement
+   rule's own trigger (a concept on 2+ surfaces belongs here).
+
+   NOTE FOR ANYONE RESTYLING THIS: the CSS is here but the RENDERER IS NOT.
+   drawFlow()/flowSVG()/mountFlows() still live in dashboard.html. Geometry —
+   node width, plot height, ribbon tension, the off-lane gap — is in those
+   constants, not in this file. A visual change is one file only if it is a
+   change to colour, type or chrome. */
+
+/* --- .flow-* — movement over time, as a flow diagram. Added 2026-08-15,
+   replacing Home's level composition strip and its band distribution bars.
+
+   WHY THIS FORM IS ALLOWED WHERE A LINE IS NOT. A line asserts a rate of
+   change through the gap between two readings, and nothing was measured in
+   that gap. A ribbon asserts only membership: these N students held this
+   reading, then that one. Every mark is a real count on a real day, which
+   is how it clears the no-sparkline constraint rather than bending it.
+
+   VERTICAL POSITION IS THE SCALE. Strongest reading at the top, so a rising
+   ribbon means more of the student's own thinking on every diagram in the
+   product. The axis is drawn, not captioned.
+
+   NO LABELS DOWN BOTH SIDES — identity moves to the legend, which is the
+   same .dbar-key the page already uses. At four band labels that are full
+   sentences, printing them twice squeezes out the ribbons the chart is for.
+
+   NO SEMANTIC COLOUR ON THE RIBBONS. They take the source node's ramp step.
+   Green-up / red-down would grade the room on improvement, and a level is a
+   position on a path, not a verdict. The state chip beside a dimension name
+   is the one place a direction is stated, and it is stated in words. */
+.flow-wrap { overflow-x: auto; }
+.flow-mount { min-height: 1px; }
+/* Drawn at 1:1 from the measured width — no width:100% on the SVG, because
+   scaling a viewBox magnifies the type along with the geometry. */
+.flow-svg { display: block; }
+/* Light fills: the shape should read before the colour does. Four ramp steps
+   at a heavier alpha let the darkest ribbons dominate a chart whose subject
+   is movement, not magnitude. */
+.flow-rib { fill-opacity: 0.32;
+            transition: fill-opacity var(--tau-dur-short) var(--tau-ease-standard); }
+.flow-wrap:hover .flow-rib { fill-opacity: 0.14; }
+.flow-rib:hover { fill-opacity: 0.78; }
+.flow-when { font-size: 9.5px; font-weight: 700; letter-spacing: var(--tau-track-label);
+             text-transform: uppercase; fill: var(--tau-ink-faint); }
+/* A count is measured, so the numerals stay ink and the words carry which
+   one matters — the same rule the .dbar segments follow. */
+.flow-n { font-size: 11px; font-weight: 700; fill: var(--tau-ink);
+          font-variant-numeric: tabular-nums; }
+.flow-key { margin-top: var(--tau-s3); }
+.dist-row-detail .flow-key { margin-bottom: var(--tau-s3); }
+
+/* --- .trend-lede — the finding above a flow. Chosen in viz-lab.html 2026-08-17
+   from two candidates rendered side by side.
+
+   NOT .viz-lede, and the difference is the left rule. That rule is a container
+   device, and it earns its place there because a Composition or Distribution
+   lede is a block of measured prose sitting among bars. Here the finding hands
+   off to the blue action block directly beneath it, and two stacked rules read
+   as two unrelated notices — which is exactly the complaint that started this.
+   One paragraph, no container, and the handoff carried by the writing.
+
+   Bold lead-in, plain continuation, ONE ink colour throughout. No tier colour
+   on the state word: green-up/red-down grades a room on improvement, which is
+   already forbidden on the ribbons this sits above. */
+.trend-lede {
+  font-size: var(--tau-text-md); line-height: 1.55; color: var(--tau-ink);
+  margin: 0 0 var(--tau-s4); max-width: 68ch;
+}
+.trend-lede b { font-weight: 700; }
+
+/* --- .trend-block — a distribution that opens onto its own trend. The cue is
+ a labelled row under the chart, not a bare chevron: "How the class got here"
+ names what is behind the disclosure, where a chevron alone leaves a teacher
+ to discover it. Composes .dist-row so the open/closed chrome and the chevron
+ rotation are the same component the dimension rows already use. */
+.trend-block { border: 1px solid var(--tau-line); border-radius: var(--tau-r-md);
+             background: var(--tau-surface); box-shadow: var(--tau-shadow); }
+.trend-block > .dist-summary { padding: var(--tau-s4) var(--tau-s5); }
+.trend-cue {
+display: flex; align-items: center; gap: 7px;
+margin-top: var(--tau-s3); padding-top: var(--tau-s3);
+border-top: 1px solid var(--tau-line);
+font-size: var(--tau-text-xs); font-weight: 600; color: var(--tau-forest);
+min-height: 24px;
+}
+.trend-block[open] > .dist-summary .trend-cue { color: var(--tau-ink-soft); }
+
+
+/* --- .trace-* — TRACE. One student's readings across a sequence of drafts.
+   Added 2026-08-17. The fourth mark, and the reason it is not one of the other
+   three is that both cohort marks encode a COUNT — ribbon width, segment length
+   — and a count of one carries nothing. What is left is position across a
+   sequence.
+
+   The grid is subordinate to the sentence above it. A teacher reading four
+   dimensions across three drafts should not have to find the story in twelve
+   cells, so traceFinding() names the one row worth the conversation and .is-focus
+   marks it — the same weight-only device .comp-row.is-modal and .dist-row.is-floor
+   already use, and for the same reason: emphasis on a reading may not be colour,
+   because colour here is the band ramp and nothing else.
+
+   Cells are .steps at four pips, which is Distribution's own atom on a draft
+   axis (designsystem.md: "band bars per draft, never Movement"). Two channels,
+   never one — how many pips are filled AND which ramp step fills them. */
+.trace { display: flex; flex-direction: column; gap: 2px; }
+
+/* One grid, declared once, so the column edges line up down every row including
+   the header and the agency strip. */
+.trace-row, .trace-head, .trace-agency {
+  display: grid;
+  grid-template-columns: minmax(96px, 1.4fr) minmax(0, 3fr) minmax(74px, auto);
+  align-items: center;
+  gap: var(--tau-s4);
+}
+.trace-row, .trace-agency { padding: 5px 0; }
+.trace-agency { border-bottom: 1px solid var(--tau-line); padding-bottom: var(--tau-s3); }
+.trace-head { padding-bottom: 2px; }
+
+.trace-row-name { font-size: 12.5px; font-weight: 600; color: var(--tau-ink); min-width: 0; }
+.trace-row.is-focus .trace-row-name { font-weight: 800; }
+
+.trace-cells { display: flex; gap: var(--tau-s3); min-width: 0; }
+.trace-cell { flex: 1; min-width: 0; display: flex; align-items: center; }
+.trace-col {
+  font-size: var(--tau-text-xs); font-weight: 600; color: var(--tau-ink-faint);
+  letter-spacing: 0.02em;
+}
+
+/* The pips take the band's own ramp step, so a cell's colour means the same
+   thing it means on every bar and ribbon in the product. Unfilled stays the
+   neutral track — a lighter step of the same surface, not a fifth colour. */
+.trace-cell .steps { flex: 1; }
+.band-step-1 i.on { background: var(--tau-scale-1); }
+.band-step-2 i.on { background: var(--tau-scale-2); }
+.band-step-3 i.on { background: var(--tau-scale-3); }
+.band-step-4 i.on { background: var(--tau-scale-4); }
+
+/* Off-scale, never band 0: an outline where the others have fill, the same
+   detachment .comp-off and .dbar-off-cell use. */
+.trace-off {
+  flex: 1; height: 6px; border-radius: 2px;
+  border: 1px dashed var(--tau-line-strong);
+  color: transparent; font-size: 0; line-height: 6px;
+}
+
+/* An ordinal move in words, because the number of bands moved is the unit and
+   an arrow alone would be colour-and-shape carrying a quantity. Never tinted
+   green up / red down — semantic colour never touches a student's own reading. */
+.trace-move {
+  font-size: var(--tau-text-xs); font-weight: 600; color: var(--tau-ink-soft);
+  text-align: right; white-space: nowrap;
+}

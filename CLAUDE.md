@@ -17,6 +17,20 @@ This repo holds **two things**. Most current work is in the second.
 
 **For any work on behavioural patterns, `detectTrends`/`TREND_META`, the per-student "Worth a chat" signals, or the thresholds behind either — read `patterns.md`.** It owns what counts as a pattern (versus a score or a flag), the six detectors, and the level-signal/pattern split that decides which of them is cohort-relative. **The current pattern layer is a naming layer, not a detection layer** — three of its four cards are dimension thresholds with prose names, so do not treat a pattern card as evidence of the behaviour it describes without reading that file first.
 
+**The whole teacher dashboard was rebuilt on bands and flows across 2026-08-16/17 — start at
+`teacher-dashboard-design.md`'s *Where the surfaces stand*, which is authoritative and lists what is
+still open.** Large parts of that file describe deleted surfaces and are marked **⚠ SUPERSEDED**.
+There is **no line chart anywhere in `dashboard.html`**; change over time is a **flow, never a line**
+(a line asserts a rate through a gap nothing was measured in). Two rules generate the rest: **a bar
+is a reading of ONE TASK, a flow is a reading of A SEQUENCE** — so Home has no composition, since
+pooling levels across classes running different work compares non-comparable readings; and **on an
+incomplete cohort show what has a per-student denominator (patterns) and withhold what has a
+per-class one (distributions)** — never patched with a caveat. Read `designsystem.md`'s *Dimension
+band labels* before writing any band copy: **a teacher never sees a band numeral.** Every reading on
+every tier is one of exactly two things: **agency (level + trend)** or **a dimension (band + trend)**
+— there is no total, no mean and nothing out of 20 in the measurement. The **student view is the one
+surface not yet rebuilt**, so the retired totals it still emits are stale code, never the model.
+
 **For any work on `app/web/dashboard.html` (the teacher triage surface), also read `teacher-dashboard-design.md`** — IA, the flag/signal system, and a session log scoped to that page. Covers `dashboard.html` only, not `teacher.html` (assignment creation, transcripts, notes — see `app/README.md`'s file map for that surface instead).
 
 Run it: `npm install` once, then `npm run start:demo` → http://localhost:8787. **Use `start:demo`, not `start`** — the demo seed is opt-in (`SEED_DEMO=1`) as of 2026-08-08, and plain `npm start` seeds nothing because that is what production runs. Everything is behind a login; test accounts are in `app/README.md`. **Requires GCP credentials** (`gcloud auth application-default login`) — the app runs on Vertex and Firestore, not on local files. `app/gcp-setup.md` is the setup walkthrough.
@@ -24,6 +38,29 @@ Run it: `npm install` once, then `npm run start:demo` → http://localhost:8787.
 **Two GCP projects since 2026-08-08** — real users are arriving, so demo and product no longer share a database. `cta-pilot-dev` is the demo/dev sandbox your machine points at (via `config.json`); `tau-thinking-prod` holds real schools and is reachable only from Cloud Run. The demo seed refuses to run there. Read `app/README.md`'s *Two projects* section before touching seeding, auth, deploy config, or anything that writes users.
 
 Also deployed: **https://cta-714032495709.us-central1.run.app** — the *demo* instance in `cta-pilot-dev` (public, fabricated data, no longer receiving deploys). `app/data/*.json` is a dead snapshot.
+
+---
+
+## The retired scoring model — read this before citing any formula
+
+You **will** encounter a scoring model of four dimensions rated 1–5, summed to a 4–20 total, with the
+SAMR level derived from that total. It is retired. Expect to find it in three places, and treat each
+differently:
+
+| Where | Status | What to do |
+|---|---|---|
+| **`index.html`** and this file's *Phase 3* below | **Correct and current** for the single-file CTA, which still runs it and must stay revertible | Leave it. It is the right spec for that codebase and the wrong spec for `app/`. |
+| **`app/server/analysis.js`** (`mapTo5`, `totalScore`), and its output in `index.js`, `report-render.js`, `teacher.js`, `app.js` | **Retired but still running.** Cannot be removed until `scoreTAU`'s signature changes and the student view is rebuilt | Do not read it as the model. Finding it in the code is expected, not a discovery. |
+| **Any design doc** — `tau-dimensions.md`, `designsystem.md`, `teacher-dashboard-design.md` | **History.** Kept for the reasoning that produced the change | Never cite as spec. |
+
+**`tau-dimensions.md`'s *The scoring foundation* is the only authority on what a dimension is.** Every
+reading is one of exactly two things: **agency (level + trend)** or **a dimension (band + trend)**.
+There is no total, no mean, no percentage, and nothing out of 20. Bands are never computed from a
+ratio, and a teacher never sees a band numeral.
+
+Surfacing a retired formula as if current derails a session and costs more than the answer was worth —
+so if a formula and this table disagree, this table wins, and if you are unsure whether something is
+spec or build state, say so rather than picking one.
 
 ---
 
@@ -103,6 +140,11 @@ pivot:       "what about", "switching to", "on another note", "going back to"
 ---
 
 ### Phase 3 — TAU Scoring Engine (rebuild entirely)
+
+> **⚠ `index.html` ONLY — this is the retired model.** Everything in this Phase 3 block is the
+> correct, current spec for the single-file CTA, which still runs it and must stay revertible.
+> **`app/` does not work this way and must never be built to this section.** See *The retired
+> scoring model* above; `tau-dimensions.md` is the authority for `app/`.
 
 Four dimensions, each scored 0–100 then mapped to 1–5.
 

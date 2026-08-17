@@ -41,10 +41,10 @@ dimensions*. Both edit `app/server/analysis.js`.
 
 ## Why this matters
 
-Each dimension is 25% of the TAU score, and the total maps directly to the SAMR level a student sees
-on their report. A dimension that reads the same value for a strong and a weak transcript is not a
-neutral failure — it silently shifts a quarter of the score to a constant, and the remaining three
-dimensions decide the SAMR band on their own.
+Each dimension is one of four readings a teacher acts on, and the overall level is read from all four
+together. A dimension that reads the same value for a strong and a weak transcript is not a neutral
+failure — it contributes nothing to the level while appearing to, and the remaining three carry the
+reading on their own.
 
 The requirement PQ has to meet, stated 2026-08-05: **it must accurately detect when students are
 *not* asking good questions or prompts.** Sensitivity at the low end is the priority. Overlap with
@@ -53,7 +53,13 @@ design constraint.
 
 ---
 
-## What the code computes today
+## What the code computes today — RETIRED MODEL, STILL RUNNING
+
+**This section is build state, not spec.** Every formula below was retired 2026-08-11 and is
+superseded by *The scoring foundation*. It is recorded here only because the shipped code still runs
+it and the student view still consumes its output — deleting the record would not delete the
+behaviour. **Do not cite anything in this section as how the measure works, and do not carry it into
+a design decision.** It comes out when `scoreTAU`'s signature changes.
 
 From `app/server/analysis.js` (`scoreTAU`), over student turns only. `total` = student turn count.
 
@@ -80,7 +86,7 @@ A hard constraint from `CLAUDE.md` governs any redesign:
 
 > No scoring of individual turns — only patterns and sequences.
 
-So a dimension may not become a per-turn 1–5 rating. A per-turn **categorical** judgement aggregated
+So a dimension may not become a per-turn rating. A per-turn **categorical** judgement aggregated
 into a ratio is consistent with how `label` already works, and is the shape any proposal here should
 take.
 

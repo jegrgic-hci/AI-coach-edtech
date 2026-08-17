@@ -28,3 +28,9 @@ AI coach api key.rtf
 
 # Old files
 old/
+
+# Lab pages — local prototyping benches, never committed and never deployed.
+# They are already excluded from the Docker image by .dockerignore's matching
+# rule; this keeps them out of the repo as well. Three of them had been
+# committed before 2026-08-18, which is what prompted the rule.
+app/web/*-lab.html
