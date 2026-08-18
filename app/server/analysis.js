@@ -228,6 +228,7 @@ For each idea return:
 - "phrase": exact text from the essay (6–20 words)
 - "origin": one of the four values above
 - "concept": 2–5 word label
+- "turn": the number of the student turn where this idea entered the conversation. For "ai-born" that is the turn whose AI reply first carried it; for "student-born" the turn the student said it in; for "synthesized" the turn where it settled. Use null for "prior", which by definition is in no turn.
 
 Part 2 — integrity signals (empty array if none apply). Only flag clear cases:
 - "stylistic-inconsistency": vocabulary/complexity jumps sharply between student turns
@@ -240,10 +241,16 @@ Each flag: {"flag": "...", "evidence": "one sentence citing the specific moment"
 Return ONLY valid JSON: {"concepts": [...], "flags": [...]}. No explanation.`;
 
 async function traceProvenance(classified, essayText, meta) {
+  // Student turns are numbered, and the numbering is what the model points at.
+  let studentNo = 0;
   const chatLog = classified
     .map((t) => {
-      const text = t.role === 'student' ? t.text : t.text.slice(0, AI_TURN_MAX_CHARS) + (t.text.length > AI_TURN_MAX_CHARS ? '…' : '');
-      return `${t.role === 'student' ? 'Student' : 'AI'}: ${text}`;
+      if (t.role === 'student') {
+        studentNo++;
+        return `[student turn ${studentNo}] ${t.text}`;
+      }
+      const text = t.text.slice(0, AI_TURN_MAX_CHARS) + (t.text.length > AI_TURN_MAX_CHARS ? '…' : '');
+      return `[AI, replying to student turn ${studentNo}] ${text}`;
     })
     .join('\n\n');
 
@@ -261,6 +268,7 @@ async function traceProvenance(classified, essayText, meta) {
       concept: (c.concept || c.phrase.slice(0, 30)).toLowerCase().trim(),
       phrase: c.phrase.trim(),
       origin: c.origin,
+      turn: Number.isInteger(c.turn) && c.turn > 0 ? c.turn : null,
     }));
   const flags = (parsed.flags || []).filter((f) => f.flag);
   return { concepts, flags };
@@ -389,6 +397,161 @@ async function generateSnapshot({ classified, tau, meta }) {
   return extractJSON(raw, 'object');
 }
 
+// ---------- the reading (tau-dimensions.md, "The scoring foundation") -------
+
+// Four questions asked of the transcript, the essay and the assignment
+// together. Each is an established coding scheme applied as published — the
+// construct validity is inherited from the scheme, which is the whole basis of
+// the defence, so the prompt names the scheme and its categories rather than
+// describing a behaviour in our own words.
+const DIMENSIONS = [
+  {
+    key: 'PQ', name: 'Prompting Quality', question: 'Did you drive the chat?',
+    scheme: 'task initiative (Chu-Carroll & Brown 1997)',
+    unit: 'discourse segment — a stretch of the conversation on one sub-task, NOT a turn',
+    asks: 'In each segment, who set the agenda: the student, or the AI? Initiative means introducing something the AI had not raised — a brief, a constraint, a redirection, a new sub-task.',
+  },
+  {
+    key: 'CS', name: 'Calibrated Skepticism', question: 'Did you check what you were told?',
+    scheme: "Wineburg's source-evaluation heuristics — sourcing, corroboration, contextualization",
+    unit: 'an AI claim the student took a position on',
+    asks: 'For each claim the student engaged, did they source it (ask where it came from), corroborate it (check it against something outside the conversation), or contextualize it? Editorial direction — "make that a table", "add a section" — is NOT skepticism and must not be counted as it.',
+  },
+  {
+    key: 'SU', name: 'Selective Use', question: 'What survived?',
+    scheme: 'Faigley & Witte 1981 revision analysis — surface changes vs meaning changes',
+    unit: 'a change the student directed',
+    asks: 'For each change the student asked for, was it a surface change (formatting, wording, length) or a meaning change (what the text asserts)? Discrimination over what the AI offered is the construct — taking everything is not selection.',
+  },
+  {
+    key: 'OC', name: 'Original Contribution', question: 'Is the thinking yours?',
+    scheme: 'Bereiter & Scardamalia 1987 — knowledge transforming vs knowledge telling',
+    unit: 'an idea in the finished essay',
+    asks: 'For each substantive idea in the essay, did the student transform knowledge (reorganise, argue, connect, adapt to their own situation) or tell it (pass it through)? Personal context the student supplied counts; fluent AI prose the student did not shape does not.',
+  },
+];
+
+const READING_PROMPT = (assignment, chatLog, essayText) => `You are coding one student's AI-assisted writing session against four published schemes, then reading one overall level. Work like a rater applying a rubric: read everything, find the band that fits, and cite what you read.
+
+THE ASSIGNMENT
+${assignment}
+
+THE CONVERSATION
+${chatLog || '(the student did not use the AI chat this cycle)'}
+
+THE FINISHED DRAFT
+${essayText || '(no draft submitted)'}
+
+=== PART 1 — the four readings ===
+
+${DIMENSIONS.map((d, i) => `${i + 1}. ${d.name} (${d.key}) — "${d.question}"
+   Scheme: ${d.scheme}
+   Unit of analysis: ${d.unit}
+   What to code: ${d.asks}`).join('\n\n')}
+
+Band descriptors. Choose the band that FITS the evidence — do NOT compute it from a ratio, and do not let a count decide it. Which instances, and whether the misses mattered, is the judgement:
+- 4: Consistent, and it held at the hard moments.
+- 3: There most of the time, with real gaps.
+- 2: It happened, but not where it counted.
+- 1: It didn't happen. The behaviour is absent, not weak.
+
+If the session is too thin to support a reading for a dimension, set "band": null. That reports "we could not see it", which is not the same as "you did not do it" and must not be scored 1.
+
+For each dimension return:
+- "band": 1-4, or null
+- "count": one short sentence giving the tally in that dimension's OWN unit, with its denominator — e.g. "Direction set in 10 of 11 parts." Never a turn count.
+- "claim": one sentence, addressed to the student as "you", saying plainly what they did.
+- "moments": 2-3 items, each {"quote": exact student words from the transcript, "note": a short phrase saying what made it count}. Quotes must be verbatim.
+- "counterexample": {"text": one or two sentences naming the moment that does NOT support the claim}. This is REQUIRED whenever band is not null — it is what makes this feedback rather than praise. Never omit it, never soften it, and never invent one that isn't in the transcript.
+
+=== PART 2 — the overall level ===
+
+One level, named, describing THE AI'S IMPACT ON THE STUDENT'S AGENCY. It is read from the shape the four readings make, the assignment, and the session as a whole — never from a sum or an average of the bands.
+- "Substitution": The AI did the thinking. The student set the task and took what came back.
+- "Augmentation": The AI set the direction; the student improved what it handed them. Agency shows up in reaction, not initiation.
+- "Modification": The student led. The AI worked to their brief, and the conversation went where they took it.
+- "Redefinition": The student led and resisted. They pushed back where it mattered, and the thinking that survived is theirs.
+
+Return:
+- "level": one of the four names
+- "shape": one sentence naming what kind of session this was, addressed as "you". A description, never a rating, and never a profile nickname.
+- "body": two sentences on the tension between the strongest and weakest reading, and what separates this level from the one above it.
+- "departure": if the level lands somewhere the four bands would not predict, one sentence naming what you read in the assignment or the arc of the session to get there, pointing at something checkable. Otherwise null.
+- "exception": one or two sentences naming the single moment that most cuts against this level. Required.
+
+Return ONLY valid JSON:
+{"dimensions":[{"key":"PQ","band":4,"count":"...","claim":"...","moments":[{"quote":"...","note":"..."}],"counterexample":{"text":"..."}}, ...],"overall":{"level":"...","shape":"...","body":"...","departure":null,"exception":"..."}}`;
+
+const LEVELS = ['Substitution', 'Augmentation', 'Modification', 'Redefinition'];
+
+async function readSession({ classified, essayText, assignment }, meta) {
+  const chatLog = classified
+    .map((t) => {
+      const who = t.role === 'student' ? 'STUDENT' : 'AI';
+      const text = t.role === 'student'
+        ? t.text
+        : t.text.slice(0, AI_TURN_MAX_CHARS) + (t.text.length > AI_TURN_MAX_CHARS ? '…' : '');
+      return `${who}: ${text}`;
+    })
+    .join('\n\n');
+
+  const brief = assignment
+    ? [
+        `Title: ${assignment.title || '(untitled)'}`,
+        assignment.description ? `What was asked: ${assignment.description}` : '',
+        assignment.purpose ? `Purpose: ${assignment.purpose}` : '',
+        assignment.requirements ? `Requirements: ${assignment.requirements}` : '',
+      ].filter(Boolean).join('\n')
+    : '(no assignment brief available)';
+
+  const raw = await complete({
+    messages: [{ role: 'user', content: READING_PROMPT(brief, chatLog, essayText) }],
+    temperature: 0.2,
+    json: true,
+    meta: { ...meta, purpose: 'reading' },
+    maxTokens: 4000,
+  });
+  const parsed = extractJSON(raw, 'object');
+
+  const byKey = {};
+  for (const d of parsed.dimensions || []) if (d && d.key) byKey[d.key] = d;
+
+  // Shaped here rather than in the renderer so every surface reads one
+  // structure, and so a model that drops a field degrades to "not enough
+  // here" instead of rendering a half-empty card.
+  const dimensions = DIMENSIONS.map((spec) => {
+    const got = byKey[spec.key] || {};
+    const band = Number.isInteger(got.band) && got.band >= 1 && got.band <= 4 ? got.band : null;
+    return {
+      key: spec.key,
+      name: spec.name,
+      question: spec.question,
+      band,
+      count: band ? (got.count || '') : '',
+      claim: band ? (got.claim || '') : 'This session was too short to read this one.',
+      moments: band && Array.isArray(got.moments)
+        ? got.moments.filter((m) => m && m.quote).slice(0, 3)
+        : [],
+      counterexample: band && got.counterexample && got.counterexample.text
+        ? got.counterexample.text
+        : '',
+    };
+  });
+
+  const o = parsed.overall || {};
+  const level = LEVELS.includes(o.level) ? o.level : null;
+
+  return {
+    level,
+    levelIndex: level ? LEVELS.indexOf(level) + 1 : null,
+    shape: o.shape || '',
+    body: o.body || '',
+    departure: o.departure || null,
+    exception: o.exception || '',
+    dimensions,
+  };
+}
+
 // ---------- orchestrator ----------
 
 async function runAnalysis(submissionId) {
@@ -417,7 +580,17 @@ async function runAnalysis(submissionId) {
     const labelMap = paired.length ? await classifyStudentTurns(paired, meta) : {};
     const classified = enrich(bundle, labelMap);
 
-    const { concepts, flags } = await traceProvenance(classified, submission.essayText, meta);
+    const assignment = submission.assignmentId
+      ? await col('assignments').get(submission.assignmentId).catch(() => null)
+      : null;
+
+    // The reading and the provenance trace are independent of each other and
+    // both take the whole transcript — run them together rather than paying
+    // for two round trips in sequence.
+    const [{ concepts, flags }, reading] = await Promise.all([
+      traceProvenance(classified, submission.essayText, meta),
+      readSession({ classified, essayText: submission.essayText, assignment }, meta),
+    ]);
     const tau = scoreTAU(classified, concepts);
 
     // Pure and free — no LLM call, no extra latency. Stored rather than
@@ -437,6 +610,9 @@ async function runAnalysis(submissionId) {
 
     await col('analyses').update(analysis.id, {
       status: 'complete',
+      // The reading: agency as a named level, four dimensions as a band plus
+      // the evidence behind it. This is what the report renders.
+      reading,
       tau,
       provenance: concepts,
       flags,

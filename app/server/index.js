@@ -886,6 +886,14 @@ async function handleApi(req, res, user, route) {
                 OC: analysis.tau.OC, totalScore: analysis.tau.totalScore, SAMR: analysis.tau.SAMR,
               }
             : null,
+          reading: complete && analysis.reading
+            ? {
+                level: analysis.reading.level,
+                bands: (analysis.reading.dimensions || []).reduce((acc, d) => {
+                  acc[d.key] = d.band; return acc;
+                }, {}),
+              }
+            : null,
           // The one behavior to try next — the home surfaces it so the advice
           // is reachable without opening the report.
           growthMove: complete ? analysis.snapshot?.growthMoves?.[0] || null : null,
@@ -1235,6 +1243,7 @@ async function handleApi(req, res, user, route) {
         analysisStatus: analysis?.status || null,
         // Score summary only — flags stay teacher-only, enforced by never selecting them.
         tau: complete ? { totalScore: analysis.tau.totalScore, SAMR: analysis.tau.SAMR } : null,
+        reading: complete && analysis.reading ? { level: analysis.reading.level } : null,
       });
     }
     return json(res, 200, submissions);
@@ -2089,6 +2098,9 @@ async function handleApi(req, res, user, route) {
             submittedAt: sub.submittedAt,
             analysisStatus: analysis?.status || null,
             tau: analysis?.status === 'complete' ? { PQ: analysis.tau.PQ, SU: analysis.tau.SU, CS: analysis.tau.CS, OC: analysis.tau.OC, totalScore: analysis.tau.totalScore, SAMR: analysis.tau.SAMR } : null,
+            reading: analysis?.status === 'complete' && analysis.reading
+              ? { level: analysis.reading.level, bands: (analysis.reading.dimensions || []).reduce((acc, d) => { acc[d.key] = d.band; return acc; }, {}) }
+              : null,
             flagCount: analysis?.flags?.length || 0,
             hasNote: !!sub.teacherNote,
           });

@@ -743,3 +743,830 @@
        never the primary label", and the progress ring around the total was the
        v7 score circle the artifact retired. Both now live in .report-hero
        above, band-led. */
+
+    /* ══════════════════════════════════════════════════════════════════
+       THE READING — ported out of report-lab.html 2026-08-18.
+
+       Four blocks, in the order the page uses them:
+         1. .dim-card      one reading, one card (the four readings)
+         2. .level-scale   the agency ladder and the hero it sits in
+         3. .turnplot      the conversation on the time axis
+         4. .provstrip     the draft on the authorship axis, and the
+                           exchange components both of the above quote into
+
+       Indentation matches the rest of this sheet (4 spaces); the lab used 2.
+       ══════════════════════════════════════════════════════════════════ */
+    /* --- .dim-card — one reading, one card.
+       Replaces the 2x2 .dim-grid, where the four quads shared row boxes: open
+       one and its row-mate grew with it, so reading about Prompting Quality
+       silently reshaped Calibrated Skepticism. Four independent cards have no
+       shared geometry to disturb.
+
+       Open, a card spans both columns rather than growing in place. Evidence
+       is prose and quotes; half a grid column is the wrong measure for it,
+       and a card that doubles in height while its neighbour stays put leaves
+       a hole beside it either way. Full width uses the space that hole would
+       have been. */
+    .dim-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--tau-s4);
+      align-items: start;
+    }
+    .dim-card { display: block; padding: 0; cursor: pointer; }
+    .dim-card:hover { background: var(--tau-hover-surface); }
+    .dim-card:focus-visible { outline: var(--tau-focus-ring); outline-offset: var(--tau-focus-gap); }
+    /* The source card of an open transform. Held at reduced opacity rather
+       than hidden: M3's container transform reads as one surface moving, and
+       a card that vanishes reads as two. */
+    .dim-card.is-source { opacity: 0; }
+
+    .dim-card-head {
+      padding: var(--tau-s5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--tau-s3);
+    }
+    /* Present in the DOM as the surface's source content, never rendered in
+       the grid — the card shows the reading, the transform shows the evidence. */
+    .dim-card-body { display: none; }
+
+    .dim-card-q {
+      font-family: var(--tau-font-serif);
+      font-size: var(--tau-text-xl);
+      font-weight: 600;
+      line-height: var(--tau-leading-tight);
+    }
+
+    /* The affordance, quiet at rest. .acard-disclosure's pill is for a chip
+       inside a card; here the whole card is the control, so this is a label
+       rather than a button. */
+    .dim-card-more {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--tau-s2);
+      font-size: var(--tau-text-sm);
+      font-weight: 600;
+      color: var(--tau-forest);
+    }
+    .dim-card-chev {
+      width: 8px; height: 8px;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(45deg) translate(-2px, -2px);
+      transition: transform var(--tau-dur-short) var(--tau-ease-standard);
+    }
+    .dim-card[open] .dim-card-chev { transform: rotate(225deg) translate(-1px, -1px); }
+    .dim-card[open] .dim-card-more { color: var(--tau-ink-faint); }
+
+    /* ---- The container transform's destination surface ----
+       One surface that starts at the card's own bounds and grows. Everything
+       that changes during the move is a transition here; JS supplies only the
+       measured numbers, never the look. */
+    .xform-scrim {
+      position: fixed; inset: 0; z-index: 40;
+      background: var(--tau-scrim);
+      opacity: 0;
+      transition: opacity var(--tau-dur-medium) var(--tau-ease-standard);
+    }
+    .xform-scrim.is-open { opacity: 1; }
+
+    .xform {
+      position: fixed; z-index: 41;
+      background: var(--tau-surface);
+      border: 1px solid var(--tau-line);
+      overflow: hidden;
+      box-shadow: var(--tau-shadow);
+      transition:
+        left   var(--tau-dur-medium) var(--tau-ease-decelerate),
+        top    var(--tau-dur-medium) var(--tau-ease-decelerate),
+        width  var(--tau-dur-medium) var(--tau-ease-decelerate),
+        height var(--tau-dur-medium) var(--tau-ease-decelerate),
+        border-radius var(--tau-dur-medium) var(--tau-ease-decelerate),
+        box-shadow var(--tau-dur-medium) var(--tau-ease-standard);
+    }
+    .xform.is-open { box-shadow: var(--tau-shadow-lift); }
+    /* Leaving: accelerate, per the rule in tokens.css — a return is not the
+       outbound curve played backwards. */
+    .xform.is-closing { transition-timing-function: var(--tau-ease-accelerate); }
+
+    /* The card's own content, carried into the surface unchanged. It is the
+       part that does NOT cross-fade — it is what makes the two read as one
+       object rather than a card that vanished and a dialog that appeared. */
+    .xform .dim-card-head { padding: var(--tau-s6); }
+    /* "The moments behind this" is the card's invitation. Inside the surface
+       the moments are already open, so it would be an instruction to do the
+       thing you just did. */
+    .xform .dim-card-more { display: none; }
+
+    /* The part that does cross-fade. Held back until the surface has nearly
+       finished moving, so the text is not readable mid-flight. */
+    .xform .dim-card-body {
+      display: flex;
+      flex-direction: column;
+      gap: var(--tau-s5);
+      padding: 0 var(--tau-s6) var(--tau-s6);
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity var(--tau-dur-short) var(--tau-ease-standard),
+                  transform var(--tau-dur-short) var(--tau-ease-standard);
+    }
+    .xform.is-open .dim-card-body { opacity: 1; transform: none; transition-delay: 140ms; }
+
+    .xform-close {
+      position: absolute;
+      top: var(--tau-s4); right: var(--tau-s4);
+      opacity: 0;
+      transition: opacity var(--tau-dur-short) var(--tau-ease-standard);
+    }
+    .xform.is-open .xform-close { opacity: 1; transition-delay: 140ms; }
+
+    .dim-card-moments {
+      margin: 0;
+      max-width: 78ch;
+      font-size: var(--tau-text-md);
+      line-height: var(--tau-leading-body);
+      color: var(--tau-ink-soft);
+    }
+    .dim-card-moments q { font-family: var(--tau-font-serif); color: var(--tau-ink); }
+    .dim-card-body .aside { max-width: 78ch; }
+
+    .readings { display: flex; flex-direction: column; gap: var(--tau-s3); }
+    .readings-intro {
+      margin: 0 0 var(--tau-s2);
+      font-size: var(--tau-text-sm);
+      color: var(--tau-ink-faint);
+      max-width: 72ch;
+    }
+
+    @media (max-width: 880px) {
+      .dim-cards { grid-template-columns: 1fr; }
+    }
+
+    /* --- the counterexample slot.
+       .card-quiet is the recessed-block component and is what this is,
+       but the fixed "where you didn't" slot needs its own name so it
+       can never be quietly dropped. */
+    .counterpoint { padding: var(--tau-s4) var(--tau-s5); border-radius: var(--tau-r-md); }
+
+    @media (max-width: 640px) {
+      .ladder { grid-template-columns: 1fr 1fr; }
+      .ladder-rung:nth-child(2) { border-right: 0; }
+      .ladder-rung:nth-child(-n+2) { border-bottom: 1px solid var(--tau-line); }
+      .dim-row > summary { grid-template-columns: 2.5rem 1fr; padding: var(--tau-s4); }
+      .dim-row-count { grid-column: 2; margin-top: var(--tau-s3); }
+      .dim-row-body { padding-left: var(--tau-s4); padding-right: var(--tau-s4); }
+    }
+
+    /* ============================================================
+       LAB SCAFFOLDING — never ships.
+       ============================================================ */
+
+    body { margin: 0; background: var(--tau-bg); color: var(--tau-ink);
+           font-family: var(--tau-font-ui); font-size: var(--tau-text-md);
+           line-height: var(--tau-leading-body); -webkit-font-smoothing: antialiased; }
+
+    .lab-bar {
+      display: flex; align-items: center; gap: var(--tau-s3);
+      padding: var(--tau-s3) var(--tau-s5);
+      background: var(--tau-auditor-bg);
+      border-bottom: 1px solid var(--tau-line);
+      font-size: var(--tau-text-sm);
+    }
+    .lab-bar-label { font-family: var(--tau-font-mono); font-size: var(--tau-text-xs);
+                     letter-spacing: var(--tau-track-label); color: var(--tau-auditor); }
+    .lab-bar-fill { margin-left: auto; }
+
+    .sheet {
+      max-width: 760px; margin: 0 auto;
+      padding: var(--tau-s8) var(--tau-s5) var(--tau-s10);
+      display: flex; flex-direction: column; gap: var(--tau-s7);
+    }
+
+    .variant { display: none; }
+    body[data-variant="a"] .variant-a { display: block; }
+    body[data-variant="b"] .variant-b { display: block; }
+    body[data-variant="c"] .variant-c,
+    body[data-variant="d"] .variant-c { display: block; }
+    body[data-variant="d"] .sheet { display: none; }
+    /* A and B are lab sheets; C is the real page and brings its own layout. */
+    body[data-variant="c"] .sheet { display: none; }
+
+    /* A note the lab draws on top of real markup, to mark something that needs
+       a decision rather than something that's designed. Auditor voice, because
+       that is the tool speaking about itself. */
+    .lab-note {
+      border-left: 3px solid var(--tau-auditor);
+      background: var(--tau-auditor-bg);
+      border-radius: 0 var(--tau-r-md) var(--tau-r-md) 0;
+      padding: var(--tau-s3) var(--tau-s4);
+      font-size: var(--tau-text-sm);
+      color: var(--tau-ink);
+    }
+    .lab-note b { font-family: var(--tau-font-mono); font-size: var(--tau-text-xs);
+                  letter-spacing: var(--tau-track-label); color: var(--tau-auditor);
+                  display: block; margin-bottom: 3px; }
+    /* .lab-note b is the eyebrow and is display:block — inline emphasis inside a
+       note's prose uses <strong>, or it turns into a second eyebrow. */
+    .lab-note p { margin: 0 0 var(--tau-s3); }
+    .lab-note p:last-child { margin-bottom: 0; }
+    .lab-placeholder { color: var(--tau-ink-faint); font-size: var(--tau-text-sm); }
+
+    /* Variant C only — the ladder spans the hero above the two-column row,
+       taking the slot the 64px total used to own. */
+    /* --- .hero-level — the ladder and the summary as ONE object.
+       The two were separate blocks with nothing joining them, so the page
+       asked the reader to work out for themselves that the paragraph was
+       about the highlighted cell. Now the marked rung's own band fill
+       continues into the summary panel beneath it, and a notch points from
+       the rung to the panel. Both take their colour from one custom
+       property set on this wrapper, so a different level recolours the
+       whole object and moves the notch — nothing per-level is hardcoded in
+       the rules below.
+         --level-bg / --level-fg : the band's pair from the existing ramp
+         --level-x               : the marked rung's centre, (i - 0.5) / 4 */
+    .hero-level { display: flex; flex-direction: column; }
+
+    .hero-level .ladder { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+    .hero-level .ladder-rung.is-here { background: var(--level-bg); color: var(--level-fg); }
+
+    .level-summary {
+      position: relative;
+      margin-top: 7px;
+      background: var(--level-bg);
+      border-radius: var(--tau-r-md);
+      padding: var(--tau-s6) var(--tau-s7);
+      display: flex;
+      flex-direction: column;
+      gap: var(--tau-s4);
+    }
+    /* The notch. Sits in the gap above the panel, aligned to the rung's
+       centre — the one piece of geometry that says "this paragraph is about
+       that cell" without repeating the level's name in words. */
+    .level-summary::before {
+      content: "";
+      position: absolute;
+      top: -7px;
+      left: var(--level-x);
+      transform: translateX(-50%);
+      border-left: 9px solid transparent;
+      border-right: 9px solid transparent;
+      border-bottom: 7px solid var(--level-bg);
+    }
+
+    /* The headline runs the panel's width; the two supporting paragraphs sit
+       side by side beneath it. Stacked in one column they left the panel's
+       right half empty and made the counterexample look like an indented
+       afterthought — as a second column it reads as the other half of the
+       same statement, which is what it is. */
+    .level-summary .hero-shape {
+      font-size: var(--tau-text-2xl);
+      line-height: 1.3;
+      text-wrap: balance;
+      max-width: 46ch;
+    }
+    .level-summary-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--tau-s5) var(--tau-s7);
+      align-items: start;
+    }
+    .level-summary .level-body {
+      font-size: var(--tau-text-lg);
+      line-height: var(--tau-leading-snug);
+      color: var(--tau-ink-soft);
+    }
+    /* --- Setting a passage apart WITHOUT a left bar.
+       The vertical rule was doing two jobs badly: it says "this is quoted or
+       subordinate" without saying which, and stacked with the panel's own
+       edges it put three vertical lines in one card. Replaced with the
+       editorial device that actually fits — a hairline above and a label
+       that names what the passage is. The label carries the meaning the bar
+       was only gesturing at, and a horizontal rule reads as a change of
+       movement rather than as indentation. */
+    .aside { display: flex; flex-direction: column; gap: var(--tau-s2); }
+    .aside::before {
+      content: "";
+      display: block;
+      height: 1px;
+      background: color-mix(in oklab, var(--level-fg, var(--tau-line-strong)) 30%, transparent);
+    }
+    .aside .eyebrow { color: var(--level-fg, var(--tau-ink-soft)); }
+    .aside p { font-size: var(--tau-text-md); color: var(--tau-ink-soft); margin: 0; }
+
+    /* .dim-quad-callout ships with the same left bar. Overridden here so the
+       page reads as one decision rather than two — the quad's callout is the
+       only prose in its cell and has nothing to be set apart FROM, so the
+       rule was pure decoration. The lead-in clause already distinguishes the
+       count from the claim. NOTE: this overrides a shared component, which a
+       page sheet may not do — it stays in the lab until the idiom is decided
+       for .dim-quad-callout and .quote together. */
+    .dim-quad-callout {
+      border-left: 0;
+      padding-left: 0;
+      font-size: var(--tau-text-md);
+    }
+    .dim-quad-callout .dim-evidence { color: var(--tau-ink-faint); }
+    @media (max-width: 880px) {
+      .level-summary-body { grid-template-columns: 1fr; }
+    }
+
+    /* Two eyebrows stacked read as a pair of equals. The crumb is context,
+       the section label is a label. */
+    .report-hero-eyebrow { color: var(--tau-ink-faint); }
+
+    /* --- .level-scale — the vertical alternative (variant D).
+       The horizontal ladder read as a tab bar, and it did so because it was
+       built like one: four equal boxed cells, borders between them, one
+       filled. This has no cells and no boxes. It is an axis — a rail with a
+       marker on it — which is the form a position on a scale already has
+       everywhere else a reader has met one.
+
+       Rendered bottom-up (column-reverse) so more agency is higher: a
+       vertical scale that increases upward is the one convention every
+       reader already has. DOM order stays Substitution → Redefinition, so
+       assistive tech reads the scale in its logical order.
+
+       Only the current level carries its explanatory line. All four would
+       be four paragraphs of text in a column that is meant to be glanced
+       at, which is how the horizontal version got heavy. */
+    /* Every row is the same height and every dot sits on its label's optical
+       centre, so the four markers are evenly spaced whatever the content.
+       The first pass sized the current level's name larger and hung an
+       explanatory line under it, which made one row taller than the other
+       three and threw the whole axis out of rhythm. Type size is now
+       constant down the scale and the current level is marked by weight,
+       colour and a filled dot — three channels, none of which move
+       anything. The explanation was cut: the summary beside it already
+       says the same sentence. */
+    .level-scale {
+      display: flex;
+      flex-direction: column-reverse;
+      /* Every dimension of this component is a knob, so the bench can drive
+         them and the tuned values can be read straight back out.
+         Tuned on the bench 2026-08-12. Three of the five landed exactly on
+         tokens and are written as tokens, not as the literals they were
+         dragged to, so they retheme with everything else. */
+      --dot-size:   var(--tau-s4);      /* 16 */
+      --rail-w:     3px;                /* rule weight; the system has no token for these */
+      --row-h:      var(--tau-s9);      /* 56 */
+      --label-size: 18px;               /* off the type ramp — see note */
+      --label-gap:  var(--tau-s6);      /* 24 */
+
+      /* Tuned on the bench 2026-08-12. Four of the five land on tokens and are
+         written as tokens so they retheme. One does not:
+         --label-size 18 — the type ramp has 15.5 (--tau-text-lg) and 19
+           (--tau-text-xl); 18 sits one pixel under the latter. Kept as tuned.
+         --rail-w 3 is a rule weight, and the system tokenises none of those —
+         1px hairlines and 3px card edges are literals everywhere else too. */
+    }
+
+    .level-step {
+      position: relative;
+      height: var(--row-h);
+      display: flex;
+      align-items: center;
+      padding-left: calc(var(--dot-size) + var(--label-gap));
+    }
+    /* The rail, drawn per row so the travelled part can be filled, clipped
+       at the end rows so it starts and stops on a dot rather than in air. */
+    .level-step::before {
+      content: "";
+      position: absolute;
+      /* Derived, never hardcoded — the rail must stay centred on the dot
+         whatever either of them is sized to. */
+      left: calc(var(--dot-size) / 2 - var(--rail-w) / 2);
+      top: 0; bottom: 0;
+      width: var(--rail-w);
+      background: var(--tau-line);
+    }
+    .level-scale > .level-step:first-child::before { bottom: 50%; }
+    .level-scale > .level-step:last-child::before  { top: 50%; }
+
+    .level-step::after {
+      content: "";
+      position: absolute;
+      /* report.css's reset is `* { box-sizing: border-box }`, and `*` does
+         not match pseudo-elements — so this dot was content-box: 12px wide
+         PLUS two 2px borders = 16px, centre at 8px, while the rail sat at
+         6px. Two pixels off, on every dot, from a reset that looks global
+         and isn't. */
+      box-sizing: border-box;
+      left: 0;
+      top: 50%;
+      width: var(--dot-size); height: var(--dot-size);
+      margin-top: calc(var(--dot-size) / -2);
+      border-radius: 50%;
+      background: var(--tau-surface);
+      border: var(--rail-w) solid var(--tau-line-strong);
+    }
+
+    /* At or below where you are: the path travelled. */
+    .level-step.is-reached::before { background: var(--level-fg); }
+    .level-step.is-reached::after  { border-color: var(--level-fg); }
+    .level-step.is-here::after {
+      background: var(--level-fg);
+      box-shadow: 0 0 0 4px var(--level-bg);
+    }
+
+    .level-step-name {
+      font-size: var(--label-size);
+      font-weight: 500;
+      line-height: 1;
+      color: var(--tau-ink-faint);
+    }
+    .level-step.is-here .level-step-name { font-weight: 700; color: var(--tau-ink); }
+
+    /* Two columns: the scale is a fixed, narrow rail; the summary takes the
+       rest. The scale must not stretch with the viewport — a 400px-wide
+       axis is a table. */
+    .hero-two-col {
+      display: grid;
+      grid-template-columns: 15rem minmax(0, 1fr);
+      gap: var(--tau-s7);
+      align-items: stretch;
+    }
+    /* The scale is a constant; the summary is variable-length prose. They are
+       deliberately NOT matched in height — tying them would make the
+       instrument resize per report, and an instrument a reader is meant to
+       recognise at a glance has to be the same size every time.
+
+       So they share a starting line instead: the top rung's label sits on the
+       summary headline's first line.
+
+       That offset is computed, not typed: it depends on --row-h, and hardcoding
+       it meant the first row-height change silently broke the alignment. It also
+       requires the scale's top edge to be the column's top edge, which is why
+       the "How much you led" label sits above the grid rather than inside the
+       left column — in there it pushed the scale down by its own height and the
+       alignment was 17px out. The
+       headline's first line sits at the panel's padding (--tau-s6) plus half its
+       own line box (--tau-text-2xl x 1.3); the top rung's centre sits at
+       --row-h / 2. The scale is pushed down by the difference. */
+    .hero-scale-col { display: flex; flex-direction: column; }
+    .hero-scale-col .level-scale {
+      padding-top: calc(
+        var(--tau-s6) + (var(--tau-text-2xl) * 1.3 / 2) - (var(--row-h) / 2)
+      );
+    }
+    .hero-two-col .level-summary { margin-top: 0; }
+    .hero-two-col .level-summary::before { display: none; }
+    .hero-two-col .level-summary-body { grid-template-columns: 1fr; gap: var(--tau-s4); }
+    .hero-two-col .level-summary .hero-shape { max-width: 30ch; }
+
+    /* --- .turnplot — the session as a map, replacing the Agency Chart and
+       Who's Driving tabs. Added 2026-08-18; see convolabel.md, "The reading
+       surface".
+
+       Named .turnplot, not .steps: .steps is already the four-pip meter inside
+       .dim-quad-score and the collision would be silent.
+
+       A turn is a square at one of four heights. Position carries the level and
+       NOTHING is drawn between two turns — the two charts this replaces both ran
+       a moving average over ordinal codes, which is arithmetic on labels. The
+       gap objection that forbids lines elsewhere does not reach this surface:
+       consecutive turns are contiguous measured events and the job here is
+       locating a moment, not asserting a rate.
+
+       The ramp below is the one decision NOT traceable to designsystem.md.
+       --tau-scale-N is the documented token for four bands plotted as magnitude,
+       but its stated direction puts the darkest step on band 1 — correct for the
+       cohort finding it was built for, wrong on one student's own turns, where it
+       would weight their worst moments. Four steps on hue 162 instead, matching
+       --tau-origin-you so more forest reads as more of the student's own
+       thinking. Tracked as open in convolabel.md; do not promote to
+       components.css until it is settled. */
+    .turnplot-ag-4 { fill: var(--tau-agency-4); }
+    .turnplot-ag-3 { fill: var(--tau-agency-3); }
+    .turnplot-ag-2 { fill: var(--tau-agency-2); }
+    .turnplot-ag-1 { fill: var(--tau-agency-1); }
+
+    /* Plot and detail card side by side. The plot is a fixed 952px at 44 turns
+       and the report's usable width is ~1308px at the 1400px cap, so the card
+       takes the ~300px that was sitting empty to the right. Below 1180px there
+       is no longer room for both — the card drops under the plot rather than
+       squeezing it, because a narrower plot means narrower turn squares, and the
+       square is the thing being pointed at. */
+    .turnplot-row {
+      align-self: stretch; width: 100%;
+      display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--tau-s5);
+      align-items: start;
+    }
+    @media (max-width: 1180px) {
+      .turnplot-row { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    .turnplot-wrap { overflow-x: auto; min-width: 0; padding-bottom: var(--tau-s1); }
+    .turnplot { display: block; }
+    .turnplot text { font-family: var(--tau-font-ui); }
+    .turnplot .tp-row     { font-size: var(--tau-text-xs); fill: var(--tau-ink-soft); text-anchor: end; }
+    .turnplot .tp-grid    { stroke: var(--tau-line); stroke-width: 1; }
+    .turnplot .tp-axis    { stroke: var(--tau-line-strong); stroke-width: 1; }
+    .turnplot .tp-tick    { font-size: var(--tau-text-xs); fill: var(--tau-ink-faint); text-anchor: middle;
+                            font-family: var(--tau-font-mono); }
+    .turnplot .tp-caption { font-size: var(--tau-text-xs); fill: var(--tau-ink-faint); }
+    .turnplot .tp-run-name { font-size: var(--tau-text-xs); font-weight: 600; }
+
+    .turnplot .tp-turn,
+    .turnplot .tp-run { cursor: pointer; }
+    /* Three states, kept visually distinct so a hover is never mistaken for a
+       selection: hover is a thin ink outline, selection is a thick forest ring
+       PLUS everything else stepping back. Without the step-back, one outlined
+       square among forty-four is lost at a glance and the card on the right
+       reads as unrelated to the plot. */
+    .turnplot .tp-turn rect { stroke: transparent; stroke-width: 2; transition: opacity var(--tau-dur-short) var(--tau-ease-standard); }
+    .turnplot .tp-turn:hover rect { stroke: var(--tau-ink); }
+    .turnplot.is-selecting .tp-turn:not(.is-open) rect { opacity: 0.4; }
+    .turnplot .tp-turn.is-open rect { stroke: var(--tau-forest); stroke-width: 3; }
+    .turnplot .tp-run.is-open rect { stroke: var(--tau-forest); stroke-width: 1.5; }
+    .turnplot .tp-turn:focus-visible rect,
+    .turnplot .tp-run:focus-visible rect { stroke: var(--tau-forest); stroke-width: 2; }
+    .turnplot .tp-turn:focus, .turnplot .tp-run:focus { outline: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .turnplot .tp-turn rect { transition: none; }
+    }
+
+    /* The detail card is permanent furniture, not a tooltip. A run's name and a
+       turn's own words are the part a student can act on; the two charts this
+       replaces both hid them behind hover, which is unreachable on the
+       Chromebooks and tablets this ships to.
+
+       Hierarchy inside the card: the student's OWN WORDS lead, because "what did
+       I say there" is the question a click is asking. The reading (band, label,
+       run) is the answer to a second question and sits under a rule. */
+    .turnplot-detail {
+      border: 1px solid var(--tau-line); border-radius: var(--tau-r-lg);
+      background: var(--tau-surface-2);
+      padding: var(--tau-s5); min-height: 15rem;
+      display: flex; flex-direction: column; gap: var(--tau-s4);
+    }
+
+    .turnplot-detail-which {
+      font-family: var(--tau-font-mono); font-size: var(--tau-text-xs);
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--tau-ink-faint);
+    }
+
+    .turnplot-detail-words { margin: 0; display: flex; flex-direction: column; gap: var(--tau-s3); }
+    .turnplot-detail-words q {
+      font-family: var(--tau-font-serif); font-size: var(--tau-text-lg);
+      line-height: 1.55; color: var(--tau-ink);
+    }
+
+    .turnplot-detail-reading {
+      margin-top: auto; border-top: 1px solid var(--tau-line); padding-top: var(--tau-s4);
+      display: flex; flex-direction: column; gap: var(--tau-s2);
+    }
+    .turnplot-detail-band { display: flex; align-items: center; gap: var(--tau-s2);
+                            font-size: var(--tau-text-md); font-weight: 600; }
+    .turnplot-detail-band .turnplot-swatch { width: 12px; height: 12px; }
+    .turnplot-detail-note { margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+
+    /* Empty state states what to do, and is the initial state — nothing is
+       selected on load, so the plot is read as a whole before any one turn is
+       singled out. */
+    .turnplot-detail-empty {
+      margin: 0; font-size: var(--tau-text-md); color: var(--tau-ink-faint);
+      line-height: 1.6; max-width: 22ch;
+    }
+
+    /* --- .div-ai-text — the AI's words in an exchange. The only class the
+       shipped .div-* exchange set lacks, because report-render.js has never
+       rendered the AI's text: openPatternSidebar prints a label chip and nothing
+       else (report-render.js:718-724), and that chip reads "content" on nearly
+       every turn in production.
+
+       Deliberately NOT styled like .div-student-text. The student's words stay
+       serif and full-ink because this is their report; the AI's turn is context
+       behind them, so it takes the UI face at ink-soft. A reader scanning an
+       exchange should be able to tell the two apart without reading the tag. */
+    .div-ai-text {
+      font-size: var(--tau-text-sm); line-height: 1.6;
+      color: var(--tau-ink-soft); margin-bottom: 2px;
+    }
+
+    /* The exchange as a message thread. Borrowed structure deliberately: a
+       reader already knows how to parse two columns of bubbles, and the
+       encoding it carries — WHOSE side, WHOSE fill — is exactly the you/AI axis
+       this section is about.
+
+       The student sits LEFT with a filled bubble, because this is their report
+       and the convention puts the reader's own messages on the side their eye
+       lands first. The AI sits RIGHT, outlined rather than filled, so the two
+       never compete for weight.
+
+       Three channels, not one: side, fill, and the label above. It survives
+       greyscale and it survives a reader who never notices the colour.
+
+       The max-width is doing a second job. This panel spans the full card and
+       unconstrained lines ran past 200 characters; 62ch is a readable measure,
+       which the two-column layout gives for free. */
+    .div-ai-side, .div-student-side { max-width: 62ch; }
+
+    /* An origin pair is two turns, not a thread, so it is held to a narrower
+       column than a pattern run. At full card width the alternation opened a
+       void wide enough that the two bubbles stopped reading as one exchange. */
+    .div-origin-pair { max-width: 54rem; }
+
+    /* The turn the idea actually appeared in. Everything else in the pair is
+       context, so only this one is marked — and it is marked by weight and by a
+       named label, never by colour alone. */
+    .div-origin-pair .is-origin .div-student-text {
+      box-shadow: inset 0 0 0 2px var(--tau-forest);
+    }
+    .div-origin-pair .is-origin .div-ai-text { border-color: var(--tau-ink); border-width: 2px; }
+    .div-origin-pair .is-origin .div-role-tag,
+    .div-origin-pair .is-origin .div-turn-num { color: var(--tau-ink); }
+    .div-origin-pair :not(.is-origin) .div-student-text,
+    .div-origin-pair :not(.is-origin) .div-ai-text { opacity: 0.72; }
+
+    .div-student-side { margin-right: auto; margin-top: var(--tau-s3); }
+    .div-ai-side      { margin-left: auto; margin-top: var(--tau-s4); text-align: right; }
+    .div-ai-side .div-ai-row { justify-content: flex-end; }
+
+    /* The bubbles. One squared corner on the speaker's own side is the tail —
+       enough to point without drawing an actual pointer. */
+    .div-student-text {
+      background: var(--tau-origin-you-bg);
+      padding: var(--tau-s3) var(--tau-s4);
+      border-radius: var(--tau-r-lg) var(--tau-r-lg) var(--tau-r-lg) var(--tau-r-sm);
+    }
+    .div-ai-text {
+      background: var(--tau-surface);
+      border: 1px solid var(--tau-line-strong);
+      padding: var(--tau-s3) var(--tau-s4);
+      border-radius: var(--tau-r-lg) var(--tau-r-lg) var(--tau-r-sm) var(--tau-r-lg);
+      text-align: left;      /* the block moves; the running text never right-rags */
+    }
+
+    /* Small caps labels on a tinted ground. The shipped rules put these at 10px
+       in --tau-ink-faint (#767D85), which is ~4.0:1 on white — under AA's 4.5:1
+       for text this size, and worse over --tau-surface-2. Raised to 11.5px in
+       --tau-ink-soft (~7:1). Same treatment for all three so the exchange has
+       one label voice. */
+    .div-exchange-label, .div-role-tag, .div-turn-num {
+      font-size: var(--tau-text-xs); color: var(--tau-ink-soft);
+    }
+
+    /* A break in the turn numbers. The strip's passages are not always
+       contiguous — the references passage draws on turns 3-5 and again on 41-44
+       — and a hairline divider between them asserted a continuous thread that
+       is not there. This names the gap instead of hiding it. */
+    .div-exchange-gap {
+      display: flex; align-items: center; gap: var(--tau-s3);
+      margin: var(--tau-s4) 0;
+      font-size: var(--tau-text-xs); color: var(--tau-ink-faint);
+      font-family: var(--tau-font-mono); letter-spacing: var(--tau-track-label);
+    }
+    .div-exchange-gap::before, .div-exchange-gap::after {
+      content: ""; flex: 1; border-top: 1px dashed var(--tau-line-strong);
+    }
+
+    /* --- .provstrip — the draft as one bar, segmented by passage and coloured
+       by origin. Added 2026-08-18 to give My Session a glanceable first layer;
+       the four groups become the evidence under it rather than the front door.
+
+       WHY THE DRAFT AND NOT THE TURNS. The four group counts cannot make a bar:
+       groups 1, 2 and 4 count student turns and group 3 counts provenance
+       concepts (report-render.js:1282), so they share no denominator and a
+       stacked bar would assert a whole they do not form. The draft is the one
+       object in this section with a single denominator — its own words.
+
+       Colour is --tau-origin-*, used as designsystem.md locks it: an axis of
+       AUTHORSHIP, NOT QUALITY, and never colour alone — every segment is named
+       in the legend and carries its own accessible name. Nothing here is ordered
+       good-to-bad, so no arrangement of it can accuse a student. */
+    .provstrip-figure { align-self: stretch; display: flex; flex-direction: column; gap: var(--tau-s3); }
+
+    .provstrip {
+      display: flex; gap: 2px; width: 100%;
+      border-radius: var(--tau-r-sm); overflow: hidden;
+    }
+    .provstrip-seg {
+      height: 30px; border: 0; padding: 0;
+      min-width: 2px;                 /* a one-sentence passage still gets a mark */
+      cursor: pointer; font: inherit; color: inherit;
+      outline: 2px solid transparent; outline-offset: 2px;
+      transition: opacity var(--tau-dur-short) var(--tau-ease-standard);
+    }
+    .provstrip-seg:focus-visible { outline-color: var(--tau-forest); }
+
+    /* Same selection language as the turn plot: the chosen mark holds and the
+       rest step back, so one segment among eight is findable at a glance and the
+       panel below reads as belonging to it. */
+    .provstrip.is-selecting .provstrip-seg:not(.is-open) { opacity: 0.35; }
+    .provstrip-name.is-open { color: var(--tau-ink); font-weight: 600; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .provstrip-seg { transition: none; }
+    }
+
+    /* The evidence a segment claims. Capped and scrollable: the brakes passage
+       draws on eight turns, and letting it size the panel would undo the reason
+       the strip exists. */
+    /* White ground, not --tau-surface-2. The panel is where the quoted text
+       actually gets read, and the surface-2 tint cost contrast on every muted
+       element sitting on it. The border alone separates it from the card. */
+    .provstrip-evidence {
+      border: 1px solid var(--tau-line-strong); border-radius: var(--tau-r-lg);
+      background: var(--tau-surface); padding: var(--tau-s4) var(--tau-s5);
+      display: flex; flex-direction: column; gap: var(--tau-s3);
+    }
+    .provstrip-evidence-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: var(--tau-s4); flex-wrap: wrap;
+    }
+    .provstrip-evidence-title { font-size: var(--tau-text-lg); font-weight: 600; }
+    .provstrip-evidence-origin { display: flex; align-items: center; gap: var(--tau-s2);
+                                 font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+    .provstrip-evidence-turns { max-height: 26rem; overflow-y: auto; }
+
+    /* One traced idea: the phrase as it stands in the draft, then the exchange
+       it came out of. The phrase leads because it is the thing being explained. */
+    .provstrip-idea { padding: var(--tau-s4) 0; border-top: 1px solid var(--tau-line); }
+    .provstrip-idea:first-child { border-top: 0; padding-top: 0; }
+    .provstrip-idea-head { display: flex; align-items: center; gap: var(--tau-s2); margin-bottom: var(--tau-s2); }
+    .provstrip-idea-origin {
+      font-family: var(--tau-font-mono); font-size: var(--tau-text-xs);
+      letter-spacing: var(--tau-track-label); text-transform: uppercase;
+      color: var(--tau-ink-soft);
+    }
+    .provstrip-idea-phrase {
+      margin: 0 0 var(--tau-s4); padding-left: var(--tau-s4);
+      border-left: 2px solid var(--tau-line-strong);
+      font-family: var(--tau-font-serif); font-size: var(--tau-text-lg);
+      line-height: 1.5; color: var(--tau-ink);
+    }
+    .provstrip-evidence-close {
+      background: none; border: 0; padding: 0; cursor: pointer;
+      font-size: var(--tau-text-sm); color: var(--tau-ink-faint); text-decoration: underline;
+    }
+    .provstrip-evidence-close:hover { color: var(--tau-ink); }
+    .provstrip-seg.origin-you      { background: var(--tau-origin-you); }
+    .provstrip-seg.origin-together { background: var(--tau-origin-together); }
+    .provstrip-seg.origin-coach    { background: var(--tau-origin-coach); }
+
+    /* Passage names ride under the bar on the same flex ratios, so a name always
+       sits under its own segment. Names that no longer fit are clipped rather
+       than truncated to an ellipsis — "Sys…" identifies nothing, and the legend
+       plus the groups below already carry the full text. */
+    /* The second row: what is actually traced. The bar above attributes every
+       passage, but provenance only ever traces 10–20 phrases — on this draft
+       about a quarter of the words. A single filled bar would assert a
+       completeness the measurement does not have, which is the same error as
+       drawing a distribution on an incomplete cohort. This row is the honest
+       denominator: marks where a traced phrase sits, bare ground everywhere
+       else, and the bare ground is most of it. */
+    .provstrip-trace { display: flex; gap: 2px; width: 100%; }
+    .provstrip-trace-lane {
+      position: relative; height: 8px; min-width: 0;
+      background: var(--tau-surface-3); border-radius: 2px;
+    }
+    .provstrip-mark {
+      position: absolute; top: 0; height: 8px; border-radius: 2px; min-width: 3px;
+    }
+    .provstrip-mark.origin-you      { background: var(--tau-origin-you); }
+    .provstrip-mark.origin-together { background: var(--tau-origin-together); }
+    .provstrip-mark.origin-coach    { background: var(--tau-origin-coach); }
+
+    .provstrip-names { display: flex; gap: 2px; width: 100%; }
+    .provstrip-name {
+      font-size: var(--tau-text-xs); color: var(--tau-ink-faint);
+      overflow: hidden; white-space: nowrap; min-width: 0;
+    }
+
+    .provstrip-tally {
+      display: flex; flex-wrap: wrap; gap: var(--tau-s2) var(--tau-s5);
+      font-size: var(--tau-text-sm); color: var(--tau-ink-soft);
+    }
+    .provstrip-tally-item { display: flex; align-items: center; gap: var(--tau-s2); }
+    .provstrip-dot { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+    .provstrip-tally b { font-weight: 600; color: var(--tau-ink); font-variant-numeric: tabular-nums; }
+
+    .turnplot-legend { align-self: stretch; display: flex; flex-wrap: wrap; gap: var(--tau-s3) var(--tau-s7); }
+    .turnplot-legend-group { display: flex; flex-direction: column; gap: var(--tau-s2); }
+    .turnplot-legend-group > b {
+      font-family: var(--tau-font-mono); font-size: var(--tau-text-xs); font-weight: 500;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--tau-ink-faint);
+    }
+    .turnplot-legend-items { display: flex; flex-wrap: wrap; gap: var(--tau-s4); }
+    .turnplot-legend-item { display: flex; align-items: center; gap: var(--tau-s2);
+                            font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+    .turnplot-swatch { width: 14px; height: 14px; border-radius: 3px; flex: none; }
+  </style>
+  </head>
+  <body data-variant="d">
+
+  <header class="tau-nav">
+
+    /* The section wrapper for the four readings, and the one-line statement
+       of what a reading is. */
+    .readings { display: flex; flex-direction: column; gap: var(--tau-s3); }
+    .readings-intro {
+      margin: 0 0 var(--tau-s2); font-size: var(--tau-text-md);
+      color: var(--tau-ink-soft); max-width: 72ch;
+    }
+
+    /* A passage with no traced idea in it takes no origin — bare ground, not a
+       default. Colouring it would assert an attribution the trace never made. */
+    .provstrip-seg.origin-none { background: var(--tau-surface-3); }

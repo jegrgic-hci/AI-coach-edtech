@@ -17,6 +17,7 @@ const {
   ENGLISH_EXTRA_ASSIGNMENT, LIT_EXTRA_ASSIGNMENT, GUIDE_ASSIGNMENT,
   OPEN_ASSIGNMENTS, OPEN_ASSIGNMENT_STATE, TRANSCRIPTS,
   ESSAYS, PROVENANCE, FLAGS, SNAPSHOTS, TEACHER_NOTES, OPEN_TEACHER_NOTES,
+  READINGS,
 } = require('./seed-data');
 
 const TEACHER_EMAIL = 'teacher@school.dev';
@@ -154,6 +155,9 @@ async function seedCycle({ student, assignment, tier, cycleIndex, daysAgo }) {
     status: 'complete',
     createdAt: ts(daysAgo),
     completedAt: ts(daysAgo),
+    // The reading is authored per tier in seed-data.js — the seed makes no
+    // LLM call, and readSession() is an LLM read. Fixture only.
+    reading: READINGS[tier],
     tau,
     provenance,
     flags: FLAGS[tier],

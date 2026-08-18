@@ -100,6 +100,27 @@
   --tau-scale-3: #6a96b7;  --tau-scale-3-ink: var(--tau-ink);
   --tau-scale-4: #91b6d4;  --tau-scale-4-ink: var(--tau-ink);
 
+  /* --tau-agency-N — THE PER-TURN RAMP, on one student's own turns.
+   * Added 2026-08-18 for the report's turn map (report.css, .turnplot).
+   *
+   * A fifth ramp, and it exists because neither of the others can do this job.
+   * --tau-band-N identifies ONE band at a time and all four sit within a 0.005
+   * lightness spread, so forty-four of them side by side have no ordinal
+   * reading. --tau-scale-N orders four bands as magnitude, but its documented
+   * direction puts the darkest step on band 1 — correct for the cohort chart it
+   * was built for, where the finding is where the mass sits at the LOW end, and
+   * wrong here, where the subject is one student and that direction would put
+   * the visual weight on their worst moments.
+   *
+   * Hue 162 — the same hue as --tau-origin-you — so more forest reads as more
+   * of the student's own thinking, which the report's origin encoding already
+   * teaches. Monotone lightness, strongest at the top.
+   * --------------------------------------------------------------- */
+  --tau-agency-1: #D8E2DB;  --tau-agency-1-ink: var(--tau-ink);
+  --tau-agency-2: #96B7A5;  --tau-agency-2-ink: var(--tau-ink);
+  --tau-agency-3: #4F8468;  --tau-agency-3-ink: #FFFFFF;
+  --tau-agency-4: #1F4D3A;  --tau-agency-4-ink: #FFFFFF;
+
   /* The shared chart grid. .comp and .dbar are two partitions of the same
    * cohort, so a length must mean the same student count in both. Both lay
    * out `gutter | track`, so one gutter width is what makes the two 1fr
@@ -324,6 +345,13 @@
     --tau-scale-3: #5c8fb3;  --tau-scale-3-ink: var(--tau-surface);
     --tau-scale-4: #325f80;  --tau-scale-4-ink: var(--tau-ink);
 
+    /* Same direction as light: step 4 is the strongest, furthest from the
+       ground. On a dark ground that means lightest, not darkest. */
+    --tau-agency-1: #2C3A33;  --tau-agency-1-ink: var(--tau-ink);
+    --tau-agency-2: #4E6B5B;  --tau-agency-2-ink: #FFFFFF;
+    --tau-agency-3: #7FB397;  --tau-agency-3-ink: #12211A;
+    --tau-agency-4: #B8E3CB;  --tau-agency-4-ink: #12211A;
+
     --tau-positive:  oklch(0.76 0.11 158);
     --tau-caution:   oklch(0.79 0.11 72);
     --tau-attention: oklch(0.74 0.10 18);
@@ -367,6 +395,14 @@
   --tau-scale-2: #8ec0e4;  --tau-scale-2-ink: var(--tau-surface);
   --tau-scale-3: #5c8fb3;  --tau-scale-3-ink: var(--tau-surface);
   --tau-scale-4: #325f80;  --tau-scale-4-ink: var(--tau-ink);
+
+  /* The agency ramp keeps its own direction in both themes: step 4 is the
+     strongest and sits furthest from the ground, so lightest here. */
+  --tau-agency-1: #2C3A33;  --tau-agency-1-ink: var(--tau-ink);
+  --tau-agency-2: #4E6B5B;  --tau-agency-2-ink: #FFFFFF;
+  --tau-agency-3: #7FB397;  --tau-agency-3-ink: #12211A;
+  --tau-agency-4: #B8E3CB;  --tau-agency-4-ink: #12211A;
+
   --tau-positive: oklch(0.76 0.11 158); --tau-caution: oklch(0.79 0.11 72); --tau-attention: oklch(0.74 0.10 18);
   --tau-positive-bg: oklch(0.26 0.032 158); --tau-caution-bg: oklch(0.26 0.034 72); --tau-attention-bg: oklch(0.26 0.032 18);
   --tau-auditor: oklch(0.80 0.09 300); --tau-auditor-bg: oklch(0.25 0.035 300);

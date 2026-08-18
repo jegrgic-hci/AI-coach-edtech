@@ -3,6 +3,21 @@ const $ = (id) => document.getElementById(id);
 // api() comes from api.js. Teacher access is decided by the signed-in user's
 // role server-side — there is no client-asserted role header any more.
 
+// A reading is a NAMED LEVEL and four BANDS. There is no total and nothing out
+// of 20 — see tau-dimensions.md, "The scoring scale". A draft whose reading has
+// not been produced says so rather than falling back to a number.
+function levelOf(x) {
+  return (x && x.reading && x.reading.level) || 'Not read yet';
+}
+
+function bandLine(analysis) {
+  const bands = analysis && analysis.reading && analysis.reading.bands;
+  if (!bands) return 'no bands yet';
+  return ['PQ', 'CS', 'SU', 'OC']
+    .map((k) => `${k} ${bands[k] == null ? '—' : bands[k]}`)
+    .join(' · ');
+}
+
 function esc(s) {
   const d = document.createElement('div');
   d.textContent = s ?? '';
@@ -41,8 +56,8 @@ async function showOverview() {
           <span class="list-row-name">${esc(r.displayName)}</span>
           ${r.cycles.map((c) => c.analysisStatus === 'complete'
             ? (c.flagCount
-                ? `<span class="chip chip-caution" title="${c.flagCount} integrity signal(s)">D${c.cycleIndex + 1}: ${c.tau.totalScore} ${c.tau.SAMR} · ${c.flagCount} flag${c.flagCount !== 1 ? 's' : ''}</span>`
-                : `<span class="cycle-label">D${c.cycleIndex + 1}: ${c.tau.totalScore} ${c.tau.SAMR}</span>`)
+                ? `<span class="chip chip-caution" title="${c.flagCount} integrity signal(s)">D${c.cycleIndex + 1}: ${levelOf(c)} · ${c.flagCount} flag${c.flagCount !== 1 ? 's' : ''}</span>`
+                : `<span class="cycle-label">D${c.cycleIndex + 1}: ${levelOf(c)}</span>`)
             : `<span class="cycle-label cycle-label-pending">D${c.cycleIndex + 1}: ${c.analysisStatus || 'no analysis'}</span>`).join('')}
           ${r.activeSession ? '<span class="active-note">working on next draft</span>' : ''}
           ${r.cycles.length === 0 && !r.activeSession ? '<span style="font-size:12px;color:var(--muted)">not started</span>' : ''}
@@ -139,8 +154,8 @@ async function showStudent(assignmentId, studentId) {
       return `<div class="card traj-card">
         <div class="lvl">Draft ${session.cycleIndex + 1}</div>
         ${done ? `
-          <div class="samr">${analysis.tau.SAMR} · ${analysis.tau.totalScore}/20</div>
-          <div class="dim-line">PQ ${analysis.tau.PQ} · SU ${analysis.tau.SU} · CS ${analysis.tau.CS} · OC ${analysis.tau.OC}</div>
+          <div class="samr">${levelOf(analysis)}</div>
+          <div class="dim-line">${bandLine(analysis)}</div>
           <a href="/report.html?id=${submission.id}&role=teacher" target="_blank" onclick="logUse('teacher-detail','full-report')">Full report →</a>
         ` : `<div class="dim-line">analysis: ${analysis?.status || 'missing'}</div>`}
       </div>`;

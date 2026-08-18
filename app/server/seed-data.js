@@ -405,6 +405,184 @@ const TRANSCRIPTS = {
   ],
 };
 
+// Readings for the demo seed. Authored, because the seed builds analyses with
+// no LLM call and readSession() is an LLM read — the same reason SNAPSHOTS and
+// PROVENANCE are authored. Every quote below is verbatim from the transcript
+// above it, so a reader clicking through the demo lands on real text.
+//
+// NOT EVIDENCE ABOUT ANYTHING. These are fixtures for building UI. Never
+// calibrate a band, a threshold or a rubric against them — see
+// tau-dimensions.md, "Do not validate against seed data".
+const READINGS = {
+  strong: {
+    level: 'Redefinition',
+    levelIndex: 4,
+    shape: 'You argued with it, and the argument is what the essay is made of.',
+    body: 'Initiative and skepticism are both high and they reinforce each other: you brought the claim, then kept testing whether it survived. What separates this from the level below is that you refused a reading you could not support from the text.',
+    departure: null,
+    exception: 'The ethos paragraph stayed a summary. You said so yourself and left it — a defensible call, but the one place the analysis stops arguing.',
+    dimensions: [
+      { key: 'PQ', name: 'Prompting Quality', question: 'Did you drive the chat?', band: 4,
+        count: 'You set the agenda in 6 of 7 segments.',
+        claim: 'You opened with your own claim and kept redirecting the conversation back to it.',
+        moments: [
+          { quote: "I want to analyse the Chimamanda Adichie 'Danger of a Single Story' talk.", note: 'before anything was suggested' },
+          { quote: "I'd say the difference is that her stories always cost her something.", note: 'you supplied the distinction' },
+        ],
+        counterexample: 'The one segment you did not lead was the opening list of standard strategies, where you took the frame you were handed.' },
+      { key: 'CS', name: 'Calibrated Skepticism', question: 'Did you check what you were told?', band: 4,
+        count: 'You took a position on 5 of 6 claims.',
+        claim: 'You checked the pattern against the talk itself rather than accepting that it was there.',
+        moments: [
+          { quote: 'Checked it — she does it before the Mexico section and before the publisher section', note: 'verified against the source' },
+          { quote: 'I disagree that it\u2019s just an anecdote.', note: 'refused a reading' },
+        ],
+        counterexample: 'You accepted the framing of self-deprecation as a TED convention without asking where that came from.' },
+      { key: 'SU', name: 'Selective Use', question: 'What survived?', band: 4,
+        count: '5 of 6 changes you directed altered what the essay argues.',
+        claim: 'Nearly every change you asked for moved the argument rather than the wording.',
+        moments: [
+          { quote: 'I restructured so the Mexico story comes before the strategy claim rather than after.', note: 'the order became the argument' },
+          { quote: 'The conclusion still restates rather than extends.', note: 'you named what was missing' },
+        ],
+        counterexample: 'Moving the Mexico story up was structural, and you kept the surrounding paragraph exactly as it was.' },
+      { key: 'OC', name: 'Original Contribution', question: 'Is the thinking yours?', band: 4,
+        count: '7 of 9 ideas in the essay are yours or reorganised by you.',
+        claim: 'The reading is yours, including the decision about how far it can be pushed.',
+        moments: [
+          { quote: 'So the reader feels the move working before I name it', note: 'your own formulation' },
+          { quote: "I'll frame it as a reading rather than a finding — overclaiming would be worse.", note: 'you set the limit yourself' },
+        ],
+        counterexample: 'The vocabulary for naming the strategies came from the AI, and it shows in the paragraph where you use them.' },
+    ],
+  },
+
+  flat: {
+    level: 'Substitution',
+    levelIndex: 1,
+    shape: 'You asked it what to think and wrote down the answer.',
+    body: 'Initiative and skepticism are both near-absent: the AI chose the speech, named the strategies and supplied the structure. What separates this from the level above is that nothing came back changed.',
+    departure: 'The last draft has one idea that is unmistakably yours, which is why this does not read as a session with nothing in it.',
+    exception: "Right at the end you wrote that the difficulty line \u201cmakes difficulty the reason\u201d — the only moment you tell it something instead of asking.",
+    dimensions: [
+      { key: 'PQ', name: 'Prompting Quality', question: 'Did you drive the chat?', band: 1,
+        count: 'You set the agenda in 1 of 5 segments.',
+        claim: 'You asked the AI what to write about before you had a subject of your own.',
+        moments: [
+          { quote: 'What speech should I do for this assignment?', note: 'the task itself was delegated' },
+          { quote: "I don't really know any. Can you list some famous ones?", note: 'and so was the shortlist' },
+        ],
+        counterexample: 'In the last session you brought your own reading of the difficulty line without being prompted.' },
+      { key: 'CS', name: 'Calibrated Skepticism', question: 'Did you check what you were told?', band: 1,
+        count: 'You took a position on 0 of 4 claims.',
+        claim: 'Nothing the AI said was questioned, and two of your turns simply agreed with it.',
+        moments: [
+          { quote: 'He talks about history a lot. Is that ethos?', note: 'asking for approval, not checking' },
+          { quote: "Probably pathos because it's emotional. That seems right.", note: 'agreeing with a guess' },
+        ],
+        counterexample: 'There is no counterexample here. This is the case the tool exists to catch.' },
+      { key: 'SU', name: 'Selective Use', question: 'What survived?', band: 2,
+        count: '1 of 4 changes altered meaning.',
+        claim: 'You asked for more material rather than for different material.',
+        moments: [
+          { quote: 'I need one more paragraph. What else can I say about the moon speech?', note: 'length, not argument' },
+        ],
+        counterexample: 'The final claim about difficulty is a real change of meaning, and it is the only one.' },
+      { key: 'OC', name: 'Original Contribution', question: 'Is the thinking yours?', band: 2,
+        count: '1 of 6 ideas in the essay is yours.',
+        claim: 'The essay repeats what the AI told you, with one exception at the very end.',
+        moments: [
+          { quote: "I actually think the 'we choose to go to the moon' part is doing something different", note: 'your own reading, unprompted' },
+        ],
+        counterexample: 'Everything before that final paragraph traces to an AI turn with nothing in between.' },
+    ],
+  },
+
+  flagged: {
+    level: 'Augmentation',
+    levelIndex: 2,
+    shape: 'The analysis is fluent and confident, and almost none of it started with you.',
+    body: 'The bands look strong on the surface: you make claims, you refine, you sustain a thesis. What separates this from the level above is where the claims came from — the AI supplied the frame in the first exchange and every later turn elaborates it.',
+    departure: 'The bands would predict Modification. Read the arc instead: the register-collision thesis arrives complete in your second turn, immediately after the AI was asked what makes the speech effective, and nothing after that tests it.',
+    exception: 'You asked whether the argument holds across the whole speech, then answered your own question in the AI\u2019s terms rather than the text\u2019s.',
+    dimensions: [
+      { key: 'PQ', name: 'Prompting Quality', question: 'Did you drive the chat?', band: 2,
+        count: 'You set the agenda in 2 of 6 segments.',
+        claim: 'You elaborated a frame the AI supplied rather than setting one.',
+        moments: [
+          { quote: "I'm analysing the Greta Thunberg UN speech. What makes it rhetorically effective?", note: 'the frame was requested' },
+        ],
+        counterexample: 'Choosing the speech was yours, and so was the decision to rewrite the third body paragraph.' },
+      { key: 'CS', name: 'Calibrated Skepticism', question: 'Did you check what you were told?', band: 1,
+        count: 'You took a position on 0 of 5 claims.',
+        claim: 'Nothing in the conversation was checked against the speech itself.',
+        moments: [
+          { quote: 'Does my argument about register collision hold up across the whole speech?', note: 'asked, then answered in the same terms' },
+        ],
+        counterexample: 'There is no counterexample. Every claim that entered the essay entered unchallenged.' },
+      { key: 'SU', name: 'Selective Use', question: 'What survived?', band: 3,
+        count: '2 of 3 changes altered meaning.',
+        claim: 'The changes you directed were real ones, aimed at what the paragraphs argue.',
+        moments: [
+          { quote: 'The third body paragraph, which describes rather than argues.', note: 'a meaning change, correctly diagnosed' },
+        ],
+        counterexample: 'You added the methodology point without changing anything it was meant to qualify.' },
+      { key: 'OC', name: 'Original Contribution', question: 'Is the thinking yours?', band: 1,
+        count: '1 of 8 ideas in the essay is yours.',
+        claim: 'The vocabulary, the thesis and the supporting structure all appear first on the AI side.',
+        moments: [
+          { quote: 'The register collision is measurable in the syntax.', note: 'stated as yours, first raised by the AI' },
+        ],
+        counterexample: 'The choice of speech is genuinely yours, and it is the only thing in the essay that is.' },
+    ],
+  },
+
+  bikeguide: {
+    level: 'Modification',
+    levelIndex: 3,
+    shape: 'You directed this guide into existence without writing much of it.',
+    body: 'The agenda was yours and the AI worked to it, section by section. What separates this level from the one above is resistance: you pushed back on details, rarely on decisions.',
+    departure: null,
+    exception: 'The one thing you took without checking was the replacement reference — moments after that same source had been caught inventing one.',
+    dimensions: [
+      { key: 'PQ', name: 'Prompting Quality', question: 'Did you drive the chat?', band: 4,
+        count: 'You set the agenda in 10 of 11 parts.',
+        claim: 'You opened with a brief rather than a question, and twice refused the frame you were handed.',
+        moments: [
+          { quote: "Let's break it down by system.", note: 'before the AI proposed anything' },
+          { quote: 'Remove the citation because specific pages should be referenced.', note: 'it offered two editions, you took neither' },
+          { quote: 'What about the pedals you clip your shoes in, what system do they belong to?', note: "the one thing its five-system structure couldn't place" },
+        ],
+        counterexample: 'Brakes. The AI decided what mattered there and your four questions stayed inside its list — unlike tyres, where you wrote the brief.' },
+      { key: 'CS', name: 'Calibrated Skepticism', question: 'Did you check what you were told?', band: 3,
+        count: 'You took a position on 8 of 18 claims.',
+        claim: 'Twice you checked against something outside the conversation, which is the move that matters most.',
+        moments: [
+          { quote: "British Cycling (2022). Women's bike fit guide. This doesn't exist.", note: 'you knew the source was invented' },
+          { quote: 'The bottle says 30-40ml for a top up and up to 120 for a refill.', note: 'checked against the thing in your hand' },
+          { quote: 'Double check the seallant volumes', note: 'you asked it to verify itself' },
+        ],
+        counterexample: 'When the AI admitted inventing the British Cycling reference it replaced it with Kotler et al. (2023), and you took the replacement without checking it.' },
+      { key: 'SU', name: 'Selective Use', question: 'What survived?', band: 3,
+        count: '11 of 14 changes you directed altered meaning.',
+        claim: 'Most of what you asked for changed what the guide says, not how it looks.',
+        moments: [
+          { quote: 'No i have disk breaks... i must have used the wrong language to describe the black wires maybe.', note: 'corrected a fact the section rested on' },
+          { quote: 'I wont be carrying a plug kit, I just carry extra tubes.', note: 'changed the advice to fit your riding' },
+        ],
+        counterexample: 'Three of the fourteen were formatting — the table, the m-dashes, the heading order — and those are the ones you asked for most often.' },
+      { key: 'OC', name: 'Original Contribution', question: 'Is the thinking yours?', band: 2,
+        count: '3 of 12 ideas in the guide are yours or reorganised by you.',
+        claim: 'The AI wrote all five systems; what is yours is the framing and the personal detail you brought to it.',
+        moments: [
+          { quote: 'The closing is very specific to me, lets make it more general.', note: 'you generalised it away from yourself' },
+          { quote: 'should we also add that the document was created with the help of claude', note: 'nobody asked you to think about this' },
+        ],
+        counterexample: 'The five-system structure the whole guide hangs on came from the AI in its first reply, and it never changed.' },
+    ],
+  },
+};
+
 const ESSAYS = {
   strong: [
     "Chimamanda Ngozi Adichie's \"The Danger of a Single Story\" persuades an audience of its own bias without ever accusing it. The talk's central instrument is confession: Adichie repeatedly casts herself as the person who held the reductive view, and she does so immediately before the passages that ask the most of her listeners. Her account of arriving in Mexico expecting the caricature she had absorbed from American media is not a decorative anecdote. It is the mechanism by which the audience is permitted to recognise the same reflex in themselves without having to defend it first.",
@@ -532,6 +710,33 @@ const PROVENANCE = {
     ],
   ],
 };
+
+
+const PROVENANCE_TURNS = {
+  // bikeguide — turn numbers are 1-based over student turns.
+  'having a real conversation with the machine you trust with your body at 40 km/h': 6,
+  'the fog horn squeal': 18,
+  'the left pedal has reverse thread': 34,
+  'though this varies between sealant brands': 28,
+  'Many components have the torque value stamped directly onto the bolt head itself': 30,
+  "women's biomechanics are distinct from men's": 32,
+  'IsoSpeed on the Trek Domane, and SAVE Plus Micro-Suspension on the Cannondale Synapse': 39,
+  'it is not a home maintenance item': 35,
+  'the single biggest thing you can do to extend the life of your components': 2,
+  'You do not need to become a mechanic. You need to become observant.': 38,
+  'PSI is a good starting range': 2,
+  'Use plastic tire levers only': 20,
+};
+
+// Applied on the way out so PROVENANCE itself stays a plain phrase/origin list.
+for (const tier of Object.keys(PROVENANCE)) {
+  for (const cycle of PROVENANCE[tier]) {
+    for (const item of cycle) {
+      const n = PROVENANCE_TURNS[item.phrase];
+      if (n) item.turn = n;
+    }
+  }
+}
 
 const FLAGS = {
   strong: [],
@@ -682,6 +887,7 @@ const OPEN_TEACHER_NOTES = {
 };
 
 module.exports = {
+  READINGS,
   STUDENTS,
   CLASSES,
   ASSIGNMENTS,

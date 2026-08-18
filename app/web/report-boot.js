@@ -82,17 +82,12 @@
     render(submission, analysis);
   }
 
+  // Stored turns carry text under either key depending on how they were
+  // written. The heuristic quality/label fallbacks the old charts needed are
+  // gone with them — the turn plot reads the classifier's own label, and an AI
+  // turn is shown as text rather than as a guessed label.
   function adaptClassified(stored) {
-    // The CTA renderers expect quality on student turns and labels on AI
-    // turns; the server stores neither, so compute them here the same way
-    // the CTA does (assessQuality / classifyAITurnFallback are ported in).
-    return stored.map((t) => {
-      const text = t.text || t.excerpt || '';
-      if (t.role === 'student') {
-        return { ...t, text, quality: assessQuality(text) };
-      }
-      return { ...t, text, label: t.label || classifyAITurnFallback(text) };
-    });
+    return stored.map((t) => ({ ...t, text: t.text || t.excerpt || '' }));
   }
 
   // Placed directly under the hero, not folded into any other card — a
@@ -125,34 +120,27 @@
   }
 
   function render(submission, analysis) {
-    const scores = analysis.tau;
+    const reading = analysis.reading;
     const classified = adaptClassified(analysis.classified || []);
-    // The server stores { concept, phrase, origin }; My Session's grouping
-    // also needs character positions in the essay and a trace back to the
-    // originating turn — traceProvenance computes both.
-    const provenanceData = traceProvenance(
-      analysis.provenance || [], classified, submission.essayText || '');
 
     reportReady = true;
     applyMode();
 
-    document.getElementById('samrHero').innerHTML = renderReportHero(scores, submission);
-    document.getElementById('reportJumpScore').innerHTML = renderJumpScore(scores);
-    document.getElementById('dimGrid').innerHTML = renderDimGrid(scores);
+    document.getElementById('samrHero').innerHTML = renderReportHero(reading, submission);
+    document.getElementById('reportJumpScore').innerHTML = renderJumpScore(reading);
+    document.getElementById('readingCards').innerHTML = renderReadings(reading);
     renderTeacherNote(submission.teacherNote);
     // The presence of flags IS the teacher signal — the API strips them for
-    // students server-side, so there is nothing for the client to decide. The
-    // old `teacherMode` global came from the single-file CTA's ?role=teacher
-    // and was never defined here, so this line threw on every single load and
-    // took the whole lower half of the report down with it.
+    // students server-side, so there is nothing for the client to decide.
     renderFlagsPanel(analysis.flags);
 
-    renderAgencyChart(classified);
-    renderDrivingChart(classified);
-
-    document.getElementById('reflectContent').innerHTML =
-      renderReflect(classified, provenanceData, submission.essayText || '');
-    initReflectInteractions();
+    // The conversation on the time axis, and the draft on the authorship axis.
+    // Both live in session-view.js because the teacher reads the same two.
+    SessionView.renderTurnPlot(
+      document.getElementById('turnPlot'), classified, analysis.patterns || []);
+    SessionView.renderIdeaStrip(
+      document.getElementById('ideaStrip'), analysis.provenance || [],
+      classified, submission.essayText || '');
 
     const growthMovesHtml = renderGrowthMoves(analysis.snapshot && analysis.snapshot.growthMoves);
     const growthMovesPanel = document.getElementById('growthMovesPanel');
@@ -165,16 +153,6 @@
       document.getElementById('jumpBtnNext').style.display = 'none';
     }
   }
-
-  document.getElementById('patternSidebarClose').addEventListener('click', () => closePatternSidebar());
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePatternSidebar(); });
-
-  // dt- overlay close wiring lives outside the ported render section in the CTA
-  document.getElementById('dt-modal-close').addEventListener('click', () =>
-    document.getElementById('dt-modal-overlay').classList.remove('open'));
-  document.getElementById('dt-modal-overlay').addEventListener('click', (e) => {
-    if (e.target.id === 'dt-modal-overlay') e.target.classList.remove('open');
-  });
 
   // load() is async, so anything it throws became an unhandled rejection and
   // vanished — which is how a broken renderer could silently blank three tabs

@@ -11,7 +11,6 @@
 <link rel="stylesheet" href="components.css">
 <link rel="stylesheet" href="report.css">
 <script src="theme.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 </head>
 <body>
 <!-- Same shell as index.html's nav — mark, breadcrumb, the local
@@ -47,55 +46,34 @@
     <nav class="report-jump" id="reportJump" aria-label="Report sections">
       <div class="report-jump-score" id="reportJumpScore"></div>
       <div class="report-jump-scroll">
-        <button class="report-jump-btn" data-target="summaryPanel"><span class="report-jump-dot"></span>Overview</button>
-        <button class="report-jump-btn" data-target="tabReflect"><span class="report-jump-dot"></span>My Session</button>
-        <button class="report-jump-btn" data-target="tabChart"><span class="report-jump-dot"></span>Agency Chart</button>
-        <button class="report-jump-btn" data-target="tabDriving"><span class="report-jump-dot"></span>Who's Driving</button>
+        <button class="report-jump-btn" data-target="summaryPanel"><span class="report-jump-dot"></span>The four readings</button>
+        <button class="report-jump-btn" data-target="tabTurns"><span class="report-jump-dot"></span>Turn by turn</button>
+        <button class="report-jump-btn" data-target="tabIdeas"><span class="report-jump-dot"></span>Whose ideas</button>
         <button class="report-jump-btn" id="jumpBtnNext" data-target="growthMovesPanel"><span class="report-jump-dot"></span>Next Time</button>
       </div>
     </nav>
 
-    <div class="card card-lg report-section" id="summaryPanel">
-      <span class="report-section-title">The four things this looks at</span>
-      <div class="dim-grid" id="dimGrid"></div>
+    <section class="readings report-section" id="summaryPanel">
+      <span class="report-section-title">The four readings</span>
+      <p class="readings-intro">
+        Each is read against its own rubric and counted in its own units — parts of the
+        conversation, claims, changes, ideas. They are not added up or averaged.
+      </p>
+      <div class="dim-cards" id="readingCards"></div>
+    </section>
+
+    <div class="card card-lg report-section" id="tabTurns">
+      <span class="report-section-title">Your session, turn by turn</span>
+      <div id="turnPlot"></div>
     </div>
 
-    <div class="card card-lg report-section" id="tabReflect">
-      <span class="report-section-title">My Session</span>
-      <div id="reflectContent"></div>
-    </div>
-
-    <div class="card card-lg report-section" id="tabChart">
-      <div class="report-section-head">
-        <span class="report-section-title-group">
-          <span class="report-section-title">Agency Chart</span>
-          <span class="dim-info">
-            <button class="dim-info-btn" type="button" aria-label="What this chart shows">i</button>
-            <span class="dim-tooltip" role="tooltip">Each row is one of your turns. The higher it sits, the more you were in control — asking questions, making your own points, pushing back on the AI. Lower turns are more passive: asking it to generate content, checking its answers, or getting stuck. Brackets on the side mark groups of turns the tool identified as a recognisable pattern.</span>
-          </span>
-        </span>
-        <div class="chart-toggle" id="chartToggle" role="group" aria-label="Chart layers">
-          <button type="button" class="chart-toggle-btn is-active" data-layer="bars">Bars</button>
-          <button type="button" class="chart-toggle-btn is-active" data-layer="trend">Trend line</button>
-        </div>
-      </div>
-      <div id="chartSummaryEl" style="width:796px;max-width:100%;"></div>
-      <svg id="agencyChart"></svg>
-      <div id="chartLegendEl" style="width:796px;max-width:100%;"></div>
-    </div>
-
-    <div class="card card-lg report-section" id="tabDriving">
-      <div class="report-section-head">
-        <span class="report-section-title-group">
-          <span class="report-section-title">Who's Driving</span>
-          <span class="dim-info">
-            <button class="dim-info-btn" type="button" aria-label="What this chart shows">i</button>
-            <span class="dim-tooltip" role="tooltip">Same turns, asking a different question: who was steering, not how agentic the turn was. <strong>Student-driven</strong> turns are moves you made yourself — a claim, a challenge, a pivot. <strong>AI-driven</strong> turns are ones where the AI authored the content even though you asked for it, like an extraction or a validation. <strong>Shared</strong> turns split the difference — a refinement redirects the AI's own draft. The line beneath the strip is a 5-turn rolling share of student- vs. AI-driven turns.</span>
-          </span>
-        </span>
-      </div>
-      <svg id="drivingChart"></svg>
-      <div id="drivingLegendEl" style="width:796px;max-width:100%;"></div>
+    <div class="card card-lg report-section" id="tabIdeas">
+      <span class="report-section-title">Whose ideas ended up in your draft</span>
+      <p class="readings-intro">
+        Ideas, not sentences. For each idea we could trace back to a moment in your chat, this asks
+        one thing: who put it on the table first.
+      </p>
+      <div id="ideaStrip"></div>
     </div>
 
     <div class="card card-lg report-section" id="growthMovesPanel">
@@ -117,26 +95,6 @@
   </div>
 </div>
 
-<div id="dt-modal-overlay">
-  <div class="confirm dt-modal-box" id="dt-modal">
-    <button id="dt-modal-close">&#x2715;</button>
-    <div id="dt-modal-turn"></div>
-    <div id="dt-modal-classifier"></div>
-    <div id="dt-modal-text"></div>
-  </div>
-</div>
-<div id="dt-tooltip">
-  <div class="dt-tooltip-title"></div>
-  <div class="dt-tooltip-body"></div>
-  <button class="dt-tooltip-learn-more" id="dt-tooltip-learn-more">Learn more →</button>
-</div>
-<div class="div-pat-sidebar" id="patternSidebar">
-  <div class="div-pat-sidebar-hdr">
-    <div class="div-pat-sidebar-title" id="patternSidebarTitle"></div>
-    <button class="div-pat-sidebar-close" id="patternSidebarClose">&#x2715;</button>
-  </div>
-  <div class="div-pat-sidebar-body" id="patternSidebarBody"></div>
-</div>
 
 <div id="patternGuideModal" onclick="if(event.target===this)closePatternGuideModal()">
   <div class="confirm confirm-lg pattern-guide-modal-box" id="patternGuideModalBox">
@@ -149,6 +107,7 @@
 <script src="api.js"></script>
 <!-- Before report-render.js, which calls both of its globals. -->
 <script src="patterns-core.js"></script>
+<script src="session-view.js"></script>
 <script src="report-render.js"></script>
 <script src="report-conversation.js"></script>
 <script src="report-boot.js"></script>
