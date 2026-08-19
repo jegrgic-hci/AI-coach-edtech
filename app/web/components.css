@@ -1968,8 +1968,11 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
    is movement, not magnitude. */
 .flow-rib { fill-opacity: 0.32;
             transition: fill-opacity var(--tau-dur-short) var(--tau-ease-standard); }
-.flow-wrap:hover .flow-rib { fill-opacity: 0.14; }
-.flow-rib:hover { fill-opacity: 0.78; }
+/* Highlighting is class-driven, not :hover — the marks that light up are the
+   hovered ribbon's students wherever else they appear, which no selector can
+   express. traceFlow() sets .tracing on the svg and .lit on that path. */
+.flow-svg.tracing .flow-rib { fill-opacity: 0.1; }
+.flow-svg.tracing .flow-rib.lit { fill-opacity: 0.85; }
 .flow-when { font-size: 9.5px; font-weight: 700; letter-spacing: var(--tau-track-label);
              text-transform: uppercase; fill: var(--tau-ink-faint); }
 /* A count is measured, so the numerals stay ink and the words carry which

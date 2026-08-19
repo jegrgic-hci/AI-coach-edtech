@@ -777,6 +777,9 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
   transition: background var(--tau-dur-short) var(--tau-ease-standard);
 }
 .class-row:last-child { border-bottom: 0; }
+/* The group label draws its own full-width rule, so the row above it must not
+   draw the between-rows one as well — two stacked lines read as a mistake. */
+.class-row:has(+ .stat-group-lbl) { border-bottom: 0; }
 .class-row:hover { background: var(--tau-surface-3); }
 .class-row-name { flex: 1; min-width: 0; font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-forest); }
 .class-row-go {
@@ -937,7 +940,7 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
   .stat-group-lbl {
     font-size: 10px; font-weight: 700; letter-spacing: var(--tau-track-label);
     text-transform: uppercase; color: var(--tau-ink-faint);
-    margin: var(--tau-s3) 0 var(--tau-s1); padding-top: var(--tau-s3);
+    margin: var(--tau-s6) 0 var(--tau-s1); padding-top: var(--tau-s4);
     border-top: 1px solid var(--tau-line);
   }
 

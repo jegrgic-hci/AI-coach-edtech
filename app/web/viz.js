@@ -434,15 +434,21 @@ function drawFlow(el, { paths, stageLabels, nodes, axisLabel }) {
   });
   const bottom = Math.ceil(maxY + 8);
 
+  // Ribbons carry WHO is in them, not just how many. Hovering one traces those
+  // same students across every other transition (see traceFlow) — the question
+  // a teacher actually asks of a flow is "where did THIS group end up", and a
+  // count cannot answer it once the group splits.
   let ribbons = '';
+  const ribMembers = [];
   for (let s = 0; s < nStage - 1; s++) {
     const tally = new Map();
-    paths.forEach(p => {
+    paths.forEach((p, i) => {
       const key = p[s] + ':' + p[s + 1];
-      tally.set(key, (tally.get(key) || 0) + 1);
+      if (!tally.has(key)) tally.set(key, []);
+      tally.get(key).push(i);
     });
     [...tally.keys()].sort().forEach(key => {
-      const [fr, to] = key.split(':').map(Number), cnt = tally.get(key);
+      const [fr, to] = key.split(':').map(Number), members = tally.get(key), cnt = members.length;
       const src = nodes[fr], dst = nodes[to];
       const h = cnt * k, x1 = xs[s] + FLOW_NODE, x2 = xs[s + 1];
       const c1 = x1 + (x2 - x1) * FLOW_TENSION, c2 = x2 - (x2 - x1) * FLOW_TENSION;
@@ -453,7 +459,8 @@ function drawFlow(el, { paths, stageLabels, nodes, axisLabel }) {
       // scoring a thin session band 1.
       const dir = (fr === offIdx || to === offIdx) ? 'not comparable'
         : to < fr ? 'moved up' : to > fr ? 'moved back' : 'stayed';
-      ribbons += `<path class="flow-rib" d="M${x1},${a} C${c1},${a} ${c2},${b} ${x2},${b}`
+      ribbons += `<path class="flow-rib" data-rib="${ribMembers.push(members) - 1}"`
+        + ` d="M${x1},${a} C${c1},${a} ${c2},${b} ${x2},${b}`
         + ` L${x2},${b + h} C${c2},${b + h} ${c1},${a + h} ${x1},${a + h} Z"`
         + ` fill="${src.off ? 'var(--tau-line-strong)' : src.fill}">`
         + `<title>${cnt} student${cnt !== 1 ? 's' : ''} — ${src.name} → ${dst.name} (${dir}),`
@@ -485,6 +492,36 @@ function drawFlow(el, { paths, stageLabels, nodes, axisLabel }) {
   el.innerHTML = `<svg class="flow-svg" width="${W}" height="${bottom}" viewBox="0 0 ${W} ${bottom}" role="img"
       aria-label="Students moving between ${nodes.map(nd => nd.name).join(', ')} from ${stageLabels[0]} to ${stageLabels[nStage - 1]}. Higher is more student agency.">
       ${heads}<g>${ribbons}</g><g>${bars}</g><g>${nums}</g></svg>`;
+  traceFlow(el.querySelector('.flow-svg'), ribMembers, total);
+}
+
+// Hovering a ribbon lights the WHOLE path of the students in it — every earlier
+// and later transition they appear in, not the one segment under the cursor. A
+// segment on its own says a group moved; the lit path says what became of them,
+// which is the only reading a flow adds over two bars side by side.
+//
+// Both directions, never forward-only: a middle segment read forward alone
+// answers "where next" while silently dropping "who these are", and the two
+// halves of a path are the same students either way.
+function traceFlow(svg, ribMembers, total) {
+  if (!svg) return;
+  const ribs = [...svg.querySelectorAll('.flow-rib')];
+  const byStudent = Array.from({ length: total }, () => []);
+  ribMembers.forEach((mem, r) => mem.forEach(i => byStudent[i].push(r)));
+
+  const clear = () => {
+    svg.classList.remove('tracing');
+    ribs.forEach(p => p.classList.remove('lit'));
+  };
+  svg.addEventListener('mouseover', e => {
+    const hit = e.target.closest && e.target.closest('.flow-rib');
+    if (!hit) return clear();
+    const lit = new Set();
+    ribMembers[+hit.dataset.rib].forEach(i => byStudent[i].forEach(r => lit.add(r)));
+    svg.classList.add('tracing');
+    ribs.forEach(p => p.classList.toggle('lit', lit.has(+p.dataset.rib)));
+  });
+  svg.addEventListener('mouseleave', clear);
 }
 
 function mountFlows(root) {
