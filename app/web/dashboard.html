@@ -3741,7 +3741,29 @@ function renderAssignmentAggregateContent(a, students, variant = 'full') {
   // for a future session to discover and "fix". The rule still holds where the
   // reader has not already been handed the landing place — which is everywhere
   // except here.
-  const scope = `${students.length} student${students.length !== 1 ? 's' : ''} · ${draftSchedule(a).filter(s => s.state === 'closed').length} closed drafts`;
+  // ── ONE CLOSED DRAFT: the summary is the SNAPSHOT, not the movement ───────
+  //
+  // The 2026-08-18 argument above holds only where a flow exists. At one closed
+  // draft there is no sequence for the flow to span, so it cannot be the thing
+  // the composition duplicates — and Movement renders its "needs two closed
+  // drafts" empty state twice, leaving the page with no reading of an assignment
+  // that has a perfectly readable one. A bar is a reading of ONE TASK
+  // (teacher-dashboard-design.md, rule 1), and one closed draft is exactly that.
+  //
+  // renderAgencyDistribution / renderAssignmentDimensions are the same pair the
+  // class card and the per-draft tabs mount, so this is the existing snapshot,
+  // not a third summary. Both already carry the no-flow path: the composition
+  // states why movement is absent inside its own disclosure, and flowFor returns
+  // null per band row.
+  const closedDrafts = draftSchedule(a).filter(s => s.state === 'closed').length;
+  if (closedDrafts < 2) {
+    return `${statRow}${noteBlock}
+      <div style="margin-bottom:var(--tau-s6)">${renderAgencyDistribution(a, students)}</div>
+      <div style="margin-bottom:var(--tau-s5)">${renderAssignmentDimensions(a, students)}</div>
+      ${patternBlock}${originBlock}${workedBlock}`;
+  }
+
+  const scope = `${students.length} student${students.length !== 1 ? 's' : ''} · ${closedDrafts} closed drafts`;
   const agencyTrend = renderMovement(`assign-agency:${a.id}`,
     agencyEntries(draftFlow(a, students, sub => samr(total(sub)).n)),
     scope, FLOW_AXIS_DRAFT, { title: 'Summary · agency across the drafts' });
