@@ -121,6 +121,7 @@ async function seedCycle({ student, assignment, tier, cycleIndex, daysAgo }) {
   });
 
   const labelMap = {};
+  const aiLabelMap = {};
   let studentIdx = 0;
   const turns = [];
   for (const [i, turn] of transcript.turns.entries()) {
@@ -134,9 +135,12 @@ async function seedCycle({ student, assignment, tier, cycleIndex, daysAgo }) {
       createdAt: new Date(Date.now() - (daysAgo + 2) * DAY + i * 4 * 60000).toISOString(),
       meta: {},
     }));
+    // Coach labels come from seed-data literals when they are there; the seed
+    // never calls an LLM, so unlabelled coach turns simply stay unlabelled.
+    if (turn.role !== 'student' && turn.label) aiLabelMap[turns[turns.length - 1].id] = turn.label;
   }
 
-  const classified = enrich([{ conversation, turns }], labelMap);
+  const classified = enrich([{ conversation, turns }], labelMap, aiLabelMap);
   const provenance = PROVENANCE[tier][cycleIndex];
   const tau = scoreTAU(classified, provenance);
 

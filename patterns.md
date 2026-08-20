@@ -71,7 +71,7 @@ analysis doc.
 | Tier | Detectors |
 |---|---|
 | High agency | Challenge Arc · Rejection → Redirect · Claim-Support Cycle · Argument Engaged · Held Ground · Questioned Assertion |
-| Medium | Extraction → Insight (elevates to high when the AI was arguing) |
+| Medium | Extraction → Insight |
 | Low agency | Extraction Loop · Validation Spiral · Helplessness Loop · Flitting · Missed Argument · Capitulation · Unquestioned Assertion |
 
 **The interaction moments are the part this file never imagined.** Four of the thirteen key on the AI
@@ -84,6 +84,34 @@ threshold**, so nothing gates them.
 **This layer also gives the file a high-agency vocabulary it lacked.** Every detector specified here
 names a deficit. Six shipped ones name a competence, which is what makes a teacher surface something
 other than a list of who is failing.
+
+#### One detector mixed two sources, and it was removed — 2026-08-18
+
+`extraction-landing` used to read `tier = aiLabels[i] === "argument" ? "high" : "medium"`, making it
+the only detector in the file drawing on both a sequence *and* the AI's side. AI turns were labelled
+on 2026-08-18 (`convolabel.md`), which was the first time the clause could be read against real data,
+and it did not survive that reading:
+
+- **It read the wrong AI turn.** `aiLabels[i]` is the AI turn before the *extraction* — "was the AI
+  arguing when you asked it to write?" — when the elevation plainly means "was the AI arguing when you
+  pushed back?", which is `aiLabels[i + 1]`.
+- **Fixing the index would have been the worse bug.** Reading `aiLabels[i + 1]` is reading the exact
+  turn pair `argument-engaged` reads, so one observed event would increment two patterns — what the
+  shared-evidence rule forbids. The AI-side reading belongs to `argument-engaged`, which can now
+  perform it.
+- **It cost nothing to remove.** Across all four seeded tiers, the AI turn before a landing extraction
+  is `definition` or `content` and never `argument`, so no stored analysis loses an elevation.
+
+`extraction-landing` is now a pure sequence pattern, fixed at `medium`.
+
+**What this does *not* license is a general overlap rule.** The same labelling run put two other bands
+on shared turns — `assertion-unquestioned` inside `extraction-landing`, twice in bikeguide — and those
+are the system working. They read opposite directions from one pivot turn: the assertion moment looks
+back at what the AI asserted, the sequence looks forward at what the student did next. Different
+observed events, different sources, and the pair discriminates (two of bikeguide's four unquestioned
+assertions land somewhere, two dead-end). **Overlap is not itself evidence of double-counting — shared
+evidence is.** Suppressing bands by tier would have deleted the most legible thing the AI labels
+produced.
 
 ### Layer 2 — the naming layer (`dashboard.html`)
 
@@ -545,10 +573,11 @@ unmeasured and undefined.
    warning in *Validation plan*); a run against `cta-pilot-dev` counts authored data and sets nothing.
    Blocks every threshold, and is blocked in turn only by corpus size. **First run done** — see
    *First backfill run*.
-1a. **Label AI turns.** Six detectors cannot fire without it, including all four interaction moments.
-   One prompt change; the labels are already specified in `CLAUDE.md` Phase 2. **This now outranks
-   every remaining item in this list** — it is the difference between five working detectors and
-   eleven, and no threshold work is needed to get there.
+1a. ~~**Label AI turns.**~~ **Done 2026-08-18** — see `convolabel.md`. Two of the six dead detectors
+   now fire (`argument-engaged`, `assertion-unquestioned`); `missed-argument` and `assertion-questioned`
+   need a transcript that contains the behaviour, and **`correction` comes back at a zero rate**, so
+   `correction-held`/`capitulation` are still dark. That zero is undiagnosed: the seed may simply
+   contain no AI-corrects-student turn. Do not tune the prompt against the seed to produce one.
 1b. **Diagnose `pivot`** — 2 occurrences in 51 analyses. Classifier problem or real absence? `flitting`
    is dead either way until this is answered.
 2. ~~`detectPatterns()` + evidence indices~~ — **done 2026-08-14.** Remaining detector work is narrower
@@ -571,6 +600,23 @@ unmeasured and undefined.
 ---
 
 ## Session log
+
+- **2026-08-18 — the AI labels arrived, and the first thing they exposed was a detector reading the
+  wrong turn.** With `aiLabel` populated (`convolabel.md`), bikeguide went from 7 pattern runs to 13,
+  and three of them now share a turn. Two of the three are legitimate — an interaction moment and a
+  sequence reading opposite directions from one pivot — and the third was `extraction-landing`'s
+  elevation clause colliding with `argument-engaged`. Removed the clause rather than repairing its
+  index; the reasoning is in *One detector mixed two sources*. **No threshold changed, and no stored
+  analysis changes**, because the clause had never fired.
+
+  **The standing lesson:** overlap between two bands is not a fault to be suppressed. The fault is two
+  detectors incrementing off *the same observed event*, which is a narrower thing and needs checking
+  case by case. A tier-precedence rule would have been the easy fix and would have deleted real signal.
+
+  What remains open is a *rendering* question, not a detection one: the step plot shades pattern runs
+  and prints their names on the chart, and it now has overlapping runs of opposite tiers on a single
+  turn, with four single-turn interaction moments that are point events rather than runs. That belongs
+  to `convolabel.md`'s open questions.
 
 - **2026-08-14 — this file was wrong about its own subject; detection moved server-side.** Started
   from the dashboard lab's placeholder note ("until `detectPatterns` ships, this section is mostly

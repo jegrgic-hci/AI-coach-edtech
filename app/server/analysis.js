@@ -60,10 +60,21 @@ Also judge "responsive" for each turn: does the student engage with the substanc
 - A turn that ignores the AI's turn and starts somewhere unrelated is not responsive.
 - If the item shows no preceding AI turn, responsive is false.
 
+Also classify the AI turn shown above each student turn, as "aiLabel". What did the AI do in that turn?
+
+- argument: AI takes a position and reasons for it, or pushes back on the student
+- correction: AI tells the student something they said is wrong or inaccurate
+- definition: AI asserts what something is, or states a fact, without arguing for it
+- instruction: AI tells the student what to do, or how to proceed
+- example: AI illustrates with a case, sample, or worked instance
+- content: AI produces prose, drafts, lists or tables for the student's document
+
+Pick the one that dominates the turn. Use "content" when the turn is mostly written material for the document, whatever else it also does. If the item shows no preceding AI turn, omit aiLabel.
+
 Turns to classify:
 ${listed}
 
-Return ONLY a JSON array: [{"turnIndex": 0, "label": "challenge", "responsive": true, "confidence": 0.9}, ...]`;
+Return ONLY a JSON array: [{"turnIndex": 0, "label": "challenge", "aiLabel": "argument", "responsive": true, "confidence": 0.9}, ...]`;
 
 // Calls run with responseMimeType: application/json, so the whole body should
 // parse. The scan below is the fallback, and it stops at the *matching* close
@@ -106,15 +117,22 @@ function studentTurnsWithContext(bundle) {
   for (const { turns } of bundle) {
     let priorCoach = null;
     for (const turn of turns) {
+      // The whole coach turn, not its text: the classifier now labels it too,
+      // and the label has to key back to a specific turn id.
       if (turn.role === 'student') paired.push({ turn, priorCoach });
-      else priorCoach = turn.text;
+      else priorCoach = turn;
     }
   }
   return paired;
 }
 
+const AI_LABELS = new Set(['argument', 'correction', 'definition', 'instruction', 'example', 'content']);
+
+// Returns two maps: student labels keyed by the paired index, AI labels keyed
+// by coach turn id.
 async function classifyStudentTurns(paired, meta) {
   const map = {};
+  const aiMap = {};
   const chunks = [];
   for (let i = 0; i < paired.length; i += CLASSIFY_CHUNK_SIZE) {
     chunks.push({ items: paired.slice(i, i + CLASSIFY_CHUNK_SIZE), offset: i });
@@ -123,8 +141,9 @@ async function classifyStudentTurns(paired, meta) {
     chunks.map(async ({ items, offset }) => {
       const listed = items
         .map(({ turn, priorCoach }, i) => {
+          const coachText = priorCoach?.text || '';
           const context = priorCoach
-            ? `AI: ${priorCoach.slice(0, AI_TURN_MAX_CHARS)}${priorCoach.length > AI_TURN_MAX_CHARS ? '…' : ''}`
+            ? `AI: ${coachText.slice(0, AI_TURN_MAX_CHARS)}${coachText.length > AI_TURN_MAX_CHARS ? '…' : ''}`
             : 'AI: (nothing — this turn opens the conversation)';
           return `[${offset + i}]\n${context}\nSTUDENT: ${turn.text}`;
         })
@@ -134,13 +153,22 @@ async function classifyStudentTurns(paired, meta) {
         temperature: 0.1,
         json: true,
         meta: { ...meta, purpose: 'classify' },
-        maxTokens: 100 + items.length * 40,
+        maxTokens: 100 + items.length * 50,
       });
       return extractJSON(raw, 'array');
     })
   );
-  for (const items of results) for (const item of items) map[item.turnIndex] = item;
-  return map;
+  for (const items of results) {
+    for (const item of items) {
+      map[item.turnIndex] = item;
+      // Consecutive student turns share a priorCoach, so the same AI turn is
+      // printed more than once and can come back labelled two ways. First wins:
+      // results are in chunk order, so the choice is deterministic.
+      const coach = paired[item.turnIndex]?.priorCoach;
+      if (coach && !aiMap[coach.id] && AI_LABELS.has(item.aiLabel)) aiMap[coach.id] = item.aiLabel;
+    }
+  }
+  return { map, aiMap };
 }
 
 // ---------- context enrichment (ported from CTA classifyAllTurns pass 2) ----------
@@ -161,7 +189,9 @@ const RESPONSIVE_BY_LABEL = new Set(['rejection', 'refinement', 'validation', 'c
 
 // Enrichment stays within conversation boundaries — a "followup" in a
 // different conversation is not a followup.
-function enrich(bundle, labelMap) {
+// aiLabelMap is keyed by turn id, not by index: AI turns have no running
+// counter the classifier could line up with.
+function enrich(bundle, labelMap, aiLabelMap = {}) {
   let studentIdx = 0;
   const classified = [];
   for (const { conversation, turns } of bundle) {
@@ -182,6 +212,10 @@ function enrich(bundle, labelMap) {
         entry.label = judged?.label || 'narrative';
         entry.judgedResponsive = typeof judged?.responsive === 'boolean' ? judged.responsive : null;
         studentIdx++;
+      } else {
+        // Left null when unlabelled — getAILabelBefore falls back to "content",
+        // and that fallback must stay the neutral one.
+        entry.label = aiLabelMap[t.id] || null;
       }
       return entry;
     });
@@ -596,8 +630,10 @@ async function runAnalysis(submissionId) {
     const bundle = await gatherCycle(session);
     const paired = studentTurnsWithContext(bundle);
 
-    const labelMap = paired.length ? await classifyStudentTurns(paired, meta) : {};
-    const classified = enrich(bundle, labelMap);
+    const { map: labelMap, aiMap } = paired.length
+      ? await classifyStudentTurns(paired, meta)
+      : { map: {}, aiMap: {} };
+    const classified = enrich(bundle, labelMap, aiMap);
 
     const assignment = submission.assignmentId
       ? await col('assignments').get(submission.assignmentId).catch(() => null)

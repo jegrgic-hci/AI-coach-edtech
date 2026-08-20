@@ -17,20 +17,28 @@ their *input*, never their definitions. The student report renders in `app/web/r
 
 ---
 
-## Status — 2026-08-18. Read this before citing anything below as built.
+## Status — 2026-08-18 (second entry). The pipeline is built; the step plot is not.
 
-**Nothing in this file is built.** One sentence covers the whole gap:
+**Backlog 1–3 are done.** `CLASSIFY_PROMPT` now asks for `aiLabel` on the AI turn it was already
+printing as context, `studentTurnsWithContext` carries the coach turn object, `classifyStudentTurns`
+returns `{ map, aiMap }` keyed by coach turn id, and `enrich` writes the label onto AI entries. The
+seed's 76 coach turns were labelled by running that prompt over the transcripts once, offline, and
+committing the output as literals in `seed-data.js`. `patterns-core.js` was not touched.
+
+**Two of the six dead detectors now fire; four are still dark, and the reason matters** — see
+*What the labels came back as*. Everything below this status block predates the build; the original
+statement of the gap is kept because the reasoning is still the record:
 
 > **AI turns are never given a label.** They are sent to the classifier as *context* for the student
 > turn that follows, and are then discarded.
 
-Everything downstream follows from that. `enrich()` sets `label: null` on every turn and fills it only
-for `role === 'student'`, so `getAILabelBefore()` always falls through to its `|| "content"` default,
-so **six of the thirteen shipped detectors cannot fire in production and never have.**
+Everything downstream followed from that. `enrich()` set `label: null` on every turn and filled it
+only for `role === 'student'`, so `getAILabelBefore()` always fell through to its `|| "content"`
+default, so **six of the thirteen shipped detectors could not fire in production and never had.**
 
 The four `patterns.md` calls *"the only detectors in this file that need nothing calibrated before a
-teacher can be shown them"* are four of the six. The detectors that need no threshold are exactly the
-detectors that have no input.
+teacher can be shown them"* are four of the six. The detectors that need no threshold were exactly the
+detectors that had no input.
 
 ---
 
@@ -104,7 +112,7 @@ The bikeguide transcript has four bare `validation` turns. Same label, same row 
 
 ---
 
-## The build
+## The build — **done 2026-08-18**, as specified below
 
 Five changes, one file. Estimated at **~½ day** for the pipeline, ~1 hour for the seed, the remainder
 of a day confirming the six detectors fire sanely on real sessions.
@@ -139,16 +147,51 @@ by one short string per turn.
   ever becomes a label a detector tests, every unlabelled historical turn silently joins that
   detector's population.
 
-### The demo seed
+### The demo seed — done
 
-`t(role, text, label = null)` at `seed-data.js:176` — every `t('coach', …)` call passes no label, and
-the dev seed builds analyses **without any LLM call**. So the six detectors would work in production
-and stay dark in the demo.
+`t(role, text, label = null)` at `seed-data.js` — every `t('coach', …)` call passed no label, and the
+dev seed builds analyses **without any LLM call**. So the six detectors would have worked in
+production and stayed dark in the demo.
 
 **Do not hand-label these.** Run the classifier over the seed transcripts once, offline, and commit
 the returned `aiLabel`s into `seed-data.js` as literals. That keeps the seed LLM-free at run time —
-the property it exists for — while the labels come from the same model doing the same job. bikeguide
-alone is 44 coach turns; a throwaway script does it in an hour.
+the property it exists for — while the labels come from the same model doing the same job.
+
+Done: all 76 coach turns across the four tiers carry a committed label (75 labelled, 1 null — the
+last coach turn of bikeguide has no student turn after it, so the pairing never showed it to the
+classifier). `seed.js` passes them to `enrich` as an id-keyed map; `analysis.js` exports
+`classifyStudentTurns`/`studentTurnsWithContext` so the generator script could reuse the shipped path
+rather than reimplement it.
+
+### What the labels came back as
+
+Over the whole seed (76 coach turns): `content` 29, `instruction` 26, `argument` 15, `definition` 5,
+**`correction` 0, `example` 0**.
+
+Re-running `detectPatterns` before and after is **purely additive** — no existing pattern moved or
+disappeared:
+
+| Detector | Before | After |
+|---|---|---|
+| `argument-engaged` | never | strong ×4, flat ×1, flagged ×1, bikeguide ×2 |
+| `assertion-unquestioned` | never | bikeguide ×4 |
+| `missed-argument` | never | still never — no run of 3 passive turns under `argument` |
+| `assertion-questioned` | never | still never — nothing challenges a `definition` in the seed |
+| `correction-held` / `capitulation` | never | still never — **`correction` is returned zero times** |
+| `extraction-landing` | always `medium` | still `medium` — no extraction lands on an `argument` turn |
+
+**The zero `correction` rate is not obviously a prompt bug.** The detector's own definition is *the AI
+corrected or disagreed with the student*, and in these transcripts the correction runs the other way:
+bikeguide's student catches the AI twice — *"This doesn't exist"* — and the AI's reply (*"You're
+right, I fabricated that reference"*) is a concession, not a correction, and came back `content`. The
+coach tiers ask questions rather than contradict. So the pushback pair may be dark because the seed
+contains no pushback, which is a fact about the seed, not a fault in the field. **This cannot be
+settled on the seed** (`tau-dimensions.md`) — it needs a real transcript where the AI does tell a
+student they are wrong. Until then, do not tune the prompt to manufacture `correction`s.
+
+`example` at zero is weaker evidence than it looks: examples in these transcripts are embedded in
+turns that are mostly document prose, and the prompt's dominance rule sends those to `content` by
+design. Nothing reads `example`, so it costs nothing today.
 
 ### Existing analyses
 
@@ -239,6 +282,11 @@ the picture rather than the prose. Useful evidence for the form.
    hedge. **This is a measurement question, not a visual one**, and it is the same question the
    CS section above raises — which is why labelling the AI turns may settle it rather than the chart
    design settling it.
+   **Answered 2026-08-18, in the negative: the AI labels do not settle it.** Nine of bikeguide's ten
+   `refinement` turns follow `content` and the tenth follows `argument`, and that tenth ("Lets add the
+   hint to look for the small Nm on the bolt head") is directive too. All ten are the same act — the
+   AI produced prose, the student directed the next edit — which confirms `tau-dimensions.md`'s read
+   but offers no cut. This stays open on item 5 and the CS work, not on the labels.
 2. **The agency ramp has no token.** `--tau-scale-N` is documented for "four bands plotted together
    as magnitude", but its stated direction puts the darkest step on band 1, because the cohort finding
    it was built for is where the mass sits at the low end. On one student's own turns that puts visual
@@ -250,6 +298,18 @@ the picture rather than the prose. Useful evidence for the form.
    readable, and a chart with one row per student turn has nowhere to put it. A paired-column form —
    the AI's move above, the student's response below — was proposed and not explored. **This should
    be settled before the step plot is committed to the lab**, or the chart gets built twice.
+   **Sharpened by the labels, 2026-08-18:** bikeguide's four identical `validation` turns now separate
+   — 19 and 34 follow an `argument`, 36 follows a `definition`, 40 follows `content` — which is the
+   case for a second column made from data rather than assertion. But turn 36 already fires
+   `assertion-unquestioned`, so the **pattern band** carries the AI's move onto the chart for free.
+   Decide whether the band is the answer before drawing a column.
+4. **Pattern bands now overlap.** With AI labels populated, bikeguide goes from 7 pattern runs to 13,
+   and three share a turn — including bands of opposite tiers, plus four single-turn interaction
+   moments that are point events rather than runs. The explored form shades a run and prints its name
+   on the chart, which has no drawing for two names behind one square. **This is a rendering question
+   only:** the one case that was a detection fault (`extraction-landing`'s elevation clause) was fixed
+   in `patterns-core.js` on 2026-08-18, and the remaining overlaps are signal — see `patterns.md`,
+   *One detector mixed two sources*. Do not resolve this by suppressing the lower-tier band.
 
 ---
 
@@ -257,10 +317,10 @@ the picture rather than the prose. Useful evidence for the form.
 
 | # | Item | Blocked on |
 |---|---|---|
-| 1 | Label AI turns in `CLASSIFY_PROMPT`; key back by turn id | — |
-| 2 | Generate and commit seed `aiLabel`s via one-off script | 1 |
-| 3 | Confirm the six detectors fire sanely on real sessions | 1 |
-| 4 | Prompt iteration on `argument` / `instruction` / `content` | 3 |
+| ~~1~~ | ~~Label AI turns in `CLASSIFY_PROMPT`; key back by turn id~~ | **done 2026-08-18** |
+| ~~2~~ | ~~Generate and commit seed `aiLabel`s via one-off script~~ | **done 2026-08-18** |
+| 3 | Confirm the six detectors fire sanely on **a real session** — checked on the seed only, where two fire and four stay dark for reasons above | a live submission through `runAnalysis` |
+| 4 | Prompt iteration on `correction` (zero rate) before `argument` / `instruction` / `content` | 3 |
 | 5 | Hand-code one real transcript; measure pair agreement | a second real transcript would be better than bikeguide alone |
 | 6 | Decide: re-classify stored analyses, or new-only | 1 |
 | 7 | Settle where the AI turn sits in the turn-level chart | 1 |
@@ -274,6 +334,26 @@ This work does not queue behind it.
 ---
 
 ## Session log
+
+### 2026-08-18 (second session) — the labelling pipeline built; the charts untouched
+
+Backlog 1–2 built exactly as specified above, plus the seed generator. `patterns-core.js` unedited,
+`scoreTAU` unguarded (it filters to `student` before counting, re-verified), `content` still the
+`getAILabelBefore` fallback and still not tested by any detector.
+
+Ran the shipped prompt over the seed transcripts once, offline, and committed the 76 returned labels
+into `seed-data.js`. The before/after `detectPatterns` diff is additive: `argument-engaged` fires in
+all four tiers and `assertion-unquestioned` four times in bikeguide; nothing that fired before
+stopped firing.
+
+**The finding worth carrying forward:** `correction` came back **zero times out of 76**, so the
+pushback pair (`correction-held` / `capitulation`) is still dark. On inspection this looks like a
+property of the seed rather than a broken label — in bikeguide the *student* corrects the *AI*, and
+the AI's concession is not what the detector is defined on. Resisted tuning the prompt to force the
+label; that decision has to be made against a real transcript.
+
+**Not done:** the step plot, and open questions 1–3 (`refinement`'s row, the agency ramp token, where
+the AI turn sits) all stand. No lab markup changed.
 
 ### 2026-08-18 — the gap found and specified; nothing built
 

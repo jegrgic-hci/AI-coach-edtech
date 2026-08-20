@@ -95,11 +95,27 @@ function detectPatterns(classified) {
     }
   }
 
-  // Medium → High (AI-enhanced): extraction with landing — elevate to high if AI was arguing
+  // Medium: extraction with landing. Pure sequence — the student's own two
+  // turns, and nothing from the AI's side.
+  //
+  // It used to carry `tier = aiLabels[i] === "argument" ? "high" : "medium"`,
+  // which made it the one detector in this file mixing two sources. Removed
+  // 2026-08-18, once AI turns were labelled and the clause could finally be
+  // read against real data. Three reasons, in order of weight:
+  //
+  //   1. It read the AI turn before the *extraction*, not before the landing —
+  //      "was the AI arguing when you asked it to write?", when the elevation
+  //      plainly means "was the AI arguing when you pushed back?".
+  //   2. Repairing that by reading aiLabels[i + 1] would make it read the exact
+  //      turn pair `argument-engaged` reads, so one event would increment two
+  //      patterns — what patterns.md's shared-evidence rule forbids. The AI-side
+  //      reading belongs to `argument-engaged`, which can now do it.
+  //   3. It never fired. Across all four seeded tiers the AI turn before a
+  //      landing extraction is `definition` or `content`, never `argument`, so
+  //      no stored analysis loses an elevation it had.
   for (let i = 0; i < n - 1; i++) {
     if (labels[i] === "extraction" && HIGH_LABELS.has(labels[i + 1])) {
-      const tier = aiLabels[i] === "argument" ? "high" : "medium";
-      patterns.push({ start: i, end: i + 1, id: "extraction-landing", label: "Extraction → Insight", tier });
+      patterns.push({ start: i, end: i + 1, id: "extraction-landing", label: "Extraction → Insight", tier: "medium" });
     }
   }
 
