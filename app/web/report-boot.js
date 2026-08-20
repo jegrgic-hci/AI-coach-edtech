@@ -44,16 +44,53 @@
     document.getElementById('results').style.display = reportReady ? 'flex' : 'none';
   }
 
+  // Both states that end in "run it again" — a failed analysis and one that
+  // predates the current reading — put the same button in the same place, so
+  // the machinery is written once and the two differ only in what they say.
+  //
+  // `working` is what the reader sees for the whole run, which is why it is a
+  // caller's line rather than one generic string: a retry after a failure and
+  // a first read of an old draft are not the same event to the person waiting.
+  function offerRerun(bodyHTML, actionLabel, working) {
+    const pending = document.getElementById('pending');
+    // Never over the Sessions view — applyMode() owns that toggle, and a poll
+    // landing while the reader is in the transcript must not pull them out of it.
+    if (mode === 'report') pending.style.display = '';
+    pending.innerHTML =
+      `${bodyHTML}<br><br>
+       <button id="retryBtn" class="btn btn-quiet" type="button">${actionLabel}</button>`;
+    document.getElementById('retryBtn').onclick = async () => {
+      pending.innerHTML = `<div class="spinner"></div>${working}`;
+      const res = await fetch(`/api/submissions/${submissionId}/reanalyze`, { method: 'POST' });
+      // 409 means someone else already started this one — the poll below picks
+      // that run up, so it is not an error to report. Anything else is.
+      if (!res.ok && res.status !== 409) {
+        offerRerun('That could not be started just now.', 'Try again', working);
+        return;
+      }
+      setTimeout(load, 2500);
+    };
+  }
+
   async function load() {
     // Whether flags come back is decided server-side from the signed-in user's
     // role — the ?role=teacher param no longer grants anything.
     const res = await fetch(`/api/submissions/${submissionId}/report`);
     if (res.status === 401) return requireLogin();
+    if (res.status === 403) {
+      // Distinct from a broken report, and the reader can act on it: the id is
+      // fine, this account has no claim on the student it belongs to. Said
+      // plainly because a teacher signed into the wrong one of two accounts
+      // otherwise reads "could not load" as the tool being broken.
+      document.getElementById('pending').textContent =
+        'This report belongs to a student in another teacher’s class, so it cannot be opened from this account.';
+      return;
+    }
     if (!res.ok) {
       document.getElementById('pending').textContent = 'Could not load this report.';
       return;
     }
-    const { submission, analysis } = await res.json();
+    const { submission, analysis, stale } = await res.json();
 
     renderNavCrumbs(document.getElementById('navCrumbs'), [
       { label: 'All assignments', href: '/' },
@@ -67,15 +104,30 @@
       return;
     }
     if (analysis.status === 'error') {
-      const pending = document.getElementById('pending');
-      pending.innerHTML =
-        `Analysis hit a problem: ${esc(analysis.error || 'unknown error')}<br><br>
-         <button id="retryBtn" class="btn btn-quiet" type="button">Retry analysis</button>`;
-      document.getElementById('retryBtn').onclick = async () => {
-        pending.innerHTML = '<div class="spinner"></div>Retrying analysis…';
-        await fetch(`/api/submissions/${submissionId}/reanalyze`, { method: 'POST' });
-        setTimeout(load, 2500);
-      };
+      offerRerun(
+        `Analysis hit a problem: ${esc(analysis.error || 'unknown error')}`,
+        'Retry analysis', 'Retrying analysis…');
+      return;
+    }
+
+    // AN OLD RECORD IS NOT A THIN SESSION, and before this branch existed the
+    // report could not tell the reader which it was looking at. Analyses
+    // written before the settled reading store `tau` and no `reading`; every
+    // renderer guards for its own field, so the page drew a hero saying there
+    // wasn't enough here to read, no dimension cards, and no error — which is
+    // exactly what a genuinely thin session looks like. Found on staging
+    // 2026-08-20 against five real submissions.
+    //
+    // NOTHING PARTIAL IS DRAWN. What these records hold is the retired 1-5
+    // scoring, which no current renderer reads, so rendering "what we have"
+    // produces the same blank page with a caveat on top of it.
+    if (stale) {
+      offerRerun(
+        `<b>This report was produced before the current reading.</b><br>
+         The measurement changed after this draft was analysed, so there is
+         nothing here to show yet. Re-reading uses the same conversation and the
+         same essay — the student's work is not affected.`,
+        'Re-read this draft', 'Reading this draft again…');
       return;
     }
 

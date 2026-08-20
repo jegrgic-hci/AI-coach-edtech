@@ -13,7 +13,7 @@ const { sendInvite, sendReset } = require('./invites');
 const { volume: mailVolume, settings: mailSettings } = require('./mail');
 const { streamChat, modelFor, MAX_EVAL_TOKENS } = require('./llm');
 const { chatMessages, auditorMessages } = require('./coach');
-const { runAnalysis } = require('./analysis');
+const { runAnalysis, analysisIsStale } = require('./analysis');
 const { checkChatBudget, grantExtraReplies, usageToday, grantedToday, SOFT_REPLIES_PER_DAY, HARD_INPUT_TOKENS_PER_DAY } = require('./budget');
 const { config } = require('./school');
 const { seed } = require('./seed');
@@ -1271,6 +1271,10 @@ async function handleApi(req, res, user, route) {
     // on the wire before the shared nav existed.
     const assignment = await col('assignments').get(submission.assignmentId);
 
+    // `stale` is a fourth state alongside pending/error/complete, not a
+    // variety of complete: the record finished cleanly and is simply older
+    // than the report that has to draw it. Sent as a sibling of `analysis`
+    // because it is a fact about the record's age, not a field in the reading.
     return json(res, 200, {
       submission: {
         id: submission.id,
@@ -1282,6 +1286,7 @@ async function handleApi(req, res, user, route) {
         teacherNote: submission.teacherNote || null,
       },
       analysis: report,
+      stale: analysisIsStale(analysis),
     });
   }
 

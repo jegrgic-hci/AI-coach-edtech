@@ -11,7 +11,7 @@
 
 const { col } = require('./store');
 const { setPassword, DEV_PASSWORD } = require('./auth');
-const { enrich, scoreTAU, detectPatterns } = require('./analysis');
+const { enrich, scoreTAU, detectPatterns, ANALYSIS_VERSION } = require('./analysis');
 const {
   STUDENTS, CLASSES, ASSIGNMENTS, ELECTIVE_ASSIGNMENT,
   ENGLISH_EXTRA_ASSIGNMENT, LIT_EXTRA_ASSIGNMENT, GUIDE_ASSIGNMENT,
@@ -153,6 +153,10 @@ async function seedCycle({ student, assignment, tier, cycleIndex, daysAgo }) {
   const analysis = await col('analyses').add({
     submissionId: submission.id,
     status: 'complete',
+    // Stamped like a real run's — an unstamped analysis reads as stale, and a
+    // demo roster of "re-run this" notices would be a seed that fails the
+    // check it exists to demonstrate.
+    version: ANALYSIS_VERSION,
     createdAt: ts(daysAgo),
     completedAt: ts(daysAgo),
     // The reading is authored per tier in seed-data.js — the seed makes no

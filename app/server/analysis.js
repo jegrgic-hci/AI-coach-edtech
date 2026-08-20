@@ -397,6 +397,25 @@ async function generateSnapshot({ classified, tau, meta }) {
   return extractJSON(raw, 'object');
 }
 
+// ---------- how current a stored analysis is --------------------------------
+
+// Bump this when a change makes a stored analysis unrenderable by the current
+// report — not for a change the renderers can absorb.
+//
+// A STAMP, NOT A FIELD CHECK. The failure this exists to stop was silent:
+// analyses written before the settled reading (e4e1b2d) have `tau` and no
+// `reading`, every renderer guards for the field it wants, and the report drew
+// a page of empty states that looked like a thin session rather than an
+// out-of-date record. Testing for `reading` would fix that one case and hide
+// the next, because the next rebuild's missing field has a different name.
+//
+// 1 — the settled reading. An analysis with no stamp predates this and reads
+// as 0, so nothing has to be migrated for the comparison to be right.
+const ANALYSIS_VERSION = 1;
+
+const analysisIsStale = (analysis) =>
+  !!analysis && analysis.status === 'complete' && (analysis.version || 0) < ANALYSIS_VERSION;
+
 // ---------- the reading (tau-dimensions.md, "The scoring foundation") -------
 
 // Four questions asked of the transcript, the essay and the assignment
@@ -610,6 +629,7 @@ async function runAnalysis(submissionId) {
 
     await col('analyses').update(analysis.id, {
       status: 'complete',
+      version: ANALYSIS_VERSION,
       // The reading: agency as a named level, four dimensions as a band plus
       // the evidence behind it. This is what the report renders.
       reading,
@@ -636,4 +656,11 @@ async function runAnalysis(submissionId) {
 // than hardcoding them keeps seeded data honest if the formulas change.
 // detectPatterns is re-exported so the seed and any backfill get it from the
 // same place runAnalysis does, rather than reaching into web/ themselves.
-module.exports = { runAnalysis, enrich, scoreTAU, detectPatterns };
+// classifyStudentTurns/studentTurnsWithContext are exported for the offline
+// script that generates the seed's coach labels — the seed itself never calls
+// an LLM, so the labels are produced once and committed as literals.
+module.exports = {
+  runAnalysis, enrich, scoreTAU, detectPatterns,
+  classifyStudentTurns, studentTurnsWithContext,
+  ANALYSIS_VERSION, analysisIsStale,
+};
