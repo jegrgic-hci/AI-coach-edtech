@@ -2083,3 +2083,90 @@ min-height: 24px;
   font-size: var(--tau-text-xs); font-weight: 600; color: var(--tau-ink-soft);
   text-align: right; white-space: nowrap;
 }
+
+/* ============================================================
+   Document dialog — a long reference document read in place
+   ============================================================
+   Built for set-password.html's Terms of Use, where navigating to a terms
+   page would abandon a single-use token and a half-filled form. Native
+   <dialog>, so focus containment, Escape and the inert backdrop come from the
+   browser instead of being re-implemented per page — this is deliberately not
+   dashboard.html's openObjModal, which is a decision surface (title, body,
+   confirm/cancel) rather than a reading one, and lives inside that page. */
+.doc-dialog {
+  width: min(46rem, calc(100vw - var(--tau-s6)));
+  max-height: min(42rem, calc(100vh - var(--tau-s7)));
+  padding: 0;
+  border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-lg);
+  background: var(--tau-surface);
+  color: var(--tau-ink);
+  box-shadow: var(--tau-shadow-lift);
+  flex-direction: column;
+  overflow: hidden;
+}
+/* The layout mode belongs to the open state only. A bare `display:flex` on the
+   element overrides the UA stylesheet's `display:none` for a closed <dialog>,
+   which renders the whole document inline, unstyled, above the page — the
+   exact class of bug designsystem.md's *Verifying visually* section says only
+   a screenshot catches. It was there until one was taken. */
+.doc-dialog[open] { display: flex; }
+/* Centring restated rather than inherited: a modal <dialog> is centred by the
+   UA with `margin:auto`, which style.css's `* { margin: 0 }` reset (line 1)
+   wipes — leaving it pinned to the top-left corner. */
+.doc-dialog { margin: auto; }
+.doc-dialog::backdrop { background: #16191C5C; }
+
+.doc-dialog-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--tau-s3);
+  padding: var(--tau-s5) var(--tau-s6) var(--tau-s4);
+  border-bottom: 1px solid var(--tau-line);
+}
+.doc-dialog-head h2 { margin: 0; font-size: var(--tau-text-xl); }
+
+.doc-dialog-close {
+  font: inherit; font-size: var(--tau-text-xl); line-height: 1;
+  color: var(--tau-ink-faint);
+  background: none; border: none; cursor: pointer;
+  padding: var(--tau-s1) var(--tau-s2);
+  border-radius: var(--tau-r-sm);
+}
+.doc-dialog-close:hover { color: var(--tau-ink); background: var(--tau-surface-2); }
+
+.doc-dialog-body {
+  overflow-y: auto;
+  padding: var(--tau-s5) var(--tau-s6);
+  font-size: var(--tau-text-md);
+  line-height: 1.6;
+  color: var(--tau-ink-soft);
+}
+/* Focusable so a keyboard user can scroll the document without tabbing to the
+   close button first — the body is the content, and it is longer than a
+   viewport by construction. */
+.doc-dialog-body:focus-visible { outline: 2px solid var(--tau-forest); outline-offset: -2px; }
+.doc-dialog-body h3 {
+  margin: var(--tau-s6) 0 var(--tau-s2);
+  font-size: var(--tau-text-lg); color: var(--tau-ink);
+}
+.doc-dialog-body h3:first-child { margin-top: 0; }
+.doc-dialog-body p, .doc-dialog-body ul { margin: 0 0 var(--tau-s3); }
+.doc-dialog-body ul { padding-left: var(--tau-s5); }
+.doc-dialog-body li { margin-bottom: var(--tau-s2); }
+.doc-dialog-body strong { color: var(--tau-ink); }
+
+.doc-dialog-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--tau-s4);
+  padding: var(--tau-s4) var(--tau-s6);
+  border-top: 1px solid var(--tau-line);
+  background: var(--tau-surface-2);
+}
+/* Which wording this is, stated where it is read rather than only stored:
+   the version is what a person is agreeing to (see server/terms.js). */
+.doc-dialog-version { margin: 0; font-size: var(--tau-text-xs); color: var(--tau-ink-faint); }
+.doc-dialog-done { width: auto; padding-left: var(--tau-s5); padding-right: var(--tau-s5); }
+
+/* Separated from the password fields above it: this is a different kind of
+   decision, not a third input. */
+.terms-check { margin-top: var(--tau-s4); }

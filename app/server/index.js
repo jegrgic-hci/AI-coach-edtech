@@ -10,6 +10,7 @@ const crypto = require('crypto');
 const { col } = require('./store');
 const { authenticate, isSuspended, login, logout, sessionCookie, clearedCookie, tokenFrom, inspectCredentialToken, redeemCredentialToken, DEMO_MODE, DEV_PASSWORD } = require('./auth');
 const { sendInvite, sendReset } = require('./invites');
+const { termsFor } = require('./terms');
 const { volume: mailVolume, settings: mailSettings } = require('./mail');
 const { streamChat, modelFor, MAX_EVAL_TOKENS } = require('./llm');
 const { chatMessages, auditorMessages } = require('./coach');
@@ -533,15 +534,43 @@ async function handleAuth(req, res, route) {
       json(res, 400, { error: 'That link is no longer valid.' });
       return true;
     }
-    json(res, 200, { email: found.user.email, displayName: found.user.displayName, purpose: found.purpose });
+    // termsVersion is null for anyone this account type has no document for
+    // (today: everyone who is not a student), which is what tells the page to
+    // render no checkbox rather than an empty one.
+    const terms = found.purpose === 'invite' ? termsFor(found.user.role) : null;
+    json(res, 200, {
+      email: found.user.email,
+      displayName: found.user.displayName,
+      purpose: found.purpose,
+      termsVersion: terms ? terms.version : null,
+    });
+    return true;
+  }
+
+  // The terms themselves. Gated on the token rather than served openly so the
+  // document a person is shown is the one for *their* account type, decided
+  // here — not from a role the page could ask for.
+  if (req.method === 'GET' && route === '/api/terms') {
+    const t = new URL(req.url, 'http://x').searchParams.get('t');
+    const found = await inspectCredentialToken(t);
+    if (!found.ok) {
+      json(res, 400, { error: 'That link is no longer valid.' });
+      return true;
+    }
+    const terms = termsFor(found.user.role);
+    if (!terms) {
+      json(res, 404, { error: 'No terms document for this account type.' });
+      return true;
+    }
+    json(res, 200, terms);
     return true;
   }
 
   if (req.method === 'POST' && route === '/api/auth/set-password') {
     const body = await readBody(req);
-    const result = await redeemCredentialToken(body.token, body.password, clientIp(req));
+    const result = await redeemCredentialToken(body.token, body.password, clientIp(req), body.acceptedTermsVersion || null);
 
-    if (!result.ok && result.reason === 'password') {
+    if (!result.ok && (result.reason === 'password' || result.reason === 'terms')) {
       json(res, 400, { error: result.message });
       return true;
     }

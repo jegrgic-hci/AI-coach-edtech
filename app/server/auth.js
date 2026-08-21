@@ -10,6 +10,7 @@
 
 const crypto = require('crypto');
 const { col } = require('./store');
+const { termsFor } = require('./terms');
 
 const COOKIE = 'cta_session';
 const SESSION_DAYS = 7;
@@ -323,14 +324,31 @@ async function inspectCredentialToken(raw) {
 //     be evicting someone must not leave that someone's cookie working
 //   - a fresh session is issued, so the person lands signed in rather than
 //     being handed back to a login form they just proved themselves against
-async function redeemCredentialToken(raw, password, clientIp = null) {
+async function redeemCredentialToken(raw, password, clientIp = null, acceptedTermsVersion = null) {
   const found = await inspectCredentialToken(raw);
   if (!found.ok) return found;
 
   const problem = passwordProblem(password);
   if (problem) return { ok: false, reason: 'password', message: problem };
 
+  // Checked here rather than in the route because acceptance and the password
+  // have to be written together or not at all: an account that exists but
+  // never agreed to anything is the state this is meant to make unreachable.
+  // A reset is not re-asked — the person agreed when they set the account up,
+  // and a version bump is re-asked at sign-in, not by expiring their password.
+  const terms = termsFor(found.user.role);
+  const mustAccept = found.purpose === 'invite' && terms;
+  if (mustAccept && acceptedTermsVersion !== terms.version) {
+    return { ok: false, reason: 'terms', message: 'Please agree to the Terms of Use to finish setting up your account.' };
+  }
+
   await setPassword(found.user, String(password));
+  if (mustAccept) {
+    await col('users').update(found.user.id, {
+      termsVersion: terms.version,
+      termsAcceptedAt: new Date().toISOString(),
+    });
+  }
   await invalidateCredentialTokens(found.user.id);
   for (const s of await col('authSessions').list({ userId: found.user.id })) {
     await col('authSessions').delete(s.id);
