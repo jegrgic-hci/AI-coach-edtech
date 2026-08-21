@@ -420,8 +420,8 @@ const READINGS = {
   strong: {
     level: 'Redefinition',
     levelIndex: 4,
-    shape: 'You argued with it, and the argument is what the essay is made of.',
-    body: 'Initiative and skepticism are both high and they reinforce each other: you brought the claim, then kept testing whether it survived. What separates this from the level below is that you refused a reading you could not support from the text.',
+    shape: 'You brought your own reading of the talk and kept arguing for it when the AI offered a different one.',
+    body: 'You brought the claim and then kept testing whether it survived, so initiative and skepticism run through the same thread. This level also asks for refusal, and you refused a reading you could not support from the text.',
     departure: null,
     exception: 'The ethos paragraph stayed a summary. You said so yourself and left it — a defensible call, but the one place the analysis stops arguing.',
     dimensions: [
@@ -463,8 +463,8 @@ const READINGS = {
   flat: {
     level: 'Substitution',
     levelIndex: 1,
-    shape: 'You asked it what to think and wrote down the answer.',
-    body: 'Initiative and skepticism are both near-absent: the AI chose the speech, named the strategies and supplied the structure. What separates this from the level above is that nothing came back changed.',
+    shape: 'You asked the AI what to write about, and wrote up what it told you.',
+    body: 'The AI chose the speech, named the strategies and supplied the structure, and the essay carries all three. The next level up shows the student changing what came back; here nothing came back changed.',
     departure: 'The last draft has one idea that is unmistakably yours, which is why this does not read as a session with nothing in it.',
     exception: "Right at the end you wrote that the difficulty line \u201cmakes difficulty the reason\u201d — the only moment you tell it something instead of asking.",
     dimensions: [
@@ -504,8 +504,8 @@ const READINGS = {
   flagged: {
     level: 'Augmentation',
     levelIndex: 2,
-    shape: 'The analysis is fluent and confident, and almost none of it started with you.',
-    body: 'The bands look strong on the surface: you make claims, you refine, you sustain a thesis. What separates this from the level above is where the claims came from — the AI supplied the frame in the first exchange and every later turn elaborates it.',
+    shape: 'You did a lot of work on an idea the AI gave you in its first message.',
+    body: 'You make claims, you refine them, and you sustain one thesis across the whole essay. The frame those claims sit in arrived in the first exchange from the AI, and every later turn elaborates it rather than testing it.',
     departure: 'The bands would predict Modification. Read the arc instead: the register-collision thesis arrives complete in your second turn, immediately after the AI was asked what makes the speech effective, and nothing after that tests it.',
     exception: 'You asked whether the argument holds across the whole speech, then answered your own question in the AI\u2019s terms rather than the text\u2019s.',
     dimensions: [
@@ -543,8 +543,8 @@ const READINGS = {
   bikeguide: {
     level: 'Modification',
     levelIndex: 3,
-    shape: 'You directed this guide into existence without writing much of it.',
-    body: 'The agenda was yours and the AI worked to it, section by section. What separates this level from the one above is resistance: you pushed back on details, rarely on decisions.',
+    shape: 'You told the AI what each section of the guide should do, and it wrote them.',
+    body: 'The agenda was yours and the AI worked to it, section by section. The level above adds resistance to that: pushback on the decisions, not only on the details, which is the move this session does not show.',
     departure: null,
     exception: 'The one thing you took without checking was the replacement reference — moments after that same source had been caught inventing one.',
     dimensions: [

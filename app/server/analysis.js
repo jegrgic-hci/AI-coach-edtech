@@ -515,20 +515,27 @@ For each dimension return:
 - "count": one short sentence giving the tally in that dimension's OWN unit, with its denominator — e.g. "Direction set in 10 of 11 parts." Never a turn count.
 - "claim": one sentence, addressed to the student as "you", saying plainly what they did.
 - "moments": 2-3 items, each {"quote": exact student words from the transcript, "note": a short phrase saying what made it count}. Quotes must be verbatim.
-- "counterexample": {"text": one or two sentences naming the moment that does NOT support the claim}. This is REQUIRED whenever band is not null — it is what makes this feedback rather than praise. Never omit it, never soften it, and never invent one that isn't in the transcript.
+- "counterexample": {"text": one or two sentences naming the moment that does NOT support the claim}. This is REQUIRED whenever band is not null — it is what makes this feedback rather than praise. Never omit it, never soften it, and never invent one that isn't in the transcript. Write it as an observation of the moment, not as a correction of the student.
 
 === PART 2 — the overall level ===
 
 One level, named, describing THE AI'S IMPACT ON THE STUDENT'S AGENCY. It is read from the shape the four readings make, the assignment, and the session as a whole — never from a sum or an average of the bands.
-- "Substitution": The AI did the thinking. The student set the task and took what came back.
-- "Augmentation": The AI set the direction; the student improved what it handed them. Agency shows up in reaction, not initiation.
+- "Substitution": The AI produced the thinking. The student set the task and used what came back.
+- "Augmentation": The AI set the direction; the student worked on what it handed back.
 - "Modification": The student led. The AI worked to their brief, and the conversation went where they took it.
 - "Redefinition": The student led and resisted. They pushed back where it mattered, and the thinking that survived is theirs.
 
+VOICE FOR PART 2. Two separate observations, never one concessive sentence. State what the session shows; separately, state what it does not show. Do NOT join them with "but", "though", "however", "and yet", and do NOT qualify an observation as you make it — no "on the surface", "almost none of it", "looks strong until". Direct and factual. No praise offered and withdrawn.
+
 Return:
 - "level": one of the four names
-- "shape": one sentence naming what kind of session this was, addressed as "you". A description, never a rating, and never a profile nickname.
-- "body": two sentences on the tension between the strongest and weakest reading, and what separates this level from the one above it.
+- "shape": one sentence, addressed as "you", saying what the student actually DID in this chat. A student aged 14-18 reads this first, at the top of the page, with nothing else to explain it, so it has to land on one read.
+  * Concrete acts, not characterisation. Name the thing they did — asked, told it, kept, changed, turned down, brought their own. Do NOT name what kind of session or what kind of student this was.
+  * No metaphor and no figure of speech. "You directed this into existence", "an idea that started on the AI's side", "what the essay is made of" are all wrong: each one has to be decoded before it means anything.
+  * Everyday words. Not: initiative, agency, discourse, elaborate, frame, register, substantive.
+  * ONE observation, not a contrast. No "but", "though", "however".
+  * Never a rating, never a nickname, never a judgement of whether the work is any good.
+- "body": two sentences. The first names what this session shows most clearly. The second names what this level's definition requires that this session does not show — stated as a behaviour the transcript does or doesn't contain, NOT as a shortfall against a higher rung and NOT as a comparison the student loses.
 - "departure": if the level lands somewhere the four bands would not predict, one sentence naming what you read in the assignment or the arc of the session to get there, pointing at something checkable. Otherwise null.
 - "exception": one or two sentences naming the single moment that most cuts against this level. Required.
 

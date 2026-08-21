@@ -194,13 +194,22 @@ function closePatternGuideModal() {
 const LEVEL_ORDER = ["Substitution", "Augmentation", "Modification", "Redefinition"];
 
 function renderReportHero(reading, submission) {
-  const crumb = `${esc(submission.assignmentTitle || 'Assignment')} · Draft ${submission.cycleIndex + 1}`;
+  // The assignment is the page's identity, so it is the page's heading — the
+  // only h1 on the report, and the thing a student checks first to know which
+  // report they opened. The draft rides beside it as the eyebrow: identity and
+  // position are different objects, and running them together in one faint
+  // uppercase crumb made the assignment the least legible text on the page.
+  const heroHead = `
+    <div class="report-hero-head">
+      <h1 class="report-hero-title">${esc(submission.assignmentTitle || 'Assignment')}</h1>
+      <span class="eyebrow report-hero-eyebrow">Draft ${submission.cycleIndex + 1}</span>
+    </div>`;
 
   if (!reading || !reading.level) {
     return `
       <div class="card card-lg card-hero report-hero">
-        <span class="eyebrow report-hero-eyebrow">${crumb}</span>
-        <p class="readings-intro">There wasn't enough in this session to read a level yet.</p>
+        ${heroHead}
+        <p class="readings-intro">There wasn't enough in this chat to tell yet.</p>
       </div>`;
   }
 
@@ -220,7 +229,7 @@ function renderReportHero(reading, submission) {
 
   return `
     <div class="card card-lg card-hero report-hero hero-d">
-      <span class="eyebrow report-hero-eyebrow">${crumb}</span>
+      ${heroHead}
       <span class="eyebrow">How much you led</span>
       <div class="hero-two-col" style="--level-bg: var(--tau-band-${idx}-bg); --level-fg: var(--tau-band-${idx}-fg)">
         <div class="hero-scale-col">
@@ -272,7 +281,7 @@ function renderReadings(reading) {
            ${moments ? `<p class="dim-card-moments">${moments}</p>` : ''}
            ${d.counterexample ? `
              <div class="aside">
-               <span class="eyebrow">Where you didn't</span>
+               <span class="eyebrow">Where it didn't hold</span>
                <p>${esc(d.counterexample)}</p>
              </div>` : ''}
          </div>`

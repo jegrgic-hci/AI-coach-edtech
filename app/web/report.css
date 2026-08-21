@@ -1071,8 +1071,30 @@
       .level-summary-body { grid-template-columns: 1fr; }
     }
 
-    /* Two eyebrows stacked read as a pair of equals. The crumb is context,
-       the section label is a label. */
+    /* The assignment names the report, so it is set as a title rather than as
+       half of a faint uppercase crumb — it was the smallest, palest text on the
+       page while being the one fact that says which report this is. Sentence
+       case is the point, not a side effect: uppercase with tracking flattens
+       word shape, which is what a reader scans a proper noun by.
+
+       .eyebrow keeps its uppercase (it is the system's only sanctioned use) and
+       keeps the draft, which is a position rather than a name. One size below
+       .hero-shape so the reading still leads the card and the title only
+       identifies it. designsystem.md: an .eyebrow labels a scanned section
+       "unless a title one size up already names the group". */
+    .report-hero-head {
+      display: flex;
+      align-items: baseline;
+      gap: var(--tau-s3);
+      flex-wrap: wrap;
+    }
+    .report-hero-title {
+      margin: 0;
+      font-size: var(--tau-text-xl);
+      font-weight: 600;
+      line-height: var(--tau-leading-tight);
+      color: var(--tau-ink);
+    }
     .report-hero-eyebrow { color: var(--tau-ink-faint); }
 
     /* --- .level-scale — the vertical alternative (variant D).
@@ -1212,7 +1234,16 @@
     .hero-two-col .level-summary { margin-top: 0; }
     .hero-two-col .level-summary::before { display: none; }
     .hero-two-col .level-summary-body { grid-template-columns: 1fr; gap: var(--tau-s4); }
-    .hero-two-col .level-summary .hero-shape { max-width: 30ch; }
+    /* The headline takes the panel, and the panel is the measure. It carried a
+       30ch clamp here — a third of the column at this width — so it broke in
+       the middle of the panel with the paragraphs beneath it running on past
+       the break. `balance` goes with it: on a headline that runs just over one
+       line, balancing splits it into two half-width lines, which is the same
+       ragged break by another route. `pretty` only guards the last line. */
+    .hero-two-col .level-summary .hero-shape {
+      max-width: none;
+      text-wrap: pretty;
+    }
 
     /* --- .turnplot — the session as a map, replacing the Agency Chart and
        Who's Driving tabs. Added 2026-08-18; see convolabel.md, "The reading
