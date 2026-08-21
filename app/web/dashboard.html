@@ -544,16 +544,21 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .sub-num  { font-size: var(--tau-text-xs); font-weight: 600; color: var(--tau-ink-soft); width: 20px; flex-shrink: 0; }
 .sub-date { color: var(--tau-ink-soft); width: 140px; flex-shrink: 0; font-size: var(--tau-text-xs); }
 .sub-chip { width: 44px; text-align: center; flex-shrink: 0; }
-/* The row's two trailing actions. Plain interactive text, not buttons or
-   chips — they sit at the end of a dense data row, and enclosure is reserved
-   for values that are both actionable and rare (designsystem.md's salience
-   budget). Sized to --tau-target on the block axis so a 11px link is still a
-   real touch target. */
-.sub-row-link {
-  font-size: 11px; flex-shrink: 0; color: var(--tau-forest); cursor: pointer;
-  display: inline-flex; align-items: center; min-height: var(--tau-target); padding: 0 2px;
+/* The level sits with the row's other classifications (#N, Final/Draft, date)
+   rather than out at the right margin. It was pushed there by a flex spacer
+   left behind when the dimension band pills that used to fill the middle were
+   deleted (2026-08-12), which marooned it opposite the fields it belongs with. */
+.sub-level { width: 150px; flex-shrink: 0; }
+/* The row's actions, in one bar at the foot of the card. They were plain
+   forest text on the theory that enclosure is reserved for values that are
+   actionable and rare (designsystem.md's salience budget) — but that test
+   governs VALUES a reader scans, not CONTROLS, and applying it here left four
+   different interactive things looking like the prose around them. */
+.sub-row-actions {
+  display: flex; align-items: center; gap: var(--tau-s2); flex-wrap: wrap;
+  margin-top: var(--tau-s2); padding-top: var(--tau-s2);
+  border-top: 1px solid var(--tau-line);
 }
-.sub-row-link:hover { text-decoration: underline; }
 /* The teacher's own note, in the auditor voice the assignment-wide note
    already uses — same component, one tier down (a note on one draft rather
    than to the whole class). */
@@ -577,6 +582,12 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
   flex-shrink: 0;
 }
 .flag-learn-more:hover { text-decoration: underline; }
+/* The receipt the Undo button sits beside — a fact, so plain text next to the
+   control rather than a second control. */
+.flag-followed-up { font-size: 11px; font-weight: 600; color: var(--tau-ink-faint); }
+/* Followed up is not an alert, so the flags it covers step back with the
+   row's caution fill — the evidence is unchanged, its salience isn't. */
+.integrity-flags-row-followed-up .flag-line { color: var(--tau-ink-faint); }
 
 /* .dim-scores/.dim-score/.tau-total deleted 2026-08-17 with the raw "PQ 3 SU 2
    CS 4 OC 3" strip and the /20 totals they styled. .tau-total already had zero
@@ -1612,14 +1623,27 @@ function checkFlag(subs) {
 
 function getSubs(sid, aid)      { return SUBMISSIONS[`${sid}_${aid}`] || []; }
 function latestSub(subs)        { return subs.length ? subs[subs.length - 1] : null; }
-function getIntegrityFlags(subs){ return [...new Set(subs.flatMap(s => s.integrityFlags || []))]; }
 
-function hasAnyFlag(sid) {
-  return ASSIGNMENTS.some(a => {
-    const subs = getSubs(sid, a.id);
-    return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
-  });
+// Every piece of review-tier evidence is anchored to ONE draft: an integrity
+// flag lives on the submission, and a score spike is attributed to the later
+// of the pair it was measured across. So "worth a chat" is a property of a
+// draft that a student inherits, not the other way round — which is what lets
+// a teacher mark one draft as followed up without touching the next.
+function flaggedDrafts(subs) {
+  const spike = new Set(checkFlag(subs).map(f => f.submissionIndex));
+  return subs
+    .map((sub, i) => ({ sub, i, spike: spike.has(i), integrity: sub.integrityFlags || [] }))
+    .filter(d => d.spike || d.integrity.length);
 }
+
+// `followedUpAt` is the teacher recording that they've had this draft's
+// conversation. It drops the draft out of everything that colours or counts
+// the student and out of nothing else — the flags themselves stay on the
+// analysis and stay rendered under the draft in the drill panel.
+function openFlaggedDrafts(subs) { return flaggedDrafts(subs).filter(d => !d.sub.followedUpAt); }
+
+function hasOpenFlagOn(sid, aid) { return openFlaggedDrafts(getSubs(sid, aid)).length > 0; }
+function hasOpenFlag(sid)        { return ASSIGNMENTS.some(a => hasOpenFlagOn(sid, a.id)); }
 
 // Collects every true signal rather than stopping at the first match — a
 // student can be genuinely both a review case (an integrity flag) and show
@@ -1639,10 +1663,14 @@ function _computeStudentSignal(studentId, assignmentId) {
 
   const integrityKeys = [];
   let hasSpikeFlag = false;
+  let flaggedCount = 0, followedUpCount = 0;
   assignments.forEach(a => {
-    const subs = getSubs(studentId, a.id);
-    getIntegrityFlags(subs).forEach(f => { if (!integrityKeys.includes(f)) integrityKeys.push(f); });
-    if (checkFlag(subs).length) hasSpikeFlag = true;
+    flaggedDrafts(getSubs(studentId, a.id)).forEach(d => {
+      flaggedCount++;
+      if (d.sub.followedUpAt) { followedUpCount++; return; }
+      d.integrity.forEach(f => { if (!integrityKeys.includes(f)) integrityKeys.push(f); });
+      if (d.spike) hasSpikeFlag = true;
+    });
   });
   if (integrityKeys.length || hasSpikeFlag) {
     const has = k => integrityKeys.includes(k);
@@ -1716,9 +1744,15 @@ function _computeStudentSignal(studentId, assignmentId) {
     }
   }
 
-  if (!signals.length) return { status: 'on-track', reason: '', signals: [] };
+  // Distinguishes a student who was never worth a chat from one whose every
+  // flagged draft has been followed up. Both are quiet, but only the second
+  // has a conversation behind it, and a roster that renders them identically
+  // makes the mark look like it deleted something.
+  const followedUp = flaggedCount > 0 && followedUpCount === flaggedCount;
+
+  if (!signals.length) return { status: 'on-track', reason: '', signals: [], followedUp };
   const primary = signals[0];
-  return { status: primary.tier, reason: primary.reason, learnMoreKey: primary.learnMoreKey, signals };
+  return { status: primary.tier, reason: primary.reason, learnMoreKey: primary.learnMoreKey, signals, followedUp };
 }
 
 function getStudentSignal(studentId, assignmentId = null) {
@@ -1749,6 +1783,16 @@ function signalChipLabel(s) {
   return null;
 }
 
+// A followed-up flag is not an alert, so it cannot keep the caution tint —
+// designsystem.md's rule that alert-tier colour may only sit on a label
+// stating the actionable fact. Neutral, and the label says what's now true
+// rather than what was. It renders instead of nothing, not instead of
+// something: a student whose flags are all marked is a different fact from
+// one who was never flagged, and rendering them identically would make the
+// mark look like it deleted the flag. Yields to any live signal — that chip
+// is the louder true thing, and the mark shows on the draft it belongs to.
+const FOLLOWED_UP_CHIP = '<span class="chip chip-neutral">Followed up</span>';
+
 // 2026-08-08: `all` renders every true signal as its own chip instead of one
 // label plus a "+N". The count was chosen for scan speed, but it hid how many
 // distinct things were true — a student showing "+3" was four separate
@@ -1768,7 +1812,7 @@ function signalPill(sig, { all = false } = {}) {
       if (!l) unlabelled++;
       else if (!labels.includes(l)) labels.push(l);
     });
-    if (!labels.length) return '';
+    if (!labels.length) return sig.followedUp ? FOLLOWED_UP_CHIP : '';
     return `<div class="signal-cell">
       ${labels.map(l => `<span class="chip chip-caution signal-pill-review">${l}</span>`).join('')}
       ${unlabelled > 0 ? `<span class="signal-pill-count">+${unlabelled}</span>` : ''}
@@ -1783,12 +1827,18 @@ function signalPill(sig, { all = false } = {}) {
     const label = tid && TREND_META[tid] ? TREND_META[tid].short : null;
     if (label) return `<span class="chip chip-caution signal-pill-review">${label}${extra}</span>`;
   }
-  return '';
+  return sig.followedUp ? FOLLOWED_UP_CHIP : '';
 }
 
 function formatDate(d) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+// Takes an ISO string rather than a Date: everything it formats arrives
+// straight off the API and is never revived into one on the way in.
+function formatShortDate(iso) {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 // ── Currently on — a student's most relevant assignment across every class
@@ -3098,7 +3148,7 @@ function renderClassDetail(cid) {
   const n          = students.length;
   const assignments = ASSIGNMENTS.filter(a => classesFor(a).some(c => c.id === cid));
   const openCount  = assignments.filter(a => a.status === 'open').length;
-  const totalFlags = students.filter(s => hasAnyFlag(s.id)).length;
+  const totalFlags = students.filter(s => hasOpenFlag(s.id)).length;
   const missingIds = new Set(assignments.flatMap(a => students.filter(s => hasMissingCheckpoint(a, s.id)).map(s => s.id)));
 
   const byDueDesc = (a, b) => b.due - a.due;
@@ -3594,10 +3644,7 @@ function setBrowseAssignSearch(q) {
 function renderAssignmentAggregateContent(a, students, variant = 'full') {
   const closed = a.status === 'closed';
   const missingTotal = students.filter(s => hasMissingCheckpoint(a, s.id)).length;
-  const flagTotal = students.filter(s => {
-    const subs = getSubs(s.id, a.id);
-    return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
-  }).length;
+  const flagTotal = students.filter(s => hasOpenFlagOn(s.id, a.id)).length;
 
   // Missing/Worth-a-chat tiles link to Browse Students, same filter keys
   // Home's own stat tiles use. Students tile stays inert; it's a count, not a
@@ -3866,10 +3913,7 @@ function browseAssignmentRowTr(a) {
   const classNames = classesFor(a).map(c => c.name).join(', ');
   const allStudents = studentsFor(a);
   const missingTotal = allStudents.filter(s => hasMissingCheckpoint(a, s.id)).length;
-  const flagTotal = allStudents.filter(s => {
-    const subs = getSubs(s.id, a.id);
-    return checkFlag(subs).length > 0 || getIntegrityFlags(subs).length > 0;
-  }).length;
+  const flagTotal = allStudents.filter(s => hasOpenFlagOn(s.id, a.id)).length;
   const expanded = expandedInBrowseAssignments === a.id;
 
   const mainRow = `<tr class="row-clickable ${expanded ? 'expanded-row' : ''}" onclick="toggleBrowseAssignmentDrill('${a.id}')">
@@ -4087,8 +4131,19 @@ function renderDrillPanel(subs, label, sig, ctx) {
       </div>`);
     });
 
+    // The mark belongs to the draft's flags, so it only exists on a row that
+    // has them, and it needs sub.id for the same reason the note button does —
+    // a draft that predates ids has nothing to key a mark to.
+    const followedUp = !!sub.followedUpAt;
+    const markControl = sub.id && flagLines.length
+      ? (followedUp
+        ? `<span class="flag-followed-up">Followed up ${formatShortDate(sub.followedUpAt)}</span>
+           <button class="btn btn-tertiary btn-sm" onclick="event.stopPropagation();setFollowedUp('${sub.id}', false)">Undo</button>`
+        : `<button class="btn btn-tertiary btn-sm" onclick="event.stopPropagation();setFollowedUp('${sub.id}', true)">Mark as followed up</button>`)
+      : '';
+
     const flagRow = flagLines.length
-      ? `<div class="integrity-flags-row">
+      ? `<div class="integrity-flags-row${followedUp ? ' integrity-flags-row-followed-up' : ''}">
            <div style="flex:1;display:flex;flex-direction:column;gap:3px">${flagLines.join('')}</div>
          </div>`
       : '';
@@ -4097,15 +4152,14 @@ function renderDrillPanel(subs, label, sig, ctx) {
       ? `<span class="sub-chip" style="font-size:10px;font-weight:600;color:var(--tau-positive);background:var(--tau-positive-bg);padding:2px 7px;border-radius:20px">Final</span>`
       : `<span class="sub-chip" style="font-size:10px;font-weight:600;color:var(--tau-ink-soft);background:var(--tau-surface-2);border:1px solid var(--tau-line);padding:2px 7px;border-radius:20px">Draft</span>`;
 
-    return `<div class="sub-row list-row-boxed ${flagInfo || iFlags.length ? 'flagged' : ''}">
+    return `<div class="sub-row list-row-boxed ${(flagInfo || iFlags.length) && !followedUp ? 'flagged' : ''}">
       <div class="sub-row-main">
         <span class="sub-num">#${i + 1}</span>
         ${statusChip}
         <span class="sub-date">${formatDate(sub.ts)}</span>
+        <span class="sub-level">${levelChip(samr(t).n, true)}</span>
         <div style="flex:1"></div>
-        <span style="min-width:150px;flex-shrink:0">${levelChip(samr(t).n, true)}</span>
-        ${sub.id ? `<a class="sub-row-link" onclick="event.stopPropagation();openSubmissionNote('${sub.id}', ${i + 1})">${sub.teacherNote ? 'Edit note' : 'Add note'}</a>` : ''}
-        ${sub.id ? `<a href="/report.html?id=${sub.id}&role=teacher" target="_blank" onclick="event.stopPropagation()" class="sub-row-link">Report →</a>` : ''}
+        ${sub.id ? `<a href="/report.html?id=${sub.id}&role=teacher" target="_blank" onclick="event.stopPropagation()" class="btn btn-quiet btn-sm">Report →</a>` : ''}
       </div>
       ${flagRow}
       ${sub.teacherNote ? `<div class="card-edge-auditor sub-note">
@@ -4113,6 +4167,10 @@ function renderDrillPanel(subs, label, sig, ctx) {
         ${esc(sub.teacherNote)}
       </div>` : ''}
       ${renderReflectionSection(sub, prevSub)}
+      ${sub.id ? `<div class="sub-row-actions">
+        <button class="btn btn-tertiary btn-sm" onclick="event.stopPropagation();openSubmissionNote('${sub.id}', ${i + 1})">${sub.teacherNote ? 'Edit note' : 'Add note'}</button>
+        ${markControl}
+      </div>` : ''}
     </div>`;
   }).join('');
 
@@ -4980,6 +5038,31 @@ function openMoveStudent(sid) {
 //
 // Same route teacher.html posts to; this is an additional entry point, not a
 // replacement, so both surfaces stay in sync through the one record.
+// No confirm step either way: nothing is destroyed, the flags stay exactly
+// where they were, and Undo is one click away in the same place.
+async function setFollowedUp(subId, marked) {
+  let sub = null;
+  for (const subs of Object.values(SUBMISSIONS)) {
+    const hit = subs.find(s => s.id === subId);
+    if (hit) { sub = hit; break; }
+  }
+  const { markedAt } = await api(`/api/submissions/${subId}/followed-up`, { method: 'POST', body: { marked } });
+  // Patched in place as well as refetched — /api/teacher/dashboard takes real
+  // seconds, and this changes counts and chips all over the page. The cache
+  // has to go with it: every one of those reads a memoized signal.
+  if (sub) sub.followedUpAt = marked ? (markedAt || new Date().toISOString()) : null;
+  _signalCache.clear();
+  renderContent();
+  await loadDashboardData();
+  // renderSidebar() + renderContent(), never render() — the rail's Worth-a-chat
+  // count does change here, but this is an in-place update, and render() resets
+  // the scroll to the top by design (see its comment). Going through it threw
+  // the teacher back to the top, away from the row they had just acted on.
+  // loadDashboardData() has already cleared the signal cache.
+  renderSidebar();
+  renderContent();
+}
+
 function openSubmissionNote(subId, draftNumber) {
   let existing = null;
   for (const subs of Object.values(SUBMISSIONS)) {
@@ -5002,7 +5085,10 @@ function openSubmissionNote(subId, draftNumber) {
       if (existing) existing.teacherNote = text.trim() || null;
       renderContent();
       await loadDashboardData();
-      render();
+      // Not render() — saving a note is an in-place update, and render()'s
+      // scroll reset dropped the teacher at the top of the page behind the
+      // modal they had just closed. Nothing in the rail depends on a note.
+      renderContent();
     },
   });
 }

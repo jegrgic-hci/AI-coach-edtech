@@ -1685,7 +1685,7 @@ async function handleApi(req, res, user, route) {
 
   // ---------- teacher routes ----------
 
-  if (seg1 === 'teacher' || (req.method === 'POST' && seg1 === 'assignments' && (!seg2 || seg3 === 'note' || seg3 === 'edit' || seg3 === 'delete')) || (req.method === 'POST' && seg1 === 'submissions' && seg3 === 'note') || (req.method === 'POST' && seg1 === 'classes')) {
+  if (seg1 === 'teacher' || (req.method === 'POST' && seg1 === 'assignments' && (!seg2 || seg3 === 'note' || seg3 === 'edit' || seg3 === 'delete')) || (req.method === 'POST' && seg1 === 'submissions' && (seg3 === 'note' || seg3 === 'followed-up')) || (req.method === 'POST' && seg1 === 'classes')) {
     if (user.role !== 'teacher') return json(res, 403, { error: 'teacher only' });
   }
 
@@ -1980,10 +1980,12 @@ async function handleApi(req, res, user, route) {
     // than collection-wide so document reads stay bounded to this teacher's
     // work, not the whole install. Same fix the admin overview got above.
     const inScope = new Set(students.map((s) => s.id));
-    const [subsByAssignment, sessionsByAssignment] = await Promise.all([
+    const [subsByAssignment, sessionsByAssignment, marks] = await Promise.all([
       Promise.all(assignments.map((a) => col('submissions').list({ assignmentId: a.id }))),
       Promise.all(assignments.map((a) => col('sessions').list({ assignmentId: a.id }))),
+      col('signalMarks').list({ teacherId: user.id }),
     ]);
+    const markedAtBySubmission = new Map(marks.map((m) => [m.submissionId, m.markedAt]));
 
     const submissions = {};
     for (const s of students) for (const a of assignments) submissions[`${s.id}_${a.id}`] = [];
@@ -2053,6 +2055,11 @@ async function handleApi(req, res, user, route) {
         // hasNote boolean so the dashboard can both display it and
         // prefill the edit form without a second round trip.
         teacherNote: sub.teacherNote || null,
+        // When this teacher marked the draft's flags as followed up — null
+        // for every unflagged draft and every flagged one still open. Rides
+        // on the submission rather than arriving as a separate id list
+        // because every reader of it already has the submission in hand.
+        followedUpAt: markedAtBySubmission.get(sub.id) || null,
         ...(done && analysis.flags?.length ? { integrityFlags: analysis.flags.map((f) => f.flag) } : {}),
         // Behavioural patterns detected off the turn sequence — ids only.
         // The turn spans stay on the analysis doc: the dashboard aggregates
@@ -2238,6 +2245,44 @@ async function handleApi(req, res, user, route) {
       teacherNoteAt: now(),
     });
     return json(res, 200, { ok: true });
+  }
+
+  // POST /api/submissions/:id/followed-up — the teacher marking that they've
+  // had the conversation this draft's flags were worth having. Presentation
+  // only: the flags stay on the analysis and stay rendered under the draft.
+  // What changes is that the draft stops colouring the student amber and
+  // stops counting them into the triage queue.
+  //
+  // Keyed to the draft, not the student: every piece of review-tier evidence
+  // (integrity flags, a score spike) is anchored to one submission, so the
+  // next flagged draft is unmarked by construction and raises the signal
+  // again on its own. Nothing expires and nothing needs re-marking.
+  //
+  // A re-analysis of an already-marked draft could add a flag underneath the
+  // mark. Left as-is: retry-analysis is a rare admin repair, and a mark the
+  // teacher set after reading the draft is still a fact about that draft.
+  if (req.method === 'POST' && seg1 === 'submissions' && seg3 === 'followed-up') {
+    const submission = await col('submissions').get(seg2);
+    if (!submission) return json(res, 404, { error: 'submission not found' });
+    if (!(await teacherScope(user)).students.some((s) => s.id === submission.studentId)) {
+      return json(res, 403, { error: 'not your student' });
+    }
+    const body = await readBody(req);
+    // Deterministic id so marking twice is idempotent rather than two docs,
+    // and unmarking is a delete without a lookup.
+    const id = `${user.id}_${submission.id}`;
+    if (body.marked === false) {
+      await col('signalMarks').delete(id);
+      return json(res, 200, { ok: true, marked: false, markedAt: null });
+    }
+    const markedAt = now();
+    await col('signalMarks').set(id, {
+      teacherId: user.id,
+      studentId: submission.studentId,
+      submissionId: submission.id,
+      markedAt,
+    });
+    return json(res, 200, { ok: true, marked: true, markedAt });
   }
 
   // POST /api/events — client-observed signals (copy, episode-save/resume)

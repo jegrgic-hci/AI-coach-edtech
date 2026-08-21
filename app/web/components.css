@@ -91,6 +91,9 @@
   font-size: var(--tau-text-md);
   font-weight: 600;
   line-height: 1;
+  /* An <a class="btn"> is a real use of this component (a button whose action
+     is "go somewhere"), and without this it carries the UA underline. */
+  text-decoration: none;
   border: 1px solid transparent;
   border-radius: var(--tau-r-md);
   padding: 0 var(--tau-s4);

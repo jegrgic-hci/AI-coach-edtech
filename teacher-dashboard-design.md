@@ -797,6 +797,28 @@ overclaiming `patterns.md` diagnosed: "Passive engagement" is `avgTotal < 9` wit
 - **Assignment-level reason** — a single quiet text line at the bottom of the expanded drill panel,
   no fill, no icon (see Tier 2 above)
 - "Learn more" link on each submission flag opens a side tray with full context
+- **A teacher can mark a flagged draft "followed up" — added 2026-08-21.** It changes presentation
+  and nothing else: the flags stay on the analysis, stay rendered under the draft, and the mark is
+  reversible in place. What it removes is salience — the draft stops tinting its row, stops
+  colouring the student amber, and stops counting them into the Worth-a-chat tiles, rail count and
+  filter.
+  - **The mark keys to a DRAFT, not a student**, because every piece of review-tier evidence already
+    does: an integrity flag lives on the submission, and a score spike is attributed to the later of
+    the pair. That is what makes the signal self-renewing without any expiry rule — the next flagged
+    draft is unmarked by construction, so the amber returns on its own. A student reads as clear only
+    when *every* flagged draft of theirs is marked.
+  - **The control sits on the draft's own card**, in the action bar at its foot, under the flag
+    lines it acts on — never on the roster chip, where a teacher would be clearing a flag they
+    haven't read. It renders only on a row that has flags.
+  - **A cleared student is not an unflagged student.** The roster chip goes `.chip-neutral` and reads
+    **"Followed up"** rather than going blank — amber can't survive on a label that no longer states
+    an actionable fact (designsystem.md's alert-colour rule), but rendering the two identically would
+    make the mark look like it deleted something. It yields to a live behavioural pattern: that chip
+    is the louder true thing, and the mark still shows on the draft it belongs to.
+  - **Scoped per teacher** (`signalMarks`, keyed `${teacherId}_${submissionId}`) — "I've had this
+    conversation" is a fact about a person, so a co-teacher still sees the flag as open.
+  - Known and accepted: re-running analysis on an already-marked draft can add a flag underneath the
+    mark. Retry-analysis is a rare admin repair, and the mark records a real reading of that draft.
 
 ---
 
@@ -1726,6 +1748,19 @@ the header itself, same as before.
 
 ## Submission Row Layout (drill panels)
 
+**The row's controls live in an action bar at the foot of the card — added 2026-08-21.** They were
+plain forest text (`.sub-row-link`), justified by the salience budget's rule that enclosure is
+reserved for values that are actionable *and* rare. **That test governs values a reader scans, not
+controls** — misapplying it to actions left Add note, Report and Mark as followed up looking like the
+prose around them. Report keeps its place at the row's right edge and takes `.btn-quiet` (the one
+bordered control on the card); Add note and Mark as followed up take `.btn-tertiary` in the bar.
+Not `.btn-primary` for Report: that is reserved for the one primary move per *screen*, and a drill
+panel renders one of these cards per draft.
+
+**The level moved back in beside the row's other classifications** the same day. It had been pushed
+to the right margin by a `flex:1` spacer left behind when the dimension band pills were deleted
+(2026-08-12) — the table below still describes that deleted column.
+
 Fixed-width flex columns ensure alignment across all rows within a panel:
 
 | Column | CSS | Content |
@@ -1988,6 +2023,16 @@ does: it isn't a design decision anyone made, it's the residue of one that was n
 (see the Session Log), so the transcript is the only thing left that this surface uniquely provides.
 The link into it is relabelled `Transcript →` to say so.
 
+> **⚠ SUPERSEDED 2026-08-21 — the transcript and its link are deleted.** `report.html` renders the
+> conversations, so this view was a second, differently-designed telling of the same thing, reached
+> by a link from the dashboard's drill panel that a teacher had no reason to expect would leave the
+> page. Gone: the `Transcript →` link, `renderTimeline()`, the `<details class="transcript">` blocks
+> and their CSS. **The dashboard no longer links to `teacher.html` at all** — this surface is now
+> reachable only from its own roster, which sharpens rather than answers the question of whether it
+> should exist. What it still uniquely holds is session-ready moments, the note editor and work
+> episodes. The `teacher-detail` / `transcript` usage area is kept in `USAGE_SURFACES` so already-
+> recorded rows keep their label; nothing writes it any more.
+
 **Known problems, none of them fixed here:**
 - No rail, no navigation, no way back into the dashboard except the browser's back button — it opens
   in a new tab specifically to paper over that.
@@ -2084,6 +2129,49 @@ see `app/README.md`'s file map if you need to work on that surface instead.
 *Added 2026-07-27. Going forward, log dashboard-affecting sessions here — same convention
 `designsystem.md` uses for the rest of `app/`. Retroactive entries below reconstruct what's
 already landed; write new ones going forward rather than editing history in place.*
+
+**2026-08-21 (later) — the drill panel's controls became controls, and the transcript went**
+
+Three things, all in `renderDrillPanel`'s submission row.
+
+**The row's actions were plain forest text, and the comment justifying that cited the salience
+budget** — "enclosure is reserved for values that are both actionable and rare." **That test governs
+values, not controls** (`designsystem.md`, *Signal salience budget*: "A value earns chip/badge/pill
+enclosure only if…"). Applying a scan-priority rule for indicators to a row's actions is what left
+four interactive things reading as the prose around them. Add note and Mark as followed up moved to a
+`.sub-row-actions` bar at the foot of the card as `.btn-tertiary`; Report took `.btn-quiet` in place.
+**Not `.btn-primary`** — that is the one primary move per *screen*, and this card repeats per draft.
+`.btn` also gained `text-decoration: none`, which `<a class="btn">` had always needed.
+
+**The level was orphaned by a spacer with nothing left to space.** It sat behind `<div
+style="flex:1">` at the row's right edge — the remains of the dimension band pills deleted
+2026-08-12. Moved back beside the row's other classifications. **A layout that survives the deletion
+of its own content is not a layout decision any more**, and it read as one for nine days.
+
+**The `Transcript →` link is deleted, along with the transcript it opened.** See the SUPERSEDED note
+in *`teacher.html`'s session view*. The link was added to name what that surface uniquely provided;
+the honest answer was that `report.html` already provided it.
+
+**2026-08-21 — a teacher can retire a Worth-a-chat flag**
+
+The triage question `patterns.md` opened with on 2026-08-10 is answered and built. Full rules in
+*Flag UX rules*; what's worth keeping here is the reasoning that changed the design mid-session.
+
+**The first design marked the STUDENT and expired the mark on a timestamp** — a mark held only while
+no flagged submission was newer than `markedAt`, so a new draft's flag would raise the amber again.
+It was rejected on the right grounds: a new draft's flag is *its own flag*, unrelated to the one that
+was followed up, so there was nothing for a mark to expire *from*. Moving the mark down to the draft
+deleted the whole expiry mechanism rather than simplifying it — the property the timestamp rule was
+trying to reconstruct (the signal renews itself) falls out for free once the mark sits on the same
+object the evidence does.
+
+**The generalisation worth carrying:** when a derived signal needs a manual override, put the
+override on whatever the signal's evidence is anchored to. An override at a coarser grain than its
+evidence always needs a rule for when it stops applying, and that rule is always a guess.
+
+Three copies of "does this student have a flag" were merged into `hasOpenFlagOn(sid, aid)` /
+`hasOpenFlag(sid)` on the way through — the class meta line and two `flagTotal` computations each
+had their own inline predicate, and only the shared one knows about marks.
 
 **2026-08-18 — the viz layer got a lab, and then got worked on in it**
 

@@ -106,6 +106,15 @@
 //                 A teacher lifting a student's daily reply cap. Additive and
 //                 read only for the current day, so nothing carries overnight
 //                 and two grants stack. See budget.js rule 4.
+//   signalMarks   { id, teacherId, studentId, submissionId, markedAt }
+//                 A teacher marking one flagged draft as followed up. Id is
+//                 `${teacherId}_${submissionId}` so a second mark overwrites
+//                 rather than duplicates, and unmarking is a delete. Scoped
+//                 to the teacher on purpose — "I've had this conversation"
+//                 is a fact about a person, not about the draft, so a
+//                 co-teacher still sees the flag as open.
+//                 Presentation only: it never touches the analysis, and the
+//                 flags stay rendered under the draft either way.
 //   adminEvents   { id, ts, actorId, actorName, action, targetId, targetName,
 //                   targetRole, detail }
 //                 Every account action taken from the administration surface:

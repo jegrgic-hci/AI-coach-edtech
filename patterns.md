@@ -665,8 +665,9 @@ unmeasured and undefined.
   signature change still gates everything.
 
 - **2026-08-10 — file created; pattern layer found to be a naming layer.** Started from a triage
-  question (how does a teacher retire a "Worth a chat" flag, and what's the rule for showing missing
-  work on Home) and traced it back through the signal code. Found that three of four pattern cards are
+  question (how does a teacher retire a "Worth a chat" flag — **answered and built 2026-08-21, see
+  `teacher-dashboard-design.md`'s *Flag UX rules*: the teacher marks the flagged DRAFT as followed
+  up, and the flag stays, quietly** — and what's the rule for showing missing work on Home) and traced it back through the signal code. Found that three of four pattern cards are
   dimension thresholds with prose names, and that `TREND_META`'s copy describes turn-level shapes
   nothing detects. Also found the coupling that made the volume fix dangerous: patterns are aggregated
   from per-student signals, so cohort-relative scoring would have suppressed exactly the class-wide
