@@ -196,7 +196,11 @@ async function recordCall({ purpose, model, usage, latencyMs, target, meta, ok =
 // Streams completion tokens. Calls onToken(text) per chunk; resolves with the
 // full text. Aborts cleanly when signal fires — partial text still returned so
 // stopped generations persist with what the student actually saw.
-async function streamChat({ messages, maxTokens = null, signal, onToken, schoolId = null, meta = null }) {
+//
+// onUsage receives the call's usageMetadata once the stream ends, for callers
+// that keep a running total. It is reported rather than returned so the resolve
+// value stays the reply text — every existing caller wants only that.
+async function streamChat({ messages, maxTokens = null, signal, onToken, onUsage, schoolId = null, meta = null }) {
   const model = modelFor('chat');
   const { url, target } = await vertexEndpoint({ model, method: 'streamGenerateContent?alt=sse', schoolId });
   const startedAt = Date.now();
@@ -277,6 +281,8 @@ async function streamChat({ messages, maxTokens = null, signal, onToken, schoolI
   if (finishReason && finishReason !== 'STOP' && !signal?.aborted) {
     console.error(`[llm] streamChat ended on finishReason=${finishReason} — reply may be cut short, usage=${JSON.stringify(usage)}`);
   }
+
+  onUsage?.(usage);
 
   // Recorded even when the student pressed Stop — the tokens were spent and
   // billed regardless of whether they read the whole reply.

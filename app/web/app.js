@@ -802,23 +802,64 @@ function returnToCurrentDraft() {
 }
 
 // Sits above the composer, where the student is about to spend the next reply
-// — not in the transcript. A budget warning is a condition of the session, and
-// a non-turn in the transcript would be read back by the analysis as one.
-// Stays up once raised: the server re-sends it on every reply past 80%, and a
-// warning that flickers away is one the student can miss entirely.
-function showBudgetNotice(message) {
-  const bar = $('budgetNotice');
-  bar.textContent = message;
-  bar.classList.remove('hidden');
+// — not in the transcript. Neither of these came from the AI, and a non-turn in
+// the transcript would be read back by the analysis as one.
+//
+// Two tones, because they are different kinds of thing: 'caution' is a
+// condition of the session that can stop it, 'quiet' is a suggestion the
+// student is free to ignore. A suggestion in warning colours reads as a
+// telling-off for working hard, which is the opposite of what it is for.
+// What a notice's action button does. Kept here rather than sent from the
+// server: the server says what is true, the client owns what a student can do
+// about it — and a server-supplied handler name would be a route to running
+// arbitrary UI from a payload.
+const NOTICE_ACTIONS = {
+  'new-session': () => $('btnNewSession').click(),
+};
+
+function showNotice(notice) {
+  const { kind = 'budget', tone = 'caution', title, detail, action } =
+    typeof notice === 'string' ? { title: notice } : notice;
+
+  const stack = $('noticeStack');
+  // Keyed by kind so a re-send replaces its own bar rather than stacking a
+  // second copy — the budget warning arrives on every reply past 80%.
+  stack.querySelector(`[data-notice="${kind}"]`)?.remove();
+
+  const bar = el('div', `composer-notice${tone === 'quiet' ? ' composer-notice-quiet' : ''}`);
+  bar.dataset.notice = kind;
+
+  const text = el('div', 'composer-notice-text');
+  text.append(el('strong', null, title));
+  if (detail) text.append(el('span', 'composer-notice-detail', ` · ${detail}`));
+  bar.append(text);
+
+  if (action && NOTICE_ACTIONS[action.id]) {
+    const act = el('button', 'composer-notice-act', action.label);
+    act.type = 'button';
+    act.onclick = () => { bar.remove(); NOTICE_ACTIONS[action.id](); };
+    bar.append(act);
+  }
+
+  const close = el('button', 'composer-notice-close', '×');
+  close.type = 'button';
+  close.setAttribute('aria-label', 'Dismiss');
+  // Dismissible even when it is the budget: the server re-raises that one on
+  // every reply past 80%, so waving it away costs the student nothing they
+  // won't be told again before the wall.
+  close.onclick = () => bar.remove();
+  bar.append(close);
+
+  stack.append(bar);
 }
 
 // The blocked case sends no warning, so `null` here means either "plenty left"
 // or "already out" — and the second is delivered as a 429 the student cannot
-// miss. Clearing on null is therefore right: it is what un-raises the bar after
-// a teacher grants more replies.
+// miss. Clearing on null is therefore right: it is what un-raises the bar when
+// the day rolls over.
 function syncBudgetNotice(budget) {
-  if (budget?.warning) showBudgetNotice(budget.warning);
-  else $('budgetNotice').classList.add('hidden');
+  if (budget?.warning) showNotice(budget.warning);
+  else $('noticeStack').querySelector('[data-notice="budget"]')?.remove();
 }
 
 function renderConversation() {
@@ -994,7 +1035,7 @@ async function streamAction(path, body, role) {
         setMarkdown(liveMsg, raw);
         $('messages').scrollTop = $('messages').scrollHeight;
       },
-      onNotice: showBudgetNotice,
+      onNotice: showNotice,
     });
   } catch (err) {
     if (err.name !== 'AbortError') {

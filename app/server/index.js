@@ -434,22 +434,58 @@ function sseSend(res, event, data) {
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
+// Where a chat thread has grown long enough that starting a fresh one is worth
+// suggesting. Denominated in the input tokens this conversation has spent in
+// total, not in its current size: the cost of a thread is the whole quadratic
+// it has already run up, and that is the number the suggestion is trying to
+// stop growing.
+//
+// 40k rather than a rounder 100k because the saving is front-loaded. Measured
+// on a real 32-turn draft (2026-08-21): 40k fires around turn 12 and takes the
+// draft from 281k to ~102k, where 100k fires at turn 19 and saves half as much.
+// Below ~20k it starts interrupting ordinary short work for little more.
+const CONTEXT_SPLIT_TOKENS = 40000;
+
 async function streamReply({ res, user, conversation, assignment, messages, role, maxTokens, replyMeta, budget }) {
   sseHead(res);
-  // Rule 2: warn before the wall, on the reply that crosses 80%.
+  // Rule 2: warn before the wall, on the reply that crosses 80%. They stack
+  // rather than compete — one is about being stopped today and the other about
+  // working better now, and suppressing either would be withholding something
+  // true because something else is also true.
   if (budget?.warning) sseSend(res, 'notice', budget.warning);
+  if (role !== 'auditor'
+      && (conversation.inputTokensTotal || 0) >= CONTEXT_SPLIT_TOKENS
+      && !conversation.contextNoticeAt) {
+    // Once per conversation, not once per turn past the line: a suggestion
+    // repeated every reply is nagging, and the student has already heard it.
+    sseSend(res, 'notice', {
+      kind: 'context',
+      tone: 'quiet',
+      title: 'This chat is getting long',
+      detail: 'the AI re-reads all of it every time you send a message',
+      action: { id: 'new-session', label: 'Start new session' },
+    });
+    await col('conversations').update(conversation.id, { contextNoticeAt: now() });
+  }
   const controller = new AbortController();
   let finished = false;
   res.on('close', () => { if (!finished) controller.abort(); });
 
   let text = '';
   let errored = false;
+  // What this thread has cost so far, from the model's own count rather than an
+  // estimate off the text — it is the same number the cap and the cost view
+  // read, so the three cannot disagree about how big a conversation is.
+  let spentThisCall = 0;
   try {
     text = await streamChat({
       messages,
       maxTokens,
       signal: controller.signal,
       onToken: (token) => sseSend(res, 'token', token),
+      onUsage: (usage) => {
+        spentThisCall = (usage?.promptTokenCount || 0) + (usage?.cachedContentTokenCount || 0);
+      },
       // 'coach' and 'auditor' are separate purposes in llmCalls: they are
       // different products with different cost shapes, and folding them
       // together would hide which one drives spend.
@@ -476,7 +512,15 @@ async function streamReply({ res, user, conversation, assignment, messages, role
       createdAt: now(),
       meta: { ...replyMeta, ...(stopped ? { stopped: true } : {}) },
     });
-    await col('conversations').update(conversation.id, { lastActiveAt: now() });
+    // The auditor reads the transcript but is not part of it, so its input does
+    // not count toward the thread's own weight — including it would trip the
+    // suggestion on a student who pressed "How am I doing?" twice.
+    await col('conversations').update(conversation.id, {
+      lastActiveAt: now(),
+      ...(role !== 'auditor'
+        ? { inputTokensTotal: (conversation.inputTokensTotal || 0) + spentThisCall }
+        : {}),
+    });
   }
   if (stopped) {
     await logEvent(user, { type: 'stop', sessionId: conversation.sessionId, conversationId: conversation.id, meta: { turnId: turn?.id } });

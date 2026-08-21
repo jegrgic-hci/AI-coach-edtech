@@ -107,9 +107,10 @@
            to hide the whole affordance on a locked draft — and the standing
            "your teacher can read this" line has to go with it. -->
       <div class="composer" id="composer">
-        <!-- Above the box, not in the transcript: this is a condition of the
-             session, not something the AI said. -->
-        <div class="composer-notice hidden" id="budgetNotice"></div>
+        <!-- Above the box, not in the transcript: these are conditions of the
+             session, not something the AI said. A stack, because more than one
+             can be true at once and the second must not silence the first. -->
+        <div class="composer-notices" id="noticeStack"></div>
         <div class="composer-box">
           <div class="edit-banner hidden" id="editBanner">Editing your message <button id="btnCancelEdit">cancel</button></div>
           <textarea id="input" rows="2" placeholder="Message the AI…"></textarea>

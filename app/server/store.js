@@ -82,7 +82,15 @@
 //   sessions      one per revision cycle:
 //                 { id, assignmentId, studentId, cycleIndex,
 //                   status: 'active'|'submitted', startedAt, submittedAt }
-//   conversations { id, sessionId, title, createdAt, lastActiveAt, locked }
+//   conversations { id, sessionId, title, createdAt, lastActiveAt, locked,
+//                   inputTokensTotal, contextNoticeAt }
+//                 inputTokensTotal is what this thread has cost in input across
+//                 all its chat replies, from the model's own count — the same
+//                 number the daily cap reads, so the two cannot disagree about
+//                 how big a conversation is. Auditor calls are excluded: they
+//                 read the transcript but are not part of it.
+//                 contextNoticeAt is when the student was told the thread was
+//                 getting long, so they are told once rather than every turn.
 //   turns         append-only integrity record — never updated, never deleted:
 //                 { id, conversationId, role: 'student'|'coach'|'auditor',
 //                   text, createdAt, meta }

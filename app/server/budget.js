@@ -89,11 +89,17 @@ async function checkChatBudget(studentId) {
     used: inputTokens,
     replies,
     // Rule 2: the warning rides along with the allowed reply, so the student
-    // sees it before the last one rather than at the wall. Deliberately states
-    // no number — a token count means nothing to a student, and the honest
-    // content of this warning is "soon", not "8".
+    // sees it before the last one rather than at the wall. A percentage rather
+    // than a token count — "80% of today" is a quantity a student can pace
+    // against, where "800,000 tokens" is not. Rounded down to the nearest 5 so
+    // it reads as a position, not a meter ticking every reply.
     warning: inputTokens >= HARD_INPUT_TOKENS_PER_DAY * WARN_AT
-      ? "You're close to today's limit for AI chat. It resets tomorrow."
+      ? {
+        kind: 'budget',
+        tone: 'caution',
+        title: `You've used ${Math.floor(inputTokens / HARD_INPUT_TOKENS_PER_DAY * 20) * 5}% of today's AI limit`,
+        detail: 'resets at midnight',
+      }
       : null,
   };
 }

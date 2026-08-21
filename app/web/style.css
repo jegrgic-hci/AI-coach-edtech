@@ -229,23 +229,79 @@ button:hover { border-color: var(--tau-forest); }
   box-shadow: var(--tau-shadow-lift), 0 0 0 3px color-mix(in oklab, var(--tau-forest) 14%, transparent);
 }
 
-/* Same idiom as .offline-bar (components.css §10) — a state of the session
-   rather than a finding about the student — but shaped to the composer it sits
-   on rather than welded across the page: the composer is an object floating on
-   the ground, so its notice takes the same width and corner.
-   Caution, not attention: red is reserved for an administrative fact (overdue),
-   and running low is a heads-up, not a verdict. The rule barring semantic
-   colour on a student surface is scoped to a student's own SCORE
-   (designsystem.md, Hard Constraints) — a budget is not a reading of them. */
+/* Conditions of the session, stacked directly on top of the box they qualify.
+   Tucked against it rather than floating apart: they are part of the one object
+   the student writes into, and a gap would make them read as free-standing
+   announcements about the page.
+
+   One line each. A notice that wraps to a paragraph is one the student reads
+   as an interruption rather than a status — so the statement is bold, the
+   qualifier follows a middot, the action sits at the far end, and dismissal is
+   an explicit control rather than a click anywhere on the bar. */
+.composer-notices { display: flex; flex-direction: column; gap: 3px; }
+.composer-notices:empty { display: none; }
+
 .composer-notice {
-  padding: var(--tau-s2) var(--tau-s3);
+  display: flex;
+  align-items: center;
+  gap: var(--tau-s3);
+  padding: 7px var(--tau-s3) 7px var(--tau-s4);
   background: var(--tau-caution-bg);
   color: var(--tau-caution);
   border: 1px solid color-mix(in oklab, var(--tau-caution) 30%, transparent);
   border-radius: var(--tau-r-lg);
   font-size: var(--tau-text-sm);
-  text-align: center;
+  line-height: var(--tau-leading-snug);
 }
+.composer-notice-text { min-width: 0; }
+.composer-notice-text strong { font-weight: 600; }
+/* The qualifier — when it resets, what it costs. Same colour, lighter weight:
+   it is the same sentence continued, not a second thing to look at. */
+.composer-notice-detail { opacity: 0.8; }
+.composer-notice-act {
+  margin-left: auto;
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.composer-notice-act:hover { opacity: 0.75; }
+/* Pushed to the end when there is no action to hold the middle open. */
+.composer-notice-act + .composer-notice-close { margin-left: 0; }
+.composer-notice-close {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 22px; height: 22px;
+  border: none;
+  background: none;
+  padding: 0;
+  border-radius: var(--tau-r-sm);
+  color: inherit;
+  opacity: 0.6;
+  font-size: 15px;
+  line-height: 1;
+}
+.composer-notice-close:hover { opacity: 1; background: color-mix(in oklab, currentColor 12%, transparent); }
+
+/* The suggestion tone. Declared after the base so it wins — both are one class,
+   so source order is the whole of the cascade here. Neutral surface, no
+   semantic colour at all: this is advice about how to work, not a finding about
+   the student and not a state that can stop them. (Blue would be the obvious
+   "informational" choice and is not available — --tau-tool-info is
+   teacher-surfaces-only, designsystem.md Hard Constraints.) */
+.composer-notice-quiet {
+  background: var(--tau-surface-2);
+  color: var(--tau-ink-soft);
+  border-color: var(--tau-line);
+}
+.composer-notice-quiet strong { color: var(--tau-ink); }
 
 .composer-row { display: flex; gap: var(--tau-s2); align-items: center; flex-wrap: wrap; }
 .composer-row .spacer { flex: 1; }
