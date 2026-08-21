@@ -7,7 +7,7 @@ const $ = (id) => document.getElementById(id);
 // of 20 — see tau-dimensions.md, "The scoring scale". A draft whose reading has
 // not been produced says so rather than falling back to a number.
 function levelOf(x) {
-  return (x && x.reading && x.reading.level) || 'Not read yet';
+  return levelName(x && x.reading && x.reading.level) || 'Not read yet';
 }
 
 function bandLine(analysis) {

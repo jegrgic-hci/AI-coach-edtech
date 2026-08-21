@@ -11,6 +11,9 @@
 <link rel="stylesheet" href="components.css">
 <script src="theme.js"></script>
 <script src="icons.js"></script>
+<!-- Signal reference data (FLAG_META / FLAG_TYPES). Shared with signals.html,
+     which renders the same data as the full guide. -->
+<script src="guides.js"></script>
 <!-- The four viz organisms. Reads no app state — see viz.js's header for the
      boundary and for the two things this page has to provide it. -->
 <script src="viz.js"></script>
@@ -772,6 +775,37 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    this exact ground. Scoped to the band so surfaces without one keep theirs. */
 .home-band .finding-summary:hover { background: var(--tau-surface-3); }
 
+/* "New here" — the two explainers, shown only until the first reading lands.
+   Rows, not cards, and forest + trailing → because they navigate: the same
+   rule .class-row below states, applied to the only other navigating thing on
+   this screen. Quiet by construction — this block sits above real triage on
+   the day it appears, and must never out-shout it. */
+.new-here-links {
+  display: flex; flex-direction: column; gap: var(--tau-s2);
+  margin-top: var(--tau-s3);
+}
+.new-here-link {
+  display: block;
+  padding: var(--tau-s3) var(--tau-s3) var(--tau-s3) 0;
+  border-top: 1px solid var(--tau-line);
+  text-decoration: none;
+}
+.new-here-link .nh-name {
+  display: block;
+  font-size: var(--tau-text-sm);
+  font-weight: 650;
+  color: var(--tau-forest);
+}
+.new-here-link .nh-name::after { content: ' →'; }
+.new-here-link .nh-desc {
+  display: block;
+  font-size: var(--tau-text-xs);
+  line-height: 1.55;
+  color: var(--tau-ink-soft);
+  margin-top: 2px;
+}
+.new-here-link:hover .nh-name { text-decoration: underline; }
+
 /* Classes at a glance: rows, not cards.
    Every other card on Home expands in place; these navigate. Same chrome for
    two different behaviours is the affordance failure, so the chrome itself
@@ -1012,18 +1046,6 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
   <main id="content" class="content"></main>
 </div>
 
-<div class="scrim modal-overlay" id="flag-modal-overlay" onclick="closeFlagModal(event)">
-  <div class="confirm modal" onclick="event.stopPropagation()">
-    <div class="tray-header">
-      <div style="flex:1;min-width:0">
-        <div class="tray-title">Worth a chat, explained</div>
-        <div class="tray-subtitle">The tool automatically checks every submission for these signals. They're never shown to students — they surface only here, as conversation-starters, never verdicts.</div>
-      </div>
-      <button class="tray-close" id="modal-close-btn" onclick="closeFlagModal()"></button>
-    </div>
-    <div class="tray-body" id="flag-modal-body"></div>
-  </div>
-</div>
 
 <!-- Class roster modal — view + remove a class's students, reached only from
      that class's own Class View ("Manage roster"), never from the header.
@@ -1339,9 +1361,9 @@ async function loadDashboardData() {
 function total(sub) { return sub.pq + sub.su + sub.cs + sub.oc; }
 
 
-function samr(t) {
+function levelFromTotal(t) {
   const n = t >= 17 ? 4 : t >= 13 ? 3 : t >= 9 ? 2 : 1;
-  return { n, label: SAMR_NAMES[n - 1], plain: BAND_PLAIN[n] };
+  return { n, label: LEVEL_NAMES[n - 1], plain: BAND_PLAIN[n] };
 }
 
 
@@ -1350,7 +1372,7 @@ function samr(t) {
 // the scale change exists to remove (see homeCohort's note).
 function latestLevel(subs) {
   const done = subs.filter(s => s.analysisStatus === 'complete');
-  return done.length ? samr(total(done[done.length - 1])).n : null;
+  return done.length ? levelFromTotal(total(done[done.length - 1])).n : null;
 }
 
 // classIds is which class(es) an assignment was given to; unscoped
@@ -1436,85 +1458,6 @@ function hasMissingCheckpoint(assignment, studentId) {
   return result;
 }
 
-const FLAG_META = {
-  'stylistic-inconsistency': {
-    short: 'Stylistic inconsistency',
-    desc: 'Vocabulary and complexity shifts sharply between student turns',
-    what: 'The student\'s writing shows significant jumps in vocabulary, sentence complexity, or tone between turns — beyond what normal drafting usually produces.',
-    why: 'These shifts can indicate that text from an external source was introduced mid-session rather than composed in place. Natural revision tends to evolve gradually; abrupt changes are harder to explain by the conversation alone.',
-    steps: [
-      'Compare the flagged turn directly against surrounding turns and look for abrupt tone or vocabulary shifts.',
-      'Ask the student to explain their reasoning in the flagged section in their own words.',
-      'Consider whether the shift aligns with a new topic or a genuine change in approach — those are expected and fine.',
-    ],
-  },
-  'unnatural-fluency': {
-    short: 'Unnatural fluency',
-    desc: 'Student turns lack the hedging and false starts typical of live composition',
-    what: 'The student\'s turns read as polished and certain throughout — no hedging phrases ("I think", "maybe", "not sure if"), no self-corrections, no colloquial language. This pattern is unusual for in-session writing.',
-    why: 'Live composition typically includes uncertainty markers and self-correction. Uniformly high fluency may suggest the student was submitting pre-composed or AI-generated text as their own prompts rather than thinking out loud in real time.',
-    steps: [
-      'Look at whether the student turns read more like essay prose than conversational thinking-out-loud.',
-      'Ask the student to walk you through how they arrived at a specific turn in their own words.',
-      'A low-stakes verbal check-in is often enough to clarify whether the student genuinely engaged with the material.',
-    ],
-  },
-  'provenance-mismatch': {
-    short: 'Provenance mismatch',
-    desc: 'A concept appears in the essay as student-originated but the AI introduced it first',
-    what: 'The provenance analysis found that an idea credited in the essay to the student\'s own thinking was actually introduced by the AI earlier in the conversation.',
-    why: 'This doesn\'t automatically mean the student acted in bad faith — they may have genuinely absorbed and reframed the idea. But it warrants a closer look when the essay presents the concept as independently derived.',
-    steps: [
-      'Identify the specific concept in the chat log and in the essay.',
-      'Ask the student when and how they first encountered that idea.',
-      'This can be a teaching moment: discuss the difference between internalising a concept and independently originating one.',
-    ],
-  },
-  'shadow-session-pattern': {
-    short: 'Shadow session pattern',
-    desc: 'Student responses are well-calibrated to AI output with very little pushback',
-    what: 'The student\'s turns show very high passive acceptance of AI suggestions and almost no challenge, rejection, or refinement. The interaction pattern resembles a student who arrived with polished inputs rather than composing in real time.',
-    why: 'Genuine AI-assisted writing involves friction — students push back, redirect, and question. An unusually smooth acceptance pattern may indicate the AI session was staged after the actual writing was done elsewhere.',
-    steps: [
-      'Review the ratio of extraction and validation turns against challenge and refinement turns in the TAU breakdown.',
-      'Ask the student to describe a moment where they disagreed with or changed something the AI suggested.',
-      'This flag is more significant when paired with Unnatural Fluency — both together strengthen the concern.',
-    ],
-  },
-  'score-spike': {
-    short: 'Score spike',
-    desc: 'TAU score increased sharply between two submissions in a short window',
-    what: 'Two submissions were made within a short time window, but the TAU score jumped significantly — more than would be expected from a normal revision cycle.',
-    why: 'Rapid score improvement can indicate that the student submitted an initial draft, then quickly replaced it with a substantially different session — possibly one prepared in advance or generated with different inputs.',
-    steps: [
-      'Compare the two submissions side by side using the scores and timestamps above.',
-      'Ask the student what changed between the two versions and why they resubmitted so quickly.',
-      'A spike on a single dimension is less concerning than a broad jump across all four.',
-    ],
-  },
-  'reflection-score-mismatch': {
-    short: 'Reflection–Score Gap',
-    desc: "Student described pushback or prior knowledge the scores don't show",
-    what: "The student's reflection described challenging or disagreeing with the AI, or claimed strong prior knowledge — but their scores tell a different story. Their Calibrated Skepticism or Original Contribution score was low, suggesting little actual pushback or independent contribution occurred in the session.",
-    why: "The reflection contained language associated with critical engagement (\"pushed back\", \"challenged\", \"disagreed\", \"already knew\") while the corresponding score was below 2.5. This mismatch may mean the student overestimated their own engagement, or they understand what good process looks like without yet having the habit of acting on it.",
-    steps: [
-      "Read the student's reflection challenge response alongside their actual session log.",
-      "Ask the student to point to a specific moment in the chat where they disagreed with the AI — if they can\'t, that\'s informative.",
-      "This is often a teaching opportunity: the student may have the right instincts but not yet the habit of acting on them in real time.",
-    ],
-  },
-  'reflection-delta-mismatch': {
-    short: 'Delta–Score Mismatch',
-    desc: "Student described improvement in their follow-up reflection but scores didn't change",
-    what: "The student's \"What shifted?\" reflection described becoming more critical, skeptical, or independent in how they used the AI — but their TAU scores did not increase between submissions.",
-    why: "The delta reflection contained improvement language (\"more skeptical\", \"pushed back more\", \"more critical\") while the total score stayed the same or decreased. This suggests the student may be describing the behavior they intended rather than the behavior they demonstrated.",
-    steps: [
-      "Look at the specific dimension scores the student implicitly claimed to improve — CS if they mentioned skepticism, OC if they mentioned more independent thinking.",
-      "Ask the student what specific change they made to their process, and whether they can point to it in the chat log.",
-      "Consider whether the student is reflecting on intent rather than action — this is common and addressable with a brief one-on-one conversation.",
-    ],
-  },
-};
 
 // ── Behavioral trend definitions ──────────────────────────────────────────────
 
@@ -1878,7 +1821,7 @@ function allSubsForStudent(studentId) {
 //
 // THE AVERAGE COLUMN WENT 2026-08-17, and it was wrong in three ways at once:
 // it printed a total, it printed a MEAN of totals, and the level chip beside it
-// was `samr(that mean)` — a named level derived from an average of ordinals,
+// was `levelFromTotal(that mean)` — a named level derived from an average of ordinals,
 // which is the single operation this scale change exists to remove. It was
 // argued for on the grounds that "a bare 12/20 only meant something when the
 // row said which assignment it was from," which was the right observation and
@@ -2083,6 +2026,41 @@ function renderFirstRun() {
       <div style="font-size:var(--tau-text-xs);color:var(--tau-ink-faint);margin-top:var(--tau-s4)">
         Everything here also lives in <strong>+ Add</strong>, top right, once you're running.
       </div>
+    </div>
+    ${newHereBlock()}`;
+}
+
+// The two explainers, offered where a teacher has room to read them and nothing
+// else to do — before the first reading arrives. It disappears on its own the
+// moment there is real work on this screen, which is why it can afford to sit
+// at the top: it costs nothing after the first week.
+//
+// NOT A NAV SECTION, and not a standing Home button. Reference material read
+// once does not earn permanent real estate on a triage surface — the same
+// reasoning that moved "Worth a chat, explained" off the header and into the
+// account menu, which is still where a teacher finds these on any later day.
+function newHereBlock() {
+  return `
+    <div class="card-lg new-here" style="max-width:520px;margin-top:var(--tau-s5)">
+      <div class="eyebrow">New here</div>
+      <div style="font-size:var(--tau-text-sm);color:var(--tau-ink-soft);line-height:1.6">
+        What this dashboard will show you that no other tool does. Worth ten minutes before the
+        first submissions land.
+      </div>
+      <div class="new-here-links">
+        <a class="new-here-link" href="levels.html" onclick="logUse('dashboard','new-here-levels')">
+          <span class="nh-name">Agency levels</span>
+          <span class="nh-desc">Where a student's own thinking entered the work — and what each level does not mean</span>
+        </a>
+        <a class="new-here-link" href="dimensions.html" onclick="logUse('dashboard','new-here-dimensions')">
+          <span class="nh-name">The four dimensions</span>
+          <span class="nh-desc">The four questions asked of every session, how each is scored, and why they are never added up</span>
+        </a>
+        <a class="new-here-link" href="signals.html" onclick="logUse('dashboard','new-here-signals')">
+          <span class="nh-name">Worth a chat</span>
+          <span class="nh-desc">The signals we check every submission for, and why each one is a question rather than a verdict</span>
+        </a>
+      </div>
     </div>`;
 }
 
@@ -2202,7 +2180,7 @@ function homeCohort() {
     if (!latest) return { student: st, level: null, bands: [null, null, null, null], patterns: [] };
     return {
       student: st,
-      level: samr(total(latest)).n,
+      level: levelFromTotal(total(latest)).n,
       bands: DIM_KEYS.map(k => bandFromLegacyScore(latest[k])),
       patterns: latest.patterns || [],
     };
@@ -2335,7 +2313,7 @@ function assignmentCohort(a, students) {
     const latest = subs.length ? subs[subs.length - 1] : null;
     return {
       student: st,
-      level: latest ? samr(total(latest)).n : null,
+      level: latest ? levelFromTotal(total(latest)).n : null,
       bands: latest ? DIM_KEYS.map(k => bandFromLegacyScore(latest[k])) : [null, null, null, null],
       patterns: latest ? (latest.patterns || []) : [],
     };
@@ -2395,7 +2373,7 @@ function renderAgencyDistribution(a, students) {
   const slot = lastClosedDraft(a);
   return renderComposition(assignmentReadingCohort(a, students), {
     label: `Agency${slot ? `, ${slot.label.toLowerCase()}` : ''}`,
-    flow: draftFlow(a, students, sub => samr(total(sub)).n),
+    flow: draftFlow(a, students, sub => levelFromTotal(total(sub)).n),
     noFlowNote: 'Movement needs two closed drafts to compare. This assignment does not have two.',
   });
 }
@@ -2407,7 +2385,7 @@ function draftCohort(a, idx, students) {
     const sub = getSubs(st.id, a.id).find(s => s.cycleIndex === idx && s.analysisStatus === 'complete');
     return {
       student: st,
-      level: sub ? samr(total(sub)).n : null,
+      level: sub ? levelFromTotal(total(sub)).n : null,
       bands: sub ? DIM_KEYS.map(k => bandFromLegacyScore(sub[k])) : [null, null, null, null],
     };
   });
@@ -2568,7 +2546,7 @@ function renderStudentTrace(a, studentId) {
   return renderTrace(
     slots.map(s => s.label),
     DIM_KEYS.map(k => subs.map(s => s ? bandFromLegacyScore(s[k]) : null)),
-    subs.map(s => s ? samr(total(s)).n : null));
+    subs.map(s => s ? levelFromTotal(total(s)).n : null));
 }
 
 // Replaces assignmentCoachingNote(), which classified a mean delta. Same
@@ -2640,7 +2618,7 @@ function renderHome() {
       : `<span class="chip chip-positive">✓ On track</span>`;
     return `<div class="class-row" onclick="gotoClass('${cls.id}')">
       <span class="class-row-name">${cls.name}</span>
-      ${rows.length ? `<span class="chip chip-grey">Most at ${SAMR_NAMES[modal]}</span>` : ''}
+      ${rows.length ? `<span class="chip chip-grey">Most at ${LEVEL_NAMES[modal]}</span>` : ''}
       ${pill}
       <span class="class-row-go">→</span>
     </div>`;
@@ -2723,7 +2701,7 @@ function renderHome() {
   const nStr = `${n} student${n !== 1 ? 's' : ''}`;
   const scopeStr = `${nStr} · ${CLASSES.length} class${CLASSES.length !== 1 ? 'es' : ''}`;
   const agencySection = renderMovement('home-agency',
-    agencyEntries(cohortFlow(STUDENTS, sub => samr(total(sub)).n)),
+    agencyEntries(cohortFlow(STUDENTS, sub => levelFromTotal(total(sub)).n)),
     scopeStr, FLOW_AXIS_TIME, { title: 'Agency over time' });
   const dimensionSection = renderMovement('home-dims',
     dimensionEntries(DIM_KEYS.map(key => cohortFlow(STUDENTS, sub => bandFromLegacyScore(sub[key])))),
@@ -2740,8 +2718,14 @@ function renderHome() {
   // charts also stopped being two halves of one reading — one is where the
   // room is, the other is what moved — so pairing them was asserting a
   // relationship the content no longer has.
+  // Classes exist but nothing has been read yet — the triage tiles are all
+  // zero and the two charts have nothing to draw, so this is the one moment
+  // Home has room to spare. See newHereBlock().
+  const newHere = cohort.some(c => c.level) ? '' : `<div class="home-band">${newHereBlock()}</div>`;
+
   return `
     <div class="home-stack">
+      ${newHere}
       <div class="home-cols-top">
         <div class="home-band home-col">
           <div class="section-head"><div class="eyebrow">Students to follow up</div></div>
@@ -3065,7 +3049,7 @@ function renderClassAggregateCard(cid, students, assignments, missingCount, flag
   // membership, which is the only claim the readings support.
   const nStr = `${students.length} student${students.length !== 1 ? 's' : ''}`;
   const closedCount = assignments.filter(a => a.status === 'closed').length;
-  const lvFlow = classFlow(students, assignments, sub => samr(total(sub)).n);
+  const lvFlow = classFlow(students, assignments, sub => levelFromTotal(total(sub)).n);
   // States the cap when there is one, so four columns out of a longer term
   // never reads as the whole term.
   const scopeStr = lvFlow && closedCount > lvFlow.stages
@@ -3812,7 +3796,7 @@ function renderAssignmentAggregateContent(a, students, variant = 'full') {
 
   const scope = `${students.length} student${students.length !== 1 ? 's' : ''} · ${closedDrafts} closed drafts`;
   const agencyTrend = renderMovement(`assign-agency:${a.id}`,
-    agencyEntries(draftFlow(a, students, sub => samr(total(sub)).n)),
+    agencyEntries(draftFlow(a, students, sub => levelFromTotal(total(sub)).n)),
     scope, FLOW_AXIS_DRAFT, { title: 'Summary · agency across the drafts' });
   const dimTrend = renderMovement(`assign-dims:${a.id}`,
     dimensionEntries(DIM_KEYS.map(k => draftFlow(a, students, sub => bandFromLegacyScore(sub[k])))),
@@ -4082,7 +4066,7 @@ function renderReflectionSection(sub, prevSub) {
     // shifted?" with whether the reading shifted, so it says that in words and stays
     // neutral in all three directions.
     if (prevSub) {
-      const move = samr(total(sub)).n - samr(total(prevSub)).n;
+      const move = levelFromTotal(total(sub)).n - levelFromTotal(total(prevSub)).n;
       scoreDelta = `<span class="score-delta chip-grey">${
         move > 0 ? 'Up a level' : move < 0 ? 'Back a level' : 'Same level'}</span>`;
     }
@@ -4157,7 +4141,7 @@ function renderDrillPanel(subs, label, sig, ctx) {
         <span class="sub-num">#${i + 1}</span>
         ${statusChip}
         <span class="sub-date">${formatDate(sub.ts)}</span>
-        <span class="sub-level">${levelChip(samr(t).n, true)}</span>
+        <span class="sub-level">${levelChip(levelFromTotal(t).n, true)}</span>
         <div style="flex:1"></div>
         ${sub.id ? `<a href="/report.html?id=${sub.id}&role=teacher" target="_blank" onclick="event.stopPropagation()" class="btn btn-quiet btn-sm">Report →</a>` : ''}
       </div>
@@ -4456,54 +4440,9 @@ function closeFlagTray() {
   document.getElementById('side-tray').classList.remove('open');
 }
 
-// ── Flag detection modal ───────────────────────────────────────────────────────
+// The signal reference data and its card renderer moved to guides.js when
+// "Worth a chat, explained" became signals.html — two surfaces, one source.
 
-const FLAG_TYPES = {
-  'stylistic-inconsistency':   'integrity',
-  'unnatural-fluency':         'integrity',
-  'provenance-mismatch':       'integrity',
-  'shadow-session-pattern':    'integrity',
-  'score-spike':               'score',
-  'reflection-score-mismatch': 'reflection',
-  'reflection-delta-mismatch': 'reflection',
-};
-
-function openFlagModal() {
-  logUse('dashboard', 'flag-modal');
-  const body = document.getElementById('flag-modal-body');
-  body.innerHTML = Object.entries(FLAG_META).map(([key, f]) => {
-    const type    = FLAG_TYPES[key] || 'integrity';
-    const typeLabel = type === 'integrity'
-      ? `<span class="flag-type-label chip-neutral">Integrity</span>`
-      : type === 'reflection'
-        ? `<span class="flag-type-label chip-neutral">Reflection</span>`
-        : `<span class="flag-type-label chip-neutral">Score analysis</span>`;
-    const steps = f.steps?.length
-      ? `<div class="tray-section-label">What to do</div>
-         <ol class="flag-card-steps">${f.steps.map(s => `<li>${s}</li>`).join('')}</ol>`
-      : '';
-    return `<div class="flag-card">
-      <div class="flag-card-header">
-        <span class="flag-card-title">${f.short}</span>
-        ${typeLabel}
-      </div>
-      <div class="flag-card-desc">${f.desc}</div>
-      <div class="tray-section-label">What the tool detects</div>
-      <div class="tray-section-body">${f.what}</div>
-      <div class="tray-section-label">Why it matters</div>
-      <div class="tray-section-body">${f.why}</div>
-      ${steps}
-    </div>`;
-  }).join('');
-  document.getElementById('flag-modal-overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeFlagModal(e) {
-  if (e && e.target !== document.getElementById('flag-modal-overlay')) return;
-  document.getElementById('flag-modal-overlay').classList.remove('open');
-  document.body.style.overflow = '';
-}
 
 // ── One success shape for all three creation doors ──────────────────────────
 // New class already worked this way — an in-modal confirmation naming what was
@@ -4555,7 +4494,6 @@ const MODALS = [
   { id: 'add-students-modal-overlay',   close: () => closeAddStudentsModal(),   dirty: () => addStudentsIsDirty(),  what: 'this roster' },
   { id: 'roster-modal-overlay',         close: () => closeRosterModal() },
   { id: 'goal-modal-overlay',           close: () => closeGoalModal() },
-  { id: 'flag-modal-overlay',           close: () => closeFlagModal() },
 ];
 
 const val = (id) => (document.getElementById(id)?.value || '').trim();
@@ -5945,7 +5883,6 @@ function gotoNewAssignmentFromSuccess() {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
-document.getElementById('modal-close-btn').innerHTML = iconSVG('close');
 document.getElementById('tray-close-btn').innerHTML  = iconSVG('close');
 document.getElementById('new-assignment-close-btn').innerHTML = iconSVG('close');
 document.getElementById('goal-modal-close-btn').innerHTML = iconSVG('close');
@@ -5958,12 +5895,25 @@ document.getElementById('add-students-close-btn').innerHTML = iconSVG('close');
 // "Worth a chat, explained" rides along as an extra: it is reference material
 // a teacher reads once, not a per-session action, so it no longer earns a
 // standing header button beside + Add.
+// Ordered by how much of the product each explains: the level is on every
+// report, the four dimensions sit under every level, a signal is on some
+// students only. Most general first.
 mountAccountChip(document.getElementById('accountChip'), {
   extras: [{
     icon: 'ⓘ',
+    label: 'Agency levels, explained',
+    desc: 'What each level means, and what it does not',
+    href: 'levels.html',
+  }, {
+    icon: 'ⓘ',
+    label: 'The four dimensions, explained',
+    desc: 'What each reading measures, and how they relate',
+    href: 'dimensions.html',
+  }, {
+    icon: 'ⓘ',
     label: 'Worth a chat, explained',
     desc: 'What each signal means, and what it does not',
-    onClick: openFlagModal,
+    href: 'signals.html',
   }],
 }).catch(() => {});
 

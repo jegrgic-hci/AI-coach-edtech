@@ -355,14 +355,15 @@ function draftChip(draft) {
     pending.append(el('span', 'chip-score', draft.analysisStatus === 'error' ? 'unavailable' : 'analyzing…'));
     return pending;
   }
-  const chip = el('button', `draft-chip samr-${draft.tau.SAMR.toLowerCase()}`);
+  const draftLevel = levelName(draft.tau.SAMR);
+  const chip = el('button', `draft-chip level-${draftLevel.toLowerCase()}`);
   chip.append(el('span', 'chip-cycle', `Draft ${draft.cycleIndex + 1}`));
   // The denominator and the band are on the face, not in a tooltip — a bare
   // "12" is unreadable without knowing the scale.
   const score = el('span', 'chip-score', String(draft.tau.totalScore));
   score.append(el('span', 'chip-denom', '/20'));
   chip.append(score);
-  chip.append(el('span', 'chip-samr', draft.tau.SAMR));
+  chip.append(el('span', 'chip-samr', draftLevel));
   if (draft.hasTeacherNote) {
     const note = el('span', 'chip-note');
     note.innerHTML = iconSVG('chat');
@@ -613,7 +614,7 @@ function pastCard(a) {
     const outcome = el('span', 'pcard-outcome');
     outcome.append(el('span', 'pcard-score', String(final.tau.totalScore)));
     outcome.append(el('span', 'pcard-denom', '/20'));
-    outcome.append(el('span', `pcard-band samr-${final.tau.SAMR.toLowerCase()}`, final.tau.SAMR));
+    outcome.append(el('span', `pcard-band level-${levelName(final.tau.SAMR).toLowerCase()}`, levelName(final.tau.SAMR)));
     head.append(outcome);
   }
   card.append(head);

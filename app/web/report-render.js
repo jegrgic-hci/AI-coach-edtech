@@ -169,11 +169,11 @@ function renderPatternGuide() {
 // here") with the evidence behind it — the claim, the moments that support it,
 // and the moment that doesn't. tau-dimensions.md, "The scoring foundation".
 //
-// The ladder's rungs are never numbered: numbering makes Augmentation read as a
-// failing grade, which is SAMR's documented failure mode and not what the level
-// says. And this is a departure from SAMR as published — Puentedura's levels
-// describe TASK transformation, these describe AGENCY — which is why the ladder
-// carries that line wherever it appears.
+// The ladder's rungs are never numbered: numbering makes the second one read as
+// a failing grade, which was the documented failure mode of the SAMR vocabulary
+// this replaced on 2026-08-21. Nothing is borrowed now, so the ladder no longer
+// carries a departure-from-Puentedura line — that requirement retired with the
+// names. What it does carry: the level names the SESSION, never the student.
 
 // The Pattern Guide is demo/explainer material rather than a destination, so
 // it lives behind a header button and a lightweight modal instead of taking a
@@ -191,7 +191,22 @@ function closePatternGuideModal() {
   document.body.style.overflow = "";
 }
 
-const LEVEL_ORDER = ["Substitution", "Augmentation", "Modification", "Redefinition"];
+const LEVEL_ORDER = ["Passive", "Reactive", "Directive", "Transformative"];
+
+// The level in a sentence, said to the student. THE SUBJECT IS THE CONVERSATION
+// — "this conversation was reactive", never "you were reactive". The names are
+// ordinary English now, which is what makes them readable and also what makes
+// them easy to hear as a description of a person; this line is where the report
+// settles which one it means, before `shape` says anything specific.
+//
+// Generic by design: the same words for everyone at this level. `shape` is the
+// sentence about THIS chat, and it does not repeat these.
+const LEVEL_DEF = {
+  Passive: "The thinking in this conversation was the AI's. Nothing in it started on your side.",
+  Reactive: "Everything here came after the AI raised it — the questions and the ideas both answered its.",
+  Directive: "This conversation ran on terms you set. The AI worked to them.",
+  Transformative: "This conversation ran on terms you set, and what you thought by the end wasn't what you brought in.",
+};
 
 function renderReportHero(reading, submission) {
   // The assignment is the page's identity, so it is the page's heading — the
@@ -230,14 +245,19 @@ function renderReportHero(reading, submission) {
   return `
     <div class="card card-lg card-hero report-hero hero-d">
       ${heroHead}
-      <span class="eyebrow">How much you led</span>
+      <!-- Was "How much you led", which framed the ladder as a quantity — the
+           axis-switch defect the 2026-08-21 rename removed. The scale does not
+           measure how much of the leading was yours; it measures where your
+           thinking came into the work. -->
+      <span class="eyebrow">Where your thinking came in</span>
       <div class="hero-two-col" style="--level-bg: var(--tau-band-${idx}-bg); --level-fg: var(--tau-band-${idx}-fg)">
         <div class="hero-scale-col">
-          <div class="level-scale" role="img" aria-label="A four-level scale, lowest to highest: ${LEVEL_ORDER.join(', ')}. This session sits at ${esc(reading.level)}.">
+          <div class="level-scale" role="img" aria-label="A four-level scale, lowest to highest: ${LEVEL_ORDER.join(', ')}. This session sits at ${esc(level)}.">
             ${rungs}
           </div>
         </div>
         <div class="level-summary">
+          ${LEVEL_DEF[level] ? `<p class="hero-level-def"><b>${esc(level)}.</b> ${esc(LEVEL_DEF[level])}</p>` : ''}
           <p class="hero-shape">${esc(reading.shape)}</p>
           <div class="level-summary-body">
             <div>
@@ -344,8 +364,9 @@ function renderFlags(flags) {
 // The level, never a number — there is no total to shrink down to.
 function renderJumpScore(reading) {
   if (!reading || !reading.level) return '';
-  const idx = LEVEL_ORDER.indexOf(reading.level) + 1;
-  return `<span class="report-jump-score-band" style="color: var(--tau-band-${idx}-fg)">${esc(reading.level)}</span>`;
+  const level = levelName(reading.level);
+  const idx = LEVEL_ORDER.indexOf(level) + 1;
+  return `<span class="report-jump-score-band" style="color: var(--tau-band-${idx}-fg)">${esc(level)}</span>`;
 }
 
 // ---- Container transform, the shipping version -------------------------

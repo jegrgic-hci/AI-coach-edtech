@@ -43,7 +43,14 @@ const BAND_PLAIN = {
   3: 'Reshaping the answer',
   4: 'Going past the answer',
 };
-const SAMR_NAMES = ['Substitution', 'Augmentation', 'Modification', 'Redefinition'];
+// Renamed 2026-08-21. The SAMR vocabulary is gone entirely — it switched axis
+// halfway up (rungs 1-2 named how much the AI did, rungs 3-4 named who was in
+// charge), which is why its top half could never be explained in its bottom
+// half's language. Every name here completes one sentence: "in this session,
+// the student's thinking was ___", with the student's thinking as the subject
+// and the AI as the instrument. tau-dimensions.md, "The overall: the agency
+// ladder". THE ADJECTIVE DESCRIBES THE SESSION, NEVER THE STUDENT.
+const LEVEL_NAMES = ['Passive', 'Reactive', 'Directive', 'Transformative'];
 
 // A STUDENT'S LEVEL, WHEREVER ONE IS SHOWN. Takes the level ordinal 1–4, or null
 // for a student with no readable session — never a total, which is what its
@@ -53,7 +60,7 @@ const SAMR_NAMES = ['Substitution', 'Augmentation', 'Modification', 'Redefinitio
 //
 // THE NAME IS THE LABEL, the plain phrase is the gloss. Reversed 2026-08-12 —
 // see BAND_PLAIN above. Roster rows previously printed "Steering a little" where
-// the Composition organism inches away printed "Augmentation" for the same
+// the Composition organism inches away printed the level name for the same
 // reading, which is two vocabularies for one scale.
 //
 // Renders quiet (.band-plain) — added 2026-07-29. A level is classification, not
@@ -63,7 +70,7 @@ const SAMR_NAMES = ['Substitution', 'Augmentation', 'Modification', 'Redefinitio
 // classification in full, so a colour-coded dot repeats a fact already on the page.
 function levelChip(n, small) {
   if (!n) return `<span class="no-signal">—</span>`;
-  return `<span class="band band-plain band-${n}"${small ? ' style="font-size:10px"' : ''}>${SAMR_NAMES[n - 1]}</span>`;
+  return `<span class="band band-plain band-${n}"${small ? ' style="font-size:10px"' : ''}>${LEVEL_NAMES[n - 1]}</span>`;
 }
 
 // The gloss on a level, SPOKEN TO THE TEACHER — rewritten 2026-08-17 to the
@@ -75,14 +82,18 @@ function levelChip(n, small) {
 // Only renderComposition reads these, so this changes one surface's voice and
 // nothing about the scale. The NAMES are untouched — named, never numbered.
 const LEVEL_GLOSS = [
-  'The AI did the thinking. Your students set the task and took back whatever came.',
-  'The AI set the direction and your students improved what it handed them — the agency is in the reaction, not in the asking.',
-  'Your students led. The AI worked to their brief, and the conversation went where they took it.',
-  'Your students led and pushed back. They resisted where it mattered, and the thinking that survived is theirs.',
+  "The AI's thinking stood in for your students'. Nothing in the work started with them.",
+  "Your students' thinking only ever answered the AI's. Real work, all of it downstream of something the AI said first.",
+  'Your students set the terms. The AI worked to them, and the conversation went where your students took it.',
+  'Your students set the terms and came out of the session thinking something different. What changed is traceable through the chat.',
 ];
 
 const DIM_KEYS  = ['pq', 'su', 'cs', 'oc'];
 const DIM_NAMES = ['Prompting Quality', 'Selective Use', 'Calibrated Skepticism', 'Original Contribution'];
+// The question IS the dimension; the name above is a label on it. Same order as
+// DIM_KEYS/DIM_NAMES — note that is pq, su, cs, oc, not the order they are
+// usually written in prose.
+const DIM_QUESTIONS = ['Did you drive the chat?', 'What survived?', 'Did you check what you were told?', 'Is the thinking yours?'];
 const BAND_MEANING = ["didn't happen", 'not where it counted', 'there, with gaps', 'held at the hard moments'];
 const DIM_WHAT = [
   'Whether the student set the task or asked the AI what the task should be — who is directing the work.',
@@ -129,7 +140,7 @@ function renderCompHTML(counts, off) {
   let html = '';
   counts.forEach((c, i) => {
     html += `<div class="comp-row comp-${i + 1}${i === modal && !tie ? ' is-modal' : ''}">
-      <div class="viz-row-head"><span class="comp-name">${SAMR_NAMES[i]}</span><span class="comp-count">${c}</span></div>
+      <div class="viz-row-head"><span class="comp-name">${LEVEL_NAMES[i]}</span><span class="comp-count">${c}</span></div>
       <div class="viz-plot"><span></span><span class="comp-track"><span class="comp-fill" style="width:${total ? (c / total * 100).toFixed(1) : 0}%"></span></span></div>
     </div>`;
   });
@@ -542,10 +553,10 @@ function redrawFlows(root) {
 }
 
 const FLOW_LEVEL_NODES = [
-  { name: 'Redefinition', fill: 'var(--tau-scale-4)' },
-  { name: 'Modification', fill: 'var(--tau-scale-3)' },
-  { name: 'Augmentation', fill: 'var(--tau-scale-2)' },
-  { name: 'Substitution', fill: 'var(--tau-scale-1)' },
+  { name: 'Transformative', fill: 'var(--tau-scale-4)' },
+  { name: 'Directive', fill: 'var(--tau-scale-3)' },
+  { name: 'Reactive', fill: 'var(--tau-scale-2)' },
+  { name: 'Passive', fill: 'var(--tau-scale-1)' },
   { name: 'Not enough evidence', off: true },
 ];
 
@@ -614,7 +625,7 @@ function renderComposition(cohort, opts) {
   // looking at a single session. Below it, state the denominator instead — the
   // bars still render, because a count of one is honest as a bar and dishonest as
   // a headline. Caught 2026-08-17 mounting this on a draft slot, where "1 read of
-  // 5" printed "Most read at Modification."
+  // 5" printed "Most read at directive."
   //
   // The no-plurality copy is scope-neutral: this organism now renders at a draft
   // slot as well as an assignment, and it said "nobody who sat this assignment."
@@ -628,7 +639,7 @@ function renderComposition(cohort, opts) {
   // recorded there: one student on one side satisfies every proportional test and
   // the tool announces a finding about a room to a teacher looking at a single
   // session. Caught 2026-08-17 mounting this on a draft slot — "1 read of 5"
-  // printed "Most read at Modification" — and it was live on the assignment card
+  // printed "Most read at directive" — and it was live on the assignment card
   // too, on any task most of a class had not finished.
   // THE SAME SHAPE AS THE MOVEMENT FINDING — .trend-lede, a bold lead and a
   // conversational continuation, carried over 2026-08-17. It was .viz-lede: a
@@ -642,7 +653,7 @@ function renderComposition(cohort, opts) {
         ? `<b>No two students worked the same way.</b> All ${read} readable sessions sit at a different level, so there is no group here to teach to — take them one at a time.`
         : comp.tie
           ? `<b>The room is split.</b> No level held a plurality, and an average of the two groups would describe nobody in either.`
-          : `<b>Most of your students landed at ${SAMR_NAMES[comp.modal]}.</b> ${LEVEL_GLOSS[comp.modal]}`}</div>`;
+          : `<b>Most of your students landed at ${LEVEL_NAMES[comp.modal]}.</b> ${LEVEL_GLOSS[comp.modal]}`}</div>`;
 
   // The summary NAMES the draft it reads. Without it "20 read of 22" is a
   // count with no stated scope, and the two students it excludes are excluded
@@ -665,8 +676,9 @@ function renderComposition(cohort, opts) {
       <div class="dist-row-detail">
         ${flow
           ? `${flowSVG(flow.paths, flow.labels, FLOW_LEVEL_NODES, 'more agency')}
-             <p class="viz-card-foot">These levels describe <b>agency</b> — how much of the thinking
-               stayed the student's — not task transformation as SAMR was published.</p>`
+             <p class="viz-card-foot">These levels describe <b>agency</b> — where the student's
+               thinking entered the work, not how good the work was.
+               <a href="levels.html">What each level means</a></p>`
           : `<p class="dist-what" style="margin:0">${noFlowNote}</p>`}
       </div>
     </details>`;
@@ -974,8 +986,11 @@ const FLOW_AXIS_DRAFT = {
 function agencyEntries(levelFlow) {
   return [{
     key: 'agency', label: 'Agency', flow: levelFlow, nodes: FLOW_LEVEL_NODES,
-    foot: `These levels describe <b>agency</b> — how much of the thinking stayed the student's —
-           not task transformation as SAMR was published.`,
+    // Was a departure-from-Puentedura disclosure, required while the ladder
+    // borrowed SAMR's names. Nothing is borrowed since 2026-08-21, so the line
+    // now spends itself on the distinction that still bites: agency, not quality.
+    foot: `These levels describe <b>agency</b> — where the student's thinking entered the work,
+           not how good the work was. <a href="levels.html">What each level means</a>`,
     copy: (st, unit, labels) => agencyCopy(st, unit, labels),
   }];
 }
@@ -986,6 +1001,11 @@ function dimensionEntries(dimFlows) {
     label: DIM_NAMES[i],
     flow,
     nodes: dimFlowNodes(i),
+    // One dimension is on screen here, so the foot says what THIS reading is —
+    // an earlier draft said "the four are never added together", which is a
+    // rule about a chart the teacher is not looking at.
+    foot: `${DIM_QUESTIONS[i]} — read from the chat and the essay together, and scored 1&ndash;4 by
+           reading rather than counting. <a href="dimensions.html">What this reading measures</a>`,
     copy: (st, unit, labels) => dimensionCopy(i, st, unit, labels),
   }));
 }

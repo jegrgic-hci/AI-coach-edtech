@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agency levels — Tau Thinking</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<script src="theme.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--tau-bg);
+  color: var(--tau-ink);
+  font-family: var(--tau-font-ui);
+  font-size: var(--tau-text-md);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Same header as dashboard.html — page-local there and page-local here, per
+   tokens.css's placement rule. Copied rather than promoted to components.css:
+   two surfaces is not yet a pattern, and the moment a third appears this
+   moves wholesale instead of a third copy appearing. */
+header {
+  background: var(--tau-surface);
+  border-bottom: 1px solid var(--tau-line);
+  padding: 13px var(--tau-s6);
+  display: flex;
+  align-items: center;
+  gap: var(--tau-s3);
+}
+header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.2px; }
+.header-back {
+  margin-left: auto;
+  font-size: var(--tau-text-sm);
+  font-weight: 600;
+  color: var(--tau-forest);
+  text-decoration: none;
+}
+.header-back:hover { text-decoration: underline; }
+
+.doc {
+  max-width: 47rem;
+  margin: 0 auto;
+  padding: var(--tau-s7) var(--tau-s5) 96px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tau-s7);
+}
+
+.doc-title {
+  font-family: var(--tau-font-serif);
+  font-size: 34px;
+  line-height: 1.14;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  text-wrap: balance;
+}
+.doc-standfirst {
+  font-family: var(--tau-font-serif);
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--tau-ink-soft);
+  margin-top: var(--tau-s3);
+  max-width: 34rem;
+}
+h2 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  margin-bottom: var(--tau-s3);
+  text-wrap: balance;
+}
+p { margin-bottom: var(--tau-s3); }
+p:last-child { margin-bottom: 0; }
+section > p { max-width: 40rem; }
+
+hr.rule { border: 0; border-top: 1px solid var(--tau-line-soft, var(--tau-line)); }
+
+/* Reference material a teacher reads once, so the emphasis device is a quiet
+   forest edge rather than .card-edge-caution — nothing on this page is an
+   alert, and amber here would compete with the real signals on the dashboard. */
+.note {
+  background: var(--tau-surface);
+  border: 1px solid var(--tau-line);
+  border-left: 3px solid var(--tau-forest);
+  border-radius: var(--tau-r-md);
+  padding: var(--tau-s4) 18px;
+  font-size: var(--tau-text-sm);
+  color: var(--tau-ink-soft);
+}
+.note strong { color: var(--tau-ink); }
+
+/* ── The four levels ──────────────────────────────────────────────────────
+   Colour is the ordered band ramp, --tau-band-1-fg → 4-fg, in ladder order and
+   never reordered — the same ramp every level chip on the dashboard already
+   uses, so a teacher meets one colour language, not two. The rail sits on top
+   rather than left because these are read as a stack of four, and a top edge
+   reads as a step in a sequence where a left edge reads as a status stripe. */
+.levels { display: flex; flex-direction: column; gap: var(--tau-s4); }
+
+.level {
+  background: var(--tau-surface);
+  border: 1px solid var(--tau-line);
+  border-top: 3px solid var(--rail);
+  border-radius: var(--tau-r-md);
+  padding: var(--tau-s5) 22px 22px;
+}
+.level-name {
+  display: block;
+  font-family: var(--tau-font-serif);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  line-height: 1.1;
+  color: var(--rail);
+  margin-bottom: 6px;
+}
+.level-says {
+  font-family: var(--tau-font-serif);
+  font-size: 17px;
+  line-height: 1.5;
+  max-width: 34rem;
+  margin-bottom: var(--tau-s5);
+}
+
+.panels {
+  display: grid;
+  gap: var(--tau-s4);
+  border-top: 1px solid var(--tau-line);
+  padding-top: var(--tau-s4);
+}
+.panel-label {
+  font-size: var(--tau-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tau-track-label);
+  color: var(--tau-ink-label);
+  margin-bottom: 4px;
+}
+.panel p { margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+.panel p + p { margin-top: 7px; }
+.panel ul { margin: 0; padding-left: 18px; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+.panel li { margin-bottom: 5px; }
+.panel li:last-child { margin-bottom: 0; }
+.panel .ask {
+  font-family: var(--tau-font-serif);
+  font-size: 16px;
+  font-style: italic;
+  color: var(--tau-ink);
+}
+
+.nonlevel {
+  background: var(--tau-surface-2);
+  border: 1px dashed var(--tau-line);
+  border-radius: var(--tau-r-md);
+  padding: var(--tau-s5) 22px 22px;
+  margin-top: var(--tau-s4);
+}
+.nonlevel .level-name { color: var(--tau-ink-soft); font-size: 22px; font-style: italic; }
+.nonlevel .level-says { color: var(--tau-ink-soft); }
+.nonlevel .panels { border-top-color: var(--tau-line); }
+.detached {
+  display: block;
+  font-size: var(--tau-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tau-track-label);
+  color: var(--tau-ink-label);
+  margin-bottom: 9px;
+}
+
+/* ── Say / don't say ── */
+.saypairs { display: grid; gap: var(--tau-s3); }
+.saypair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px var(--tau-s4);
+  background: var(--tau-surface);
+  border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-md);
+  padding: var(--tau-s3) 16px;
+  font-size: var(--tau-text-sm);
+}
+.say-no {
+  color: var(--tau-ink-faint);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+.say-yes { color: var(--tau-ink); }
+.saypair-note {
+  grid-column: 1 / -1;
+  font-size: var(--tau-text-xs);
+  line-height: 1.55;
+  color: var(--tau-ink-soft);
+  margin-top: 2px;
+}
+
+ul.plain {
+  margin: 0;
+  padding-left: 18px;
+  max-width: 40rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+footer {
+  border-top: 1px solid var(--tau-line);
+  padding-top: var(--tau-s4);
+  font-size: var(--tau-text-xs);
+  line-height: 1.65;
+  color: var(--tau-ink-faint);
+}
+footer p { max-width: 40rem; }
+
+@media (min-width: 46rem) {
+  .panels { grid-template-columns: 1fr 1fr; }
+  .panels .panel-wide { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  .saypair { grid-template-columns: 1fr; }
+  .doc { padding: var(--tau-s5) var(--tau-s4) 64px; }
+  .doc-title { font-size: 28px; }
+  .level, .nonlevel { padding: var(--tau-s4) 16px 18px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="Tau" width="391" height="192">Thinking</span>
+  <h1>Agency levels</h1>
+  <a class="header-back" href="dashboard.html">Back to dashboard</a>
+</header>
+
+<div class="doc">
+
+  <header style="background:none;border:0;padding:0;display:block">
+    <p class="eyebrow">A guide for teachers</p>
+    <h2 class="doc-title" style="margin-top:6px">Reading agency levels</h2>
+    <p class="doc-standfirst">Every session a student runs comes back with one level. It answers a single question — where did the student's own thinking enter this work? — and it is the first thing to read on any report.</p>
+  </header>
+
+  <section>
+    <div class="note">
+      <p><strong>The level measures agency, not quality.</strong> A student who confidently directed a shallow session sits higher than one who thought carefully about material the AI handed them. That is deliberate. Whether the work is any good is your judgement, made against your own rubric — the level tells you something you could not otherwise see: how the piece came to exist.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>The four levels</h2>
+    <p>They run in one order, lowest to highest, and they are never numbered. Each one describes the <strong>session</strong> — not the student.</p>
+
+    <div class="levels" style="margin-top:var(--tau-s4)">
+
+      <article class="level" style="--rail: var(--tau-band-1-fg)">
+        <span class="level-name">Passive</span>
+        <p class="level-says">The AI's thinking stood in for the student's. Nothing in the work started with them.</p>
+        <div class="panels">
+          <div class="panel">
+            <p class="panel-label">What you'll see</p>
+            <ul>
+              <li>The first message hands over the whole task.</li>
+              <li>Student turns are short and procedural — "make it longer", "ok", "thanks".</li>
+              <li>Every idea in the finished piece appears on the AI's side of the chat first.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <p class="panel-label">What it doesn't mean</p>
+            <p>It is not a cheating finding. A student who didn't know where to start, or who read the task as beyond them, produces this same session. Passive tells you the thinking isn't in the work; it does not tell you whether it exists.</p>
+          </div>
+          <div class="panel panel-wide">
+            <p class="panel-label">Worth a conversation</p>
+            <p class="ask">"What did you think about this before you opened the chat?"</p>
+            <p>If there's an answer, the thinking existed and never made it in — which is a very different problem from having none, and a much easier one to fix.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="level" style="--rail: var(--tau-band-2-fg)">
+        <span class="level-name">Reactive</span>
+        <p class="level-says">The student's thinking only ever responded to the AI's. Real work, all of it downstream.</p>
+        <div class="panels">
+          <div class="panel">
+            <p class="panel-label">What you'll see</p>
+            <ul>
+              <li>Genuine engagement — pushing back, asking for changes, questioning a claim.</li>
+              <li>But every student turn answers something the AI said first.</li>
+              <li>Trace any idea in the essay back far enough and it starts in an AI turn.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <p class="panel-label">What it doesn't mean</p>
+            <p>It is not low effort. Reactive sessions are often the hardest-working ones on the list — a student can spend forty turns rigorously interrogating material and still never have set the terms of it.</p>
+          </div>
+          <div class="panel panel-wide">
+            <p class="panel-label">Worth a conversation</p>
+            <p class="ask">"What would you have written if you'd started this on paper?"</p>
+            <p>The gap between that answer and what they handed in is the thing to talk about. Also check the assignment — see <em>Your task may set the ceiling</em> below.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="level" style="--rail: var(--tau-band-3-fg)">
+        <span class="level-name">Directive</span>
+        <p class="level-says">The student's thinking set the terms. The AI worked to them.</p>
+        <div class="panels">
+          <div class="panel">
+            <p class="panel-label">What you'll see</p>
+            <ul>
+              <li>A position, a structure or a line of argument stated by the student early.</li>
+              <li>AI turns that answer to terms the student set, rather than proposing their own.</li>
+              <li>Ideas in the finished piece that appear in a student turn before an AI one.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <p class="panel-label">What it doesn't mean</p>
+            <p>It does not mean the work is good. A student can direct a session confidently toward a thin, incurious answer and still read directive. The level says the thinking was theirs, not that it was right.</p>
+          </div>
+          <div class="panel panel-wide">
+            <p class="panel-label">Worth a conversation</p>
+            <p class="ask">"Which of your own instructions would you change now?"</p>
+            <p>Directive students often never revisit the frame they set in the first two minutes. That frame is usually where the interesting teaching is.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="level" style="--rail: var(--tau-band-4-fg)">
+        <span class="level-name">Transformative</span>
+        <p class="level-says">The student's thinking set the terms and came out of the session changed.</p>
+        <div class="panels">
+          <div class="panel">
+            <p class="panel-label">What you'll see</p>
+            <ul>
+              <li>A position stated early that is recognisably different by the end.</li>
+              <li>The turns where it moved are visible — you can point at them.</li>
+              <li>The finished piece argues something the student did not walk in with.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <p class="panel-label">What it doesn't mean</p>
+            <p>It is not "argued with the AI a lot." Pushback that changes nothing is still directive. This level requires that the thinking actually moved — and moved because of work the student did, not because the AI talked them into something.</p>
+          </div>
+          <div class="panel panel-wide">
+            <p class="panel-label">Worth a conversation</p>
+            <p class="ask">"Where did you change your mind, and what did it?"</p>
+            <p>If they can name the moment, this is the session to hold up to the class. If they can't, it's worth checking whether the change was theirs or the AI's.</p>
+          </div>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="nonlevel">
+      <span class="detached">Not one of the four</span>
+      <span class="level-name">Not enough here</span>
+      <p class="level-says">There isn't enough in this session to read.</p>
+      <div class="panels">
+        <div class="panel">
+          <p class="panel-label">What you'll see</p>
+          <p>A handful of turns, an abandoned session, or a finished piece with almost no conversation behind it.</p>
+        </div>
+        <div class="panel">
+          <p class="panel-label">What it doesn't mean</p>
+          <p>It is <strong>not</strong> the bottom of the ladder, and it is not a finding about the student. Reading a three-turn transcript as passive would turn "we couldn't see it" into "you didn't do it."</p>
+        </div>
+        <div class="panel panel-wide">
+          <p class="panel-label">Worth a conversation</p>
+          <p>This one goes straight to you, because the tool deliberately doesn't guess why. A student who worked somewhere else, a student who ran out of time, and a student who handed in something they didn't write all produce the same evidence. Only you can tell which.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Your task may set the ceiling</h2>
+    <p>Some assignments cap the level a student can reach, and it is worth knowing which of yours do.</p>
+    <p>If you hand students an AI-written argument and ask them to evaluate it, the highest available reading is <strong>reactive</strong> — every contribution is downstream of AI material by design. A student who does that task brilliantly still comes back reactive. That is not them falling short; it is the shape of the task, and a class full of reactive sessions on a task like that is exactly right.</p>
+    <div class="note" style="margin-top:var(--tau-s4)">
+      <p><strong>Open is not the same as vague.</strong> If you want more agency, leave the <em>approach</em> free — not the standard. An unclear task doesn't produce directive students; it produces students asking the AI what you wanted, which is the most reactive session there is. Say precisely what good looks like, and leave how they get there open.</p>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>How to talk about a level with a student</h2>
+    <p>The level describes what happened in one session. It is not a label for a person, and the difference shows up in the sentence you use.</p>
+    <div class="saypairs" style="margin-top:var(--tau-s4)">
+      <div class="saypair">
+        <span class="say-no">"You're a passive learner."</span>
+        <span class="say-yes">"In this session, none of the thinking started with you."</span>
+        <span class="saypair-note">The first is a claim about who they are; the second is a claim about one afternoon, and it's the only one the tool can support.</span>
+      </div>
+      <div class="saypair">
+        <span class="say-no">"You only got to reactive."</span>
+        <span class="say-yes">"Everything you worked on, the AI put in front of you first."</span>
+        <span class="saypair-note">The level is not a grade and doesn't have a pass mark. Describe what the session shows and let them see it.</span>
+      </div>
+      <div class="saypair">
+        <span class="say-no">"You caught the AI's mistake — good."</span>
+        <span class="say-yes">"You turned down a claim it made."</span>
+        <span class="saypair-note">Whether the AI was actually wrong is your call, not the tool's. It reports what the student did, not who was right.</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Four things the level is not</h2>
+    <ul class="plain">
+      <li><strong>Not a score.</strong> There is no total, no average, and nothing out of twenty. Four levels and a name, and that's the whole scale.</li>
+      <li><strong>Not calculated from the four readings underneath it.</strong> The dimensions on the report describe what a reader saw; they don't add up to the level. A session can read directive with unremarkable readings throughout, or reactive with strong ones, if what the student drove was never the part that mattered. See <a href="dimensions.html">The four dimensions</a>.</li>
+      <li><strong>Not comparable across different assignments without care.</strong> Two classes doing different work are not on the same footing, which is why the tool won't pool them for you.</li>
+      <li><strong>Not a substitute for reading the transcript.</strong> The level tells you which sessions to open first. It was never meant to save you from opening them.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>The level is read from the whole session — the conversation, the finished piece, and the assignment together — by the same reading that produces the evidence beneath it. Where it lands somewhere the readings underneath wouldn't suggest, it tells you in one sentence what it read to get there, and points you at the moment in the transcript.</p>
+  </footer>
+
+</div>
+
+<script src="api.js"></script>
+</body>
+</html>

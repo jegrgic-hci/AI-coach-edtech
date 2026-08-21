@@ -784,10 +784,10 @@ button.draft-chip:hover { border-color: var(--tau-forest); }
 .draft-chip-pending { color: var(--tau-ink-soft); }
 .draft-chip-pending .chip-score { font-weight: 400; font-size: 12px; }
 
-/* The .samr-* colour mapping itself lives in components.css, next to
+/* The .level-* colour mapping itself lives in components.css, next to
    .band-1..4 (same ramp, applied as a border accent) — this is just the
    width/padding this particular chip needs from it. */
-.draft-chip[class*='samr-'] { border-left-width: 5px; padding-left: 10px; }
+.draft-chip[class*='level-'] { border-left-width: 5px; padding-left: 10px; }
 
 @media (max-width: 900px) {
   .dash { flex-direction: column; overflow-y: auto; }

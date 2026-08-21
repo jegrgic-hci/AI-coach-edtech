@@ -380,11 +380,17 @@ function scoreTAU(classified, provenanceData) {
   }
 
   const totalScore = PQ + SU + CS + OC;
+  // Retired model, still running (see CLAUDE.md). The names are the current
+  // ladder's — passive/reactive/directive/transformative, renamed 2026-08-21 —
+  // so the two paths can't print two vocabularies for one scale; the DERIVATION
+  // here is the retired one and goes when readSession() is the only path.
+  // The `SAMR` key itself stays: it is persisted on every stored submission,
+  // and renaming it orphans every reading taken before today.
   let SAMR;
-  if (totalScore >= 17) SAMR = 'Redefinition';
-  else if (totalScore >= 13) SAMR = 'Modification';
-  else if (totalScore >= 9) SAMR = 'Augmentation';
-  else SAMR = 'Substitution';
+  if (totalScore >= 17) SAMR = 'Transformative';
+  else if (totalScore >= 13) SAMR = 'Directive';
+  else if (totalScore >= 9) SAMR = 'Reactive';
+  else SAMR = 'Passive';
 
   let provenanceCounts = null;
   if (provenanceData && provenanceData.length > 0) {
@@ -519,30 +525,45 @@ For each dimension return:
 
 === PART 2 — the overall level ===
 
-One level, named, describing THE AI'S IMPACT ON THE STUDENT'S AGENCY. It is read from the shape the four readings make, the assignment, and the session as a whole — never from a sum or an average of the bands.
-- "Substitution": The AI produced the thinking. The student set the task and used what came back.
-- "Augmentation": The AI set the direction; the student worked on what it handed back.
-- "Modification": The student led. The AI worked to their brief, and the conversation went where they took it.
-- "Redefinition": The student led and resisted. They pushed back where it mattered, and the thinking that survived is theirs.
+One level, named, describing WHERE THE STUDENT'S THINKING ENTERED THE WORK. It is read from the shape the four readings make, the assignment, and the session as a whole — never from a sum or an average of the bands.
+
+Every name completes the same sentence: "In this session, the student's thinking was ___." The student's thinking is the subject and the AI is the instrument — never the reverse.
+- "Passive": The AI's thinking stood in for the student's. Nothing in the work started with them.
+- "Reactive": The student's thinking only ever responded to the AI's. Real work, all of it downstream of an AI turn.
+- "Directive": The student's thinking set the terms. The AI worked to them.
+- "Transformative": The student's thinking set the terms AND came out of the session changed. This is the only level requiring a CHANGE rather than a position — the thinking in the essay differs from what the student brought in, and the shift is traceable through the transcript. Do not award it for pushback alone.
+
+The level reads AGENCY, not quality. A confidently directed shallow session is "Directive"; whether the work is any good is the teacher's judgement, not yours.
 
 VOICE FOR PART 2. Two separate observations, never one concessive sentence. State what the session shows; separately, state what it does not show. Do NOT join them with "but", "though", "however", "and yet", and do NOT qualify an observation as you make it — no "on the surface", "almost none of it", "looks strong until". Direct and factual. No praise offered and withdrawn.
 
+THE LEVEL DESCRIBES THE CONVERSATION, NOT THE STUDENT. This is the hardest rule here and the level names make breaking it easy: "reactive" reads like a description of a person in a way the old names did not. The conversation was reactive — meaning questions and ideas came only after the AI introduced them. The student is not reactive.
+Test every sentence you write in Part 2: if it can be rewritten as "you are ___" without changing its meaning, it is wrong. Rewrite it as something the transcript contains.
+- Wrong: "You waited for the AI to lead." / "You're not challenging what you're told."
+- Right: "Every question here came after the AI had already named the thing it was about." / "No claim in this chat was checked against anything."
+
 Return:
 - "level": one of the four names
-- "shape": one sentence, addressed as "you", saying what the student actually DID in this chat. A student aged 14-18 reads this first, at the top of the page, with nothing else to explain it, so it has to land on one read.
-  * Concrete acts, not characterisation. Name the thing they did — asked, told it, kept, changed, turned down, brought their own. Do NOT name what kind of session or what kind of student this was.
+- "shape": one sentence naming THE SPECIFIC THING IN THIS CHAT THAT PUT IT AT THIS LEVEL. A student aged 14-18 reads this first, at the top of the page, directly under the level name, so it has to land on one read.
+  * It is EVIDENCE, not a definition. The student can already read the level name and the line explaining it — restating that in other words wastes the most-read sentence on the page. Point at what happened here.
+  * Wrong (a paraphrase of "reactive"): "You worked on what the AI gave you."
+  * Right (the evidence for it): "Every question you asked came after the AI had already named the thing you were asking about."
+  * Concrete acts, not characterisation. Name the thing that happened — asked, told it, kept, changed, turned down, brought their own. Do NOT name what kind of session or what kind of student this was.
   * No metaphor and no figure of speech. "You directed this into existence", "an idea that started on the AI's side", "what the essay is made of" are all wrong: each one has to be decoded before it means anything.
   * Everyday words. Not: initiative, agency, discourse, elaborate, frame, register, substantive.
   * ONE observation, not a contrast. No "but", "though", "however".
   * Never a rating, never a nickname, never a judgement of whether the work is any good.
-- "body": two sentences. The first names what this session shows most clearly. The second names what this level's definition requires that this session does not show — stated as a behaviour the transcript does or doesn't contain, NOT as a shortfall against a higher rung and NOT as a comparison the student loses.
+- "body": two sentences. The first names what this session shows most clearly. The second names something this level's definition requires that this chat does not contain — stated as a FACT ABOUT THE TRANSCRIPT, NOT as a shortfall against a higher rung and NOT as a comparison the student loses.
+  * Right: "Nothing in the essay appears in your turns before it appears in the AI's."
+  * Wrong: "You didn't reach the level where the thinking changes." / "You stopped short of directing it."
+  * At Transformative the requirement is that the thinking CHANGED, so the second sentence names what stayed fixed. Say what didn't move; do not imply it should have.
 - "departure": if the level lands somewhere the four bands would not predict, one sentence naming what you read in the assignment or the arc of the session to get there, pointing at something checkable. Otherwise null.
 - "exception": one or two sentences naming the single moment that most cuts against this level. Required.
 
 Return ONLY valid JSON:
 {"dimensions":[{"key":"PQ","band":4,"count":"...","claim":"...","moments":[{"quote":"...","note":"..."}],"counterexample":{"text":"..."}}, ...],"overall":{"level":"...","shape":"...","body":"...","departure":null,"exception":"..."}}`;
 
-const LEVELS = ['Substitution', 'Augmentation', 'Modification', 'Redefinition'];
+const LEVELS = ['Passive', 'Reactive', 'Directive', 'Transformative'];
 
 async function readSession({ classified, essayText, assignment }, meta) {
   const chatLog = classified

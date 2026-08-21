@@ -480,12 +480,12 @@
   --terra-tint:  var(--tau-attention-bg);
   --grey-tint:   var(--tau-surface-2);
 
-  /* --- SAMR: was slate/blue/green/purple, four unrelated hues on an
+  /* --- Agency level: was slate/blue/green/purple, four unrelated hues on an
          ordered scale. Now the ordered earth ramp. --- */
-  --samr-substitution: var(--tau-band-1-fg);
-  --samr-augmentation: var(--tau-band-2-fg);
-  --samr-modification: var(--tau-band-3-fg);
-  --samr-redefinition: var(--tau-band-4-fg);
+  --level-passive: var(--tau-band-1-fg);
+  --level-reactive: var(--tau-band-2-fg);
+  --level-directive: var(--tau-band-3-fg);
+  --level-transformative: var(--tau-band-4-fg);
 
   /* --- turn labels. 17 pairs collapsed onto three semantic families,
          matching the existing positive / neutral / negative grouping

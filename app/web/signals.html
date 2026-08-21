@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Worth a chat — Tau Thinking</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<script src="theme.js"></script>
+<script src="guides.js"></script>
+<style>
+/* Page chrome is levels.html's, kept in step deliberately: the two explainers
+   are a pair a teacher moves between, and two different reading layouts for
+   the same kind of material reads as two different products. */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--tau-bg);
+  color: var(--tau-ink);
+  font-family: var(--tau-font-ui);
+  font-size: var(--tau-text-md);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+header {
+  background: var(--tau-surface);
+  border-bottom: 1px solid var(--tau-line);
+  padding: 13px var(--tau-s6);
+  display: flex;
+  align-items: center;
+  gap: var(--tau-s3);
+}
+header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.2px; }
+.header-back {
+  margin-left: auto;
+  font-size: var(--tau-text-sm);
+  font-weight: 600;
+  color: var(--tau-forest);
+  text-decoration: none;
+}
+.header-back:hover { text-decoration: underline; }
+
+.doc {
+  max-width: 47rem;
+  margin: 0 auto;
+  padding: var(--tau-s7) var(--tau-s5) 96px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tau-s7);
+}
+.doc-title {
+  font-family: var(--tau-font-serif);
+  font-size: 34px;
+  line-height: 1.14;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  text-wrap: balance;
+}
+.doc-standfirst {
+  font-family: var(--tau-font-serif);
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--tau-ink-soft);
+  margin-top: var(--tau-s3);
+  max-width: 34rem;
+}
+h2 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  margin-bottom: var(--tau-s3);
+  text-wrap: balance;
+}
+p { margin-bottom: var(--tau-s3); }
+p:last-child { margin-bottom: 0; }
+section > p { max-width: 40rem; }
+hr.rule { border: 0; border-top: 1px solid var(--tau-line); }
+
+.note {
+  background: var(--tau-surface);
+  border: 1px solid var(--tau-line);
+  border-left: 3px solid var(--tau-forest);
+  border-radius: var(--tau-r-md);
+  padding: var(--tau-s4) 18px;
+  font-size: var(--tau-text-sm);
+  color: var(--tau-ink-soft);
+}
+.note strong { color: var(--tau-ink); }
+
+/* .flag-card and .tray-section-* come from components.css unchanged — this is
+   the same markup the modal rendered, so the guide did not need new styles,
+   only room to be read in. */
+.signal-list { display: flex; flex-direction: column; gap: var(--tau-s4); }
+
+ul.plain {
+  margin: 0;
+  padding-left: 18px;
+  max-width: 40rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+footer {
+  border-top: 1px solid var(--tau-line);
+  padding-top: var(--tau-s4);
+  font-size: var(--tau-text-xs);
+  line-height: 1.65;
+  color: var(--tau-ink-faint);
+}
+footer p { max-width: 40rem; }
+
+@media (max-width: 640px) {
+  .doc { padding: var(--tau-s5) var(--tau-s4) 64px; }
+  .doc-title { font-size: 28px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="Tau" width="391" height="192">Thinking</span>
+  <h1>Worth a chat</h1>
+  <a class="header-back" href="dashboard.html">Back to dashboard</a>
+</header>
+
+<div class="doc">
+
+  <header style="background:none;border:0;padding:0;display:block">
+    <p class="eyebrow">A guide for teachers</p>
+    <h2 class="doc-title" style="margin-top:6px">What the signals mean</h2>
+    <p class="doc-standfirst">The tool checks every submission for these. They are never shown to students — they surface only on your dashboard, as reasons to start a conversation.</p>
+  </header>
+
+  <section>
+    <div class="note">
+      <p><strong>A signal is a question, not a verdict.</strong> Every one of these has an innocent explanation as well as a worrying one, and the tool cannot tell them apart — it can only tell you that something in this submission is worth asking about. What it means is settled by talking to the student, not by reading this page.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>The signals</h2>
+    <div class="signal-list" id="signalList" style="margin-top:var(--tau-s4)"></div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Three things a signal is not</h2>
+    <ul class="plain">
+      <li><strong>Not visible to the student.</strong> Signals appear on your surfaces only. A student's own report never mentions them, and never has.</li>
+      <li><strong>Not a finding of misconduct.</strong> The tool reports what it can see in the text. Whether it amounts to anything is a judgement about a person you know and it doesn't.</li>
+      <li><strong>Not connected to the agency level.</strong> A signal doesn't raise or lower where a session sits on the ladder, and a low level is not itself a signal. Two different questions — see <a href="levels.html">Agency levels</a>.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>Signals are computed per submission and shown as "Worth a chat" wherever that student appears. A student can carry more than one; the dashboard collapses them into a single pill, and opening the submission shows which fired.</p>
+  </footer>
+
+</div>
+
+<script src="api.js"></script>
+<script>
+document.getElementById('signalList').innerHTML = flagGuideCardsHTML();
+</script>
+</body>
+</html>

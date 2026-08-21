@@ -1019,6 +1019,20 @@
        right half empty and made the counterexample look like an indented
        afterthought — as a second column it reads as the other half of the
        same statement, which is what it is. */
+    /* The level said in a sentence, above the shape. Sized BELOW .hero-shape
+       deliberately: this line is the same for everyone at this level, and the
+       sentence about this particular chat is the one that should pull the eye.
+       The level name is bolded rather than coloured — the band colour is
+       already carrying the classification on the scale two inches left, and
+       saying it twice in colour makes the card read as a verdict. */
+    .level-summary .hero-level-def {
+      font-size: var(--tau-text-lg);
+      line-height: var(--tau-leading-snug);
+      color: var(--tau-ink-soft);
+      max-width: 52ch;
+      margin-bottom: var(--tau-s3);
+    }
+    .level-summary .hero-level-def b { color: var(--tau-ink); font-weight: 650; }
     .level-summary .hero-shape {
       font-size: var(--tau-text-2xl);
       line-height: 1.3;
@@ -1106,7 +1120,7 @@
 
        Rendered bottom-up (column-reverse) so more agency is higher: a
        vertical scale that increases upward is the one convention every
-       reader already has. DOM order stays Substitution → Redefinition, so
+       reader already has. DOM order stays Passive → Transformative, so
        assistive tech reads the scale in its logical order.
 
        Only the current level carries its explanatory line. All four would

@@ -246,10 +246,10 @@ details[open] > .acard-disclosure-toggle {
    an existing element (a card, a chip, a collapsible row) rather than its own
    badge. One mapping, two treatments, both documented here — not a second
    copy of the ramp. Consumers set their own border-left-width. */
-.samr-substitution { border-left-color: var(--tau-band-1-fg); }
-.samr-augmentation { border-left-color: var(--tau-band-2-fg); }
-.samr-modification { border-left-color: var(--tau-band-3-fg); }
-.samr-redefinition { border-left-color: var(--tau-band-4-fg); }
+.level-passive { border-left-color: var(--tau-band-1-fg); }
+.level-reactive { border-left-color: var(--tau-band-2-fg); }
+.level-directive { border-left-color: var(--tau-band-3-fg); }
+.level-transformative { border-left-color: var(--tau-band-4-fg); }
 
 /* Five discrete steps, because the engine emits 1–5. A continuous bar would
    claim a precision the model does not have — see the locked scoring decision. */
@@ -1854,7 +1854,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
 /* Equal, so the two charts share a scale. Both are partitions of the SAME
    cohort — .comp splits it by level, .dbar splits it by band — so once
    their tracks are the same width, a length means the same number of
-   students in both, and "11 at Augmentation" is directly comparable to
+   students in both, and "11 at reactive" is directly comparable to
    "11 at band 2" by eye. Unequal columns made that comparison wrong while
    looking available, which is worse than not offering it.
    (Equal COLUMNS is necessary but not sufficient — see the note in the

@@ -232,10 +232,16 @@
           <span class="mi-icon" aria-hidden="true">${d.icon}</span>
           <span class="mi-body">${esc(d.label)}<span class="mi-desc">${esc(d.desc)}</span></span>
         </a>`).join('')}
-        ${extras.map((x, i) => `<button type="button" class="menu-item" data-extra="${i}">
-          <span class="mi-icon" aria-hidden="true">${x.icon || ''}</span>
-          <span class="mi-body">${esc(x.label)}${x.desc ? `<span class="mi-desc">${esc(x.desc)}</span>` : ''}</span>
-        </button>`).join('')}
+        ${extras.map((x, i) => {
+          // An extra that navigates renders as a real link, not a button with a
+          // location assignment: reference material a teacher wants to open in
+          // a second tab, or send to a colleague, needs a middle-clickable href.
+          const body = `<span class="mi-icon" aria-hidden="true">${x.icon || ''}</span>
+          <span class="mi-body">${esc(x.label)}${x.desc ? `<span class="mi-desc">${esc(x.desc)}</span>` : ''}</span>`;
+          return x.href
+            ? `<a href="${esc(x.href)}" class="menu-item">${body}</a>`
+            : `<button type="button" class="menu-item" data-extra="${i}">${body}</button>`;
+        }).join('')}
         <div class="menu-divider"></div>
         <button type="button" class="menu-item theme-toggle" aria-pressed="false" aria-label="Switch to dark theme">
           <span class="mi-icon" aria-hidden="true">◐</span>
@@ -336,6 +342,25 @@
     return node;
   }
 
+  // Every reading taken before 2026-08-21 is stored with the retired SAMR
+  // name, and stored readings are never rewritten — a reading is a record of
+  // what was read at the time. So the rename happens at the edge: anything
+  // about to PRINT a level runs it through here first.
+  //
+  // Only the word changed in that rename, not the reading, so this is an alias
+  // and not a conversion — a session read as Modification is the same session
+  // a reader today would call directive.
+  const LEGACY_LEVEL_NAMES = {
+    Substitution: 'Passive',
+    Augmentation: 'Reactive',
+    Modification: 'Directive',
+    Redefinition: 'Transformative',
+  };
+  function levelName(level) {
+    return LEGACY_LEVEL_NAMES[level] || level || null;
+  }
+
+  window.levelName = levelName;
   window.api = api;
   window.logUse = logUse;
   window.logout = logout;

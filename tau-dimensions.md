@@ -17,8 +17,9 @@ specified against published coding schemes, each worked through against the one 
 Each dimension is a question read from the transcript, the essay and the assignment together, and the
 output is coded evidence — a claim, the moments supporting it, and the moment that doesn't. On top of
 that evidence sits a **rubric band, 1–4 (or "not enough here")**, chosen by reading, never derived
-from a count; and above the four sits **one named overall level** on a SAMR-vocabulary agency ladder,
-read from the four bands plus the assignment plus the shape of the session. **There is still no total
+from a count; and above the four sits **one named overall level** on an agency ladder — *passive,
+reactive, directive, transformative*, or "not enough here" — read from the transcript, the assignment
+and the shape of the session. **There is still no total
 and no average, and no band is ever computed from a ratio.** Everything above *The scoring foundation*
 describing formulas, `mapTo5`, or a 4–20 total is **historical**, kept for the reasoning that produced
 the change.
@@ -287,7 +288,7 @@ Every claim is falsifiable against the transcript. A teacher can check a quote. 
 |---|---|
 | The 1–5 mapping (`mapTo5`) | Discards the denominator, which *is* the confidence. 10-of-11 and 2-of-2 print identically and are not the same claim. Also implies equal intervals it doesn't have. **A number came back on 2026-08-12 — as a rubric band read from the evidence, never derived from a ratio. See *The scoring scale*.** |
 | The 4–20 total | Sums facets this file's own measurement model says are correlated. Averaging a strong reading and a weak one returns the one thing the session was not. **Still retired, permanently.** |
-| SAMR from the total | Inherits the error. **Superseded 2026-08-12** — SAMR is now read directly as an agency ladder, not derived from anything. See *The scoring scale*. The bikeguide comparison that used to sit here was comparing two different constructs; corrected in *The bikeguide case*. |
+| SAMR from the total | Inherits the error. **Superseded 2026-08-12** — the overall is read directly as an agency ladder, not derived from anything; **the SAMR names themselves were replaced 2026-08-21**. See *The scoring scale*. The bikeguide comparison that used to sit here was comparing two different constructs; corrected in *The bikeguide case*. |
 | Dependence on the 11-way turn labels | Every dimension now reads text. The label-validity ceiling stops binding, because nothing sits on the labels. |
 
 ### Units — one per dimension, and never the turn
@@ -413,33 +414,91 @@ So the scale is **1–4, or "not enough here."** The non-score is not a zero and
 scale. It reports that the session was too thin to judge, which is itself actionable, and it protects
 band 1 from filling with unreadable sessions until it means nothing.
 
-### The overall: SAMR, read as an agency ladder
+### The overall: the agency ladder — RENAMED 2026-08-21
 
-Above the four sits **one overall level**, named — Substitution, Augmentation, Modification,
-Redefinition — and **never numbered**. Numbering the rungs makes Augmentation read as a failing
-grade, which is SAMR's documented failure mode and is not what the level says.
+Above the four sits **one overall level**, named — **passive, reactive, directive, transformative** —
+and **never numbered**. Numbering the rungs makes the second one read as a failing grade, which was
+the documented failure mode of the SAMR vocabulary this replaces.
 
-**The construct is the AI's impact on the student's agency**, from *the AI did the thinking* to *the
-student led, resisted, and the thinking that survived is theirs*:
+**The construct is where the student's thinking entered the work**, from *none of it was theirs* to
+*it was theirs and the session changed it*:
 
 | Level | What it says |
 |---|---|
-| **Substitution** | The AI did the thinking. The student set the task and took what came back. |
-| **Augmentation** | The AI set the direction; the student improved what it handed them. Agency shows up in reaction, not initiation. |
-| **Modification** | The student led. The AI worked to their brief, and the conversation went where they took it. |
-| **Redefinition** | The student led and resisted. They pushed back where it mattered, and the thinking that survived is theirs. |
+| **Passive** | The AI's thinking stood in for the student's. Nothing in the work started with them. |
+| **Reactive** | The student's thinking only ever responded to the AI's. Real work, all of it downstream. |
+| **Directive** | The student's thinking set the terms. The AI worked to them. |
+| **Transformative** | The student's thinking set the terms and came out of the session changed. |
 
-Each level is a **profile shape**, not a threshold on one dimension. An earlier draft separated
-Modification from Redefinition by pushback alone, which would put a quarter of the instrument in
-charge of the headline and make the top boundary unstable.
+#### The frame every name has to satisfy
 
-**This is a departure from SAMR as published**, and it has to be stated wherever the ladder appears
-rather than absorbed quietly. Puentedura's levels describe *task* transformation; these describe
-*agency*. SAMR also has no empirical validation and a rigid hierarchy with no evidence that higher is
-better (Hamilton, Rosenberg & Akcaoglu 2016) — so unlike the four dimensions, whose construct
-validity is inherited from their schemes, **the ladder is a communication frame borrowed to carry a
-judgement, and should not be presented as an instrument on the same footing.** It survives because
-teachers already have the vocabulary, and because the brand encodes it.
+Each label completes one sentence: **"In this session, the student's thinking was ______."**
+
+**The student's thinking holds the subject slot; the AI is the instrument.** A ladder written the
+other way round — *the AI substituted / directed / extended your thinking* — puts the AI in the
+actor's seat at every rung, and the top and the bottom stop being distinguishable, because in both
+sentences the AI is the one doing something. This is not a stylistic preference: the construct is the
+student's agency, so a name that makes the AI the actor is measuring something else.
+
+**The adjective describes the session, never the student.** *"A reactive session"*, *"the thinking
+here was passive"* — never *"you are passive."* The adjectival form makes that slip easy, and
+`designsystem.md`'s coach-not-judge rule makes it costly. This is a copy constraint on every surface
+that prints a level.
+
+#### "Not enough here" — the same non-score, one tier up
+
+Returned when one or more dimensions has nothing to code. It is **not the bottom of the ladder** and
+never renders as a fifth rung — it sits detached, exactly as it does on the dimensions.
+
+Reading a thin transcript as *passive* would convert "we could not see it" into "you did not do it",
+which is a false finding with a name on it — the same error *"Not enough here" — a non-score*
+prevents one tier down.
+
+**It does not say why.** A failed assignment and work done off the platform produce identical
+evidence, and choosing between them takes knowledge of the student the tool does not have. It reports
+the unreadable session and hands it to the teacher. On a triage surface that is among the more useful
+things it does, and it is the reason the non-score is a first-class output rather than an absence.
+
+#### Each level is a profile shape, not a threshold
+
+An earlier draft separated the top two rungs by pushback alone, which put a quarter of the instrument
+in charge of the headline and made the top boundary unstable. The current top boundary turns on
+**whether the thinking moved across the session** — a change rather than a position, which no single
+behaviour and no single dimension can stand in for. It is also the only rung requiring a
+conversation→essay delta; the other three are readable from position alone.
+
+**Quality is not on this ladder.** A confidently directed shallow session outranks a thoughtful
+reaction to a rich one. That is correct and deliberate: the ladder reads agency, and whether the work
+was any good is the teacher's judgement against their own rubric — the scope boundary already stated
+in *The report describes; the teacher teaches*.
+
+#### What this replaces, and why nothing of SAMR survives
+
+The previous ladder was Substitution / Augmentation / Modification / Redefinition, read as an agency
+ladder. All four are gone.
+
+| Retired | Why |
+|---|---|
+| **Substitution** | The one rung that was clear, because its operation happens to apply to the student rather than to the task. Replaced anyway so the set is one part of speech on one axis — *passive* says the same thing in ordinary English, and keeping a single SAMR word would have implied the rest were SAMR too. |
+| **Augmentation** | Names something done to the *task*. "The student's thinking was augmented" cannot be completed without inventing a meaning, and what gets invented puts the AI back in the subject slot. |
+| **Modification** | Same defect, and the point where the old ladder **switched axis**: rungs 1–2 were a quantity (how much the AI did), rungs 3–4 a kind (who was in charge). Two constructs in one ladder is why the top half could never be explained in the bottom half's language — the observation that started this rename. |
+| **Redefinition** | Separated from Modification by pushback alone. See the top-boundary note above. |
+
+Two arguments that no longer apply and should not be reintroduced:
+
+- *"Teachers already have the vocabulary."* They do not — the schools this ships to have no
+  SAMR-trained staff, so familiarity buys nothing and the inherited defects cost.
+- *"SAMR is a departure from Puentedura and must be disclosed wherever the ladder appears."* Moot.
+  Nothing is borrowed, so there is nothing to disclose. **The standing requirement to print a
+  departure sentence beside the ladder is retired with this rename.**
+
+What does carry forward is the reason SAMR was a weak foundation: no empirical validation, and a
+rigid hierarchy with no evidence that higher is better (Hamilton, Rosenberg & Akcaoglu 2016). The new
+names are not an instrument on the same footing as the four dimensions either — the dimensions
+inherit construct validity from published schemes, the ladder does not. **The exception is
+*transformative*, which is Bereiter & Scardamalia's knowledge transforming — the construct OC already
+inherits.** The top of the ladder is therefore named in literature the instrument already cites,
+which is one rung better grounded than the ladder it replaces and still short of the dimensions.
 
 ### How the overall is decided — the residual
 
@@ -463,6 +522,54 @@ or the assignment.** When it doesn't depart, it says nothing extra.
 
 That departure sentence is also the better reliability target. Agreement on the level is weak
 evidence if both coders simply averaged; agreement on *what they read to depart* is the real test.
+
+### The assignment ceiling — OPEN, raised 2026-08-21
+
+Point 2 above is under-specified in one way that matters. **Some assignments cap the level a student
+can reach.** A task that hands students an AI-generated argument and asks them to evaluate it makes
+*reactive* the highest available reading: every contribution is downstream of AI material by
+construction, and a student who does the task brilliantly still reads reactive. Accurate, and
+second-from-bottom.
+
+Two readings are available and they are different instruments:
+
+- **Absolute** — the level names what happened. A capped class reads reactive because the *task*
+  capped there, which is a true statement about the sessions and a finding about the assignment.
+- **Assignment-relative** — the level names attainment against what the task made possible.
+  Reactive-at-ceiling reads as success.
+
+**Provisional call: keep the ladder absolute, and let the assignment change the reading beside the
+label rather than the label itself** — *"reactive, which is the ceiling this task allows."* Three
+reasons:
+
+1. **A relative ladder prints the same word for two different states.** "Reactive because the task
+   capped there" and "reactive because the student never took the wheel on an open task" would both
+   render *reactive*. That is worse than the problem it solves.
+2. **The label stays comparable across assignments**, which is the only thing that makes a level
+   portable at all — and comparability is already scarce, since `teacher-dashboard-design.md` refuses
+   to pool readings across classes running different work.
+3. **The ceiling is information the teacher wants.** A teacher who learns their task caps at reactive
+   has learned something actionable about their own assignment design. Suppressing it to keep a
+   column looking healthy spends the tool's most distinctive output.
+
+**What this forces, and it is a product decision not a measurement one:** does an assignment carry a
+declared agency ceiling? The assignment already holds `description`, `purpose` and `requirements` as
+three separate teacher-authored fields, all composed into the brief the analysis receives — so a
+ceiling can be **inferred** from text that already exists, or **declared** as a fifth field on the
+creation form, or inferred-then-confirmed. Not settled. Settle it before band descriptors are
+written, because the descriptors read differently depending on whether a ceiling exists to read
+against.
+
+Two consequences to hold when it is settled:
+
+- **Exceeding the ceiling is itself a finding**, and currently an invisible one. A student who comes
+  back *directive* on a task that permits *reactive* went and got material the assignment never asked
+  for. Without a declared ceiling they simply appear one rung above their classmates with no
+  explanation.
+- **"Open" is not "vague."** If teachers learn that open tasks yield higher levels, some will get
+  there by writing less specific assignments — and unclear standards make students ask the AI what is
+  wanted, which produces *reactive* sessions, not *directive* ones. An open task specifies the
+  standard precisely and leaves the approach free. Any help text on a ceiling field has to say this.
 
 ### What is never done
 
@@ -518,6 +625,12 @@ Two Hard Constraints encode the retired model and block this from shipping:
   didn't deserve. Now that it is a reading in its own right it leads the report. **A deliberate
   reversal to record, not drift.**
 
+**Third, added 2026-08-21 and not yet carried into `designsystem.md`:** the ladder's names changed to
+*passive / reactive / directive / transformative*. Every surface printing a level, every band-copy
+rule referring to SAMR names, and the requirement to print a departure sentence beside the ladder
+(now retired — see *What this replaces*) need amending. The copy constraint to add: **the adjective
+describes the session, never the student.**
+
 **Both amended in `designsystem.md` on 2026-08-12**, and the consequences for the teacher surfaces
 are specified in `teacher-dashboard-design.md` the same day — *The unit of every aggregate* is the
 authority on how a band, a level and "not enough here" render; *Evidence on the teacher surface*
@@ -549,8 +662,10 @@ diagnosis in it is what produced the redesign, and because it records what the o
 | OC | 3 | 3 | **~3 of 12 ideas** the student's or reorganised |
 | Total | 13 (Modification) | 15 (Modification) | **no total** — see *The scoring foundation* |
 
-**Under the settled scale (2026-08-12): PQ 4, CS 3, SU 3, OC 2, overall Modification.** The overall
-was *held* at Modification rather than raised, on the residual: the one claim taken unchecked was the
+**Under the settled scale (2026-08-12): PQ 4, CS 3, SU 3, OC 2, overall directive** — read
+*Modification* when scored, renamed with the ladder on 2026-08-21; the reading did not change, only
+the word. The overall was *held* at directive rather than raised, on the residual: the one claim
+taken unchecked was the
 replacement reference, in a document meant to be shared, immediately after that same source had
 already been caught fabricating one. That is a judgement CS cannot express — it records eight checks
 and a miss, and cannot say the miss was the expensive one.
@@ -1100,6 +1215,49 @@ because of this scarcity.
 ---
 
 ## Session log
+
+- **2026-08-21 — the ladder renamed; SAMR fully out; nothing built.** The session began as a language
+  question — *what would describe the overall level better than SAMR?* — and turned into a structural
+  one.
+
+  **The finding that drove it: SAMR switched axis halfway up.** Substitution and Augmentation were a
+  *quantity* (how much of the work the AI did); Modification and Redefinition were a *kind* (who was
+  in charge, and whether they pushed back). Two constructs in one ladder, which is why the top half
+  could never be explained in the bottom half's language — the symptom that opened the session. No
+  renaming of rungs 3 and 4 could have fixed it; the whole ladder had to sit on one axis.
+
+  **The frame that produced the names:** each label completes *"in this session, the student's
+  thinking was ______."* An earlier candidate set (Substitution / Direction / Extension /
+  Development) was rejected on a single test — with the AI in the subject slot, the top and bottom
+  rungs became indistinguishable, since the AI is the actor in both. Putting the student's thinking
+  in the subject slot is what makes the ladder measure agency rather than AI behaviour.
+
+  **Settled: passive / reactive / directive / transformative**, plus "not enough here" detached. Word
+  choice at rung 1 went through *substitutive* (odd English), *vicarious*, *outsourced* (implies a
+  deliberate choice — an accusation the tool cannot support), *derivative* (a quality judgement,
+  which belongs to the teacher) and *extractive* (collides with the existing neutral `extraction`
+  turn label). **Passive** won on being ordinary English and on *passive → reactive → proactive*
+  being an ordering teachers already carry, so the bottom of the ladder self-orders before anyone
+  reads the scheme. *Transformative* is Bereiter & Scardamalia's knowledge transforming — the one
+  rung grounded in literature the instrument already cites.
+
+  **Two arguments retired with the names:** familiarity (these schools have no SAMR-trained staff, so
+  it bought nothing) and the standing requirement to print a departure-from-Puentedura sentence
+  wherever the ladder appears (nothing is borrowed, so there is nothing to disclose).
+
+  **"Not enough here" promoted to the level tier**, on the same reasoning that put it on the
+  dimensions — and with the boundary stated: it reports that the session cannot be read, never why.
+  A failed assignment and off-platform work produce identical evidence.
+
+  **New open item: the assignment ceiling.** Some tasks cap the reachable level — a task asking
+  students to evaluate given AI material makes *reactive* the ceiling. Provisional call is an
+  absolute ladder with the assignment changing the reading beside the label, not the label. The
+  unsettled part is a product decision: whether an assignment carries a declared ceiling field,
+  an inferred one, or inferred-then-confirmed. See *The assignment ceiling*.
+
+  **Also recorded:** quality is explicitly off the ladder (a confidently directed shallow session
+  outranks a thoughtful reaction to a rich one, and that is correct), and a copy constraint —
+  **the adjective describes the session, never the student** — which `designsystem.md` still needs.
 
 - **2026-08-12 — the scale settled; a number came back, the total did not; nothing built.** The
   session started from a design question — how a reader understands an evidence report at a glance,

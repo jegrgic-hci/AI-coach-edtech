@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The four dimensions — Tau Thinking</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<script src="theme.js"></script>
+<style>
+/* Page chrome is levels.html's, kept in step deliberately — the three
+   explainers are a set a teacher moves between, and three reading layouts for
+   the same kind of material reads as three different products. */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--tau-bg);
+  color: var(--tau-ink);
+  font-family: var(--tau-font-ui);
+  font-size: var(--tau-text-md);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+header {
+  background: var(--tau-surface);
+  border-bottom: 1px solid var(--tau-line);
+  padding: 13px var(--tau-s6);
+  display: flex;
+  align-items: center;
+  gap: var(--tau-s3);
+}
+header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.2px; }
+.header-back {
+  margin-left: auto;
+  font-size: var(--tau-text-sm);
+  font-weight: 600;
+  color: var(--tau-forest);
+  text-decoration: none;
+}
+.header-back:hover { text-decoration: underline; }
+
+.doc {
+  max-width: 47rem;
+  margin: 0 auto;
+  padding: var(--tau-s7) var(--tau-s5) 96px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tau-s7);
+}
+.doc-title {
+  font-family: var(--tau-font-serif);
+  font-size: 34px; line-height: 1.14; font-weight: 600; letter-spacing: -0.4px;
+  text-wrap: balance;
+}
+.doc-standfirst {
+  font-family: var(--tau-font-serif);
+  font-size: 18px; line-height: 1.55; color: var(--tau-ink-soft);
+  margin-top: var(--tau-s3); max-width: 34rem;
+}
+h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: var(--tau-s3); text-wrap: balance; }
+p { margin-bottom: var(--tau-s3); }
+p:last-child { margin-bottom: 0; }
+section > p { max-width: 40rem; }
+hr.rule { border: 0; border-top: 1px solid var(--tau-line); }
+
+.note {
+  background: var(--tau-surface);
+  border: 1px solid var(--tau-line);
+  border-left: 3px solid var(--tau-forest);
+  border-radius: var(--tau-r-md);
+  padding: var(--tau-s4) 18px;
+  font-size: var(--tau-text-sm);
+  color: var(--tau-ink-soft);
+}
+.note strong { color: var(--tau-ink); }
+
+/* ── The four dimension cards ─────────────────────────────────────────────
+   NO BAND RAMP HERE. That ramp is reserved for an ordered scale, and these
+   four are not ordered — they are four different questions, all equal. Using
+   band colour to tell them apart would say a rank exists where none does. */
+.dims { display: flex; flex-direction: column; gap: var(--tau-s4); }
+
+.dim {
+  background: var(--tau-surface);
+  border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-md);
+  padding: var(--tau-s5) 22px 22px;
+}
+.dim-q {
+  display: block;
+  font-family: var(--tau-font-serif);
+  font-size: 26px; font-weight: 600; letter-spacing: -0.3px; line-height: 1.15;
+  margin-bottom: 6px;
+}
+.dim-name {
+  display: block;
+  font-size: var(--tau-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tau-track-label);
+  color: var(--tau-ink-label);
+  margin-bottom: var(--tau-s4);
+}
+.panels {
+  display: grid; gap: var(--tau-s4);
+  border-top: 1px solid var(--tau-line);
+  padding-top: var(--tau-s4);
+}
+.panel-label {
+  font-size: var(--tau-text-xs); font-weight: 600; text-transform: uppercase;
+  letter-spacing: var(--tau-track-label); color: var(--tau-ink-label);
+  margin-bottom: 4px;
+}
+.panel p { margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+.panel p + p { margin-top: 7px; }
+.panel cite {
+  font-style: normal;
+  color: var(--tau-ink);
+  font-weight: 650;
+}
+
+/* ── Bands ── */
+.bands { display: flex; flex-direction: column; gap: 0; }
+.band-row {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: var(--tau-s4);
+  padding: var(--tau-s3) 0;
+  border-top: 1px solid var(--tau-line);
+  align-items: baseline;
+}
+.band-row:last-child { border-bottom: 1px solid var(--tau-line); }
+.band-row .bn {
+  font-size: var(--tau-text-sm);
+  font-weight: 650;
+  color: var(--tau-ink);
+}
+.band-row .bd { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+.band-row.is-nonscore .bn { font-style: italic; color: var(--tau-ink-soft); font-weight: 600; }
+
+/* ── The grid ── */
+.grid-scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 30rem; font-size: var(--tau-text-sm); }
+th, td { text-align: left; padding: var(--tau-s3) 14px; border: 1px solid var(--tau-line); vertical-align: top; }
+thead th, tbody th {
+  background: var(--tau-surface-2);
+  font-size: var(--tau-text-xs);
+  font-weight: 650;
+  letter-spacing: var(--tau-track-label);
+  text-transform: uppercase;
+  color: var(--tau-ink-soft);
+}
+tbody th { text-transform: none; letter-spacing: 0; font-size: var(--tau-text-sm); color: var(--tau-ink); width: 11rem; }
+td { background: var(--tau-surface); }
+td b { display: block; margin-bottom: 2px; }
+td span { color: var(--tau-ink-soft); }
+
+ul.plain {
+  margin: 0; padding-left: 18px; max-width: 40rem;
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+footer {
+  border-top: 1px solid var(--tau-line);
+  padding-top: var(--tau-s4);
+  font-size: var(--tau-text-xs); line-height: 1.65; color: var(--tau-ink-faint);
+}
+footer p { max-width: 40rem; }
+
+@media (min-width: 46rem) {
+  .panels { grid-template-columns: 1fr 1fr; }
+  .panels .panel-wide { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  .doc { padding: var(--tau-s5) var(--tau-s4) 64px; }
+  .doc-title { font-size: 28px; }
+  .dim { padding: var(--tau-s4) 16px 18px; }
+  .band-row { grid-template-columns: 1fr; gap: 2px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="Tau" width="391" height="192">Thinking</span>
+  <h1>The four dimensions</h1>
+  <a class="header-back" href="dashboard.html">Back to dashboard</a>
+</header>
+
+<div class="doc">
+
+  <header style="background:none;border:0;padding:0;display:block">
+    <p class="eyebrow">A guide for teachers</p>
+    <h2 class="doc-title" style="margin-top:6px">What the four readings measure</h2>
+    <p class="doc-standfirst">Under the level on every report sit four readings. Each is a question asked of the transcript, the essay and your assignment together — and each comes back with evidence, not just a number.</p>
+  </header>
+
+  <section>
+    <div class="note">
+      <p><strong>A reading is evidence, not a number.</strong> Each of the four comes back with a sentence saying what the student did, two or three quoted moments from the chat that show it, and the one moment that cuts against it. The band from 1 to 4 is a summary of that evidence — it is the smallest part of the reading, and the part to trust least when you disagree. Read the moments.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>The four questions</h2>
+
+    <div class="dims" style="margin-top:var(--tau-s4)">
+
+      <article class="dim">
+        <span class="dim-q">Did you drive the chat?</span>
+        <span class="dim-name">Prompting Quality</span>
+        <div class="panels">
+          <div class="panel">
+            <p class="panel-label">What it counts</p>
+            <p>Stretches of the conversation, and who was setting the agenda in each. Not questions, and never turns — a student can ask thirty questions inside a direction the AI chose.</p>
+          </div>
+          <div class="panel">
+            <p class="panel-label">What it doesn't mean</p>
+            <p>It is not politeness or prompt craft. A well-worded request to be told what to think still reads low here. And a student who reframes the problem scores here — a student who argues with an answer does not; that belongs to the next question.</p>
+          </div>
+          <div class="panel panel-wide">
+            <p class="panel-label">Where it comes from</p>
+            <p><cite>Task initiative</cite> in dialogue analysis — Chu-Carroll &amp; Brown, 1997. Who holds the initiative at each point in a conversation is a measure with a published coding scheme behind it, not something we invented.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="dim">
+        <span class="dim-q">Did you check what you were told?</span>
+        <span class="dim-name">Calibrated Skepticism</span>
+        <div class="panels">
+          <div class="panel">
+            <p class="panel-label">What it counts</p>
+            <p>Claims the AI made that the student took a position on — corroborated, questioned, sourced, or rejected. The unit is the claim, so ten challenges to one claim is one instance, not ten.</p>
+          </div>
+          <div class="panel">
+            <p class="panel-label">What it doesn't mean</p>
+            <p>It does not measure whether the student was right, and it does not reward suspicion. <em>Calibrated</em> is the operative word: checking everything indiscriminately is not better than checking the things that carry weight.</p>
+          </div>
+          <div class="panel panel-wide">
+            <p class="panel-label">Where it comes from</p>
+            <p><cite>Sourcing, corroboration and contextualization</cite> — the heuristics Sam Wineburg identified in how historians read documents, and the standard scheme for measuring source evaluation.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="dim">
+        <span class="dim-q">What survived?</span>
+        <span class="dim-name">Selective Use</span>
+        <div class="panels">
+          <div class="panel">
+            <p class="panel-label">What it counts</p>
+            <p>Changes the student directed to AI-supplied material, sorted into those that altered <em>meaning</em> and those that only altered the surface. Rewording is a change; reversing a claim is a different kind of change.</p>
+          </div>
+          <div class="panel">
+            <p class="panel-label">What it doesn't mean</p>
+            <p>It is not "how much did they edit." A student who rewrote every sentence and changed no argument reads low. It also only ever looks at <em>AI-originated</em> material — work on the student's own ideas belongs to the last question.</p>
+          </div>
+          <div class="panel panel-wide">
+            <p class="panel-label">Where it comes from</p>
+            <p><cite>Surface versus meaning revision</cite> — Faigley &amp; Witte, 1981, the taxonomy that established the difference between editing a text and changing what it says.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="dim">
+        <span class="dim-q">Is the thinking yours?</span>
+        <span class="dim-name">Original Contribution</span>
+        <div class="panels">
+          <div class="panel">
+            <p class="panel-label">What it counts</p>
+            <p>Ideas in the finished piece, traced back to where they first appear — the student's side of the chat, the AI's, built jointly, or nowhere in the chat at all (which usually means the student brought it with them).</p>
+          </div>
+          <div class="panel">
+            <p class="panel-label">What it doesn't mean</p>
+            <p>It is not originality in the sense you would grade. A commonplace idea the student genuinely arrived at reads higher here than a sophisticated one they were handed. Novelty is your judgement; provenance is this one.</p>
+          </div>
+          <div class="panel panel-wide">
+            <p class="panel-label">Where it comes from</p>
+            <p><cite>Knowledge transforming versus knowledge telling</cite> — Bereiter &amp; Scardamalia, 1987. The distinction between writing that reports what you already knew and writing that changes what you think.</p>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>How a reading is scored</h2>
+    <p>Each dimension gets a band from 1 to 4, chosen by reading the transcript, the essay and your assignment against written descriptors — the same way you mark an essay against criteria. <strong>The number is read, not calculated.</strong> A student who checked two claims out of two is not automatically above one who checked eight out of eighteen; which claims, and whether the misses mattered, is the judgement.</p>
+
+    <div class="bands" style="margin-top:var(--tau-s4)">
+      <div class="band-row"><span class="bn">Band 4</span><span class="bd">Consistent, and it held at the hard moments.</span></div>
+      <div class="band-row"><span class="bn">Band 3</span><span class="bd">There most of the time, with real gaps.</span></div>
+      <div class="band-row"><span class="bn">Band 2</span><span class="bd">It happened, but not where it counted.</span></div>
+      <div class="band-row"><span class="bn">Band 1</span><span class="bd">It didn't happen. The behaviour is absent, not weak.</span></div>
+      <div class="band-row is-nonscore"><span class="bn">Not enough here</span><span class="bd">The session is too thin to judge this one. Not a zero, and not on the scale at all.</span></div>
+    </div>
+
+    <p style="margin-top:var(--tau-s4)"><strong>Two of the four bands describe failures, which is deliberate.</strong> The distinction that matters most to you is between 1 and 2 — a student who checked three trivial claims and none of the load-bearing ones needs a different conversation from a student who checked nothing. A scale with all its resolution at the top would collapse those two into "low."</p>
+    <p><strong>There are four bands rather than five for one reason:</strong> a five-point scale gives a middle, and raters take the middle exactly when the evidence is mixed — which is when a directional call carries the most information.</p>
+    <div class="note" style="margin-top:var(--tau-s4)">
+      <p><strong>The counterexample is never optional.</strong> Every reading has to name the moment that cuts against its own claim, including the readings that go well. That is what keeps a strong reading from becoming praise, and it is the fastest way to check whether a band you doubt was arrived at honestly.</p>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>How the four relate</h2>
+    <p>They are not four independent tests. They are four facets of one thing — how much of the thinking was the student's — seen from different angles. Two axes decide which angle: whose material is being read, and where it is being read.</p>
+
+    <div class="grid-scroll" style="margin-top:var(--tau-s4)">
+      <table>
+        <thead>
+          <tr><th scope="col"></th><th scope="col">In the conversation</th><th scope="col">In the finished piece</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">The student's own material</th>
+            <td><b>Prompting Quality</b><span>Did you drive it?</span></td>
+            <td><b>Original Contribution</b><span>Is the thinking yours?</span></td>
+          </tr>
+          <tr>
+            <th scope="row">The AI's material</th>
+            <td><b>Calibrated Skepticism</b><span>Did you check it?</span></td>
+            <td><b>Selective Use</b><span>What survived?</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="margin-top:var(--tau-s4)"><strong>They move together, and that is expected.</strong> A student who drives the conversation tends also to check what comes back. Because they are facets of one construct rather than separate skills, correlation between them is a property of what is being measured, not a fault in how it is measured. What each one has to earn is something it sees that no other one does — which is what the grid above guarantees: each owns one square alone.</p>
+    <p><strong>No single moment ever counts twice.</strong> If a student reframes the problem, that is Prompting Quality; if they argue with an answer, that is Calibrated Skepticism. The same turn never raises both. Where two readings look like they overlap, they are reading different aspects of the same moment, not the same aspect twice.</p>
+    <p><strong>The trickiest pair is Skepticism and Selective Use</strong>, because nothing can change without pushback first. So Selective Use is read as a proportion rather than a count: <em>of the pushback that did happen, how much of it changed what survived into the essay?</em> A student who pushed back twice and changed both things is not below one who pushed back twenty times and changed two.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>What you can and can't do with them</h2>
+    <ul class="plain">
+      <li><strong>Don't add them up.</strong> There is no total and no score out of twenty. The four are measured in four different units — stretches of conversation, claims, changes, ideas — and numbers in different units can sit side by side but cannot be combined.</li>
+      <li><strong>Don't average them, for one student or for a class.</strong> A student strong on one facet and weak on another is not a middling student; the average returns the one description that is certainly wrong. For a class, ask how many students are in each band rather than what the class scored.</li>
+      <li><strong>Don't read them as the agency level.</strong> The level is a separate judgement about the whole session and is not calculated from these four. A session can read directive with unremarkable bands throughout. See <a href="levels.html">Agency levels</a>.</li>
+      <li><strong>Do read the tension between the highest and the lowest.</strong> That gap is where the information is, and it is exactly what a total would destroy. A student at band 4 for driving the chat and band 1 for checking it has a specific, nameable habit — and it is a different conversation from a student who is flat across all four.</li>
+      <li><strong>Do argue with a band by reading its evidence.</strong> Every reading shows the moments it was built from. If the quoted moments don't support the claim, the reading is wrong and it is visible that it's wrong — which is the point of showing them.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>If someone asks where these come from: none of the four is a formula we invented. Each applies a published coding scheme as published — the sources are named on the cards above — so the question of whether the measure is valid was settled in the literature rather than here. What we have to show is that it's applied consistently, and the test for that is whether two independent readers point at the same moments in a transcript, not whether they happen to land on the same number.</p>
+  </footer>
+
+</div>
+
+<script src="api.js"></script>
+</body>
+</html>

@@ -418,10 +418,10 @@ const TRANSCRIPTS = {
 // tau-dimensions.md, "Do not validate against seed data".
 const READINGS = {
   strong: {
-    level: 'Redefinition',
+    level: 'Transformative',
     levelIndex: 4,
-    shape: 'You brought your own reading of the talk and kept arguing for it when the AI offered a different one.',
-    body: 'You brought the claim and then kept testing whether it survived, so initiative and skepticism run through the same thread. This level also asks for refusal, and you refused a reading you could not support from the text.',
+    shape: 'The reading you argue at the end is not the one you opened with — it changed across the three turns about the second-person address.',
+    body: 'You brought the claim and then kept testing whether it survived, so the same thread carries both the initiative and the doubt. One thing held from your first message to your last: the assumption that the audience was already hostile, which nothing in the chat put a question to.',
     departure: null,
     exception: 'The ethos paragraph stayed a summary. You said so yourself and left it — a defensible call, but the one place the analysis stops arguing.',
     dimensions: [
@@ -461,10 +461,10 @@ const READINGS = {
   },
 
   flat: {
-    level: 'Substitution',
+    level: 'Passive',
     levelIndex: 1,
-    shape: 'You asked the AI what to write about, and wrote up what it told you.',
-    body: 'The AI chose the speech, named the strategies and supplied the structure, and the essay carries all three. The next level up shows the student changing what came back; here nothing came back changed.',
+    shape: 'Every idea in the essay appears on the AI’s side of the chat before it appears on yours.',
+    body: 'The AI chose the speech, named the strategies and supplied the structure, and the essay carries all three. Nothing that came back was changed before it was used.',
     departure: 'The last draft has one idea that is unmistakably yours, which is why this does not read as a session with nothing in it.',
     exception: "Right at the end you wrote that the difficulty line \u201cmakes difficulty the reason\u201d — the only moment you tell it something instead of asking.",
     dimensions: [
@@ -502,11 +502,11 @@ const READINGS = {
   },
 
   flagged: {
-    level: 'Augmentation',
+    level: 'Reactive',
     levelIndex: 2,
-    shape: 'You did a lot of work on an idea the AI gave you in its first message.',
-    body: 'You make claims, you refine them, and you sustain one thesis across the whole essay. The frame those claims sit in arrived in the first exchange from the AI, and every later turn elaborates it rather than testing it.',
-    departure: 'The bands would predict Modification. Read the arc instead: the register-collision thesis arrives complete in your second turn, immediately after the AI was asked what makes the speech effective, and nothing after that tests it.',
+    shape: 'The frame the whole essay sits in arrived in the AI’s first message, and every question after it worked inside that frame.',
+    body: 'You make claims, you refine them, and you sustain one thesis across the whole essay. No turn in the chat puts a question to the frame those claims sit in.',
+    departure: 'The bands would predict directive. Read the arc instead: the register-collision thesis arrives complete in your second turn, immediately after the AI was asked what makes the speech effective, and nothing after that tests it.',
     exception: 'You asked whether the argument holds across the whole speech, then answered your own question in the AI\u2019s terms rather than the text\u2019s.',
     dimensions: [
       { key: 'PQ', name: 'Prompting Quality', question: 'Did you drive the chat?', band: 2,
@@ -541,10 +541,10 @@ const READINGS = {
   },
 
   bikeguide: {
-    level: 'Modification',
+    level: 'Directive',
     levelIndex: 3,
-    shape: 'You told the AI what each section of the guide should do, and it wrote them.',
-    body: 'The agenda was yours and the AI worked to it, section by section. The level above adds resistance to that: pushback on the decisions, not only on the details, which is the move this session does not show.',
+    shape: 'You set what each section of the guide had to do before the AI wrote any of it.',
+    body: 'The agenda was yours and the AI worked to it, section by section. What you asked for in your first message is what the finished guide does — nothing in the conversation moved the plan.',
     departure: null,
     exception: 'The one thing you took without checking was the replacement reference — moments after that same source had been caught inventing one.',
     dimensions: [

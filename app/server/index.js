@@ -2416,6 +2416,14 @@ const PAGE_ACCESS = {
   '/admin.html': canAdminPeople,
   '/dashboard.html': (u) => u.role === 'teacher',
   '/teacher.html': (u) => u.role === 'teacher',
+  // Written to the teacher — "your students", what to ask in the conversation
+  // afterwards. A student reading their own level needs the report's wording,
+  // not this one. signals.html is teacher-only for a harder reason: integrity
+  // signals are never shown to students, which is a rule about the product and
+  // not just about this page's voice.
+  '/levels.html': (u) => u.role === 'teacher',
+  '/dimensions.html': (u) => u.role === 'teacher',
+  '/signals.html': (u) => u.role === 'teacher',
 };
 
 async function redirectedToOwnPage(req, res, route) {
