@@ -20,7 +20,6 @@ const { col } = require('./store');
 const DEFAULT_CHAT_MODEL = 'gemini-3.1-flash-lite';
 const DEFAULT_ANALYSIS_MODEL = 'gemini-3.1-flash-lite';
 
-const MAX_CHAT_TOKENS = 500;
 const MAX_EVAL_TOKENS = 400;
 
 // Both zero, including analysis — the plan called for a *capped* analysis
@@ -197,7 +196,7 @@ async function recordCall({ purpose, model, usage, latencyMs, target, meta, ok =
 // Streams completion tokens. Calls onToken(text) per chunk; resolves with the
 // full text. Aborts cleanly when signal fires — partial text still returned so
 // stopped generations persist with what the student actually saw.
-async function streamChat({ messages, maxTokens = MAX_CHAT_TOKENS, signal, onToken, schoolId = null, meta = null }) {
+async function streamChat({ messages, maxTokens = null, signal, onToken, schoolId = null, meta = null }) {
   const model = modelFor('chat');
   const { url, target } = await vertexEndpoint({ model, method: 'streamGenerateContent?alt=sse', schoolId });
   const startedAt = Date.now();
@@ -214,7 +213,10 @@ async function streamChat({ messages, maxTokens = MAX_CHAT_TOKENS, signal, onTok
       body: JSON.stringify({
         ...toGeminiRequest(messages),
         generationConfig: {
-          maxOutputTokens: maxTokens + CHAT_THINKING_BUDGET,
+          // Omitted when the caller sets no cap: a reply cut off mid-sentence
+          // reads as a bug to a student, and the model's own maximum is the
+          // only ceiling that never lands mid-thought.
+          ...(maxTokens ? { maxOutputTokens: maxTokens + CHAT_THINKING_BUDGET } : {}),
           temperature: 0.7,
           thinkingConfig: { thinkingBudget: CHAT_THINKING_BUDGET },
         },
@@ -236,6 +238,7 @@ async function streamChat({ messages, maxTokens = MAX_CHAT_TOKENS, signal, onTok
   let full = '';
   let buffer = '';
   let usage = null;
+  let finishReason = null;
   const decoder = new TextDecoder();
 
   try {
@@ -249,6 +252,7 @@ async function streamChat({ messages, maxTokens = MAX_CHAT_TOKENS, signal, onTok
           const payload = JSON.parse(line.slice(6));
           // Several chunks carry usageMetadata; the last one holds the totals.
           if (payload.usageMetadata) usage = payload.usageMetadata;
+          if (payload.candidates?.[0]?.finishReason) finishReason = payload.candidates[0].finishReason;
           const parts = payload.candidates?.[0]?.content?.parts || [];
           for (const part of parts) {
             // Thought parts carry the model's reasoning, not its reply. The
@@ -265,6 +269,13 @@ async function streamChat({ messages, maxTokens = MAX_CHAT_TOKENS, signal, onTok
     }
   } catch (err) {
     if (err.name !== 'AbortError') throw err;
+  }
+
+  // A reply that ends mid-sentence looks like a bug in the app, not a limit
+  // in the model, so the reason has to reach the logs rather than only the
+  // student's screen.
+  if (finishReason && finishReason !== 'STOP' && !signal?.aborted) {
+    console.error(`[llm] streamChat ended on finishReason=${finishReason} — reply may be cut short, usage=${JSON.stringify(usage)}`);
   }
 
   // Recorded even when the student pressed Stop — the tokens were spent and

@@ -100,12 +100,13 @@
 //                   model, billsTo: 'platform'|'school', inputTokens,
 //                   cachedInputTokens, outputTokens, thinkingTokens, latencyMs }
 //                 Tokens, never dollars — prices move, and stored dollars make
-//                 history incomparable. Also the substrate for the hard daily
-//                 cap, which is denominated in input tokens.
-//   budgetGrants  { id, studentId, teacherId, extraReplies, ts }
-//                 A teacher lifting a student's daily reply cap. Additive and
-//                 read only for the current day, so nothing carries overnight
-//                 and two grants stack. See budget.js rule 4.
+//                 history incomparable. Also the substrate for the daily cap,
+//                 which is denominated in input tokens.
+//   budgetGrants  RETIRED 2026-08-21 with the reply cap it lifted. Nothing
+//                 reads or writes it. Existing rows are left in place rather
+//                 than migrated away — they are the record of which teacher
+//                 granted what, and deleting history to tidy a schema trades
+//                 something irreplaceable for nothing.
 //   signalMarks   { id, teacherId, studentId, submissionId, markedAt }
 //                 A teacher marking one flagged draft as followed up. Id is
 //                 `${teacherId}_${submissionId}` so a second mark overwrites

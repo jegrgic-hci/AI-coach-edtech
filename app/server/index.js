@@ -15,7 +15,7 @@ const { volume: mailVolume, settings: mailSettings } = require('./mail');
 const { streamChat, modelFor, MAX_EVAL_TOKENS } = require('./llm');
 const { chatMessages, auditorMessages } = require('./coach');
 const { runAnalysis, analysisIsStale } = require('./analysis');
-const { checkChatBudget, grantExtraReplies, usageToday, grantedToday, SOFT_REPLIES_PER_DAY, HARD_INPUT_TOKENS_PER_DAY } = require('./budget');
+const { checkChatBudget, usageToday, HARD_INPUT_TOKENS_PER_DAY } = require('./budget');
 const { config } = require('./school');
 const { seed } = require('./seed');
 const { costOf, isPriced } = require('./prices');
@@ -756,10 +756,56 @@ async function statusSummary() {
     b.inputTokens += r.inputTokens || 0;
     perStudentToday.set(r.studentId, b);
   }
-  const atSoftCap = [...perStudentToday.values()].filter((b) => b.replies >= SOFT_REPLIES_PER_DAY).length;
-  const nearSoftCap = [...perStudentToday.values()].filter(
-    (b) => b.replies >= SOFT_REPLIES_PER_DAY * 0.8 && b.replies < SOFT_REPLIES_PER_DAY).length;
   const atHardCap = [...perStudentToday.values()].filter((b) => b.inputTokens >= HARD_INPUT_TOKENS_PER_DAY).length;
+  const nearHardCap = [...perStudentToday.values()].filter(
+    (b) => b.inputTokens >= HARD_INPUT_TOKENS_PER_DAY * 0.8 && b.inputTokens < HARD_INPUT_TOKENS_PER_DAY).length;
+  // The reply distribution is no longer a cap, so it is reported as what it now
+  // is: the measurement the pilot is running to find out what a normal day is.
+  const repliesToday = [...perStudentToday.values()].map((b) => b.replies).sort((a, b) => a - b);
+  const medianReplies = repliesToday.length ? repliesToday[Math.floor(repliesToday.length / 2)] : 0;
+  const maxReplies = repliesToday.length ? repliesToday[repliesToday.length - 1] : 0;
+
+  // What a normal day actually costs, so the cap can be set on evidence rather
+  // than on the guess it currently is. The unit is a STUDENT-DAY — one student,
+  // one calendar day — because that is exactly what the cap is denominated in;
+  // averaging over students or over calls would answer a different question.
+  //
+  // Counted the same way budget.js counts (chat + auditor, input + cached), or
+  // the number here would not be comparable to the limit it exists to inform.
+  //
+  // Reported as a distribution, not just a mean. A cap is set at a percentile:
+  // the mean of a long-tailed usage curve sits below most of the days that
+  // would actually be blocked, so a cap set from it blocks far more people than
+  // it looks like it will. The mean is included because it is the number people
+  // ask for, and because mean >> median is itself the tell that the tail is long.
+  const CAP_WINDOW_DAYS = 30;
+  const windowStart = new Date(Date.now() - CAP_WINDOW_DAYS * 86400000).toISOString();
+  const perStudentDay = new Map();
+  for (const r of llmRows) {
+    if (!r.studentId || r.ts < windowStart) continue;
+    if (r.purpose !== 'chat' && r.purpose !== 'auditor') continue;
+    const key = `${r.studentId}|${r.ts.slice(0, 10)}`;
+    perStudentDay.set(key, (perStudentDay.get(key) || 0) + (r.inputTokens || 0) + (r.cachedInputTokens || 0));
+  }
+  const dayTotals = [...perStudentDay.values()].sort((a, b) => a - b);
+  // Nulls, not zeros, on an empty window: "no data yet" and "everyone used
+  // nothing" are different facts and only one of them means the cap is safe.
+  const pct = (p) => (dayTotals.length ? dayTotals[Math.min(dayTotals.length - 1, Math.floor(dayTotals.length * p))] : null);
+  const dailyTokens = {
+    windowDays: CAP_WINDOW_DAYS,
+    studentDays: dayTotals.length,
+    mean: dayTotals.length ? Math.round(dayTotals.reduce((s, v) => s + v, 0) / dayTotals.length) : null,
+    median: pct(0.5),
+    p90: pct(0.9),
+    p95: pct(0.95),
+    max: dayTotals.length ? dayTotals[dayTotals.length - 1] : null,
+    // Where the current cap sits in the observed curve — the one number that
+    // says whether it is set right. 100% means no observed day would have been
+    // blocked; anything lower is the share of real days it would have cut off.
+    capPercentile: dayTotals.length
+      ? Math.round(dayTotals.filter((v) => v < HARD_INPUT_TOKENS_PER_DAY).length / dayTotals.length * 100)
+      : null,
+  };
 
   // The runaway-loop signature. A student five times the median is not a heavy
   // user — 40 replies and 40,000 replies look nothing alike, and the second one
@@ -785,12 +831,13 @@ async function statusSummary() {
       lastFailureCode: lastFailure?.errorCode || null,
     },
     caps: {
-      softLimit: SOFT_REPLIES_PER_DAY,
       hardLimit: HARD_INPUT_TOKENS_PER_DAY,
-      atSoftCap,
-      nearSoftCap,
       atHardCap,
+      nearHardCap,
+      medianReplies,
+      maxReplies,
       activeToday: perStudentToday.size,
+      dailyTokens,
     },
     spend: { outliers, outlierMultiple: OUTLIER_MULTIPLE, medianUsd: median },
     // Read-only, and deliberately so: config that routes data is a security
@@ -989,15 +1036,18 @@ async function handleApi(req, res, user, route) {
     }
 
     trend.sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
-    // The soft cap is student-visible by design — a limit nobody can see is a
-    // limit that arrives as a failure. The hard tier is deliberately absent.
     const budget = await checkChatBudget(user.id);
     return json(res, 200, {
       student: { displayName: user.displayName, email: user.email },
       current,
       past,
       trend,
-      budget: { used: budget.used ?? budget.limit, limit: budget.limit, remaining: budget.remaining },
+      // The warning only, never the counts. The budget is denominated in input
+      // tokens now, and a token number on a student's screen is noise they
+      // cannot act on — "you're close" is the whole actionable content. Sent so
+      // the composer can re-raise the notice after a reload; budget.js owns the
+      // threshold and the wording, so the bar and the stream cannot disagree.
+      budget: { warning: budget.warning || null },
     });
   }
 
@@ -2211,25 +2261,11 @@ async function handleApi(req, res, user, route) {
     return json(res, 200, { assignment, student, sessions });
   }
 
-  // POST /api/teacher/students/:id/grant-replies — rule 4, the escape valve.
-  // The limit can only be set generously if a teacher can lift it in one
-  // click when a student hits it mid-homework.
-  if (req.method === 'POST' && seg1 === 'teacher' && seg2 === 'students' && seg4 === 'grant-replies') {
-    if (user.role !== 'teacher') return json(res, 403, { error: 'forbidden' });
-    if (!(await teacherScope(user)).students.some((s) => s.id === seg3)) {
-      return json(res, 403, { error: 'not your student' });
-    }
-    const body = await readBody(req);
-    const extraReplies = Math.min(Math.max(parseInt(body.extraReplies, 10) || 20, 1), 200);
-    await grantExtraReplies({ studentId: seg3, teacherId: user.id, extraReplies });
-    const [used, granted] = await Promise.all([usageToday(seg3), grantedToday(seg3)]);
-    return json(res, 200, {
-      ok: true,
-      limit: SOFT_REPLIES_PER_DAY + granted,
-      used: used.replies,
-      remaining: Math.max(0, SOFT_REPLIES_PER_DAY + granted - used.replies),
-    });
-  }
+  // The grant-replies escape valve was removed 2026-08-21 with the reply cap it
+  // relieved. It is not re-pointed at the token cap: a grant only makes sense
+  // against a limit students meet in normal work, and the token ceiling is set
+  // high enough that meeting it means a loop, which more headroom would feed
+  // rather than fix.
 
   // POST /api/submissions/:id/note — teacher note, shown to the student
   // beside their snapshot (auditor's read + human read side by side)

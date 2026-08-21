@@ -4735,7 +4735,6 @@ function studentActionRow(s) {
     groups: [{
       items: [
         { icon: 'swap', title: 'Move to another class', desc: 'Off one roster and onto another in one step', onClick: `openMoveStudent('${s.id}')` },
-        { icon: 'plusCircle', title: 'Grant extra replies', desc: "Lifts today's coach reply cap for this student", onClick: `openGrantReplies('${s.id}')` },
       ],
     }],
   });
@@ -5089,24 +5088,6 @@ function openSubmissionNote(subId, draftNumber) {
       // scroll reset dropped the teacher at the top of the page behind the
       // modal they had just closed. Nothing in the rail depends on a note.
       renderContent();
-    },
-  });
-}
-
-function openGrantReplies(sid) {
-  const s = STUDENTS.find(x => x.id === sid);
-  if (!s) return;
-  openObjModal({
-    title: `Grant ${s.name} extra replies`,
-    subtitle: 'Applies to today only — nothing carries overnight, and a second grant stacks on the first.',
-    bodyHtml: `<label for="grant-replies-input">Extra replies</label>
-      <input type="number" id="grant-replies-input" value="20" min="1" max="200" style="max-width:120px">`,
-    confirmLabel: 'Grant replies',
-    focusId: 'grant-replies-input',
-    onConfirm: async () => {
-      const extraReplies = parseInt(document.getElementById('grant-replies-input').value, 10);
-      if (!extraReplies || extraReplies < 1) throw new Error('Enter how many extra replies to grant.');
-      await api(`/api/teacher/students/${sid}/grant-replies`, { method: 'POST', body: { extraReplies } });
     },
   });
 }

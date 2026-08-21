@@ -1,33 +1,34 @@
-// Per-student daily usage caps. Two tiers, from built-in-chat-plan.md.
+// Per-student daily usage cap. One tier: input tokens per day.
 //
-// The cap is NOT a cost control. The most extravagant plausible student day
-// costs about eleven cents; this exists to catch a bug, a loop, or scripted
-// abuse — which look nothing like 40 replies, they look like 40,000. So the
-// numbers are deliberately generous: the cost of generosity is cents, the cost
-// of stinginess is a student locked out of their homework at 9pm.
+// The cap is NOT a cost control. At Flash-Lite's $0.25/M input the ceiling is
+// about a quarter per student per day; this exists to catch a bug, a loop, or
+// scripted abuse. So the number is deliberately generous: the cost of
+// generosity is cents, the cost of stinginess is a student locked out of their
+// homework at 9pm.
 //
-//   Soft — AI replies/day, ~40, visible to student and teacher.
-//   Hard — input tokens/day, ~1M, invisible, should page us if ever reached.
+// **A reply-count tier used to sit in front of this** — 40 AI replies/day,
+// student-visible, with a teacher grant to lift it. Removed 2026-08-21: the
+// pilot's job is to find out what normal usage looks like, and a cap set before
+// any measurement shapes the very behaviour it is trying to observe. The
+// argument that retired it is worth keeping, because it is the argument for
+// bringing a reply tier BACK once there is data: a token budget gives two
+// identically-behaved students wildly different allowances, since input grows
+// quadratically with conversation length — one long thread buys far fewer
+// replies than four short ones. That is unfair and unexplainable, and it
+// penalises exactly the student most immersed in one line of thinking. It is
+// tolerable now only because the ceiling is high enough that nobody should meet
+// it; it would not be tolerable as a working allowance.
 //
-// Replies (not tokens) for the student-facing limit, because a token cap gives
-// two identically-behaved students wildly different allowances: input grows
-// quadratically with conversation length, so one long thread buys ~12 replies
-// where four short ones buy 40+. That is unfair, unexplainable, and it
-// penalises exactly the student most immersed in one line of thinking.
-//
-// Four behavioural rules, which matter more than the numbers:
+// Three behavioural rules, which matter more than the number:
 //   1. Check at the turn boundary, never mid-stream. A conversation that ends
 //      cleanly reads completely differently from one that dies mid-sentence.
 //   2. Warn at ~80%. Nobody should meet a limit they could not see coming.
 //   3. Submitting a draft is never blocked — analysis budget is separate from
 //      chat budget. A student who chatted a lot and then cannot submit, or
 //      submits and gets no report, is the one failure that damages trust.
-//   4. Teachers can grant more. The escape valve is what lets the limit be set
-//      sensibly rather than defensively.
 
 const { col } = require('./store');
 
-const SOFT_REPLIES_PER_DAY = 40;
 const HARD_INPUT_TOKENS_PER_DAY = 1000000;
 const WARN_AT = 0.8;
 
@@ -41,16 +42,6 @@ function startOfTodayISO() {
   return d.toISOString();
 }
 
-// Grants are additive and per-day: a teacher pressing the button twice gives
-// twice the headroom, and nothing carries into tomorrow.
-async function grantedToday(studentId) {
-  const since = startOfTodayISO();
-  const grants = await col('budgetGrants').list({ studentId });
-  return grants
-    .filter((g) => g.ts >= since)
-    .reduce((sum, g) => sum + (g.extraReplies || 0), 0);
-}
-
 async function usageToday(studentId) {
   const since = startOfTodayISO();
   // Scans this student's rows, not the whole collection — llmCalls grows
@@ -60,6 +51,8 @@ async function usageToday(studentId) {
   let inputTokens = 0;
   for (const r of rows) {
     inputTokens += (r.inputTokens || 0) + (r.cachedInputTokens || 0);
+    // Still counted, though nothing caps it: this is the measurement the
+    // pilot exists to collect, and it is what a future reply tier gets set on.
     if (CHAT_PURPOSES.has(r.purpose)) replies++;
   }
   return { replies, inputTokens };
@@ -68,64 +61,45 @@ async function usageToday(studentId) {
 // Call at the turn boundary, before starting a reply. Returns what the caller
 // needs to decide and to explain — never throws.
 async function checkChatBudget(studentId) {
-  const [{ replies, inputTokens }, granted] = await Promise.all([
-    usageToday(studentId),
-    grantedToday(studentId),
-  ]);
-
-  const limit = SOFT_REPLIES_PER_DAY + granted;
-  const remaining = Math.max(0, limit - replies);
+  const { replies, inputTokens } = await usageToday(studentId);
+  const remaining = Math.max(0, HARD_INPUT_TOKENS_PER_DAY - inputTokens);
 
   if (inputTokens >= HARD_INPUT_TOKENS_PER_DAY) {
-    // Nothing a real student does reaches this. Reaching it means a bug, a
-    // loop, or abuse — so it is logged loudly and phrased as our problem.
-    console.error(`[budget] HARD CAP hit — student ${studentId}, ${inputTokens} input tokens today`);
+    // Logged loudly: with no reply tier in front of it, reaching this is either
+    // a very heavy day or the loop this cap exists to catch, and the two are
+    // only distinguishable from the rows.
+    console.error(`[budget] daily cap hit — student ${studentId}, ${inputTokens} input tokens today`);
     return {
       allowed: false,
-      reason: 'hard',
-      message: 'Something has gone wrong on our side and the AI chat is paused for today. Your work is saved — please tell your teacher.',
+      // Phrased as a limit, not as our bug. It used to say "something has gone
+      // wrong on our side" — true when a reply cap made this unreachable, and
+      // misleading now that this is the only limit a student can actually meet.
+      message: "You've reached today's limit for AI chat. Your work is saved, and it resets tomorrow — tell your teacher if you need it sooner.",
       remaining: 0,
-      limit,
-    };
-  }
-
-  if (replies >= limit) {
-    return {
-      allowed: false,
-      reason: 'soft',
-      message: `You've used all ${limit} AI replies for today. Your work is saved, and it resets tomorrow — your teacher can also give you more.`,
-      remaining: 0,
-      limit,
+      limit: HARD_INPUT_TOKENS_PER_DAY,
+      used: inputTokens,
+      replies,
     };
   }
 
   return {
     allowed: true,
     remaining,
-    limit,
-    used: replies,
+    limit: HARD_INPUT_TOKENS_PER_DAY,
+    used: inputTokens,
+    replies,
     // Rule 2: the warning rides along with the allowed reply, so the student
-    // sees it before the last one rather than at the wall.
-    warning: remaining <= Math.ceil(limit * (1 - WARN_AT))
-      ? `About ${remaining} AI ${remaining === 1 ? 'reply' : 'replies'} left today.`
+    // sees it before the last one rather than at the wall. Deliberately states
+    // no number — a token count means nothing to a student, and the honest
+    // content of this warning is "soon", not "8".
+    warning: inputTokens >= HARD_INPUT_TOKENS_PER_DAY * WARN_AT
+      ? "You're close to today's limit for AI chat. It resets tomorrow."
       : null,
   };
 }
 
-async function grantExtraReplies({ studentId, teacherId, extraReplies = 20 }) {
-  return col('budgetGrants').add({
-    studentId,
-    teacherId,
-    extraReplies,
-    ts: new Date().toISOString(),
-  });
-}
-
 module.exports = {
   checkChatBudget,
-  grantExtraReplies,
   usageToday,
-  grantedToday,
-  SOFT_REPLIES_PER_DAY,
   HARD_INPUT_TOKENS_PER_DAY,
 };

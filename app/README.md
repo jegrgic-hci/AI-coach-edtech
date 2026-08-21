@@ -255,9 +255,9 @@ Collections documented at the top of `server/store.js` — these *are* the Fires
 - Evaluate button → auditor voice (meta-turns, excluded from future TAU)
 - Submit flow with confirmation friction: locks all cycle conversations, records submission, next open starts the next cycle
 - Event logging from day one: copy, regenerate, edit, stop, evaluate, episode-save/resume
-- Guardrails: maxOutputTokens capped (500 chat / 400 evaluate); `thinkingBudget: 0` on every call
+- Guardrails: maxOutputTokens capped on evaluate (400) but **uncapped on chat** as of 2026-08-21 — a 500-token cap truncated replies mid-sentence; `thinkingBudget: 0` on every call, and the daily reply/token budget is what actually holds cost
 - **Cost accounting** (`server/llm.js` → `llmCalls`): one row per Vertex call with purpose, model, token counts, latency and attribution. Tokens never dollars — a price table lands with the admin cost view, so history stays comparable when prices move
-- **Two-tier usage caps** (`server/budget.js`): soft 40 AI replies/day (student-visible, warns at 80%, teacher can grant more via `POST /api/teacher/students/:id/grant-replies`); hard 1M input tokens/day (invisible, logs loudly — reaching it means a bug, not homework). Checked at the turn boundary before the student's turn is persisted. **Submitting is never blocked by chat budget**: analysis is excluded from the count, so a student who chatted a lot still gets their report
+- **Daily usage cap** (`server/budget.js`): 1M input tokens/day per student, warning bar above the composer at 80%, hard stop at 100%. Checked at the turn boundary before the student's turn is persisted. **Submitting is never blocked by chat budget**: analysis is excluded from the count, so a student who chatted a lot still gets their report. **The 40-replies/day soft tier and the teacher grant that lifted it were removed 2026-08-21** — a cap set before any measurement shapes the behaviour the pilot exists to observe. Replies are still counted (`usageToday().replies`, and median/busiest on the admin Status view), just not capped. The reasoning for a reply-denominated tier is preserved at the top of `budget.js`: it is the argument for bringing one back once there is data, because a token budget gives two identically-behaved students very different allowances
 
 ### Model choice (measured 2026-08-05, not assumed)
 

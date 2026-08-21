@@ -229,6 +229,32 @@ button:hover { border-color: var(--tau-forest); }
   box-shadow: var(--tau-shadow-lift), 0 0 0 3px color-mix(in oklab, var(--tau-forest) 14%, transparent);
 }
 
+/* Same idiom as .offline-bar (components.css §10) — a state of the session
+   rather than a finding about the student — but shaped to the composer it sits
+   on rather than welded across the page: the composer is an object floating on
+   the ground, so its notice takes the same width and corner.
+   Caution, not attention: red is reserved for an administrative fact (overdue),
+   and running low is a heads-up, not a verdict. The rule barring semantic
+   colour on a student surface is scoped to a student's own SCORE
+   (designsystem.md, Hard Constraints) — a budget is not a reading of them. */
+.composer-notice {
+  padding: var(--tau-s2) var(--tau-s3);
+  background: var(--tau-caution-bg);
+  color: var(--tau-caution);
+  border: 1px solid color-mix(in oklab, var(--tau-caution) 30%, transparent);
+  border-radius: var(--tau-r-lg);
+  font-size: var(--tau-text-sm);
+  text-align: center;
+}
+
+.composer-row { display: flex; gap: var(--tau-s2); align-items: center; flex-wrap: wrap; }
+.composer-row .spacer { flex: 1; }
+
+/* Inside the box, a bordered button is a frame 12px inside a frame. The quiet
+   controls drop to .btn-tertiary's idiom — fill on hover, no resting edge —
+   leaving exactly two things in the row with an outline: the auditor chip and
+   Send. The auditor keeps its own hue; that is a locked decision. */
+.composer-row .btn-quiet { border-color: transparent; background: none; }
 .composer-row .btn-quiet:hover:not(:disabled) { background: var(--tau-hover-surface); }
 .composer-row .btn-auditor { border-color: color-mix(in oklab, var(--tau-auditor) 30%, transparent); background: var(--tau-auditor-bg); }
 

@@ -202,12 +202,42 @@ function renderStatus() {
         s.llm.failures24h === 0 ? 'none failed' : `${s.llm.failures24h} failed (${Math.round(rate * 100)}%)`}.${
         s.llm.lastFailureAt ? ` Last failure ${relativeTime(s.llm.lastFailureAt)}${s.llm.lastFailureCode ? ` (HTTP ${s.llm.lastFailureCode})` : ''}.` : ''}`;
 
+  // Median and busiest, not a cap count: with the reply cap retired there is no
+  // threshold to report against, and what this page is now collecting is what a
+  // normal day actually looks like — which a median and a tail answer and a
+  // count of nobody does not.
   const capLine = s.caps.activeToday === 0
     ? 'No students have used the chat today.'
-    : `${plural(s.caps.activeToday, 'student has', 'students have')} used the chat today. ${
-        s.caps.atSoftCap ? `${s.caps.atSoftCap} reached the ${s.caps.softLimit}-reply daily limit` : `None reached the ${s.caps.softLimit}-reply daily limit`}${
-        s.caps.nearSoftCap ? `, ${s.caps.nearSoftCap} are close to it` : ''}. ${
-        s.caps.atHardCap ? `${plural(s.caps.atHardCap, 'student has', 'students have')} hit the hard token limit — that should not happen in normal use and usually means a loop.` : ''}`;
+    : `${plural(s.caps.activeToday, 'student has', 'students have')} used the chat today — median ${
+        s.caps.medianReplies} ${s.caps.medianReplies === 1 ? 'reply' : 'replies'}, busiest ${s.caps.maxReplies}. ${
+        s.caps.atHardCap ? `${plural(s.caps.atHardCap, 'student has', 'students have')} hit the daily token limit — that should not happen in normal use and usually means a loop.`
+          : s.caps.nearHardCap ? `${plural(s.caps.nearHardCap, 'student is', 'students are')} close to the daily token limit.`
+          : 'Nobody is near the daily token limit.'}`;
+
+  // The evidence for setting the cap. Stated as a sentence rather than a chart:
+  // it is four numbers, and designsystem.md's Hard Constraints put a trend in
+  // plain text unless a chart was asked for.
+  const d = s.caps.dailyTokens;
+  // Below this many observations a percentile is the same data point as the max
+  // wearing a different label, so it is withheld rather than caveated — median,
+  // average and busiest are all a thin sample can honestly support.
+  const PERCENTILE_MIN_DAYS = 20;
+  const capLoad = d.studentDays === 0
+    // States the requirement, never a tally it hasn't checked.
+    ? `No chat days recorded in the last ${d.windowDays} days — the cap has nothing to be set against yet.`
+    : d.studentDays < PERCENTILE_MIN_DAYS
+      ? `Across ${plural(d.studentDays, 'student-day', 'student-days')} in the last ${d.windowDays} days: median ${
+          compactTokens(d.median)} tokens, average ${compactTokens(d.mean)}, busiest ${compactTokens(d.max)}. Today's ${
+          compactTokens(s.caps.hardLimit)} cap would have allowed ${
+          d.capPercentile === 100 ? 'all of them' : `${d.capPercentile}% of them`}. Setting the cap off this needs ${
+          PERCENTILE_MIN_DAYS} student-days; there are ${d.studentDays}.`
+      : `Across ${plural(d.studentDays, 'student-day', 'student-days')} in the last ${d.windowDays} days: median ${
+          compactTokens(d.median)} tokens, average ${compactTokens(d.mean)}, 95th percentile ${
+          compactTokens(d.p95)}, busiest ${compactTokens(d.max)}. Today's ${compactTokens(s.caps.hardLimit)} cap would have allowed ${
+          d.capPercentile}% of them.${
+          d.capPercentile < 95 ? ' It is cutting into normal use — worth raising.'
+            : d.mean > d.median * 2 ? ' The average sits well above the median, so a few heavy days are carrying it — set the cap off the 95th percentile, not the average.'
+            : ''}`;
 
   const spendLine = s.spend.outliers
     ? `${plural(s.spend.outliers, 'student is', 'students are')} spending at least ${s.spend.outlierMultiple}× the median (${money(s.spend.medianUsd)}). Worth a look — heavy use and a runaway loop are different shapes.`
@@ -220,6 +250,8 @@ function renderStatus() {
       <p class="pattern-note">${esc(modelLine)}</p>
       <div class="eyebrow">Daily limits</div>
       <p class="pattern-note">${esc(capLine)}</p>
+      <div class="eyebrow">Daily token use</div>
+      <p class="pattern-note">${esc(capLoad)}</p>
       <div class="eyebrow">Spend distribution</div>
       <p class="pattern-note">${esc(spendLine)}</p>
     </div>
@@ -235,7 +267,6 @@ function renderStatus() {
         <span class="cost-split-item">Region <span class="cost-split-value">${esc(s.config.location)}</span></span>
         <span class="cost-split-item">Chat model <span class="cost-split-value">${esc(s.config.chatModel)}</span></span>
         <span class="cost-split-item">Analysis model <span class="cost-split-value">${esc(s.config.analysisModel)}</span></span>
-        <span class="cost-split-item">Daily reply limit <span class="cost-split-value">${esc(s.caps.softLimit)}</span></span>
         <span class="cost-split-item">Daily token limit <span class="cost-split-value">${compactTokens(s.caps.hardLimit)}</span></span>
       </div>
     </div>

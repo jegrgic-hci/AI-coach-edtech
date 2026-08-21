@@ -335,7 +335,16 @@ Cost note: unlimited conversations *reduce* cost — context is resent per turn,
 conversation shape alone. Message 1 costs ~460 input tokens; message 40 costs ~16,400, because it pays
 to re-read messages 1–39. This is not a marginal effect and it drives the cap design below.
 
-### Usage caps — two tiers (settled 2026-08-05)
+### Usage caps — two tiers (settled 2026-08-05, **soft tier removed 2026-08-21**)
+
+> **⚠ The soft tier below is retired.** The reply cap and the teacher grant that lifted it were
+> removed 2026-08-21 for the pilot: a cap set before any measurement shapes the behaviour the pilot
+> exists to observe, and "what is a normal day" is the question the pilot is running to answer. The
+> hard token tier is now the only enforced limit, with the 80% warning re-pointed at it and shown in
+> a bar above the composer. **The reasoning below is kept, not as current spec, but because it is the
+> argument for bringing a reply tier back once there is data** — it is still true that a token budget
+> gives two identically-behaved students very different allowances. See `app/server/budget.js`.
+
 
 The cap is **not a cost control** at pilot scale. The most extravagant plausible student day costs
 about eleven cents; the cap exists to catch a bug, a loop, or scripted abuse, which look nothing like

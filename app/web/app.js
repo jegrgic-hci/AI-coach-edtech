@@ -85,7 +85,10 @@ function logEvent(type, meta) {
 }
 
 // Reads an SSE response from fetch. Calls onToken per token; resolves on done.
-async function readSSE(res, { onToken }) {
+// onNotice carries out-of-band state about the session itself (budget), which
+// is why it is not a turn: it did not come from the AI and must not enter the
+// transcript the measurement reads.
+async function readSSE(res, { onToken, onNotice }) {
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
@@ -102,6 +105,7 @@ async function readSSE(res, { onToken }) {
       if (!event || data === undefined) continue;
       const payload = JSON.parse(data);
       if (event === 'token') onToken(payload);
+      if (event === 'notice') onNotice?.(payload);
       if (event === 'done') result = payload;
       if (event === 'error') throw new Error(payload);
     }
@@ -629,6 +633,9 @@ async function showAssignments() {
   $('viewAssignments').classList.remove('hidden');
 
   const home = await api('/api/student/home');
+  // Reload must not clear a warning the student was already shown — the stream
+  // only re-raises it on the next reply, which is one reply too late.
+  syncBudgetNotice(home.budget);
 
   renderRail(home);
   renderNavCrumbs($('navCrumbs'), [{ label: 'All assignments', current: true }]);
@@ -791,6 +798,26 @@ function returnToCurrentDraft() {
     renderSessionList();
     renderConversation();
   }
+}
+
+// Sits above the composer, where the student is about to spend the next reply
+// — not in the transcript. A budget warning is a condition of the session, and
+// a non-turn in the transcript would be read back by the analysis as one.
+// Stays up once raised: the server re-sends it on every reply past 80%, and a
+// warning that flickers away is one the student can miss entirely.
+function showBudgetNotice(message) {
+  const bar = $('budgetNotice');
+  bar.textContent = message;
+  bar.classList.remove('hidden');
+}
+
+// The blocked case sends no warning, so `null` here means either "plenty left"
+// or "already out" — and the second is delivered as a 429 the student cannot
+// miss. Clearing on null is therefore right: it is what un-raises the bar after
+// a teacher grants more replies.
+function syncBudgetNotice(budget) {
+  if (budget?.warning) showBudgetNotice(budget.warning);
+  else $('budgetNotice').classList.add('hidden');
 }
 
 function renderConversation() {
@@ -966,6 +993,7 @@ async function streamAction(path, body, role) {
         setMarkdown(liveMsg, raw);
         $('messages').scrollTop = $('messages').scrollHeight;
       },
+      onNotice: showBudgetNotice,
     });
   } catch (err) {
     if (err.name !== 'AbortError') {
