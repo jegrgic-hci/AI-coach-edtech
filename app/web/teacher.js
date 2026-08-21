@@ -101,39 +101,6 @@ function computeMoments(analysis) {
   return moments.slice(0, 5);
 }
 
-function renderTimeline(conv, events) {
-  const convEvents = events.filter((e) => e.conversationId === conv.id);
-  const items = [
-    ...conv.turns.map((t) => ({ ts: t.createdAt, turn: t })),
-    ...convEvents.map((e) => ({ ts: e.ts, event: e })),
-  ].sort((a, b) => a.ts.localeCompare(b.ts));
-
-  return items.map((item) => {
-    if (item.event) {
-      const e = item.event;
-      const desc = {
-        copy: `copied ${e.meta?.length || '?'} chars from ${e.meta?.role === 'auditor' ? 'an auditor' : 'an AI'} message`,
-        regenerate: 'regenerated the AI reply (implicit rejection)',
-        edit: 'edited their message (refinement)',
-        stop: 'stopped generation',
-        evaluate: 'summoned the auditor (metacognitive check)',
-      }[e.type] || e.type;
-      return `<div class="t-event">⚡ ${esc(desc)}</div>`;
-    }
-    const t = item.turn;
-    const cls = t.role === 'auditor' ? 'turn-auditor' : t.role === 'student' ? 'turn-student' : 'turn-coach';
-    const labels = [t.role];
-    if (t.metaTurn) labels.push('meta-turn — excluded from TAU');
-    if (t.superseded) labels.push('superseded');
-    if (t.meta?.regenerated) labels.push('regeneration');
-    if (t.meta?.editOf) labels.push('edit');
-    if (t.meta?.stopped) labels.push('stopped early');
-    return `<div class="turn ${cls}">
-      <div class="turn-speaker">${labels.map(esc).join(' · ')}</div>
-      <div class="msg${t.superseded ? ' msg-superseded' : ''}">${esc(t.text)}</div>
-    </div>`;
-  }).join('');
-}
 
 async function showStudent(assignmentId, studentId) {
   logUse('teacher-detail', 'student-detail');
@@ -163,7 +130,7 @@ async function showStudent(assignmentId, studentId) {
     body.appendChild(strip);
   }
 
-  for (const { session, conversations, events, submission, analysis } of sessions) {
+  for (const { session, events, submission, analysis } of sessions) {
     const card = document.createElement('div');
     card.className = 'panel-card';
     const done = analysis?.status === 'complete';
@@ -203,12 +170,9 @@ async function showStudent(assignmentId, studentId) {
         <div style="margin-top:6px"><button data-save-note="${submission.id}" class="btn btn-quiet btn-sm">Save note</button></div>`;
     }
 
-    html += `<div class="eyebrow">Transcript${conversations.length !== 1 ? `s (${conversations.length} sessions)` : ''}</div>`;
-    for (const conv of conversations) {
-      html += `<details class="transcript" ontoggle="if(this.open)logUse('teacher-detail','transcript')"><summary>${esc(conv.title)} · ${conv.turns.filter((t) => !t.superseded && !t.metaTurn).length} turns</summary>
-        ${renderTimeline(conv, events)}</details>`;
-    }
-
+    // The transcript was deleted here 2026-08-21 — report.html renders the
+    // conversations, and this was a second, differently-designed telling of
+    // the same thing that a teacher reached by a link that didn't say so.
     const sessionEvents = events.filter((e) => !e.conversationId);
     if (sessionEvents.length) {
       html += `<div style="margin-top:8px;font-size:12px;color:var(--muted)">Work episodes: ${sessionEvents.map((e) => `${e.type.replace('episode-', '')} ${new Date(e.ts).toLocaleTimeString()}`).join(' · ')}</div>`;

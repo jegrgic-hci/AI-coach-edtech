@@ -212,6 +212,9 @@ const USAGE_SURFACES = {
     audience: 'teacher',
     areas: {
       'student-detail': 'Student overview',
+      // Nothing writes this any more — the transcript came out of this view
+      // 2026-08-21. Kept so the rows already recorded under it keep their
+      // label: line 263 drops any row whose area has left the allowlist.
       transcript: 'Full transcript',
       'full-report': 'Full report',
     },

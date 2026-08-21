@@ -4130,15 +4130,6 @@ function renderDrillPanel(subs, label, sig, ctx) {
        </div>`
     : '';
 
-  // Named for what it opens, not for the surface it happens to live on — the
-  // note it used to be the only route to now lives on the rows below, so the
-  // transcript is the whole of what's left on the other side of this link.
-  // (That surface itself is due a rebuild — see teacher-dashboard-design.md's
-  // Open / Future Work.)
-  const convLink = ctx
-    ? `<a href="/teacher.html#student/${ctx.assignmentId}/${ctx.studentId}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;float:right;color:var(--tau-forest)">Transcript →</a>`
-    : '';
-
   // THE TRACE LEADS. The submission rows below are a log — one line per session,
   // in order, which answers "what did they hand in" and leaves "did any of it
   // change" to the reader. That question is the one a teacher opens this panel for,
@@ -4156,7 +4147,7 @@ function renderDrillPanel(subs, label, sig, ctx) {
     : '';
 
   return `<div class="drill-panel">
-    <div class="drill-panel-header eyebrow">Submission history — ${label}${convLink}</div>
+    <div class="drill-panel-header eyebrow">Submission history — ${label}</div>
     ${trace}
     ${reflectionArc(subs)}
     <div class="sub-history">${rows}</div>
