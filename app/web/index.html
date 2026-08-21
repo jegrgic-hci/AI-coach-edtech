@@ -103,17 +103,22 @@
           <p class="empty-sub">The AI starts with nothing — not your assignment, not your other chats. Tell it whatever it needs to know.</p>
         </div>
       </div>
+      <!-- #composer is the wrapper, not the box, because app.js toggles this id
+           to hide the whole affordance on a locked draft — and the standing
+           "your teacher can read this" line has to go with it. -->
       <div class="composer" id="composer">
-        <div class="edit-banner hidden" id="editBanner">Editing your message <button id="btnCancelEdit">cancel</button></div>
-        <textarea id="input" rows="2" placeholder="Message the AI…"></textarea>
-        <div class="composer-row">
-          <button id="btnEvaluate" class="btn btn-quiet btn-sm btn-auditor" title="Ask the auditor how you're using the AI">How am I doing?</button>
-          <button id="btnRegenerate" class="btn btn-quiet btn-sm hidden">&#8635; Regenerate</button>
-          <button id="btnStop" class="btn btn-quiet btn-sm stop-btn hidden">&#9632; Stop</button>
-          <span class="spacer"></span>
-          <span class="composer-hint">Your teacher can read this session</span>
-          <button id="btnSend" class="btn btn-primary btn-sm">Send</button>
+        <div class="composer-box">
+          <div class="edit-banner hidden" id="editBanner">Editing your message <button id="btnCancelEdit">cancel</button></div>
+          <textarea id="input" rows="2" placeholder="Message the AI…"></textarea>
+          <div class="composer-row">
+            <button id="btnEvaluate" class="btn btn-quiet btn-sm btn-auditor" title="Ask the auditor how you're using the AI">How am I doing?</button>
+            <button id="btnRegenerate" class="btn btn-quiet btn-sm hidden">&#8635; Regenerate</button>
+            <button id="btnStop" class="btn btn-quiet btn-sm stop-btn hidden">&#9632; Stop</button>
+            <span class="spacer"></span>
+            <button id="btnSend" class="btn btn-primary btn-sm">Send</button>
+          </div>
         </div>
+        <p class="composer-hint">Your teacher can read this session</p>
       </div>
     </section>
   </div>
@@ -152,6 +157,7 @@
 
 <script src="api.js"></script>
 <script src="icons.js"></script>
+<script src="markdown.js"></script>
 <script src="vendor/mammoth.browser.min.js"></script>
 <script src="app.js"></script>
 </body>

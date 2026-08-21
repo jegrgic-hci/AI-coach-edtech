@@ -864,7 +864,8 @@ function renderTurn(t) {
   const { wrap, bubble } = turnShell(t.role);
   wrap.dataset.turnId = t.id;
   wrap.dataset.role = t.role;
-  bubble.textContent = t.text;
+  if (t.role === 'student') bubble.textContent = t.text;
+  else setMarkdown(bubble, t.text);
   if (t.role === 'auditor') {
     bubble.append(el('em', 'auditor-disclaimer',
       'Not a score. Nothing here is recorded as part of your report — this exchange is excluded from the analysis.'));
@@ -935,6 +936,7 @@ async function streamAction(path, body, role) {
   updateActionButtons();
 
   const { wrap: liveWrap, bubble: liveMsg } = turnShell(role);
+  let raw = '';
   const thinking = thinkingIndicator(role);
   $('messages').append(thinking);
   $('messages').scrollTop = $('messages').scrollHeight;
@@ -953,16 +955,22 @@ async function streamAction(path, body, role) {
       signal: state.abort.signal,
     });
     if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+    // Re-rendered from the raw buffer on every token rather than appended to.
+    // Markdown is only decidable per block, and appending would leave a bubble
+    // showing asterisks until the reply finished — the reader would watch the
+    // formatting arrive, which is the thing this change exists to remove.
     await readSSE(res, {
       onToken: (token) => {
         showBubble();
-        liveMsg.textContent += token;
+        raw += token;
+        setMarkdown(liveMsg, raw);
         $('messages').scrollTop = $('messages').scrollHeight;
       },
     });
   } catch (err) {
     if (err.name !== 'AbortError') {
       showBubble();
+      liveMsg.classList.remove('msg-prose');
       liveMsg.textContent = `⚠ ${err.message}`;
       liveMsg.style.color = 'var(--tau-attention)';
     }

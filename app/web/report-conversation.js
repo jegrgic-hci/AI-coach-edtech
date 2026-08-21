@@ -51,7 +51,8 @@ function renderConvViewTranscript(conv) {
     speaker.textContent = SPEAKER_STATIC[t.role] || t.role;
     const bubble = document.createElement('div');
     bubble.className = 'msg';
-    bubble.textContent = t.text;
+    if (t.role === 'student') bubble.textContent = t.text;
+    else setMarkdown(bubble, t.text);
     wrap.append(speaker, bubble);
     box.append(wrap);
   }

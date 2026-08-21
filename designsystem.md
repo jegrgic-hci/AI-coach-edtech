@@ -162,6 +162,26 @@ not licence to improvise — say so and ask, don't invent.**
   of it, and the class card the teacher clicked already showed them that slice. Naming the final
   draft "summary" is what made the page read as two of the same thing. **The word "summary" belongs
   to the trend charts and to nothing else on that page**; every draft is labelled a draft.
+- **The composer is one object, and the field inside it has no edge of its own.** Added 2026-08-21.
+  It was three stacked frames — a full-bleed strip, a rule above it, a bordered box inside — to hold
+  the one control a student acts on, which left the thing you act on reading as the quietest part of
+  the screen. Now: a single rounded box (`--tau-r-xl`, `--tau-line-strong`, `--tau-shadow`) floating
+  on the chat's ground, the textarea seamless inside it, the controls on a row along its bottom, and
+  **`:focus-within` on the box** — border colour *and* a ring, since a 1px hue change is not a focus
+  indicator. Inside it the quiet buttons lose their resting border (a frame 12px inside a frame);
+  only the auditor chip and Send keep an outline. The standing "your teacher can read this session"
+  line moves **below** the box, centred: it is a condition of the session, not an option beside Send.
+  It is never disclosed or dismissed, and `#composer` stays the wrapper so hiding the affordance on a
+  locked draft takes the disclosure with it.
+- **An AI turn is rendered markdown; a student turn is never rendered.** Added 2026-08-21. The chat
+  is unsteered by design (`server/coach.js` — no system prompt), so the model answers in its house
+  style, which is markdown, and `textContent` on a `pre-wrap` bubble put the raw `**` and `###` in
+  front of the student. Rendering it is presentation, not steering: nothing asks the model to change
+  what it emits. A **student's** turn stays plain text under any circumstances — it is the evidence
+  the whole measurement reads, and it must display exactly as typed. One renderer
+  (`app/web/markdown.js`, escape-first, no dependency) serves the live chat, the report's replay and
+  the teacher's transcript, so the same bubble cannot render three ways. Headings render as a bold
+  lead-in, never `<h1>`–`<h6>` — a chat bubble is not a document.
 - **An empty state distinguishes "we cannot see it" from "we looked and there is nothing."** They are
   different findings and route to different responses. Neither gets the full scaffold of the
   populated state wrapped around no content.
@@ -889,7 +909,7 @@ expected shape between 3c and 3e, not a stall.
 | Button system (`.btn`) | `components.css` | index, login |
 | Band chip (`.band`) + segmented meter (`.steps`) | `components.css` | report hero + dimensions |
 | SAMR border accent (`.samr-substitution/augmentation/modification/redefinition`) | `components.css` (moved from `style.css`, 2026-07-21) | index (`.draft-chip`, `.draft-row`, `.draft-section`) · same `--tau-band-N-fg` ramp as `.band-1..4` above, one mapping documented once |
-| Turn shell (`.turn` / `.msg` / auditor form) | `components.css` (moved out of `style.css`, 3c) | index chat |
+| Turn shell (`.turn` / `.msg` / `.msg-prose` / auditor form) | `components.css` (moved out of `style.css`, 3c) + `markdown.js` (the renderer, 2026-08-21) | index chat, report replay, teacher transcript |
 | Origin chips + provenance bar | `components.css` (moved, 3c) | report Idea Origins · `.concept-origin-badge` deleted |
 | Card (`.card` + edge modifiers, `.card-lg`) | `components.css` (3c) | report (all panels), **index (`.acard`/`.pcard` compose it, 2026-07-21)** · `.panel` `.summary-card` deleted |
 | Four dimensions (`.dims` / `.dim`) | `components.css` (3c) | report · `.summary-card` deleted |

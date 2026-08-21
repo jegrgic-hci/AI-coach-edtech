@@ -397,11 +397,22 @@ details[open] > .acard-disclosure-toggle {
    rather than inside it, so a screen reader announces who is talking before
    what they said. */
 .turn { display: flex; flex-direction: column; gap: 5px; max-width: 72%; }
+
+/* A percentage is the right cap for a student turn (short, and it should hug
+   its own edge) and the wrong one for an AI turn, which is where the long prose
+   is: 72% of a wide workspace runs past 100 characters a line. The ch cap holds
+   the measure inside the 45–75 range whatever the window does. The auditor is
+   left alone — its full-bleed form is a locked decision below. */
+.turn-coach { max-width: min(72%, 68ch); }
+
+/* Was --tau-ink-faint. At 10.5px uppercase that sits below the threshold where
+   you register the speaker before reading the bubble, which leaves attribution
+   resting entirely on which side the bubble is on. */
 .turn-speaker {
   font-size: 10.5px;
   letter-spacing: var(--tau-track-caps);
   text-transform: uppercase;
-  color: var(--tau-ink-faint);
+  color: var(--tau-ink-soft);
   font-weight: 600;
 }
 .msg {
@@ -412,6 +423,40 @@ details[open] > .acard-disclosure-toggle {
   white-space: pre-wrap;
   position: relative;
 }
+
+/* A rendered AI turn. `pre-wrap` above is what a plain-text bubble needs, and
+   exactly what a rendered one must not have — the blank lines between blocks
+   would be preserved on top of the margins below. Student turns keep it. */
+.msg-prose { white-space: normal; }
+.msg-prose > :first-child { margin-top: 0; }
+.msg-prose > :last-child { margin-bottom: 0; }
+.msg-prose p { margin: var(--tau-s3) 0; }
+
+/* A heading inside a chat bubble is a lead-in, not a document level: same size
+   as the body, carrying weight and a little space above it and nothing else. */
+.msg-prose .md-head { font-weight: 600; margin-top: var(--tau-s4); }
+
+.msg-prose ul, .msg-prose ol { margin: var(--tau-s3) 0; padding-left: var(--tau-s5); }
+.msg-prose li { margin: var(--tau-s1) 0; padding-left: var(--tau-s1); }
+.msg-prose li::marker { color: var(--tau-ink-faint); }
+.msg-prose strong { font-weight: 650; }
+
+.msg-prose code {
+  font-family: var(--tau-font-mono);
+  font-size: 0.88em;
+  background: var(--tau-surface-2);
+  border-radius: var(--tau-r-sm);
+  padding: 1px 5px;
+}
+.msg-prose pre {
+  margin: var(--tau-s3) 0;
+  padding: var(--tau-s3);
+  background: var(--tau-surface-2);
+  border-radius: var(--tau-r-sm);
+  overflow-x: auto;
+}
+.msg-prose pre code { background: none; padding: 0; white-space: pre; }
+.msg-prose hr { border: none; border-top: 1px solid var(--tau-line); margin: var(--tau-s4) 0; }
 
 .turn-student { align-self: flex-end; align-items: flex-end; }
 .turn-student .msg { background: var(--tau-forest); color: var(--tau-on-forest); border-bottom-right-radius: 4px; }

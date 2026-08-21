@@ -196,17 +196,50 @@ button:hover { border-color: var(--tau-forest); }
 
 /* ---------- composer ---------- */
 
+/* One object the student writes into, floating on the chat's ground — not a
+   toolbar welded to the bottom edge. The old form was a full-bleed strip with a
+   rule above it and a second bordered box inside: three frames stacked to hold
+   one control, and the thing you actually act on read as the quietest of them.
+   The wrapper carries the spacing and the standing disclosure; the box is the
+   object. */
 .composer {
-  padding: 12px 24px 16px;
-  background: var(--tau-surface);
-  border-top: 1px solid var(--tau-line);
+  padding: var(--tau-s2) var(--tau-s6) var(--tau-s4);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--tau-s2);
 }
-.composer-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.composer-row .spacer { flex: 1; }
-.composer-hint { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); }
+
+.composer-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tau-s2);
+  padding: var(--tau-s3) var(--tau-s3) var(--tau-s2);
+  background: var(--tau-surface);
+  border: 1px solid var(--tau-line-strong);
+  border-radius: var(--tau-r-xl);
+  box-shadow: var(--tau-shadow);
+  transition: border-color var(--tau-dur-short) var(--tau-ease-standard),
+              box-shadow var(--tau-dur-medium) var(--tau-ease-decelerate);
+}
+/* The whole object takes focus, since the field inside it no longer has an edge
+   of its own to ring. Border colour AND a ring — a 1px hue change alone is not
+   a visible focus indicator. */
+.composer-box:focus-within {
+  border-color: var(--tau-forest);
+  box-shadow: var(--tau-shadow-lift), 0 0 0 3px color-mix(in oklab, var(--tau-forest) 14%, transparent);
+}
+
+.composer-row .btn-quiet:hover:not(:disabled) { background: var(--tau-hover-surface); }
+.composer-row .btn-auditor { border-color: color-mix(in oklab, var(--tau-auditor) 30%, transparent); background: var(--tau-auditor-bg); }
+
+/* Below the box, not inside the control row. It is a standing condition of the
+   session, not an option beside Send — and in the row it was competing with the
+   controls for the same glance. Still always visible, never disclosed. */
+.composer-hint {
+  font-size: var(--tau-text-xs);
+  color: var(--tau-ink-faint);
+  text-align: center;
+}
 
 .edit-banner {
   width: 100%;
@@ -220,21 +253,24 @@ button:hover { border-color: var(--tau-forest); }
 
 .stop-btn { color: var(--tau-attention); border-color: var(--tau-attention); }
 
+/* Seamless inside .composer-box: no edge, no fill, no ring of its own. The box
+   is the control; this is just where the text goes. Set at the same size the
+   text will be read at once it is a turn, so what you type looks like what you
+   said. */
 #input {
   width: 100%;
   font: inherit;
-  font-size: var(--tau-text-md);
-  border: 1px solid transparent;
-  border-radius: var(--tau-r-lg);
-  padding: 11px 13px;
+  font-size: var(--tau-text-lg);
+  line-height: var(--tau-leading-body);
+  border: none;
+  padding: var(--tau-s1) var(--tau-s2) 0;
   resize: none;
   max-height: 160px;
-  background: var(--tau-surface-2);
+  background: none;
   color: var(--tau-ink);
-  transition: box-shadow var(--tau-dur-medium) var(--tau-ease-decelerate), background var(--tau-dur-short) var(--tau-ease-standard);
 }
-#input:hover { background: var(--tau-surface); box-shadow: var(--tau-shadow); }
-#input:focus { outline: none; background: var(--tau-surface); box-shadow: var(--tau-shadow); border-color: var(--tau-forest); }
+#input:focus { outline: none; }
+#input::placeholder { color: var(--tau-ink-faint); }
 
 /* Persistent header (not a note buried at the bottom) so a student who follows
    a locked past-draft conversation is reoriented the instant they land, and
