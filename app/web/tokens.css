@@ -42,7 +42,65 @@
   --tau-bg:        oklch(0.992 0.006 162);
   --tau-surface:   #FFFFFF;
   --tau-surface-2: oklch(0.968 0.008 162);
-  --tau-surface-3: oklch(0.938 0.010 162);
+  /* Respaced 2026-08-22 (later the same day) onto M3's container tones —
+     100 / 96 / 94 / 90 — so the four steps sit at even intervals instead of
+     three crowded ones plus a gap. Was 0.938. See --tau-shell below for what
+     this cost and why it was taken anyway. */
+  --tau-surface-3: oklch(0.952 0.010 162);
+
+  /* The app shell — the rail and the pane behind the content, as ONE
+     surface. Added 2026-08-22.
+
+     It exists because the light ramp above runs the OPPOSITE DIRECTION
+     to the dark one. Dark ascends from near-black (#16181A → #2D3134),
+     so a higher step is lighter and reads RAISED. Light descends from
+     white, so a higher step is darker and reads RECESSED. A card filled
+     with --tau-surface-2 therefore means "raised" in dark and "sunken"
+     in light off one declaration — which is why the teacher dashboard's
+     sage bands read flat, and why adding a shadow made it worse rather
+     than better: the shadow lit an inset, and its penumbra bled out of
+     an edge with only a ~3% lightness step to define it.
+
+     The ramp cannot fix this from the inside: 0.938–1.0 is about 6% of
+     lightness for four steps, so three ordered surfaces leave ~2.4%
+     between neighbours, which IS the low-contrast edge. This value sits
+     below the ramp instead, buying a ~10% step under the sage bands so
+     they read raised without changing the cards at all.
+
+     CHROMA. 0.018 is past the 0.006–0.010 the light-theme ground wash
+     was granted under (designsystem.md, 2026-07-21). That cap was set
+     against a WHITE-GROUND ramp where a deeper wash had no job; on a
+     shell whose whole purpose is to sit under the content, chroma has
+     to track lightness or the ground greys out and the wash stops
+     reading as forest at all. It follows the ramp's own trend
+     (0.006 → 0.008 → 0.010 as L falls) rather than being dialled
+     independently — a ground that gains saturation faster than it loses
+     lightness is what reads as a brand demo.
+
+     Dark takes --tau-bg's value: dark's shell is already the darkest
+     thing on screen, so the relationship it encodes is unchanged there
+     and only light needed a new step.
+
+     REVISED to 0.920 / chroma 0.014, later on 2026-08-22, after an M3
+     review (app/web/m3-lab.html §4). The argument above is unchanged and
+     still correct — what changed is the whole ramp underneath it. With
+     surface-3 respaced to 0.952 the ramp now runs 1.0 / 0.968 / 0.952 /
+     0.920, which is M3's container spacing (tones 100/96/94/90) at even
+     intervals, and 0.865 sat below M3's entire container range.
+
+     THE COST, MEASURED, because it is the one thing this trade gives up:
+     a --tau-surface-2 band on the shell separated by 10.3 points of
+     lightness at 0.865 and separates by 4.8 at 0.920. That is a real
+     reduction in exactly the quantity the earlier fix on this line was
+     bought to add. It is still well clear of the ~3% edge that started
+     all this, and it is the spacing M3 uses between its own low and
+     highest containers — but if Home reads flat again, THIS LINE is the
+     first place to look, and reverting it to 0.865 restores the earlier
+     behaviour without touching anything else.
+
+     Chroma follows the ramp's trend down from 0.018 to 0.014 with the
+     lightness rise, for the reason the paragraph above gives. */
+  --tau-shell:     oklch(0.920 0.014 162);
 
   --tau-ink:       #16191C;
   --tau-ink-soft:  #545B63;
@@ -215,6 +273,21 @@
      that size gets typed as a literal and drifts per surface. */
   --tau-text-display: 50px;
 
+  /* LABEL ROLES, added 2026-08-22 (m3-lab §6). Eight uppercase treatments at
+     five sizes and four tracking values existed across the sheets, all doing
+     the one job of naming a group, plus six unofficial sizes below
+     --tau-text-xs (9, 9.5, 10, 10.5, 11, 12.5). A component references a ROLE
+     now, never a pixel value — the same argument --tau-text-display already
+     makes one block down.
+
+     SENTENCE CASE, not uppercase: M3's type scale has no all-caps role (that
+     was M2's overline). A label is demoted by size, weight and colour, which
+     is three channels and enough. Uppercase survives in exactly two places
+     that are not labels — .turn-speaker and the auditor's mono eyebrow, where
+     caps are a voice, not a hierarchy. */
+  --tau-text-label-sm: 11px;
+  --tau-text-label-md: 12px;
+
   --tau-text-xs:  11.5px;
   --tau-text-sm:  13px;
   --tau-text-md:  14.5px;
@@ -239,9 +312,26 @@
   --tau-r-sm: 6px; --tau-r-md: 10px; --tau-r-lg: 14px; --tau-r-xl: 20px;
   --tau-r-pill: 999px;
 
+  /* A dialog is the one surface where the corner carries "this is a separate
+     plane," so it takes M3's own dialog corner (28dp) rather than the next
+     rung of this scale. Added 2026-08-22 (m3-lab §9). */
+  --tau-r-dialog: 28px;
+
   /* Minimum interactive target. Not advisory — v7 claimed 44px while
-     shipping 20px chips, which is the failure this token prevents. */
+     shipping 20px chips, which is the failure this token prevents.
+
+     It is a TARGET, not a height. Added 2026-08-22 (m3-lab §3): the two
+     tokens below are what a control is DRAWN at, and a control smaller than
+     --tau-target reaches the floor with a transparent expansion (an ::after
+     at inset -Npx) rather than by growing its box. Six visual heights existed
+     across one toolbar family — 44/36/36/32/32/22 — four of them under the
+     floor while the largest was over-sized to meet it. */
   --tau-target: 44px;
+
+  /* M3 baseline button is 40dp and its chip is 32dp. Two heights, and the
+     difference between them means something: a control versus a filter. */
+  --tau-h-control: 40px;
+  --tau-h-chip:    32px;
 
   /* One width for every vertical rail in the app. The four surfaces that
      grew a rail independently landed on 292 / 290 / 240 / 224, none of them
@@ -255,7 +345,10 @@
   --tau-shadow:      0 1px 2px #16191C0F, 0 8px 24px -16px #16191C2E;
   --tau-shadow-lift: 0 2px 4px #16191C14, 0 18px 40px -22px #16191C3D;
 
-  --tau-focus-ring: 2px solid var(--tau-forest);
+  /* 3px, not 2px, since 2026-08-22 — M3's focus indicator is 3dp at a 2dp
+     offset, and 2px was thin enough that on a field it competed with the
+     border-colour change rather than replacing it. */
+  --tau-focus-ring: 3px solid var(--tau-forest);
   --tau-focus-gap:  2px;
 
   /* ---------------------------------------------------------------
@@ -266,6 +359,21 @@
    * opposite behaviours. A second token is the only thing that works
    * in both themes.
    * --------------------------------------------------------------- */
+  /* STATE LAYERS, added 2026-08-22 (m3-lab §1). M3's mechanism: a state is a
+     translucent overlay of the component's OWN CONTENT COLOUR, at a fixed
+     opacity, so one declaration works on every ground.
+     Use as: background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent)
+     Prefer this over --tau-hover-surface for anything that sits on more than
+     one ground. Four hover fills existed across the dashboard's rows because
+     each ground needed its own, and components.css:1052 recorded the dead end
+     it produces: "--tau-hover-surface is unusable here: it resolves to
+     --tau-surface-2, which is the rail's own background."
+     --tau-hover-surface is kept for the fixed-ground cases that already use
+     it correctly; it is not deprecated, it is just no longer the default. */
+  --tau-state-hover: 8%;
+  --tau-state-focus: 10%;
+  --tau-state-press: 10%;
+
   --tau-hover-surface: var(--tau-surface-2);
   --tau-disabled:      0.55;
   --tau-scrim:         #16191C66;
@@ -324,6 +432,8 @@
     --tau-surface:   #1C1F21;
     --tau-surface-2: #232729;
     --tau-surface-3: #2D3134;
+    /* Dark's shell is already the darkest thing on screen. */
+    --tau-shell:     #16181A;
 
     --tau-ink:       #E9EBEC;
     --tau-ink-soft:  #A2A9AE;
@@ -381,7 +491,7 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   --tau-forest: #6FBF95; --tau-forest-lift: #8CD1AC; --tau-sage: #4F9973; --tau-on-forest: #12211A;
-  --tau-bg: #16181A; --tau-surface: #1C1F21; --tau-surface-2: #232729; --tau-surface-3: #2D3134;
+  --tau-bg: #16181A; --tau-surface: #1C1F21; --tau-surface-2: #232729; --tau-surface-3: #2D3134; --tau-shell: #16181A;
   --tau-ink: #E9EBEC; --tau-ink-soft: #A2A9AE; --tau-ink-faint: #858C92; --tau-ink-label: var(--tau-ink-faint);
   --tau-line: #2D3134; --tau-line-strong: #3E4448;
   --tau-band-1-bg: oklch(0.26 0.030 280); --tau-band-1-fg: oklch(0.82 0.070 280);
@@ -417,7 +527,7 @@
 :root[data-theme="light"] {
   color-scheme: light;
   --tau-forest: #1F4D3A; --tau-forest-lift: #2A6349; --tau-sage: #3D7A5A; --tau-on-forest: #FFFFFF;
-  --tau-bg: oklch(0.992 0.006 162); --tau-surface: #FFFFFF; --tau-surface-2: oklch(0.968 0.008 162); --tau-surface-3: oklch(0.938 0.010 162);
+  --tau-bg: oklch(0.992 0.006 162); --tau-surface: #FFFFFF; --tau-surface-2: oklch(0.968 0.008 162); --tau-surface-3: oklch(0.952 0.010 162); --tau-shell: oklch(0.920 0.014 162);
   --tau-ink: #16191C; --tau-ink-soft: #545B63; --tau-ink-faint: #767D85; --tau-ink-label: var(--tau-ink-soft);
   --tau-line: oklch(0.895 0.008 162); --tau-line-strong: oklch(0.815 0.010 162);
   --tau-band-1-bg: oklch(0.951 0.018 280); --tau-band-1-fg: oklch(0.42 0.058 280);

@@ -33,13 +33,18 @@
 /* ---------- 1. micro-label ---------- */
 
 /* Ten near-identical uppercase labels existed across the sheets at four sizes
-   and three tracking values. One is enough, and it is the only place uppercase
-   is sanctioned — anywhere else it reads as shouting. */
+   and three tracking values. One is enough.
+
+   SENTENCE CASE since 2026-08-22 (m3-lab §6b). M3's type scale has no all-caps
+   role — that was M2's overline — and the eight surviving uppercase treatments
+   across these sheets were demoting a label through four channels (size,
+   weight, colour, caps) where three already did it. Caps also cost real
+   legibility at 10-11px, which is where every one of them sat.
+   The two places caps SURVIVE are not labels: .turn-speaker and the auditor's
+   mono eyebrow, where caps carry a voice rather than a rank. */
 .eyebrow {
-  font-size: var(--tau-text-xs);
+  font-size: var(--tau-text-label-md);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: var(--tau-track-label);
   color: var(--tau-ink-label);
 }
 
@@ -95,25 +100,40 @@
      is "go somewhere"), and without this it carries the UA underline. */
   text-decoration: none;
   border: 1px solid transparent;
-  border-radius: var(--tau-r-md);
+  /* One shape for every variant since 2026-08-22 (m3-lab §3). M3 ranks button
+     variants by FILL, never by corner — .btn-primary was a pill while quiet,
+     danger and tertiary were --tau-r-md, so shape was carrying a rank signal
+     that fill already carries. */
+  border-radius: var(--tau-r-pill);
   padding: 0 var(--tau-s4);
-  min-height: var(--tau-target);
+  /* Drawn at 40px, not at the 44px target. The floor is met by the
+     transparent expansion below, so a control reaches it without the box
+     growing to suit. */
+  min-height: var(--tau-h-control);
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--tau-s2);
   cursor: pointer;
   transition: background var(--tau-dur-short) var(--tau-ease-standard), border-color var(--tau-dur-short) var(--tau-ease-standard), transform var(--tau-dur-short) var(--tau-ease-standard);
 }
+/* The target expansion. Invisible, changes nothing drawn, and it is why the
+   heights above are allowed to be smaller than --tau-target. */
+.btn::after, .avatar-trigger::after, .menu-trigger::after {
+  content: ""; position: absolute; left: 0; right: 0;
+  top: 50%; transform: translateY(-50%);
+  height: var(--tau-target); pointer-events: none;
+}
 .btn:disabled { opacity: var(--tau-disabled); cursor: not-allowed; }
 .btn:active:not(:disabled) { transform: scale(0.97); }
 
 /* A raised primary action reads as "press me," not just "forest text on a
    rect" — the elevation scale below applies to the one button per screen
-   that's actually the primary move, not to every button. */
+   that's actually the primary move, not to every button. The radius that
+   used to live here moved to .btn: every variant is a pill now. */
 .btn-primary {
   background: var(--tau-forest);
   color: var(--tau-on-forest);
-  border-radius: var(--tau-r-pill);
   box-shadow: 0 3px 8px -3px color-mix(in oklab, var(--tau-forest) 45%, transparent);
 }
 .btn-primary:hover:not(:disabled) { background: var(--tau-forest-lift); }
@@ -134,9 +154,10 @@
 }
 .btn-auditor:hover:not(:disabled) { border-color: var(--tau-auditor); }
 
-/* 36px is under --tau-target, so this is for pointer-dense toolbars only —
-   never for a primary action or a lone control on a phone view. */
-.btn-sm { min-height: 36px; font-size: var(--tau-text-sm); padding: 0 var(--tau-s3); }
+/* Chip height. Under --tau-target as drawn, at it as a target — .btn::after
+   covers this variant too, so the old "pointer-dense toolbars only" caveat no
+   longer applies and has been removed rather than left as folklore. */
+.btn-sm { min-height: var(--tau-h-chip); font-size: var(--tau-text-sm); padding: 0 var(--tau-s3); }
 
 /* The confirm button on an irreversible action, and the only filled control in
    the app that isn't forest. Attention rather than caution: deleting an
@@ -150,7 +171,7 @@
    not a bare underlined link, for an action that sits inline with real
    buttons elsewhere on the same row. */
 .btn-tertiary { background: none; border-color: transparent; color: var(--tau-forest); }
-.btn-tertiary:hover:not(:disabled) { background: var(--tau-hover-surface); }
+.btn-tertiary:hover:not(:disabled) { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
 
 /* ---------- 3b. icons ----------
    M3-style, self-hosted (icons.js) — see that file for why not the Material
@@ -358,11 +379,20 @@ details[open] > .acard-disclosure-toggle {
   flex-direction: column;
   gap: 9px;
   /* Depth, not just a boundary — a hairline says "here is an edge," a soft
-     shadow says "this is raised off the page." Additive: the border stays,
-     so nothing that already looked fine breaks. */
+     shadow says "this is raised off the page."
+     ELEVATED, not both, since 2026-08-22 (m3-lab §8): M3's card variants are
+     filled, outlined OR elevated and no variant carries an outline and a
+     shadow together. The border stayed additive when the content pane was
+     white and the shadow had nothing to cast against; --tau-shell gives it a
+     ground now. .card-quiet is the filled variant, and any card that needs a
+     drawn edge takes .card-outlined below rather than getting both back. */
+  border-color: transparent;
   box-shadow: var(--tau-shadow);
 }
 .card-lg { border-radius: var(--tau-r-lg); padding: var(--tau-s5) 22px; gap: var(--tau-s3); }
+/* M3's outlined variant: an edge INSTEAD of elevation, never as well. For a
+   card that sits on white, where a shadow has nothing to cast against. */
+.card-outlined { border-color: var(--tau-line); box-shadow: none; }
 
 /* The one panel per screen that's the actual takeaway (the report's score,
    not its tabs) gets one more step of both radius and elevation, so shape
@@ -597,7 +627,15 @@ details[open] > .acard-disclosure-toggle {
   min-height: var(--tau-target);
 }
 .field textarea { resize: vertical; }
-.field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--tau-forest); }
+/* Both channels. A 1px border hue change is not a focus indicator — the rule
+   designsystem.md already states for the composer, applied here 2026-08-22
+   (m3-lab §2). The outline:none this replaces was suppressing tokens.css's own
+   :focus-visible baseline. */
+.field input:focus, .field textarea:focus, .field select:focus {
+  outline: var(--tau-focus-ring);
+  outline-offset: var(--tau-focus-gap);
+  border-color: var(--tau-forest);
+}
 .field-help { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); }
 
 /* A checkbox row — the horizontal counterpart to .field, which stacks a label
@@ -662,8 +700,10 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    the last item. */
 .confirm {
   background: var(--tau-surface);
-  border: 1px solid var(--tau-line);
-  border-radius: var(--tau-r-lg);
+  /* Elevated, and at M3's dialog corner (28dp) — the one surface where the
+     radius carries "this is a separate plane." Added 2026-08-22, m3-lab §9. */
+  border: 1px solid transparent;
+  border-radius: var(--tau-r-dialog);
   box-shadow: var(--tau-shadow-lift);
   width: min(460px, 100%);
   padding: 22px;
@@ -815,7 +855,6 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
   font-size: 10px;
   font-weight: 700;
   color: var(--tau-ink-soft);
-  text-transform: uppercase;
   letter-spacing: 0.8px;
   margin-bottom: 6px;
 }
@@ -879,16 +918,35 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    IA is strictly hierarchical (Assignment -> Draft -> Conversation and/or
    Report), so this is a breadcrumb plus a *contextual* toggle, never a
    tab bar implying the three screens are peers a student can jump between. */
+/* M3's small top app bar (64dp), 2026-08-22 — m3-lab §7, the same change
+   dashboard.html's own <header> took. Two parts:
+
+   HEIGHT. 52px was sized to the wordmark. 64px is what lets the controls in
+   the bar (the account chip, report.html's Pattern Guide) be 40px
+   --tau-h-control objects without crowding the row, which §3 requires of them.
+
+   NO DIVIDER AT REST. The bar states "there is content above" by taking a
+   tonal step once something scrolls under it, rather than asserting it
+   permanently with a hairline. .scrolled is set by the page that owns the
+   scrolling element — index.html's home view scrolls .dash-main under a fixed
+   bar, so app.js sets it there. Two pages deliberately do NOT:
+   - the workspace view, where the bar sits directly above .chat-header, which
+     is already a divider; a second one is two rules for one seam.
+   - report.html, whose document body scrolls and whose bar is not sticky, so
+     it leaves the viewport instead of ever having content pass under it. It
+     keeps a resting hairline, page-scoped in report.css. */
 .tau-nav {
   display: flex;
   align-items: center;
   gap: var(--tau-s4);
-  height: 52px;
+  height: 64px;
   padding: 0 var(--tau-s5);
   background: var(--tau-surface);
-  border-bottom: 1px solid var(--tau-line);
+  border-bottom: 1px solid transparent;
   flex-shrink: 0;
+  transition: background var(--tau-dur-medium) var(--tau-ease-standard);
 }
+.tau-nav.scrolled { background: var(--tau-surface-2); }
 .tau-nav-mark {
   display: flex;
   align-items: center;
@@ -1037,10 +1095,12 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
   width: 100%;
   /* Not advisory — two of the four rails this replaces shipped 34px and 36px
      rows against a token documented as a real minimum. */
-  min-height: var(--tau-target);
+  /* 48px and a pill since 2026-08-22 (m3-lab §5a) — M3's navigation-drawer
+     item, whose selected state is a tonal fill and never an elevation. */
+  min-height: 48px;
   padding: var(--tau-s2) var(--tau-s3);
   border: none;
-  border-radius: var(--tau-r-sm);
+  border-radius: var(--tau-r-pill);
   background: none;
   font: inherit;
   color: var(--tau-ink);
@@ -1048,11 +1108,13 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
   cursor: pointer;
   transition: background var(--tau-dur-short) var(--tau-ease-standard);
 }
-/* Hover darkens, selection lightens — two directions off the same ground, so
-   the two states can never be mistaken for each other. --tau-hover-surface
-   is unusable here: it resolves to --tau-surface-2, which is the rail's own
-   background. */
-.rail-item:hover { background: var(--tau-surface-3); }
+/* A state layer, not a picked fill. The note this replaces recorded the dead
+   end that produced: "--tau-hover-surface is unusable here: it resolves to
+   --tau-surface-2, which is the rail's own background." An 8% overlay of the
+   row's own ink darkens white, sage and shell by the same perceptual amount,
+   so the rail can move grounds again without this rule being re-picked. */
+.rail-item:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
+.rail-item:active { background: color-mix(in oklab, currentColor var(--tau-state-press), transparent); }
 .rail-item:focus-visible { outline: var(--tau-focus-ring); outline-offset: -2px; }
 
 /* The selected row is the only white surface in the rail, so it reads as
@@ -1066,9 +1128,12 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    lightness against surface-2, which is the contrast that rail wanted.
    Same construction as .tau-nav-local-opt.active above, which is the one
    place in the system that had already solved this. */
+/* Tonal only. The shadow is gone (m3-lab §5a): on the shell the dashboard
+   already overrode the fill to --tau-surface-2, leaving a tonal fill AND an
+   elevation — two channels for one state, and the elevation was the one
+   making nav out-pop the content it points at. */
 .rail-item.active {
   background: var(--tau-surface);
-  box-shadow: var(--tau-shadow);
   cursor: default;
 }
 
@@ -1139,8 +1204,9 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 .menu-wrap { position: relative; }
 
 .menu-trigger {
-  display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 var(--tau-s3);
-  border-radius: var(--tau-r-md); border: 1px solid var(--tau-line); background: var(--tau-surface);
+  display: inline-flex; align-items: center; gap: 6px; min-height: var(--tau-h-control); padding: 0 var(--tau-s4);
+  position: relative;
+  border-radius: var(--tau-r-pill); border: 1px solid var(--tau-line); background: var(--tau-surface);
   font: inherit; font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); cursor: pointer;
   transition: background var(--tau-dur-short) var(--tau-ease-standard), border-color var(--tau-dur-short) var(--tau-ease-standard);
 }
@@ -1163,7 +1229,8 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    circle was decoration standing in for one. Padding is symmetric now that
    nothing round sits inside the left edge. */
 .avatar-trigger {
-  display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 4px 11px; border-radius: var(--tau-r-pill);
+  display: inline-flex; align-items: center; gap: 7px; min-height: var(--tau-h-chip); padding: 4px 11px; border-radius: var(--tau-r-pill);
+  position: relative;
   border: 1px solid var(--tau-line); background: var(--tau-surface); cursor: pointer;
   font: inherit;
   transition: background var(--tau-dur-short) var(--tau-ease-standard);
@@ -1178,7 +1245,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 
 .menu-panel {
   position: absolute; top: calc(100% + 8px); right: 0; min-width: 240px;
-  background: var(--tau-surface); border: 1px solid var(--tau-line); border-radius: var(--tau-r-md);
+  background: var(--tau-surface); border: 1px solid transparent; border-radius: var(--tau-r-md);
   box-shadow: var(--tau-shadow-lift); padding: 6px; z-index: 40;
   animation: tau-reveal var(--tau-dur-medium) var(--tau-ease-decelerate);
 }
@@ -1200,7 +1267,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    actually testing the New Class success view's two shortcut buttons live,
    not by reading the code: both stayed visible after being marked done. */
 .menu-item[hidden] { display: none; }
-.menu-item:hover { background: var(--tau-hover-surface); }
+.menu-item:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
 /* Roving tabindex means the focused item is the only tabbable one, so focus
    is the sole indication of position in the menu — it has to be unmissable,
    and it must not rely on the hover wash alone to show it. */
@@ -1246,8 +1313,8 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    above, management below. Only earns its place when a panel holds both
    kinds; a single-group panel takes no label, same rule .eyebrow follows. */
 .menu-group-label {
-  padding: 7px 10px 3px; font-size: 10px; font-weight: 650;
-  text-transform: uppercase; letter-spacing: 0.07em; color: var(--tau-ink-faint);
+  padding: 7px 10px 3px; font-size: var(--tau-text-label-sm); font-weight: 650;
+  color: var(--tau-ink-faint);
 }
 
 /* A destructive item states it in colour as well as wording ("Delete
@@ -1342,7 +1409,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    (.overview-card, .drill-trace) stayed behind. */
 
 .no-signal { color: var(--tau-ink-faint); font-size: var(--tau-text-sm); }
-.agg-block-lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tau-ink-soft); margin: 0 0 var(--tau-s2); }
+.agg-block-lbl { font-size: var(--tau-text-label-md); font-weight: 700; color: var(--tau-ink-soft); margin: 0 0 var(--tau-s2); }
 .agg-sample-note { font-size: 11px; color: var(--tau-ink-faint); margin: 0 0 var(--tau-s2); }
 .pattern-body { font-size: 13px; color: var(--tau-ink-soft); margin: 0 0 var(--tau-s3); line-height: 1.55; }
 .pattern-body b { color: var(--tau-ink); }
@@ -1795,7 +1862,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
    feedback for a row-wide target, and the per-segment tooltip still
    carries the segment-specific reading on hover. */
 .dist-panel {
-  background: var(--tau-surface); border: 1px solid var(--tau-line);
+  background: var(--tau-surface); border: 1px solid transparent;
   border-radius: var(--tau-r-md); box-shadow: var(--tau-shadow);
 }
 .dist-row { border-bottom: 1px solid var(--tau-line); }
@@ -1947,8 +2014,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
    Vocabulary is the student report's, verbatim (report-render.js): the same
    detectors must not acquire two names across two surfaces. */
 .pattern-group-label {
-  font-family: var(--tau-font-mono); font-size: var(--tau-text-xs);
-  letter-spacing: var(--tau-track-label); text-transform: uppercase;
+  font-family: var(--tau-font-mono); font-size: var(--tau-text-label-md);
   font-weight: 700; margin-bottom: var(--tau-s3);
 }
 /* Per group, not per section. "No passive patterns" is a real and good
@@ -1962,7 +2028,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
 /* The white card a visualisation sits on, matching .pattern-card's chrome so
    the chart and the finding cards read as one family. */
 .viz-card {
-  background: var(--tau-surface); border: 1px solid var(--tau-line);
+  background: var(--tau-surface); border: 1px solid transparent;
   border-radius: var(--tau-r-md); box-shadow: var(--tau-shadow);
   padding: var(--tau-s4) var(--tau-s5);
 }
@@ -2021,8 +2087,8 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
    express. traceFlow() sets .tracing on the svg and .lit on that path. */
 .flow-svg.tracing .flow-rib { fill-opacity: 0.1; }
 .flow-svg.tracing .flow-rib.lit { fill-opacity: 0.85; }
-.flow-when { font-size: 9.5px; font-weight: 700; letter-spacing: var(--tau-track-label);
-             text-transform: uppercase; fill: var(--tau-ink-faint); }
+.flow-when { font-size: var(--tau-text-label-sm); font-weight: 700;
+             fill: var(--tau-ink-faint); }
 /* A count is measured, so the numerals stay ink and the words carry which
    one matters — the same rule the .dbar segments follow. */
 .flow-n { font-size: 11px; font-weight: 700; fill: var(--tau-ink);

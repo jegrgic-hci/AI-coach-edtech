@@ -44,6 +44,37 @@ not licence to improvise — say so and ask, don't invent.**
   in the markup itself, not set by script. **NEVER** add a bare `@media (prefers-color-scheme:
   dark)` block that overrides `:root` — dark only applies under an explicit `data-theme="dark"`
   the viewer chose via the toggle, never inherited from the OS.
+- **Raised means LIGHTER THAN ITS OWN GROUND, in both themes.** Added 2026-08-22. The light ramp
+  descends from white and the dark ramp ascends from near-black, so `--tau-surface-2` as a card fill
+  means "raised" in dark and "recessed" in light off one declaration. **Never read a surface token as
+  an elevation level** — check it against the ground it will actually sit on. A shadow cannot rescue
+  a fill that is darker than its ground: it lights an inset, and a soft penumbra bleeding out of a
+  low-contrast edge reads as out-of-focus, not raised. **A shadow is only legible where the fill
+  already has an edge to cast from** — roughly a 10% lightness step, never ~3%.
+- **The app shell is ONE surface (`--tau-shell`), and only content is raised off it.** Added
+  2026-08-22; **extended to both student views 2026-08-23** (`admin.html` is the one shell still on
+  white). Rail and content pane take the same value — `.rail` has no border, so matching it
+  dissolves the seam — and the rail earns "quieter than the content it frames" by being **ground
+  while cards are figure**, never by being a third tone. **Nothing in the shell may be lighter than
+  the content cards**: an active nav chip filled white on the shell out-pops the content it points
+  at, so wayfinding state takes the same fill the cards use. *Raised is one fill across the whole
+  shell.* On the student side that rule caught four things, not three — the fourth being
+  `components.css`'s `.rail .avatar`, whose "one step further down the ramp" (`--tau-surface-3`)
+  inverts into a ~3% step *up* once the rail is the shell. **A rule that names a ramp step relative
+  to the rail's old ground has to be re-read, not re-applied.**
+- **A state layer mixes into the ground it sits on, and `transparent` is only that ground when the
+  control has no fill of its own.** Added 2026-08-23. `color-mix(… currentColor var(--tau-state-hover),
+  transparent)` is right for `.rail-item`, `.conv-view-item`, `.composer-row .btn-quiet` — controls
+  whose resting `background` is `none`. On anything with a fill (`.card`, `.attach-head`) a
+  translucent `background` **replaces** that fill rather than layering over it, so the same
+  declaration hovers the surface by making it *see-through*. Name the fill instead:
+  `color-mix(in oklab, var(--tau-ink) var(--tau-state-hover), var(--tau-surface))`. **And never
+  `currentColor` on a control whose content colour is forest** — an 8% forest overlay is a
+  forest-tinted surface fill, the seventh forest job the constraints don't grant.
+- **`--tau-ink-faint` and `--tau-line` are white-ground values and fail on `--tau-shell`** (2.79:1
+  and 1.10:1). Added 2026-08-22. On the shell, faint text takes `--tau-ink-soft` and a divider takes
+  `--tau-line-strong` — `--tau-line` is *lighter* than the shell and inverts into an emboss. This
+  applies to anything drawn on the ground itself; inside a card both are unaffected.
 - **NEVER** add a sparkline, trend line, or mini line-chart as decoration. A trend value defaults
   to plain text ("+2 since draft 2") unless a chart there was explicitly requested.
 - **Change over time is a flow diagram, never a line.** Added 2026-08-16. A line asserts a rate of
@@ -402,7 +433,8 @@ Settled. Don't relitigate without a reason that's changed.
 | **Students see their overall level and all four dimension readings.** *(Amended 2026-08-12 — was "the total and all four dimension scores"; there is no total. The disclosure decision it settled stands: nothing about a student's own reading is withheld from them.)* | Confirmed 2026-07-20. Obliges two rules — see *Score display rules* below. |
 | **The divergence chart is student-facing.** | It's the visual map of their interaction. Inherits the coach-voice rule: describes, never judges. |
 | **Dropped connections get real states, not a toast.** | Every turn is persisted server-side as sent, so the copy is allowed to promise the work is safe. |
-| **Forest-washed ground in light theme, card surfaces stay white.** *(Revised 2026-07-21 — was "white ground, forest as accent only.")* | The all-neutral ground was itself the "white-washed tool with a green accent" problem the product owner flagged — forest is the brand colour, not just an accent. The wash is whisper-quiet (`oklch` chroma 0.006–0.010, same hue as forest) so it doesn't repeat v7's mistake of a saturated brand-demo tint; `--tau-surface` (cards, panels) is untouched pure white so content still separates from the ground. Dark theme is unchanged — see the next row. |
+| **Forest-washed ground in light theme, card surfaces stay white.** *(Revised 2026-07-21 — was "white ground, forest as accent only." **Chroma cap amended 2026-08-22** — see the row below.)* | The all-neutral ground was itself the "white-washed tool with a green accent" problem the product owner flagged — forest is the brand colour, not just an accent. The wash is whisper-quiet (`oklch` chroma 0.006–0.010, same hue as forest) so it doesn't repeat v7's mistake of a saturated brand-demo tint; `--tau-surface` (cards, panels) is untouched pure white so content still separates from the ground. Dark theme is unchanged — see the next row. |
+| **The ground wash's chroma cap is 0.010 on the RAMP and 0.018 on `--tau-shell`.** *(Added 2026-08-22. Amends the 0.006–0.010 qualifier in the row above rather than replacing it — the ramp still holds that cap.)* | The 0.010 cap was set against a ramp whose grounds all sit within 6% of white, where a deeper wash had no job to do and could only read as decoration. `--tau-shell` has a job: it is the surface everything else is raised off, and at `oklch` L 0.865 a chroma held at 0.010 greys out and stops reading as forest at all. Chroma tracks lightness the way the ramp's own trend already does (0.006 → 0.008 → 0.010 as L falls) rather than being dialled independently — **a ground that gains saturation faster than it loses lightness is what reads as a brand demo**, and that, not the absolute number, is what the original cap was protecting. This is a judgement call and is recorded as one: `elevation-lab.html`'s K3 variant sits deliberately past the line so where it belongs stays a thing that can be looked at. **Forest gains no new job** — the light-theme ground wash was already one of its six. |
 | **SAMR leads — the level is the primary label, named and never numbered.** *(Reversed 2026-08-12 — was "SAMR is a subtitle, never the primary label", written when SAMR was arithmetic off a total it didn't deserve. It is now a reading in its own right. Recorded so the reversal isn't read as drift.)* | The original objection was PD jargon — students don't know the word, nor do teachers who missed that inservice. It is outweighed now that the level is the measurement rather than a derived label; wherever the ladder appears it states that these levels describe agency. |
 | **Both light and dark themes ship.** | Students write at night, on phones. Dark is charcoal, not forest — a brand-tinted dark theme becomes a green room. |
 | **Light is the default for everyone; the OS preference is ignored.** | Confirmed 2026-07-20. A teacher projecting the tool shouldn't get a different screen from the class because their laptop is in dark mode. Dark is a choice a reader makes, not one the device makes for them. |
@@ -1346,6 +1378,135 @@ is the one exception and only because meter fills are already on forest's list.
 | `--tau-ease-standard`, `--tau-ease-decelerate`, `--tau-ease-accelerate` | No easing was ever declared explicitly (bare `ease` or nothing); these are M3's `standard` and `emphasized-decelerate`/`-accelerate` curves, giving symmetric and directional motion one deliberate curve each instead of the browser default. |
 
 ## Session log
+
+**2026-08-23 — the M3 pass reaches the student side**
+
+Applying the 2026-08-22 work to `index.html` and `report.html`. Most of it had already arrived free:
+both pages load `tokens.css` and `components.css`, so §3's control heights and target expansion, §9's
+dialog corner, §5a's 48px tonal `.rail-item` and most of §6's sentence-case labels were live on the
+student surfaces before this session started. What was left was the page sheets.
+
+**Home was the worst instance of the problem `--tau-shell` was built for, and worse than the
+dashboard's.** `.dash-main` was a hardcoded `#FFFFFF` — a literal, with two dark-theme overrides
+propping it up — and `.acard` is `.card` + `.card-lg`, a white fill. A white card on a white pane is
+a *zero* lightness step, so those cards were never raised; they were outlined. Then m3-lab §8 took
+`.card`'s border away for the elevated variant and they had nothing left at all. Both student views
+now take the shell: `.dash-main`, `.dash-rail`, and `.ws-body` (which matters for the 8px gutter
+`.chat` floats in as much as for the rail — on `--tau-bg` the chat pane's shadow had nothing to cast
+against). **No card changed.**
+
+**The fourth forced consequence.** The dashboard's ground move named three: active nav row off white,
+divider to `line-strong`, faint text to `ink-soft`. The student rail has an identity block, which
+surfaced a fourth — `.rail .avatar` is set to `--tau-surface-3` under a comment reasoning that
+surface-2 *is* the rail's ground so the avatar must go one step further down the ramp. On the shell
+that reasoning inverts: surface-3 is now ~3% **lighter** than the rail, and the circle all but
+disappears. The general form is now a Hard Constraint: *a rule that names a ramp step relative to the
+rail's old ground has to be re-read, not re-applied.*
+
+**A real defect in the 2026-08-22 state-layer conversions, found by doing the same conversion here.**
+`color-mix(… currentColor …, transparent)` sets a translucent `background`, which **replaces** a
+filled surface rather than layering over it. On `.rail-item` (resting `background: none`) that is
+exactly M3's mechanism. On `.dim-card` and `dashboard.html`'s `.attach-head` — both of which carry
+`background: var(--tau-surface)` — it hovers the card by making it see-through. Fixed in both;
+`.class-check` was checked and left, since it has no resting fill. Also recorded: **never
+`currentColor` where the content colour is forest** (`.new-session-btn`), which would make an 8%
+overlay a forest-tinted surface fill.
+
+**§7's top app bar is a per-page decision, not a global one.** `.tau-nav` takes M3's 64dp and drops
+its resting hairline, but the tonal-step-on-scroll that replaces the hairline only pays where a bar
+is fixed over a scrolling pane. Two of the three student surfaces are not: the workspace bar sits
+directly above `.chat-header`, which is already the seam, and `report.html`'s document body scrolls
+under a bar that isn't sticky, so nothing ever passes beneath it — it keeps a resting hairline,
+page-scoped. Only home binds the listener.
+
+**§6b's caps exception is a question, not a size.** Nine uppercase rules survived in `report.css`.
+Six name **who spoke** (`.turn-role`, `.div-role-tag`, `.div-ai-chip`, `.div-student-chip`,
+`.dt-cat-seq-chip--s/--a`) and are the `.turn-speaker` exception — caps as voice. Three named a
+**group** and went to sentence case, including `#dt-modal-classifier`, whose twin `.dt-cat-card-name`
+had already gone. The surviving six carry a comment saying so, so the next pass doesn't read them as
+missed.
+
+**One genuine accessibility defect, unrelated to M3 but found by §2's sweep.** `.auth-form
+input:focus` drew `outline: 2px solid var(--tau-surface-2)` — a surface-coloured ring on a white
+field, roughly a 3% contrast. It was not a weak focus indicator; it was not one, leaving a 1px border
+hue change doing the entire job on the sign-in and password-reset forms.
+
+**2026-08-22 — the light ramp had no room in it: `--tau-shell`**
+
+Started as "the teacher dashboard looks flat, add elevation to the cards." It wasn't a shadow
+problem. **The two themes run the surface ramp in opposite directions**, and one declaration was
+being asked to mean opposite things in each:
+
+| | `bg` | `surface` | `surface-2` | `surface-3` |
+|---|---|---|---|---|
+| Light | 0.992 | **1.0** | 0.968 | 0.938 |
+| Dark | `#16181A` | `#1C1F21` | **`#232729`** | `#2D3134` |
+
+Dark ascends from near-black, so a higher step is lighter and reads **raised**. Light descends from
+white, so a higher step is darker and reads **recessed**. `.home-band` fills with `--tau-surface-2`
+in both — so Home's sage bands read raised in dark and *sunken* in light. They were never flat by
+accident; they were inset by construction.
+
+Which is why the first fix made it worse. Adding `box-shadow: var(--tau-shadow)` lit an inset, and
+its 24px penumbra bled out of an edge with only a ~3% lightness step to define it — optically
+indistinguishable from an out-of-focus boundary. The product owner's word for it was "fuzzy," and
+that was a correct read of a real optical event, not a taste objection.
+
+**The ramp cannot fix this from the inside.** Light spans 0.938–1.0 — about 6% of lightness across
+four steps. Three ordered surfaces inside that leave ~2.4% between neighbours, which *is* the
+low-contrast edge. Every variant that stayed in the ramp either moved the card, stranded the rail
+(putting `.content` on `surface-3` leaves the rail nowhere to go — it is the deepest step there is),
+or pushed the band to `--tau-bg` where it reads white and the sage is lost.
+
+So `--tau-shell` sits **below** the ramp: `oklch(0.865 0.018 162)`, buying a ~10% step under the
+bands. **The cards did not change at all** — same fill, same radius, no border. They read raised
+because the ground moved out from under them. The same `--tau-shadow` that read as blur on white now
+behaves, because a penumbra falls away from an edge contrast has already resolved instead of
+standing in for one. *The shadow was never the problem; the pairing under it was.*
+
+**The system had already solved this once and nobody noticed.** `.rail-item.active`
+(`components.css:1069`) pairs a light fill + `--tau-shadow` on a toned ground, and its own comment
+states the rule: *"a neutral wash on a white rail is a near-invisible 3% lightness shift. On a toned
+rail the problem dissolves — white is a step up in lightness against surface-2."* That is this
+finding, written down eight weeks earlier, scoped to one component.
+
+**The rail merges into the shell.** `.rail` has no border anywhere — it separated purely by tone —
+so matching it to the ground dissolves the seam and the shell reads as one continuous field. It
+still earns *"a step quieter than the content it frames"*, now by being **ground while the bands are
+figure**, which is the channel that actually carries the claim rather than a third tone asserting it.
+
+Three consequences, each **forced** rather than chosen — worth naming, because each was invisible
+until the ground moved:
+
+- **`.rail-item.active` fills sage, not white.** On the shell, white is a *bigger* lightness jump
+  than the bands are, so the active nav chip would out-pop the content it points at — on Home the
+  loudest raised object on screen would be the word "Home". Sage makes *raised* one fill across the
+  whole shell. `.rail-search input` moved for the same reason.
+- **`.content-header`'s divider goes to `--tau-line-strong`.** `--tau-line` is *lighter* than the
+  shell (1.10:1 against it) and inverts into an embossed hairline. Every other `--tau-line` on the
+  page sits inside a card and is untouched; this is the only divider drawn on the ground itself.
+- **`--tau-ink-faint` fails on the shell** — 2.79:1, below AA for normal text. `.rail-item-meta` and
+  `.rail-search-hint` step up to `ink-soft` (4.60:1). Not a preference; the old value is not legible
+  there. Checked: ink 11.80:1, forest 6.44:1, ink-soft 4.60:1 all pass.
+
+**Scoped to `dashboard.html`, not promoted.** `.rail` is shared with the student app
+(`index.html`) and `admin.html`, both still on the white-ground shell, so the rail rules are
+page-scoped overrides rather than edits to `components.css` — the same placement rule `.home-band`
+already states. **The token lives in `tokens.css` regardless**, because a ground value is not a
+literal to strand in a page sheet. Dark takes `--tau-bg`'s value: dark's shell is already the darkest
+thing on screen, so only light needed a new step, and dark gains separation rather than changing
+character.
+
+**The chroma cap moved, and that is the one thing here that is a judgement rather than a
+derivation.** See the amended locked-decision row — 0.018 is past the 0.006–0.010 the ground wash was
+granted under in the 2026-07-21 revision.
+
+Explored in `app/web/elevation-lab.html` — 15 variants across four groups, each painting its own
+rail + content pane + band, because this is a relationship between three surfaces and a single
+page-wide ground control cannot show fifteen pairings at once. **Keep that lab.** The rejected
+variants are the argument: B is the fuzzy failure, H is the rail collision, I is the ramp running out
+of room, K3 is the saturation line drawn deliberately past where it belongs so it can be looked at
+rather than argued about.
 
 **2026-08-12 — two Hard Constraints amended for the band/level scale**
 

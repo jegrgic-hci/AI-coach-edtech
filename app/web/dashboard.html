@@ -33,16 +33,26 @@ body {
 }
 
 /* ── Header ── */
+/* M3's small top app bar (64dp), 2026-08-22 — m3-lab §7. No divider at rest:
+   the bar states "there is content above" by taking a tonal step once
+   something scrolls under it, rather than asserting it permanently with a
+   hairline. .scrolled is set by the listener at the foot of this file, off
+   .content's own scroll — the page body does not scroll, the content pane
+   does. The extra height is also what lets "+ Add" be a 40px control without
+   crowding the row. */
 header {
   background: var(--tau-surface);
-  border-bottom: 1px solid var(--tau-line);
-  padding: 13px var(--tau-s6);
+  border-bottom: 1px solid transparent;
+  min-height: 64px;
+  padding: 0 var(--tau-s6);
   display: flex;
   align-items: center;
   gap: var(--tau-s3);
   flex-shrink: 0;
+  transition: background var(--tau-dur-medium) var(--tau-ease-standard);
 }
-header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.2px; }
+header.scrolled { background: var(--tau-surface-2); }
+header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.4px; }
 /* ── Header utility menus (Manage / Account) ──────────────────────────────
    Two dropdowns replace what used to be five flat, equal-weight buttons —
    see teacher-dashboard-design.md's header session log for the reasoning.
@@ -65,7 +75,12 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
   background: var(--tau-surface); border: 1px solid var(--tau-line); border-radius: var(--tau-r-sm);
   padding: 7px 9px; min-height: 34px; resize: vertical;
 }
-.menu-field input:focus, .menu-field select:focus, .menu-field textarea:focus { border-color: var(--tau-forest); }
+/* Border change AND a ring — a 1px hue shift is not a focus indicator.
+   2026-08-22, m3-lab §2; same correction as components.css's .field. */
+.menu-field input:focus, .menu-field select:focus, .menu-field textarea:focus {
+  outline: var(--tau-focus-ring); outline-offset: var(--tau-focus-gap);
+  border-color: var(--tau-forest);
+}
 .menu-confirm {
   display: flex; align-items: center; gap: 7px; margin: 2px 4px 8px; padding: 8px 10px; border-radius: var(--tau-r-sm);
   background: var(--tau-positive-bg); color: var(--tau-positive); font-size: var(--tau-text-xs); font-weight: 700;
@@ -91,10 +106,15 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
   display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 13px;
   cursor: pointer; background: var(--tau-surface);
 }
-.attach-head:hover { background: var(--tau-hover-surface); }
+/* Mixed INTO --tau-surface, not into `transparent`: .attach-head has a fill of
+   its own, and a translucent background replaces that fill rather than
+   layering over it — the transparent form hovered the row by making it
+   see-through. Corrected 2026-08-23; the currentColor-into-transparent form is
+   for controls with no resting background, like .rail-item. */
+.attach-head:hover { background: color-mix(in oklab, var(--tau-ink) var(--tau-state-hover), var(--tau-surface)); }
 .attach .ah-title { font-size: var(--tau-text-sm); font-weight: 700; display: flex; align-items: center; gap: 7px; }
 .attach .ah-optional {
-  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--tau-ink-faint);
+  font-size: var(--tau-text-label-sm); font-weight: 700; color: var(--tau-ink-faint);
   background: var(--tau-surface-2); padding: 2px 6px; border-radius: var(--tau-r-pill);
 }
 .attach .ah-desc { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); margin-top: 1px; }
@@ -139,7 +159,7 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
   cursor: pointer; border-bottom: 1px solid var(--tau-line);
 }
 .class-check:last-child { border-bottom: none; }
-.class-check:hover { background: var(--tau-hover-surface); }
+.class-check:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
 /* Resets components.css's ".field input" box styling (border/padding/
    min-height sized for a text input) — a checkbox needs none of that and
    looks like a broken outlined rectangle if it inherits it unset. */
@@ -162,7 +182,10 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
   flex: 1; min-height: 0; border: 1px solid var(--tau-line-strong); border-radius: var(--tau-r-sm);
   padding: 5px 8px; font: inherit; font-size: var(--tau-text-sm); background: var(--tau-surface); color: var(--tau-ink);
 }
-.class-check-addnew-active input:focus { border-color: var(--tau-forest); }
+.class-check-addnew-active input:focus {
+  outline: var(--tau-focus-ring); outline-offset: var(--tau-focus-gap);
+  border-color: var(--tau-forest);
+}
 
 /* ── Layout ── */
 .layout {
@@ -193,16 +216,21 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
   border: 1px solid var(--tau-line);
   border-radius: var(--tau-r-sm);
   font-size: var(--tau-text-xs);
-  /* White, matching the rail's selected row — on a toned rail the field has
-     to read as a well cut into the ground, and --tau-bg is *lighter* than
-     --tau-surface-2, which inverted that. */
-  background: var(--tau-surface);
+  /* Matching the rail's selected row, which moved from white to sage when
+     the rail moved onto the shell (2026-08-22). Left at white it would be a
+     bigger lightness jump than the bands themselves and become the loudest
+     object in the rail — the same reason .rail-item.active moved. */
+  background: var(--tau-surface-2);
   color: var(--tau-ink);
-  outline: none;
   font-family: inherit;
 }
-.rail-search input:focus { border-color: var(--tau-forest); }
-.rail-search-hint { font-size: 10.5px; color: var(--tau-ink-faint); margin: 5px 2px 0; }
+.rail-search input:focus {
+  outline: var(--tau-focus-ring); outline-offset: var(--tau-focus-gap);
+  border-color: var(--tau-forest);
+}
+/* ink-soft, not ink-faint: this text sits on --tau-shell, where ink-faint
+   measures 2.79:1 and fails AA. Same correction as .rail-item-meta. */
+.rail-search-hint { font-size: 10.5px; color: var(--tau-ink-soft); margin: 5px 2px 0; }
 .rail-search-hint.hidden { display: none; }
 /* Overlay, not reflow — a query used to push Home/Classes/Assignments/
    Students down the rail on every keystroke (up to ~14 rows worst case).
@@ -217,7 +245,7 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
   z-index: 20;
 }
 .rail-search-results {
-  border: 1px solid var(--tau-line-strong);
+  border: 1px solid transparent;
   border-radius: var(--tau-r-sm);
   background: var(--tau-surface);
   box-shadow: var(--tau-shadow);
@@ -225,28 +253,74 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
   padding: var(--tau-s1);
 }
 
-/* ── Content ── */
-/* Flat white, not --tau-bg's forest wash. Same "ground colour" correction the
-   student assignment dashboard already went through (designsystem.md,
-   2026-07-24): the wash is right for page shell/chrome, but once a pane is
-   full of actual card content (tables, tinted stat tiles, chips), the wash
-   sits under every one of those tints too and reads as a flat mash of green
-   rather than distinct surfaces. Dark theme is unaffected (charcoal, not
-   forest, per the same rule).
+/* ── Rail, on the shell ──
+   Overrides of components.css's .rail/.rail-item, NOT edits to it: .rail is
+   shared with the student app (index.html) and admin.html, both of which
+   still run the white-ground shell. Page-scoped until a second surface wants
+   this, which is the same placement rule .home-band states below.
 
-   This white is also what the rail is a step quieter *than* — .rail sits on
-   --tau-surface-2 and its selected row returns to this same white, so the
-   two surfaces are doing one job between them. Don't tint either. */
+   Three changes, and each is forced by the ground move rather than chosen:
+
+   1. The rail takes the shell, dissolving the rail/content seam.
+   2. .rail-item.active fills SAGE, not white. Its shipped construction
+      (components.css:1069) is a white fill + --tau-shadow, which was right
+      against a surface-2 rail. On the shell, white is a BIGGER lightness
+      jump than the sage bands are — so the active nav chip would out-pop the
+      content it points at, and "Home" would be the loudest raised object on
+      the page. Sage makes raised ONE fill across the whole shell.
+   3. .rail-item-meta steps up from ink-faint to ink-soft. ink-faint measures
+      2.79:1 on the shell — below AA for normal text. ink-soft is 4.60:1.
+      Not a visual preference; the old value is not legible here. */
+.rail { background: var(--tau-shell); }
+/* Still needed after m3-lab §5a removed .rail-item.active's elevation in
+   components.css: the component's fill is --tau-surface, which on the shell is
+   a bigger lightness jump than the bands are. This keeps raised as ONE fill
+   across the whole shell. What is no longer needed here is any comment about
+   the shadow — the component does not carry one. */
+.rail-item.active { background: var(--tau-surface-2); }
+.rail-item-meta { color: var(--tau-ink-soft); }
+
+/* ── Content ── */
+/* THE SHELL. Rail and content pane are ONE surface (--tau-shell), and the
+   sage bands are the only raised things on it. Changed 2026-08-22.
+
+   REVERSES the 2026-07-24 "flat white, not --tau-bg's forest wash" decision
+   that stood here, so the reasoning is kept rather than deleted. That
+   decision was correct about its own evidence — a wash under a pane full of
+   tinted tiles read as a mash of green — but it diagnosed the wash's HUE
+   when the fault was the ramp's DIRECTION. Light descends from white, so a
+   card filled with --tau-surface-2 sits BELOW its ground and reads recessed;
+   dark ascends from near-black, so the identical declaration reads raised.
+   The sage bands were never flat by accident, they were inset by
+   construction, and going whiter deepened the inset rather than fixing it.
+   See --tau-shell in tokens.css for the full argument.
+
+   The old note also said "the rail is a step quieter than this white — don't
+   tint either." The rail is no longer a third tone: it takes the shell
+   exactly. .rail has no border anywhere (components.css:1003) and separated
+   purely by tone, so matching it dissolves the seam and the shell reads as
+   one continuous field. It still earns "quieter than the content it frames" —
+   now by being GROUND while the bands are FIGURE, which is the channel that
+   actually carries the claim.
+
+   Everything already white on this page (.tbl-wrap, .overview-card,
+   .pattern-card) becomes a white card on a toned ground, which is the
+   relationship --tau-shadow was built for and the one .rail-item.active
+   (components.css:1069) has been shipping correctly all along. */
 .content {
   flex: 1;
   overflow-y: auto;
   padding: var(--tau-s7) var(--tau-s7);
-  background: var(--tau-surface);
+  background: var(--tau-shell);
 }
 .content-header {
   margin-bottom: var(--tau-s5);
   padding-bottom: var(--tau-s4);
-  border-bottom: 1px solid var(--tau-line);
+  /* --tau-line is LIGHTER than --tau-shell (1.10:1 against it), so on the
+     shell it inverts into an embossed hairline instead of a rule. Every
+     other --tau-line in this file sits inside a card and is unaffected;
+     this is the one divider drawn on the ground itself. */
+  border-bottom: 1px solid var(--tau-line-strong);
 }
 .content-title {
   font-size: var(--tau-text-xl);
@@ -264,7 +338,9 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
    One row per student or assignment, a plain-language band for "how they're
    using AI" (never a raw score first), and a quiet "Worth a chat" column
    instead of a flag. */
-.tbl-wrap { overflow-x: auto; border: 1px solid var(--tau-line); border-radius: var(--tau-r-md); background: var(--tau-surface); box-shadow: var(--tau-shadow); }
+/* Elevated (m3-lab §8) — one channel, not two. Same change as .card in
+   components.css; see its comment for the reasoning. */
+.tbl-wrap { overflow-x: auto; border: 1px solid transparent; border-radius: var(--tau-r-md); background: var(--tau-surface); box-shadow: var(--tau-shadow); }
 table.roster { width: 100%; border-collapse: collapse; font-size: var(--tau-text-sm); }
 table.roster th, table.roster td {
   text-align: left; padding: 10px var(--tau-s4);
@@ -277,8 +353,7 @@ table.roster th, table.roster td {
    row's transient detail) read as the same weight. A stronger bottom border
    reinforces it as the one row that's always "on top." */
 table.roster th {
-  font-size: var(--tau-text-xs);
-  letter-spacing: 0.06em; text-transform: uppercase;
+  font-size: var(--tau-text-label-md);
   color: var(--tau-ink-faint); font-weight: 600;
   background: var(--tau-surface-3);
   border-bottom: 1px solid var(--tau-line-strong);
@@ -299,7 +374,7 @@ table.roster th.sort-active { color: var(--tau-forest); }
 table.roster th.sort-active .sort-arrow { opacity: 1; color: var(--tau-forest); }
 table.roster tbody tr:last-child td { border-bottom: none; }
 table.roster tbody tr.row-clickable { cursor: pointer; transition: background var(--tau-dur-short) var(--tau-ease-standard); }
-table.roster tbody tr.row-clickable:hover { background: var(--tau-hover-surface); }
+table.roster tbody tr.row-clickable:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
 /* KNOWN VIOLATION — forest-tinted surface fill, which Hard Constraints allows
    only for --tau-meter-track. The argument was that a neutral --tau-surface-2
    wash is a near-invisible 3% lightness shift against this pane's white
@@ -338,8 +413,8 @@ table.roster tbody tr.group-row:not(:first-child) td { border-top: 1px solid var
    is surface-2), so it reads as the panel's headline rather than as one more row
    in the log below it. */
 .drill-trace {
-  background: var(--tau-surface); border: 1px solid var(--tau-line);
-  border-radius: var(--tau-r-md);
+  background: var(--tau-surface); border: 1px solid transparent;
+  border-radius: var(--tau-r-md); box-shadow: var(--tau-shadow);
   padding: var(--tau-s4) var(--tau-s5); margin-bottom: var(--tau-s4);
 }
 
@@ -364,13 +439,45 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    Detail's persisted card) — no student names, trend not raw scores.
    See teacher-dashboard-design.md, "Assignment View — planned redesign". ── */
 .agg-stat-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: var(--tau-s5); }
+/* CHIPS, NOT TILES — 2026-08-22, on the assignment surface. These two counts
+   are ROUTES: both exist to be clicked through to the students they name, and
+   neither is a reading of the class. A .stat-tile sets a number at --tau-text-2xl
+   and gives it a bordered box, which is the treatment a headline metric gets —
+   so two admin counts opened the page louder than the agency composition below
+   them. A chip states the same count, keeps the click, and stops competing.
+   The Students tile went with them: the composition already prints its own
+   denominator ("8 read of 8"), so the count had nothing left to say. */
+.agg-chip-row { display: flex; gap: var(--tau-s2); flex-wrap: wrap; margin-bottom: var(--tau-s5); }
+/* A chip that NAVIGATES, and therefore a control — drawn at --tau-h-chip
+   (M3's 32dp chip) with a --tau-text-sm label, not at .chip's dimensions.
+   .chip is a status LABEL: it states what something is and is never clicked,
+   so it can sit at 11.5px in 2px of padding. The moment the same shape becomes
+   a route it has to be hittable, which is the control ladder tokens.css sets
+   out — h-chip as drawn, --tau-target as the hit region via ::after, exactly
+   how .btn-sm reaches the floor without inflating its box.
+   Real <button> for keyboard and semantics; the chip's own tint carries the
+   meaning, so hover is the ink overlay every other interactive row on this
+   page uses rather than a second colour. */
+.chip-action {
+  display: inline-flex; align-items: center; position: relative;
+  min-height: var(--tau-h-chip); padding: 0 var(--tau-s3);
+  font-size: var(--tau-text-sm); font-family: inherit; border: 0; cursor: pointer;
+  transition: background var(--tau-dur-short) var(--tau-ease-standard);
+}
+.chip-action::after {
+  content: ""; position: absolute; left: 0; right: 0;
+  top: 50%; transform: translateY(-50%);
+  height: var(--tau-target); pointer-events: none;
+}
+.chip-action:hover { background: color-mix(in oklab, currentColor 22%, var(--tau-surface)); }
+.chip-action:focus-visible { outline: var(--tau-focus-ring); outline-offset: 2px; }
 
-.dim-head { display: flex; gap: var(--tau-s3); padding: 0 0 7px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tau-ink-faint); }
+.dim-head { display: flex; gap: var(--tau-s3); padding: 0 0 7px; font-size: var(--tau-text-label-sm); font-weight: 700; color: var(--tau-ink-faint); }
 .dim-head .c-name  { width: 172px; flex-shrink: 0; }
 .dim-head .c-trend  { width: 150px; flex-shrink: 0; }
 .dim-head .c-note  { flex: 1; }
 
-.dim-panel { border: 1px solid var(--tau-line); border-radius: var(--tau-r-md); background: var(--tau-surface); box-shadow: var(--tau-shadow); padding: 4px var(--tau-s4); }
+.dim-panel { border: 1px solid transparent; border-radius: var(--tau-r-md); background: var(--tau-surface); box-shadow: var(--tau-shadow); padding: 4px var(--tau-s4); }
 .dim-row { display: flex; align-items: flex-start; gap: var(--tau-s3); padding: 11px 0; border-bottom: 1px solid var(--tau-line); }
 .dim-row:last-child { border-bottom: none; }
 .dim-name { width: 172px; flex-shrink: 0; font-size: var(--tau-text-sm); font-weight: 600; padding-top: 2px; }
@@ -424,19 +531,36 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    stays reserved for the latter (Assignment Detail's goal card, quoting the
    teacher's own teacherNote text) — see teacher-dashboard-design.md's
    Visual Language for the full reasoning behind the split. */
-.teach-note { padding: var(--tau-s3) var(--tau-s4); border-radius: 0 var(--tau-r-md) var(--tau-r-md) 0; background: var(--tau-tool-info-bg); border: 1px solid var(--tau-line); border-left: 3px solid var(--tau-tool-info); box-shadow: var(--tau-shadow); font-size: var(--tau-text-xs); color: var(--tau-ink); }
+/* GEOMETRY REVISED 2026-08-22 — a card like every other card: radius on all
+   four corners, no left rule. The stripe was drawn when this note was an
+   accent inside a white sheet and needed an edge to belong to; it is now a
+   standalone card on the shell, where a squared-off left side reads as a
+   fragment of something rather than an object. The VOICE is unchanged and
+   still double-encoded — tool-info tint plus the mono blue eyebrow — so
+   nothing was lost with the stripe except the alignment break. */
+.teach-note { padding: var(--tau-s3) var(--tau-s4); border-radius: var(--tau-r-md); background: var(--tau-tool-info-bg); border: 1px solid transparent; box-shadow: var(--tau-shadow); font-size: var(--tau-text-xs); color: var(--tau-ink); }
 /* Only when the note is stacked above other blocks (the aggregate panel's
    conclusion-first order) — not in the persisted card, where it sits beside
    the highlight rows in a flex row and an extra bottom margin would just
    stretch that row taller than its content, leaving dead space under both
    siblings. Margin belongs to the usage, not the component. */
 .teach-note.stacked { margin-bottom: var(--tau-s5); }
-.teach-note .eyebrow-lbl { display: flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tau-tool-info); font-family: var(--tau-font-mono); margin-bottom: 6px; }
+/* The note leading a page of section cards rather than sitting inside one.
+   Takes the cards' own s6 rhythm so it reads as a peer of them, and NOT the
+   white .overview-card chrome: it is already a card — tinted fill, blue rule,
+   its own shadow — and nesting it in a white one gave it a container it does
+   not need and buried the one block on the page that says what to do. On the
+   shell its tint is lighter than the ground, which is the direction "raised"
+   requires (Hard Constraints). */
+.teach-note.note-lead { margin-bottom: var(--tau-s6); }
+/* Caps SURVIVE here — mono + uppercase is the tool-info voice marker, the
+   same exemption .turn-speaker holds. Only the size moved onto the role. */
+.teach-note .eyebrow-lbl { display: flex; align-items: center; gap: 6px; font-size: var(--tau-text-label-sm); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tau-tool-info); font-family: var(--tau-font-mono); margin-bottom: 6px; }
 .teach-note .eyebrow-lbl .tau-icon { width: 13px; height: 13px; flex-shrink: 0; }
 /* Matches .btn.btn-quiet.btn-sm exactly — a real secondary action, not a
    bare link, for the one real next-step this panel/card offers. */
-.agg-link-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--tau-forest); background: var(--tau-surface); border: 1px solid var(--tau-line-strong); border-radius: var(--tau-r-md); padding: 6px 13px; min-height: 32px; cursor: pointer; text-decoration: none; transition: background var(--tau-dur-short) var(--tau-ease-standard); }
-.agg-link-btn:hover { background: var(--tau-surface-2); }
+.agg-link-btn { display: inline-flex; align-items: center; position: relative; gap: 6px; font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-forest); background: var(--tau-surface); border: 1px solid var(--tau-line-strong); border-radius: var(--tau-r-pill); padding: 0 var(--tau-s4); min-height: var(--tau-h-chip); cursor: pointer; text-decoration: none; transition: background var(--tau-dur-short) var(--tau-ease-standard); }
+.agg-link-btn:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
 
 
 /* ── Assignment Detail — timeline redesign, 2026-07-31 ──
@@ -445,8 +569,20 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    now). See teacher-dashboard-design.md, "Assignment Detail — a timeline,
    not a roster." Two top-level cards (goal, overview) share `.overview-card`
    chrome; the timeline below them is its own rail. */
-.overview-card { border: 1px solid var(--tau-line); border-radius: var(--tau-r-md); background: var(--tau-surface); box-shadow: var(--tau-shadow); padding: var(--tau-s4) var(--tau-s5); margin-bottom: var(--tau-s6); }
-.overview-eyebrow { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tau-ink-faint); margin-bottom: var(--tau-s4); }
+.overview-card { border: 1px solid transparent; border-radius: var(--tau-r-md); background: var(--tau-surface); box-shadow: var(--tau-shadow); padding: var(--tau-s4) var(--tau-s5); margin-bottom: var(--tau-s6); }
+.overview-eyebrow { font-size: var(--tau-text-label-md); font-weight: 700; color: var(--tau-ink-faint); margin-bottom: var(--tau-s4); }
+/* Names a run of cards rather than the inside of one, so it sits on the shell
+   with the cards beneath it — the construction "How we got here — a timeline"
+   already uses. Same element, one margin: no card padding above it to absorb
+   the gap. */
+.overview-eyebrow.section-lbl { margin: 0 0 var(--tau-s4); }
+/* A chart card inside a section card is the same object twice. The section
+   card is the container now, so the chart draws straight onto it — the rule
+   .home-band .pattern-card states (a child must not float above its own
+   parent), applied to the other white-on-white pairing on this page.
+   Direct child only: the class overview mounts renderMovement inside a
+   .tab-panel, where the .viz-card is still the only edge there is. */
+.overview-card > .viz-card { box-shadow: none; padding: 0; }
 /* Field-preview treatment, not a plain paragraph — deliberate: this is a
    read-only display of the exact same value the (not-yet-built) assignment
    creation form's requirements/rubric fields will collect and let a
@@ -454,7 +590,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    two surfaces already read as "the same content" before that form exists,
    rather than needing a restyle once it ships. */
 .goal-field { margin-bottom: var(--tau-s4); }
-.goal-field-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tau-ink-soft); margin-bottom: 6px; }
+.goal-field-label { font-size: var(--tau-text-label-md); font-weight: 700; color: var(--tau-ink-soft); margin-bottom: 6px; }
 .goal-field-value { font-size: var(--tau-text-sm); line-height: var(--tau-leading-body); max-width: 62ch; padding: var(--tau-s3) var(--tau-s4); border: 1px solid var(--tau-line); border-radius: var(--tau-r-md); background: var(--tau-surface-2); }
 .schedule-row { display: flex; gap: var(--tau-s3); flex-wrap: wrap; }
 .schedule-slot { flex: 1; min-width: 140px; border: 1px solid var(--tau-line); border-radius: var(--tau-r-md); padding: 10px 12px; }
@@ -477,7 +613,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .tl-node.done   { border: 2px solid var(--tau-forest); color: var(--tau-forest); }
 .tl-node.live   { border: 2px solid var(--tau-caution); color: var(--tau-caution); }
 .tl-node.future { border: 2px dashed var(--tau-line-strong); color: var(--tau-ink-faint); }
-.tl-card { border: 1px solid var(--tau-line); border-radius: var(--tau-r-md); background: var(--tau-surface); box-shadow: var(--tau-shadow); padding: var(--tau-s4) var(--tau-s5); }
+.tl-card { border: 1px solid transparent; border-radius: var(--tau-r-md); background: var(--tau-surface); box-shadow: var(--tau-shadow); padding: var(--tau-s4) var(--tau-s5); }
 .tl-card.future { box-shadow: none; border-style: dashed; color: var(--tau-ink-faint); }
 .tl-card.live { border-color: color-mix(in oklab, var(--tau-caution) 35%, var(--tau-line)); }
 .tl-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--tau-s3); margin-bottom: var(--tau-s3); flex-wrap: wrap; }
@@ -527,7 +663,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
   user-select: none;
   font-size: var(--tau-text-sm);
 }
-.assignment-summary-row:hover { background: var(--tau-hover-surface); border-color: var(--tau-line-strong); }
+.assignment-summary-row:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); border-color: var(--tau-line-strong); }
 .assignment-summary-row.expanded { background: var(--tau-surface-2); border-color: var(--tau-line-strong); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .assignment-summary-row .chevron {
   width: 14px; height: 14px; flex-shrink: 0; color: var(--tau-ink-soft);
@@ -639,10 +775,22 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    button uses, so all the roster's filter controls read as one family.
    .stu-chip and .chip-dd-btn used to be the identical declaration block
    copy-pasted; one shared class now, applied to both. ── */
+/* Drawn at --tau-h-chip (32px), targeted at --tau-target (44px) via the
+   transparent expansion below. Was ~22px drawn — half the floor — and the fix
+   is not to pad it to 44px, which would make a filter read as heavy as a
+   button. 2026-08-22, m3-lab §3. */
 .stu-chip, .chip-dd-btn {
-  font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: var(--tau-r-pill);
+  display: inline-flex; align-items: center; position: relative;
+  min-height: var(--tau-h-chip);
+  font-size: var(--tau-text-sm); font-weight: 600; padding: 0 var(--tau-s3);
+  border-radius: var(--tau-r-pill);
   border: 1px solid var(--tau-line-strong); background: var(--tau-surface); color: var(--tau-ink-soft);
   cursor: pointer; font-family: inherit;
+}
+.stu-chip::after, .chip-dd-btn::after, .agg-link-btn::after {
+  content: ""; position: absolute; left: 0; right: 0;
+  top: 50%; transform: translateY(-50%);
+  height: var(--tau-target); pointer-events: none;
 }
 /* "All"/"Open"/"Closed" are a status toggle, not a severity — no amber/red to
    borrow, so they get the app's one solid brand fill instead (same idiom as
@@ -659,12 +807,12 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .chip-dd-btn.set { background: var(--tau-caution-bg); border-color: var(--tau-caution); color: var(--tau-caution); }
 .chip-dd-menu {
   display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 10; min-width: 230px;
-  background: var(--tau-surface); border: 1px solid var(--tau-line-strong); border-radius: var(--tau-r-sm);
+  background: var(--tau-surface); border: 1px solid transparent; border-radius: var(--tau-r-md);
   box-shadow: var(--tau-shadow-lift); padding: 4px;
 }
 .chip-dd.open .chip-dd-menu { display: block; }
 .chip-dd-item { display: flex; justify-content: space-between; gap: 10px; padding: 7px 10px; border-radius: 5px; cursor: pointer; font-size: 12.5px; }
-.chip-dd-item:hover { background: var(--tau-surface-2); }
+.chip-dd-item:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
 .chip-dd-item .cnt { color: var(--tau-ink-faint); font-variant-numeric: tabular-nums; }
 .chip-dd-item.reset { color: var(--tau-ink-faint); border-top: 1px solid var(--tau-line); margin-top: 2px; padding-top: 8px; }
 .chip-dd-empty { padding: 8px 10px; font-size: 12px; color: var(--tau-ink-faint); }
@@ -695,7 +843,10 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    The disclosure is the same <details> + chevron the reflection rows in the
    drill panel already use, not a second pattern invented for this. */
 .finding-list { display: flex; flex-direction: column; gap: 10px; }
-.pattern-card { background: var(--tau-surface); border: 1px solid var(--tau-line); border-radius: var(--tau-r-md); box-shadow: var(--tau-shadow); overflow: hidden; }
+/* Elevated on the shell; inside a .home-band the shadow is stripped below and
+   the tint carries the edge instead, so the band case is the FILLED variant
+   and needs no border either. */
+.pattern-card { background: var(--tau-surface); border: 1px solid transparent; border-radius: var(--tau-r-md); box-shadow: var(--tau-shadow); overflow: hidden; }
 .finding-summary {
   display: flex; align-items: center; gap: 14px;
   padding: var(--tau-s3) var(--tau-s5); min-height: var(--tau-target);
@@ -703,7 +854,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
   transition: background var(--tau-dur-short) var(--tau-ease-standard);
 }
 .finding-summary::-webkit-details-marker { display: none; }
-.finding-summary:hover { background: var(--tau-hover-surface); }
+.finding-summary:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
 .finding-summary:focus-visible { outline: var(--tau-focus-ring); outline-offset: calc(-1 * var(--tau-focus-gap)); }
 .f-body { flex: 1; min-width: 0; }
 .pattern-title { font-size: 14.5px; font-weight: 700; display: block; }
@@ -753,11 +904,33 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    Page-sheet, not components.css, because this is layout on a single surface
    today. The moment Class detail or Assignment detail wants the same band,
    promote it — that is the placement rule, not an accident. */
+/* Elevated (2026-08-22). The band is unchanged — same --tau-surface-2 fill,
+   same radius, no border — and it reads raised now only because --tau-shell
+   moved out from under it. The ~3% step it had against a white pane is a
+   ~10% step against the shell, in the direction that means "raised."
+
+   The shadow is the same declaration that read as blur when this was tried
+   on the white ground, and it behaves here: a penumbra falls away from an
+   edge that contrast has already resolved, instead of standing in for one.
+   The shadow was never the problem; the surface pairing under it was.
+
+   No hairline: the tint carries the edge, and a border on top of a tinted
+   fill AND a shadow is three channels doing one job. --tau-shadow rather
+   than -lift because six of these stack down Home and they are peers, not
+   one takeaway. */
 .home-band {
   background: var(--tau-surface-2);
   border-radius: var(--tau-r-lg);
   padding: var(--tau-s5);
+  box-shadow: var(--tau-shadow);
 }
+/* A child must not float above its own parent. Inside the band the pattern
+   cards are white on sage — the strongest edge on the screen — so they need
+   no shadow of their own, and keeping one made them read as more elevated
+   than the band containing them. Scoped to the band, NOT removed from
+   .pattern-card itself: the class overview mounts the same card inside a
+   white .overview-card, where the shadow is the only separation there is. */
+.home-band .pattern-card { box-shadow: none; }
 .home-stack { display: flex; flex-direction: column; gap: var(--tau-s6); }
 
 /* Asymmetric on purpose. The dimension column carries a long title plus a
@@ -770,10 +943,11 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .home-col { min-width: 0; }
 @media (max-width: 1200px) { .home-cols { grid-template-columns: 1fr; } }
 
-/* A white card hovering to surface-2 would dissolve into the band underneath
-   it. Darken instead — the same direction .rail-item:hover already takes on
-   this exact ground. Scoped to the band so surfaces without one keep theirs. */
-.home-band .finding-summary:hover { background: var(--tau-surface-3); }
+/* DELETED 2026-08-22 (m3-lab §1). This rule existed only because
+   .finding-summary's hover fill was ground-dependent: --tau-hover-surface
+   dissolved into the band, so the band needed its own darker pick. The state
+   layer is an overlay of the row's own ink, so one rule now works on the band,
+   on the white pane and on the shell. Two rules became one. */
 
 /* "New here" — the two explainers, shown only until the first reading lands.
    Rows, not cards, and forest + trailing → because they navigate: the same
@@ -825,7 +999,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 /* The group label draws its own full-width rule, so the row above it must not
    draw the between-rows one as well — two stacked lines read as a mistake. */
 .class-row:has(+ .stat-group-lbl) { border-bottom: 0; }
-.class-row:hover { background: var(--tau-surface-3); }
+.class-row:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
 .class-row-name { flex: 1; min-width: 0; font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-forest); }
 .class-row-go {
   flex-shrink: 0; color: var(--tau-ink-faint); font-size: 13px; line-height: 1;
@@ -875,7 +1049,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
   display: flex; align-items: center; gap: 9px; padding: 10px 12px; min-height: var(--tau-target);
   border: 1px solid var(--tau-line); border-radius: var(--tau-r-sm); cursor: pointer; font-size: var(--tau-text-sm);
 }
-.modal-choice:hover { background: var(--tau-hover-surface); }
+.modal-choice:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
 .modal-choice-sub { margin-left: auto; font-size: var(--tau-text-xs); color: var(--tau-ink-faint); }
 
 /* Inline validation, replacing the chain of blocking alert()s the assignment
@@ -907,8 +1081,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .flag-card-steps { margin: 0; padding-left: var(--tau-s5); display: flex; flex-direction: column; gap: 3px; }
 .flag-card-steps li { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); line-height: 1.5; }
 .flag-type-label {
-  font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.7px;
+  font-size: var(--tau-text-label-sm); font-weight: 700;
   padding: 2px 7px; border-radius: var(--tau-r-pill);
   flex-shrink: 0;
 }
@@ -923,7 +1096,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    appears). */
 .reflection-arc {
   background: var(--tau-surface);
-  border: 1px solid var(--tau-line);
+  border: 1px solid transparent;
   border-radius: var(--tau-r-md);
   padding: 10px var(--tau-s4);
   margin-bottom: var(--tau-s3);
@@ -940,11 +1113,11 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
   cursor: pointer; transition: background var(--tau-dur-short) var(--tau-ease-standard), border-color var(--tau-dur-short) var(--tau-ease-standard);
   font-size: var(--tau-text-xs);
 }
-.arc-entry:hover { background: var(--tau-hover-surface); border-color: var(--tau-line-strong); }
+.arc-entry:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); border-color: var(--tau-line-strong); }
 /* Shared by .arc-badge and .reflect-type-badge — identical rules a few
    lines apart before this merge. */
 .arc-badge, .reflect-type-badge {
-  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+  font-size: var(--tau-text-label-sm); font-weight: 700;
   padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
 }
 .arc-excerpt { color: var(--tau-ink-soft); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -983,8 +1156,7 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
      list, split by whether the gap is the student's thinking or our sight of
      it. */
   .stat-group-lbl {
-    font-size: 10px; font-weight: 700; letter-spacing: var(--tau-track-label);
-    text-transform: uppercase; color: var(--tau-ink-faint);
+    font-size: var(--tau-text-label-sm); font-weight: 700; color: var(--tau-ink-faint);
     margin: var(--tau-s6) 0 var(--tau-s1); padding-top: var(--tau-s4);
     border-top: 1px solid var(--tau-line);
   }
@@ -1045,6 +1217,17 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
   <aside id="sidebar" class="rail"></aside>
   <main id="content" class="content"></main>
 </div>
+
+<script>
+// The top app bar takes a tonal step once content passes under it, instead of
+// asserting a permanent hairline (m3-lab §7). Bound to .content because the
+// body does not scroll on this page — the content pane does.
+(function () {
+  const pane = document.getElementById('content');
+  const bar = document.querySelector('header');
+  pane.addEventListener('scroll', () => bar.classList.toggle('scrolled', pane.scrollTop > 2), { passive: true });
+})();
+</script>
 
 
 <!-- Class roster modal — view + remove a class's students, reached only from
@@ -2878,27 +3061,38 @@ function classNextDraftDue(assignment, students) {
 // dimension across every assignment a teacher checks, not a ranking that
 // reshuffles per assignment.
 
-// Origin mix (student-born / synthesized / AI-born), aggregated across each
-// student's latest completed submission for this assignment — "where the
-// class's ideas are coming from right now," not a running historical total.
-function assignmentProvenanceMix(assignment, students) {
-  let studentBorn = 0, synthesized = 0, aiBorn = 0, total = 0;
-  students.forEach(s => {
-    const subs = getSubs(s.id, assignment.id).filter(sub => sub.analysisStatus === 'complete' && sub.provenance);
-    const latest = subs[subs.length - 1];
-    if (!latest) return;
-    studentBorn += latest.provenance.studentBorn;
-    synthesized += latest.provenance.synthesized;
-    aiBorn      += latest.provenance.aiBorn;
-    total       += latest.provenance.total;
-  });
-  if (!total) return null;
-  return {
-    studentBornPct: Math.round(studentBorn / total * 100),
-    synthesizedPct: Math.round(synthesized / total * 100),
-    aiBornPct:      Math.round(aiBorn / total * 100),
-  };
-}
+// DELETED 2026-08-22 — assignmentProvenanceMix() and the "Where this
+// assignment's ideas came from" pill row it fed. Three reasons, and the first
+// is the one that generalises:
+//
+// IT WAS A SECOND, CRUDER TELLING OF OC. Per the measurement grid
+// (tau-dimensions.md, "The measurement model") OC's cell IS student-originated
+// material observed in the essay — the same material the origin tags read. The
+// dimension bands on this page already say it against a coded rubric; the pills
+// said it again by counting tags. The grid forbids two dimensions incrementing
+// off one observed event, and a display reading one event twice is that rule a
+// layer up.
+//
+// NOTHING TO DO WITH IT. "Student-born 34%" carries no threshold, no target and
+// no names. Every other block on this page routes — tiles filter the roster,
+// patterns open the students they were found in, the note says what to try. A
+// teacher worried about idea origin needs to know WHICH students, which a
+// pooled percentage structurally cannot say.
+//
+// AND ITS DENOMINATOR WAS CONCEPTS, NOT STUDENTS. An essay yielding 20 concepts
+// outweighed one yielding 10, and non-submitters were absent rather than
+// off-scale — so it could not be repaired by waiting for the cohort to close.
+//
+// Provenance itself is untouched and still runs per submission
+// (traceProvenance, analysis.js). It reads honestly where the denominator is
+// ONE ESSAY and the concepts are visible next to their phrases: the student
+// report's heatmap, which is provenance as evidence rather than as a ratio.
+// classProvenanceMix() (class overview) has the same three problems and is a
+// separate decision, deliberately not made here.
+//
+// The whole-class version, if it comes back, is a PATTERN: "AI-originated
+// ideas — 6 students," counted per student, opening the roster filtered to
+// those six. That needs a threshold set against real transcripts, not the seed.
 
 // ── Class aggregate — dimension trend across assignments, not drafts ────────
 // The class tier of the three-tier framework (teacher-dashboard-design.md,
@@ -3630,27 +3824,42 @@ function renderAssignmentAggregateContent(a, students, variant = 'full') {
   const missingTotal = students.filter(s => hasMissingCheckpoint(a, s.id)).length;
   const flagTotal = students.filter(s => hasOpenFlagOn(s.id, a.id)).length;
 
-  // Missing/Worth-a-chat tiles link to Browse Students, same filter keys
-  // Home's own stat tiles use. Students tile stays inert; it's a count, not a
-  // filter. All three are counts of people with the denominator on the tile,
-  // so they survive an incomplete cohort.
-  const statTile = (value, label, color, bg, onclick) => `<div class="stat-tile${onclick ? ' stat-tile-clickable' : ''}" style="background:${bg};border:1px solid ${color}"${onclick ? ` onclick="${onclick}"` : ''}>
-    <div class="stat-tile-val" style="color:${color}">${value}</div>
-    <div class="stat-tile-label" style="color:${color}">${label}</div>
-  </div>`;
+  // Two routes into Browse Students, on the same filter keys Home uses — see
+  // .agg-chip-row for why they are chips and why the Students count went. Each
+  // count names its own unit, so neither stands as a bare numeral, and both are
+  // counts of PEOPLE: they survive an incomplete cohort where a distribution
+  // would not. Nothing renders when both are zero — a chip reading "0 missing"
+  // is a control that goes nowhere.
+  const chip = (n, noun, cls, filter) => `<button type="button" class="chip ${cls} chip-action"
+      onclick="event.stopPropagation();gotoStudents('${filter}')">${n} student${n !== 1 ? 's' : ''} ${noun}</button>`;
 
-  const statRow = `<div class="agg-stat-row">
-    ${statTile(students.length, 'Students', 'var(--tau-ink-soft)', 'var(--tau-surface)')}
-    ${missingTotal ? statTile(missingTotal, 'Missing work', 'var(--tau-attention)', 'var(--tau-attention-bg)', `event.stopPropagation();gotoStudents('missing')`) : ''}
-    ${flagTotal ? statTile(flagTotal, 'Worth a chat', 'var(--tau-caution)', 'var(--tau-caution-bg)', `event.stopPropagation();gotoStudents('review')`) : ''}
-  </div>`;
+  const statRow = (missingTotal || flagTotal) ? `<div class="agg-chip-row">
+    ${missingTotal ? chip(missingTotal, 'missing work', 'chip-attention', 'missing') : ''}
+    ${flagTotal ? chip(flagTotal, 'worth a chat', 'chip-caution', 'review') : ''}
+  </div>` : '';
+
+  // ONE CARD PER SECTION — 2026-08-22. On the assignment page this content used
+  // to be one white sheet holding every block, and inside it the movement
+  // charts and the pattern cards are also white: no edge between them, so
+  // "Behavioural patterns" read as a tail of the dimension chart above it
+  // rather than a section of its own. The card is what separates them now, the
+  // same job .home-band does on Home with a toned ground instead.
+  //
+  // Only on the page. In the class card and the Browse Assignments drill this
+  // content is already INSIDE a card, and a card per section there would nest
+  // one sheet in another to separate blocks that a reader is scanning past.
+  const section = html => !html ? '' : variant === 'full' ? `<div class="overview-card">${html}</div>` : html;
 
   // How the assignment was WORKED — timing and conversation habits across every
   // closed draft. Counts, so the scale change left them untouched.
   const allSubs = closed ? allClosedCompleteSubs(a, students) : [];
   const timingNote  = closed ? assignmentTimingNote(allSubs) : null;
   const sessionNote = closed ? assignmentSessionNote(allSubs) : null;
-  const workedBlock = (timingNote || sessionNote) ? `<div class="teach-note stacked" style="margin-top:var(--tau-s5)">
+  // Its own tinted card, near the top with the coaching note — not closing the
+  // page, where it read as the coaching note a second time simply by being the
+  // last blue thing on screen. Two notes stacked are two notes; one note at
+  // each end of a page is the same note twice.
+  const workedBlock = (timingNote || sessionNote) ? `<div class="teach-note note-lead">
       <span class="eyebrow-lbl">${iconSVG('chat')}How they worked</span>
       <ul class="note-list">
         ${timingNote ? `<li>${timingNote}</li>` : ''}
@@ -3704,7 +3913,7 @@ function renderAssignmentAggregateContent(a, students, variant = 'full') {
         ${groups.high.length ? group(groups.high, 'High-agency patterns', '--tau-scale-4') : ''}`;
     }
 
-    return `${statRow}${pace}${patternBlock}`;
+    return `${section(`${statRow}${pace}`)}${section(patternBlock)}`;
   }
 
   // ── Closed, summary: the two final distributions and how they worked ──────
@@ -3734,23 +3943,27 @@ function renderAssignmentAggregateContent(a, students, variant = 'full') {
   }
 
   // ── Closed, full: everything ──────────────────────────────────────────────
-  const origin = assignmentProvenanceMix(a, students);
   const note = assignmentBandNote(a, students);
   const groups = assignmentPatternGroups(a, students);
 
-  const originBlock = origin ? `
-    <div class="agg-block-lbl">Where this assignment's ideas came from</div>
-    <div class="origin-mix" style="margin-bottom:var(--tau-s4)">
-      <span class="origin-pill" style="background:var(--tau-origin-you-bg)"><span class="origin-dot" style="background:var(--tau-origin-you)"></span>Student-born ${origin.studentBornPct}%</span>
-      <span class="origin-pill" style="background:var(--tau-origin-together-bg)"><span class="origin-dot" style="background:var(--tau-origin-together)"></span>Synthesized ${origin.synthesizedPct}%</span>
-      <span class="origin-pill" style="background:var(--tau-origin-coach-bg)"><span class="origin-dot" style="background:var(--tau-ink-faint)"></span>AI-born ${origin.aiBornPct}%</span>
-    </div>` : '';
+  // LEADS THE PAGE, UNWRAPPED — 2026-08-22. It used to share the first card
+  // with the stat tiles, where its own tint and shadow fought that card's white
+  // and it read as a footnote to three admin counts. It is the only block here
+  // that says what to do about the readings below it, so it goes first and
+  // stands alone: the note describes the data, and a descriptor sits above what
+  // it describes. Not wrapped in section() — see .teach-note.note-lead.
+  const noteBlock = note ? `<div class="teach-note note-lead"><span class="eyebrow-lbl">${iconSVG('chat')}Coaching note</span>${note}</div>` : '';
 
-  const noteBlock = note ? `<div class="teach-note stacked"><span class="eyebrow-lbl">${iconSVG('chat')}Coaching note</span>${note}</div>` : '';
-
+  // .section-head, not .agg-block-lbl — this heading names a section of the page
+  // now, so it is a peer of the two movement headings above it and set like
+  // them. The open variant has always used this treatment here.
+  const readCount = assignmentCohort(a, students).filter(c => c.bands.some(b => b)).length;
   const patternBlock = groups.all.length ? `
-    <div class="agg-block-lbl">Behavioural patterns</div>
-    <div class="finding-list" style="margin-bottom:var(--tau-s5)">${groups.all.map(patternCardHTML).join('')}</div>` : '';
+    <div class="section-head">
+      <div class="eyebrow">Behavioural patterns</div>
+      <div class="section-summary">Across the ${readCount} session${readCount !== 1 ? 's' : ''} read</div>
+    </div>
+    <div class="finding-list">${groups.all.map(patternCardHTML).join('')}</div>` : '';
 
   // Conclusion first, evidence after: the note synthesizes everything below it
   // into "what to actually do".
@@ -3788,10 +4001,10 @@ function renderAssignmentAggregateContent(a, students, variant = 'full') {
   // null per band row.
   const closedDrafts = draftSchedule(a).filter(s => s.state === 'closed').length;
   if (closedDrafts < 2) {
-    return `${statRow}${noteBlock}
-      <div style="margin-bottom:var(--tau-s6)">${renderAgencyDistribution(a, students)}</div>
-      <div style="margin-bottom:var(--tau-s5)">${renderAssignmentDimensions(a, students)}</div>
-      ${patternBlock}${originBlock}${workedBlock}`;
+    return `${statRow}${noteBlock}${workedBlock}
+      ${section(renderAgencyDistribution(a, students))}
+      ${section(renderAssignmentDimensions(a, students))}
+      ${section(patternBlock)}`;
   }
 
   const scope = `${students.length} student${students.length !== 1 ? 's' : ''} · ${closedDrafts} closed drafts`;
@@ -3802,10 +4015,10 @@ function renderAssignmentAggregateContent(a, students, variant = 'full') {
     dimensionEntries(DIM_KEYS.map(k => draftFlow(a, students, sub => bandFromLegacyScore(sub[k])))),
     scope, FLOW_AXIS_DRAFT, { title: 'Summary · dimensions across the drafts' });
 
-  return `${statRow}${noteBlock}
-    <div style="margin-bottom:var(--tau-s6)">${agencyTrend}</div>
-    <div style="margin-bottom:var(--tau-s5)">${dimTrend}</div>
-    ${patternBlock}${originBlock}${workedBlock}`;
+  return `${statRow}${noteBlock}${workedBlock}
+    ${section(agencyTrend)}
+    ${section(dimTrend)}
+    ${section(patternBlock)}`;
 }
 
 function renderAssignmentAggregatePanel(a) {
@@ -3824,10 +4037,8 @@ function renderAssignmentAggregatePanel(a) {
 // the same content/components as the Browse Assignments quick-expand above,
 // via renderAssignmentAggregateContent() — not a second, competing summary.
 function renderAssignmentOverviewCard(a, students) {
-  return `<div class="overview-card">
-    <div class="overview-eyebrow">Assignment overview — where things stand today</div>
-    ${renderAssignmentAggregateContent(a, students)}
-  </div>`;
+  return `<div class="overview-eyebrow section-lbl">Assignment overview — where things stand today</div>
+    ${renderAssignmentAggregateContent(a, students)}`;
 }
 
 // ── Final assignment summary — the whole arc, once the assignment is closed ─
@@ -3885,10 +4096,8 @@ function assignmentSessionNote(subs) {
 // They exist to name the card, which is the only thing that ever differed.
 function renderFinalAssignmentSummary(a, students) {
   const drafts = draftSchedule(a).filter(s => s.state === 'closed').length;
-  return `<div class="overview-card">
-    <div class="overview-eyebrow">Final assignment summary — how the class did over ${drafts || 'its'} draft${drafts !== 1 ? 's' : ''}</div>
-    ${renderAssignmentAggregateContent(a, students)}
-  </div>`;
+  return `<div class="overview-eyebrow section-lbl">Final assignment summary — how the class did over ${drafts || 'its'} draft${drafts !== 1 ? 's' : ''}</div>
+    ${renderAssignmentAggregateContent(a, students)}`;
 }
 
 function browseAssignmentRowTr(a) {
@@ -4165,7 +4374,7 @@ function renderDrillPanel(subs, label, sig, ctx) {
   const attentionSignals = sig && sig.signals ? sig.signals.filter(s => s.tier === 'attention') : [];
   const engagementNote = attentionSignals.length
     ? `<div style="padding:8px 14px;border-top:1px solid var(--tau-line)">
-         ${sig.status === 'review' ? '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--tau-ink-faint);margin-bottom:5px">Also noticed</div>' : ''}
+         ${sig.status === 'review' ? '<div style="font-size:var(--tau-text-label-sm);font-weight:700;color:var(--tau-ink-faint);margin-bottom:5px">Also noticed</div>' : ''}
          <ul class="note-list" style="font-size:11px;color:var(--tau-ink-soft)">
            ${attentionSignals.map(s => `<li>${s.reason}${s.learnMoreKey ? ` <a class="flag-learn-more" onclick="openFlagTray('${s.learnMoreKey}');event.stopPropagation()">Learn more</a>` : ''}</li>`).join('')}
          </ul>

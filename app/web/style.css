@@ -16,12 +16,20 @@ body {
    whatever's left rather than claiming the full viewport itself. */
 .view { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 
+/* Pill, not 8px, since 2026-08-22 (m3-lab §3): M3 ranks button variants by
+   FILL, never by corner, and components.css's .btn took one shape for every
+   variant in the same pass. This reset is what the page's un-classed buttons
+   (Rename, the submit modal's Cancel) fall back to, so leaving it at 8px made
+   corner a rank signal again on exactly the controls that opt out of .btn.
+   No min-height here on purpose — a bare `button` is also .link-btn, the
+   breadcrumb link and the message-edit affordance, none of which are 40px
+   boxes. The named controls below take --tau-h-control individually. */
 button {
   font: inherit;
   cursor: pointer;
   border: 1px solid var(--tau-line);
   background: var(--tau-surface);
-  border-radius: 8px;
+  border-radius: var(--tau-r-pill);
   padding: 8px 14px;
   color: var(--tau-ink);
 }
@@ -33,7 +41,12 @@ button:hover { border-color: var(--tau-forest); }
 
 /* ---------- workspace ---------- */
 
-.ws-body { flex: 1; min-height: 0; display: flex; }
+/* The shell, same as the home view's — see the .dash-rail block below for the
+   argument. It matters here for the 8px gutter .chat floats in as much as for
+   the rail: left on --tau-bg the gutter was a near-white channel between two
+   surfaces, so the chat pane's shadow had nothing to cast against and the
+   pane read as flush rather than floating. */
+.ws-body { flex: 1; min-height: 0; display: flex; background: var(--tau-shell); }
 
 /* ---------- workspace rail ---------- */
 /* Chrome is components.css §13. What's left here is what only this rail has:
@@ -52,23 +65,39 @@ button:hover { border-color: var(--tau-forest); }
    margin. */
 .ws-prompt { margin: 0; }
 
+/* Sage, not white, since the rail moved onto --tau-shell (2026-08-22): white
+   here is the same lightness step the chat pane takes, so this would tie with
+   the content for the loudest surface in the view. Same correction
+   dashboard.html made to .rail-search input, and for the same reason. The
+   action still leads the rail — through forest text and an edge, which is
+   what a rail action is allowed to lead with. */
 .new-session-btn {
   width: 100%;
   text-align: left;
+  min-height: var(--tau-h-control);
   font-weight: 600;
   color: var(--tau-forest);
-  border-color: var(--tau-line);
-  background: var(--tau-surface);
+  border-color: var(--tau-line-strong);
+  background: var(--tau-surface-2);
 }
-.new-session-btn:hover { background: var(--tau-surface-3); }
+/* A state layer, not a picked fill (m3-lab §1) — the ramp step this used to
+   reach for (--tau-surface-3) is only 3% off its own resting fill now.
+   INK, not currentColor: this button's content colour is forest, and an 8%
+   forest overlay is a forest-tinted surface fill — the seventh forest job the
+   Hard Constraints don't grant and m3-lab §5b flagged as a call rather than
+   taking. Ink is the neutral the rest of the rail's state layers already use. */
+.new-session-btn:hover { background: color-mix(in oklab, var(--tau-ink) var(--tau-state-hover), var(--tau-surface-2)); }
 .new-session-btn:disabled { opacity: 0.5; cursor: default; }
 
 /* Every session's title is one line, so this rail uses .rail-item's name slot
    and nothing else — no .rail-item-sub, no .rail-item-meta. */
 .conv-item.locked .rail-item-name::after { content: ' 🔒'; font-size: 11px; }
+/* --tau-h-control, stated rather than left to fall out of the padding —
+   m3-lab §3's point is that a control's height is a token, not an accident of
+   its line-box. This one already measured 40px; now it says so. */
 .submit-btn {
   background: var(--tau-forest); color: var(--tau-on-forest); border-color: var(--tau-forest);
-  border-radius: var(--tau-r-pill); padding: 10px 18px;
+  border-radius: var(--tau-r-pill); padding: 10px 18px; min-height: var(--tau-h-control);
   box-shadow: 0 3px 8px -3px color-mix(in oklab, var(--tau-forest) 45%, transparent);
 }
 .submit-btn:hover { background: var(--tau-forest-lift); border-color: var(--tau-forest-lift); }
@@ -99,7 +128,22 @@ button:hover { border-color: var(--tau-forest); }
   font-weight: 600;
   font-size: 14px;
 }
-#btnRename { border: none; background: none; color: var(--tau-ink-soft); padding: 2px 6px; }
+/* Drawn small, reaching --tau-target through a transparent expansion rather
+   than by growing its box (m3-lab §3) — the same construction .btn::after and
+   .info-dot use. A pencil glyph next to a session title has no business being
+   a 44px square, but it does have to be a 44px hit region. */
+#btnRename {
+  border: none; background: none; color: var(--tau-ink-soft); padding: 2px 6px;
+  position: relative;
+}
+/* Follows .info-dot/.dbar-key-item rather than .btn::after, which carries
+   pointer-events:none and so only reserves space next to a control already at
+   --tau-h-control. This one has to actually catch the pointer. */
+#btnRename::after {
+  content: ''; position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: var(--tau-target); height: var(--tau-target);
+}
 
 /* ---------- coaching-mode banner ---------- */
 
@@ -218,6 +262,9 @@ button:hover { border-color: var(--tau-forest); }
   border: 1px solid var(--tau-line-strong);
   border-radius: var(--tau-r-xl);
   box-shadow: var(--tau-shadow);
+  /* NOT converted to the elevated variant (m3-lab §8): this is the composer,
+     whose border is a focus channel (:focus-within changes its colour), not
+     card chrome. Removing it would delete half the focus indicator. */
   transition: border-color var(--tau-dur-short) var(--tau-ease-standard),
               box-shadow var(--tau-dur-medium) var(--tau-ease-decelerate);
 }
@@ -311,7 +358,10 @@ button:hover { border-color: var(--tau-forest); }
    leaving exactly two things in the row with an outline: the auditor chip and
    Send. The auditor keeps its own hue; that is a locked decision. */
 .composer-row .btn-quiet { border-color: transparent; background: none; }
-.composer-row .btn-quiet:hover:not(:disabled) { background: var(--tau-hover-surface); }
+/* A state layer, not a picked fill (m3-lab §1). --tau-hover-surface resolves
+   to --tau-surface-2, and the composer box is white — a ~3% shift, which is
+   the invisible-hover case the state-layer mechanism exists to end. */
+.composer-row .btn-quiet:hover:not(:disabled) { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
 .composer-row .btn-auditor { border-color: color-mix(in oklab, var(--tau-auditor) 30%, transparent); background: var(--tau-auditor-bg); }
 
 /* Below the box, not inside the control row. It is a standing condition of the
@@ -351,6 +401,10 @@ button:hover { border-color: var(--tau-forest); }
   background: none;
   color: var(--tau-ink);
 }
+/* The composer box owns the focus treatment (:focus-within on the wrapper,
+   border + ring), so the textarea inside it must not draw a second one. This
+   is the one sanctioned outline:none in the app — see designsystem.md's
+   composer rule. */
 #input:focus { outline: none; }
 #input::placeholder { color: var(--tau-ink-faint); }
 
@@ -396,7 +450,7 @@ button:hover { border-color: var(--tau-forest); }
 .tau-card {
   background: var(--tau-surface); border: 1px solid var(--tau-line); border-radius: 12px; padding: 16px;
 }
-.tau-card .tau-name { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tau-ink-soft); }
+.tau-card .tau-name { font-size: var(--tau-text-label-md); color: var(--tau-ink-soft); }
 .tau-card .tau-score { font-size: 28px; font-weight: 700; margin: 4px 0; }
 .tau-card .tau-desc { font-size: 12px; color: var(--tau-ink-soft); line-height: 1.45; }
 .tau-bar { height: 6px; background: var(--tau-meter-track); border-radius: 3px; margin: 8px 0; overflow: hidden; }
@@ -540,9 +594,7 @@ button:hover { border-color: var(--tau-forest); }
 .soon {
   margin-left: auto;
   white-space: nowrap;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: var(--tau-text-label-sm);
   color: var(--tau-ink-soft);
 }
 
@@ -574,7 +626,15 @@ button:hover { border-color: var(--tau-forest); }
   background: var(--tau-surface);
   color: var(--tau-ink);
 }
-.auth-form input:focus { outline: 2px solid var(--tau-surface-2); border-color: var(--tau-forest); }
+/* --tau-focus-ring, not the surface-coloured 2px outline that stood here:
+   --tau-surface-2 against this field's white fill is a ~3% ring, which is not
+   a focus indicator at all — it left the 1px border hue change doing the
+   whole job. m3-lab §2; same correction dashboard.html made to .menu-field. */
+.auth-form input:focus {
+  outline: var(--tau-focus-ring);
+  outline-offset: var(--tau-focus-gap);
+  border-color: var(--tau-forest);
+}
 
 .auth-identity { min-height: 1.2em; }
 .auth-rule { font-size: 13px; color: var(--tau-ink-soft); margin: 0 0 2px; }
@@ -654,11 +714,23 @@ button:hover { border-color: var(--tau-forest); }
    Chrome (width, ground, the head/body/foot regions) is components.css §13 —
    what stays here is only what this rail alone carries: the identity block
    and the progress panel. */
-.dash-main { flex: 1; overflow-y: auto; padding: 26px 32px 72px; background: #FFFFFF; }
-:root[data-theme="dark"] .dash-main { background: var(--tau-bg); }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .dash-main { background: var(--tau-bg); }
-}
+/* THE SHELL. Rail and content pane are ONE surface (--tau-shell), and the
+   assignment cards are the only raised things on it. Changed 2026-08-22,
+   after the teacher dashboard's ground move — see tokens.css's --tau-shell
+   for the full argument and designsystem.md's Hard Constraints for the rule.
+
+   REVERSES the hardcoded `#FFFFFF` that stood here, plus the two dark-theme
+   overrides it needed. Home was the worst case of the problem --tau-shell
+   was created for: .acard is .card + .card-lg, which is a white fill on a
+   white pane — a zero lightness step, so the cards were never raised, they
+   were outlined, and once m3-lab §8 took .card's border away for the
+   elevated variant they had nothing left at all. The cards did not change
+   here; the ground moved out from under them.
+
+   A literal was also the wrong shape for a ground value: --tau-shell is
+   defined per theme in tokens.css, so the dark overrides this rule used to
+   carry are gone with it. */
+.dash-main { flex: 1; overflow-y: auto; padding: 26px 32px 72px; background: var(--tau-shell); }
 .dash-main > .chunk { max-width: 880px; }
 
 /* This rail scrolls as one column rather than scrolling its body against a
@@ -670,10 +742,45 @@ button:hover { border-color: var(--tau-forest); }
 .dash-rail { overflow-y: auto; }
 .dash-rail .rail-body { overflow: visible; flex: 0 0 auto; }
 
+/* ── Both student rails, on the shell ──
+   Overrides of components.css §13, NOT edits to it: .rail is shared with
+   admin.html, which still runs the white-ground shell. Page-scoped until a
+   third surface wants this — the same placement rule dashboard.html states
+   over its own copy of these three lines.
+
+   Each of the three is forced by the ground move rather than chosen:
+
+   1. The rail takes the shell, dissolving the rail/content seam. .rail has
+      no border anywhere, so it separated purely by tone; matching it makes
+      the shell read as one continuous field, and the rail still earns "a
+      step quieter than the content it frames" by being GROUND while the
+      cards and the chat pane are FIGURE.
+   2. .rail-item.active fills --tau-surface-2, not the component's white.
+      On the shell, white is the same step the content plane takes, so the
+      active nav row would tie with the thing it points at for loudest
+      object on screen. Sage keeps raised as ONE fill across the shell.
+   3. .rail-item-meta steps up from ink-faint to ink-soft. ink-faint
+      measures 2.79:1 on the shell — below AA for normal text; ink-soft is
+      4.60:1. Not a preference; the old value is not legible here. */
+.dash-rail, .ws-body > .rail { background: var(--tau-shell); }
+.dash-rail .rail-item.active, .ws-body > .rail .rail-item.active { background: var(--tau-surface-2); }
+.dash-rail .rail-item-meta, .ws-body > .rail .rail-item-meta { color: var(--tau-ink-soft); }
+/* A fourth, and the one that is easy to miss: components.css sets the avatar
+   on a rail to --tau-surface-3, reasoning "surface-2 is the rail's ground, so
+   go one step further down the ramp." On the shell that reasoning inverts —
+   surface-3 is now LIGHTER than the rail by ~3%, which is the invisible edge
+   again, and the circle all but disappears. Back to surface-2, which is the
+   one raised fill this shell uses for everything. */
+.dash-rail .avatar { background: var(--tau-surface-2); }
+
 /* Pinned to the bottom by .rail-foot's margin-top:auto — whatever room the
    assignment list doesn't use, this claims, so guidance reads as the rail's
    settled-at-the-bottom conclusion rather than just more stacked content. */
-.rail-progress { padding-top: 16px; border-top: 1px solid var(--tau-line); }
+/* --tau-line is LIGHTER than --tau-shell, so on the shell it inverts into an
+   embossed hairline instead of a rule. This and the collapsed rail's
+   border-bottom are the only two dividers in this sheet drawn on the ground
+   itself; every other --tau-line here sits inside a card and is unaffected. */
+.rail-progress { padding-top: 16px; border-top: 1px solid var(--tau-line-strong); }
 /* The heading is inside .rail-block, not a sibling of it — renderRail()
    builds it that way so a second block can carry its own. .eyebrow is an
    inline span by default; a block heading needs the line to itself. */
@@ -709,11 +816,11 @@ button:hover { border-color: var(--tau-forest); }
 .acard { margin-bottom: 14px; transition: outline-color var(--tau-dur-short) var(--tau-ease-standard); outline: var(--tau-focus-ring); outline-color: transparent; outline-offset: var(--tau-focus-gap); }
 .acard-jumped { outline-color: var(--tau-forest); }
 
-.acard-due { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; }
+.acard-due { font-size: var(--tau-text-label-sm); font-weight: 700; }
 .acard-due-calm { color: var(--tau-ink-soft); }
 .acard-due-soon { color: var(--tau-caution); }
 .acard-due-late { color: var(--tau-attention); }
-.acard-class { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--tau-ink-soft); }
+.acard-class { font-size: var(--tau-text-label-sm); font-weight: 700; color: var(--tau-ink-soft); }
 .acard-sep { color: var(--tau-line-strong); font-size: 11px; }
 .acard-title-row { display: flex; align-items: center; justify-content: space-between; gap: var(--tau-s3); margin-top: 5px; }
 .acard-title { font-size: 20px; letter-spacing: -0.015em; }
@@ -740,11 +847,11 @@ button:hover { border-color: var(--tau-forest); }
 .draft-row-num { font-weight: 600; }
 .draft-row-sep { color: var(--tau-line-strong); }
 .draft-row-final-badge {
-  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  font-size: var(--tau-text-label-sm); font-weight: 700;
   color: var(--tau-ink-soft); border: 1px solid var(--tau-line); border-radius: var(--tau-r-pill);
   padding: 2px 8px; margin-left: 2px;
 }
-.draft-row-due { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.draft-row-due { font-size: var(--tau-text-label-sm); font-weight: 700; }
 
 /* Line 3 — functionality: a button (current draft), a report link
    (submitted), or just the detail text explaining why there's nothing to do
@@ -816,9 +923,7 @@ button:hover { border-color: var(--tau-forest); }
 .pcard-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
 .pcard-head h3 { font-size: 15px; flex: 1; min-width: 200px; }
 .pcard-outcome { display: flex; align-items: baseline; gap: 9px; }
-.pcard-score { font-size: 19px; font-weight: 700; }
-.pcard-denom { font-size: 12px; color: var(--tau-ink-soft); margin-left: -6px; }
-.pcard-band { font-size: 12px; font-weight: 600; padding-left: 8px; border-left-width: 3px; border-left-style: solid; }
+.pcard-band { font-size: 13px; font-weight: 600; padding-left: 8px; border-left-width: 3px; border-left-style: solid; }
 .pcard-meta { font-size: 12px; color: var(--tau-ink-soft); margin: 3px 0 11px; }
 
 /* ---------- draft chips ---------- */
@@ -830,15 +935,13 @@ button:hover { border-color: var(--tau-forest); }
   border: 1px solid var(--tau-line); background: var(--tau-surface); font-size: 13px;
 }
 .draft-chip .chip-cycle { color: var(--tau-ink-soft); font-size: 12px; }
-.draft-chip .chip-score { font-weight: 700; font-variant-numeric: tabular-nums; }
-.draft-chip .chip-denom { font-weight: 400; font-size: 11px; color: var(--tau-ink-soft); }
-.draft-chip .chip-samr { font-size: 12px; color: var(--tau-ink-soft); }
+.draft-chip .chip-samr { font-weight: 600; }
 .draft-chip .chip-note { color: var(--tau-auditor); display: inline-flex; }
 .draft-chip .chip-note .tau-icon { width: 13px; height: 13px; }
 button.draft-chip { cursor: pointer; transition: border-color var(--tau-dur-short) var(--tau-ease-standard); }
 button.draft-chip:hover { border-color: var(--tau-forest); }
 .draft-chip-pending { color: var(--tau-ink-soft); }
-.draft-chip-pending .chip-score { font-weight: 400; font-size: 12px; }
+.draft-chip-pending .chip-status { font-size: 12px; }
 
 /* The .level-* colour mapping itself lives in components.css, next to
    .band-1..4 (same ramp, applied as a border accent) — this is just the
@@ -849,7 +952,8 @@ button.draft-chip:hover { border-color: var(--tau-forest); }
   .dash { flex-direction: column; overflow-y: auto; }
   /* Layout only — the rail stops being a column and becomes a band across
      the top. Its chrome (ground, row shape, active state) is untouched. */
-  .dash-rail { width: 100%; min-width: 0; border-bottom: 1px solid var(--tau-line); overflow: visible; padding-bottom: 24px; }
+  /* line-strong, not line: drawn on --tau-shell, where --tau-line inverts. */
+  .dash-rail { width: 100%; min-width: 0; border-bottom: 1px solid var(--tau-line-strong); overflow: visible; padding-bottom: 24px; }
   .dash-main { overflow: visible; padding: 24px 20px 60px; }
   /* Collapsed, the rail is a band: the three blocks run side by side so the
      meters keep a sane width instead of stretching the full page. */

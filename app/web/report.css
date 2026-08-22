@@ -11,6 +11,15 @@
        This page's header is now .tau-nav, shared with index.html — see
        components.css section 12. .report-topbar is retired with it. */
 
+    /* The one page that keeps a resting hairline under the bar. .tau-nav
+       dropped it in the m3-lab §7 pass in favour of a tonal step taken when
+       content passes under the bar — but that trade only pays where the bar
+       is fixed over a scrolling pane. Here the document body scrolls and the
+       bar is not sticky, so nothing ever passes under it: the tonal step can
+       never fire, and without the hairline the bar and the first card would
+       meet white-on-near-white at the top of the page. */
+    .tau-nav { border-bottom-color: var(--tau-line); }
+
     /* .panel is now .card and .section-header is now .eyebrow, both from
        components.css. #analyzeBtn belonged to the single-file CTA's input
        screen, which this page does not have. */
@@ -47,7 +56,7 @@
       padding: var(--tau-s4) var(--tau-s5);
     }
     .report-hero-score-label {
-      font-size: var(--tau-text-xs); font-weight: 600; text-transform: uppercase;
+      font-size: var(--tau-text-label-md); font-weight: 600;
       letter-spacing: var(--tau-track-label); color: var(--tau-ink-faint);
     }
     .report-total { display: flex; align-items: baseline; gap: 6px; }
@@ -137,7 +146,6 @@
     .teacher-note-panel-head {
       display: flex; align-items: center; gap: 7px;
       font-size: var(--tau-text-xs); font-weight: 700;
-      text-transform: uppercase; letter-spacing: var(--tau-track-label);
       color: var(--tau-auditor);
     }
     .teacher-note-panel-head .tau-icon { width: 15px; height: 15px; color: var(--tau-auditor); }
@@ -195,7 +203,7 @@
     .report-jump {
       position: sticky; top: 0; z-index: 5;
       display: flex; align-items: stretch; gap: 2px;
-      background: var(--tau-surface); border: 1px solid var(--tau-line);
+      background: var(--tau-surface); border: 1px solid transparent;
       border-radius: var(--tau-r-lg); padding: 5px;
       box-shadow: var(--tau-shadow);
     }
@@ -311,7 +319,10 @@
       font-size: var(--tau-text-sm); cursor: pointer;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .conv-view-item:hover { background: var(--tau-hover-surface); }
+    /* A state layer, not a picked fill (m3-lab §1). This list sits in a rail
+       whose ground is --tau-surface-2, which is exactly what
+       --tau-hover-surface resolves to — the row had no hover at all. */
+    .conv-view-item:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
     .conv-view-item.active { background: var(--tau-surface); color: var(--tau-forest); font-weight: 600; box-shadow: var(--tau-shadow); }
     .conv-view-item-meta { display: block; font-size: var(--tau-text-xs); font-weight: 400; color: var(--tau-ink-faint); margin-top: 2px; }
     .conv-view-transcript {
@@ -374,6 +385,12 @@
     }
     .turn-body { flex: 1; min-width: 0; }
     .turn-top-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+    /* KEEPS its caps through the m3-lab §6b pass, deliberately. This and the
+       five chips below (.div-role-tag, .div-ai-chip, .div-student-chip,
+       .dt-cat-seq-chip--s/--a) all name WHO SPOKE, which is components.css's
+       .turn-speaker exception: caps carry a voice, not a hierarchy. Everything
+       in these sheets that names a GROUP went to sentence case. If a seventh
+       appears, the test is that question, not the size it happens to be. */
     .turn-role { font-size: 10px; font-weight: 700; color: var(--tau-ink-faint); text-transform: uppercase; letter-spacing: .04em; }
     .turn-text {
       font-size: var(--tau-text-sm); line-height: var(--tau-leading-body); color: var(--tau-ink);
@@ -409,8 +426,8 @@
     .side-panel .glyph { font-size: 13px; line-height: 1.5; flex-shrink: 0; }
     .side-panel-text { font-size: 11.5px; line-height: 1.5; color: var(--tau-ink); }
     .side-panel-text .tag {
-      display: block; font-size: 10px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: var(--tau-track-label); margin-bottom: 2px;
+      display: block; font-size: var(--tau-text-label-sm); font-weight: 700;
+      margin-bottom: 2px;
     }
     .side-panel-text q { font-style: italic; color: var(--tau-ink-soft); }
     .side-panel.landed, .side-panel.excluded { background: var(--tau-origin-you-bg); }
@@ -499,7 +516,7 @@
     }
     .div-exchange-label {
       font-size: 10px; font-weight: 600; letter-spacing: var(--tau-track-label);
-      text-transform: uppercase; color: var(--tau-ink-faint); margin-bottom: 12px;
+      color: var(--tau-ink-faint); margin-bottom: 12px;
     }
     .div-ai-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
     .div-role-tag {
@@ -518,8 +535,8 @@
     .div-student-row { background: var(--tau-surface-2); border-radius: var(--tau-r-sm); padding: 10px 12px; }
     .div-student-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
     .div-turn-num {
-      font-size: 10px; font-weight: 600;
-      color: var(--tau-ink-faint); letter-spacing: 0.05em; text-transform: uppercase;
+      font-size: var(--tau-text-label-sm); font-weight: 600;
+      color: var(--tau-ink-faint);
     }
     .div-student-chip {
       padding: 2px 7px; border-radius: var(--tau-r-pill); background: var(--tau-origin-you-bg); color: var(--tau-ink);
@@ -565,8 +582,8 @@
     }
     .dt-stat-block:last-child { border-right: none; }
     .dt-verdict-label, .dt-stat-label {
-      font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
-      text-transform: uppercase; color: var(--tau-ink-faint);
+      font-size: var(--tau-text-label-sm); font-weight: 600;
+      color: var(--tau-ink-faint);
     }
     .dt-verdict-chip {
       display: inline-block; padding: 3px 10px; border-radius: var(--tau-r-pill);
@@ -612,8 +629,8 @@
     .legend-row-meta .legend-item { font-size: 11px; color: var(--tau-ink-faint); }
     .legend-group { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
     .legend-group-label {
-      font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
-      text-transform: uppercase; color: var(--tau-ink-faint);
+      font-size: var(--tau-text-label-sm); font-weight: 700;
+      color: var(--tau-ink-faint);
     }
     .legend-group-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--tau-s2) 14px; }
     /* Driving chart's three encoding items carry a classifier list under the
@@ -648,12 +665,15 @@
     #drivingChart { display: block; }
     .drv-tick:hover { opacity: .85; }
     #dt-tooltip {
+      /* Elevated, not outlined-and-elevated (m3-lab §8) — same change as
+         .report-jump and .rail-search-results, which are the page's other two
+         floating surfaces. */
       position: fixed; display: none; max-width: 280px; background: var(--tau-surface);
-      border: 1px solid var(--tau-line); border-radius: var(--tau-r-sm); padding: 12px 14px;
+      border: 1px solid transparent; border-radius: var(--tau-r-sm); padding: 12px 14px;
       font-size: 12px; line-height: 1.6;
       color: var(--tau-ink); box-shadow: var(--tau-shadow); pointer-events: auto; z-index: 400;
     }
-    #dt-tooltip .dt-tooltip-title { font-weight: 600; margin-bottom: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    #dt-tooltip .dt-tooltip-title { font-weight: 600; margin-bottom: 6px; font-size: var(--tau-text-label-sm); }
     .dt-tooltip-learn-more {
       display: none; margin-top: 10px; padding: 4px 10px; border-radius: var(--tau-r-pill);
       border: 1px solid var(--tau-line-strong); background: var(--tau-surface); color: var(--tau-ink-soft);
@@ -670,9 +690,13 @@
     /* Chrome (background/border/radius/shadow) comes from components.css's
        .confirm — this is only the size override this modal's content needs. */
     .dt-modal-box { max-width: 480px; width: 90%; position: relative; padding: 28px 32px; }
-    #dt-modal-turn { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--tau-ink-faint); margin-bottom: 12px; }
+    #dt-modal-turn { font-size: var(--tau-text-label-sm); font-weight: 600; color: var(--tau-ink-faint); margin-bottom: 12px; }
     /* Same student/coach vocabulary as the pattern sidebar's turn chips. */
-    #dt-modal-classifier { display: inline-block; margin-bottom: 14px; padding: 2px 9px; border-radius: var(--tau-r-pill); background: var(--tau-origin-you-bg); color: var(--tau-ink); font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+    /* Sentence case: this is a classifier label, the same object as
+       .dt-cat-card-name, which lost its caps in the m3-lab §6b pass. It is not
+       a speaker chip — those keep caps below, and the distinction is the whole
+       rule: caps mark a VOICE, never a rank. */
+    #dt-modal-classifier { display: inline-block; margin-bottom: 14px; padding: 2px 9px; border-radius: var(--tau-r-pill); background: var(--tau-origin-you-bg); color: var(--tau-ink); font-size: var(--tau-text-label-sm); font-weight: 600; }
     #dt-modal-text { font-family: var(--tau-font-serif); font-size: 15px; line-height: 1.7; color: var(--tau-ink); }
     #dt-modal-close { position: absolute; top: 14px; right: 18px; background: none; border: none; font-size: 18px; color: var(--tau-ink-faint); cursor: pointer; }
     #dt-modal-close:hover { color: var(--tau-ink); }
@@ -686,13 +710,13 @@
     .zero-line { stroke: var(--tau-line-strong); stroke-width: 1.5; }
     .dt-cat-section-label {
       font-size: 10px; font-weight: 700;
-      letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px;
+      margin-bottom: 14px;
     }
     .dt-cat-card { margin-bottom: 18px; }
     .dt-cat-card-name {
       display: inline-block; padding: 2px 9px; border-radius: var(--tau-r-pill);
       font-size: 11px; font-weight: 600;
-      letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 8px;
+      margin-bottom: 8px;
     }
     /* Same "level, not verdict" band ramp as the pattern sidebar title — one
        ramp for "how agentic", not a third blue/terra pair. */
@@ -774,7 +798,15 @@
       align-items: start;
     }
     .dim-card { display: block; padding: 0; cursor: pointer; }
-    .dim-card:hover { background: var(--tau-hover-surface); }
+    /* A state layer at --tau-state-hover (m3-lab §1), replacing
+       --tau-hover-surface, which against this card's white fill was a ~3%
+       shift. Mixed INTO --tau-surface rather than into `transparent`: this is
+       a .card with a fill of its own, and a translucent background REPLACES
+       that fill rather than layering over it, so the transparent form would
+       hover the card by making it see-through. The currentColor form is right
+       for a control with no resting background (.rail-item, .conv-view-item);
+       for a filled surface the ground is named. */
+    .dim-card:hover { background: color-mix(in oklab, var(--tau-ink) var(--tau-state-hover), var(--tau-surface)); }
     .dim-card:focus-visible { outline: var(--tau-focus-ring); outline-offset: var(--tau-focus-gap); }
     /* The source card of an open transform. Held at reduced opacity rather
        than hidden: M3's container transform reads as one surface moving, and
@@ -834,7 +866,7 @@
     .xform {
       position: fixed; z-index: 41;
       background: var(--tau-surface);
-      border: 1px solid var(--tau-line);
+      border: 1px solid transparent;
       overflow: hidden;
       box-shadow: var(--tau-shadow);
       transition:
@@ -1372,7 +1404,7 @@
 
     .turnplot-detail-which {
       font-family: var(--tau-font-mono); font-size: var(--tau-text-xs);
-      letter-spacing: 0.08em; text-transform: uppercase; color: var(--tau-ink-faint);
+      color: var(--tau-ink-faint);
     }
 
     .turnplot-detail-words { margin: 0; display: flex; flex-direction: column; gap: var(--tau-s3); }
@@ -1556,7 +1588,7 @@
     .provstrip-idea-head { display: flex; align-items: center; gap: var(--tau-s2); margin-bottom: var(--tau-s2); }
     .provstrip-idea-origin {
       font-family: var(--tau-font-mono); font-size: var(--tau-text-xs);
-      letter-spacing: var(--tau-track-label); text-transform: uppercase;
+      letter-spacing: var(--tau-track-label);
       color: var(--tau-ink-soft);
     }
     .provstrip-idea-phrase {
@@ -1614,8 +1646,8 @@
     .turnplot-legend { align-self: stretch; display: flex; flex-wrap: wrap; gap: var(--tau-s3) var(--tau-s7); }
     .turnplot-legend-group { display: flex; flex-direction: column; gap: var(--tau-s2); }
     .turnplot-legend-group > b {
-      font-family: var(--tau-font-mono); font-size: var(--tau-text-xs); font-weight: 500;
-      letter-spacing: 0.08em; text-transform: uppercase; color: var(--tau-ink-faint);
+      font-family: var(--tau-font-mono); font-size: var(--tau-text-label-md); font-weight: 500;
+      color: var(--tau-ink-faint);
     }
     .turnplot-legend-items { display: flex; flex-wrap: wrap; gap: var(--tau-s4); }
     .turnplot-legend-item { display: flex; align-items: center; gap: var(--tau-s2);
