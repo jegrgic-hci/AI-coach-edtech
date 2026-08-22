@@ -197,15 +197,46 @@ const LEVEL_ORDER = ["Passive", "Reactive", "Directive", "Transformative"];
 // — "this conversation was reactive", never "you were reactive". The names are
 // ordinary English now, which is what makes them readable and also what makes
 // them easy to hear as a description of a person; this line is where the report
-// settles which one it means, before `shape` says anything specific.
+// settles which one it means.
 //
-// Generic by design: the same words for everyone at this level. `shape` is the
-// sentence about THIS chat, and it does not repeat these.
+// THIS IS THE CLASS, NOT THE INSTANCE. Definition to `body`'s deeper dive, the
+// way "a bike is a two-wheeled human-powered vehicle" is to "yours is carbon
+// fibre with road tyres". Generic by design — the same words for everyone at
+// this level — and the ONLY generic line in the hero, which is why it can be
+// the biggest one. `body` is where this particular session gets described.
+//
+// It also carries the hero's display slot as of 2026-08-22, when `shape` was
+// deleted. Shape had become a longer paraphrase of this line: two generic
+// sentences saying one thing, the second of them set at 24px. One statement of
+// the level, at the size the level deserves.
+//
+// Rewritten 2026-08-22 around what the student ASKED FOR, which is the one
+// thing about their own thinking that is visible in the transcript. The drafts
+// before this described what the student thought ("your thinking mostly stayed
+// outside this chat") — unknowable, and contradicted by levels.html, which says
+// passive "tells you the thinking isn't in the work; it does not tell you
+// whether it exists". Each line now names an act and its result, both of which
+// a student can go and check by scrolling up.
+//
+// The rungs are: asked for answers / was given the ideas / led with their own /
+// led and challenged them. NOT built to a shared template — an earlier pass
+// forced all four onto one sentence frame and every line came out worse for it.
+// Each is written to be clear on its own; the escalation is legible without the
+// wording rhyming.
+//
+// Then run through Strunk: coordination replaced by subordination (rule 18),
+// and the qualifiers cut EXCEPT the two doing measurement work — "almost
+// unchanged" and, in Transformative, "developing new ones that changed your
+// work", which is what stops the level being awarded for pushback that moved
+// nothing.
+//
+// No absolutes: "with little change" is the only hedge, on the only line that
+// would otherwise overclaim. The rest name acts, and an act is not a quantity.
 const LEVEL_DEF = {
-  Passive: "The thinking in this conversation was the AI's. Nothing in it started on your side.",
-  Reactive: "Everything here came after the AI raised it — the questions and the ideas both answered its.",
-  Directive: "This conversation ran on terms you set. The AI worked to them.",
-  Transformative: "This conversation ran on terms you set, and what you thought by the end wasn't what you brought in.",
+  Passive: "You asked the AI for the answers and used them almost unchanged.",
+  Reactive: "The AI gave you the ideas; you made them into your own work.",
+  Directive: "You led with your own ideas and used the AI to develop them.",
+  Transformative: "You led the AI to investigate and challenge your ideas, developing new ones that changed your work.",
 };
 
 function renderReportHero(reading, submission) {
@@ -228,12 +259,18 @@ function renderReportHero(reading, submission) {
       </div>`;
   }
 
-  const idx = LEVEL_ORDER.indexOf(reading.level) + 1;
+  // Through levelName() like every other printed level: readings taken before
+  // the 2026-08-21 rename are stored under the retired name and are never
+  // rewritten. Without this the hero threw on `level` and rendered nothing.
+  const level = levelName(reading.level);
+  const idx = LEVEL_ORDER.indexOf(level) + 1;
+  // One rung is marked; none is "reached". The cumulative class came out on
+  // 2026-08-22 — see the note in report.css. The order is still real, so the
+  // scale stays an ordered axis; what it no longer says is that the rungs
+  // below this one were climbed to get here.
   const rungs = LEVEL_ORDER.map((name, i) => {
-    const cls = ["level-step"];
-    if (i + 1 <= idx) cls.push("is-reached");
-    if (i + 1 === idx) cls.push("is-here");
-    return `<div class="${cls.join(' ')}"><span class="level-step-name">${esc(name)}</span></div>`;
+    const cls = i + 1 === idx ? 'level-step is-here' : 'level-step';
+    return `<div class="${cls}"><span class="level-step-name">${esc(name)}</span></div>`;
   }).join('');
 
   // The departure sentence only appears when the level lands somewhere the four
@@ -255,10 +292,19 @@ function renderReportHero(reading, submission) {
           <div class="level-scale" role="img" aria-label="A four-level scale, lowest to highest: ${LEVEL_ORDER.join(', ')}. This session sits at ${esc(level)}.">
             ${rungs}
           </div>
+          <!-- The one thing the ladder cannot say for itself. A student sees a
+               four-rung scale with a dot near the bottom of it and no reason to
+               read that as anything but a mark out of four. Teachers are told
+               this twice (viz.js's flow foot, levels.html); until 2026-08-22 the
+               student was told it nowhere. It sits under the SCALE, not under
+               the prose, because the scale is the thing being qualified — same
+               attachment as the dashboard's .viz-card-foot. Permanent and
+               undismissable, per the voice rule that a reading is never a
+               verdict. No link: levels.html is teacher-only. -->
+          <p class="hero-scale-foot">This is about how the work got made, not how good it is. Your teacher marks the essay.</p>
         </div>
         <div class="level-summary">
           ${LEVEL_DEF[level] ? `<p class="hero-level-def"><b>${esc(level)}.</b> ${esc(LEVEL_DEF[level])}</p>` : ''}
-          <p class="hero-shape">${esc(reading.shape)}</p>
           <div class="level-summary-body">
             <div>
               <p class="level-body">${esc(reading.body)}</p>

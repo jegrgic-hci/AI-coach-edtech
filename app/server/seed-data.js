@@ -420,8 +420,7 @@ const READINGS = {
   strong: {
     level: 'Transformative',
     levelIndex: 4,
-    shape: 'The reading you argue at the end is not the one you opened with — it changed across the three turns about the second-person address.',
-    body: 'You brought the claim and then kept testing whether it survived, so the same thread carries both the initiative and the doubt. One thing held from your first message to your last: the assumption that the audience was already hostile, which nothing in the chat put a question to.',
+    body: 'You came in saying she makes herself the one who was wrong, and were pushed to show it rather than assert it. You went back to the talk, found the admissions clustered before the Mexico section and the publisher section, and rebuilt the essay around placement.',
     departure: null,
     exception: 'The ethos paragraph stayed a summary. You said so yourself and left it — a defensible call, but the one place the analysis stops arguing.',
     dimensions: [
@@ -463,8 +462,7 @@ const READINGS = {
   flat: {
     level: 'Passive',
     levelIndex: 1,
-    shape: 'Every idea in the essay appears on the AI’s side of the chat before it appears on yours.',
-    body: 'The AI chose the speech, named the strategies and supplied the structure, and the essay carries all three. Nothing that came back was changed before it was used.',
+    body: 'Your questions were which speech to pick, what the rhetorical strategies in it are, and the difference between ethos and pathos. The essay’s argument — that he used ethos and pathos to win support for the space program — is the answer to the third one.',
     departure: 'The last draft has one idea that is unmistakably yours, which is why this does not read as a session with nothing in it.',
     exception: "Right at the end you wrote that the difficulty line \u201cmakes difficulty the reason\u201d — the only moment you tell it something instead of asking.",
     dimensions: [
@@ -504,8 +502,7 @@ const READINGS = {
   flagged: {
     level: 'Reactive',
     levelIndex: 2,
-    shape: 'The frame the whole essay sits in arrived in the AI’s first message, and every question after it worked inside that frame.',
-    body: 'You make claims, you refine them, and you sustain one thesis across the whole essay. No turn in the chat puts a question to the frame those claims sit in.',
+    body: 'You make claims, you refine them, and you sustain one thesis across the whole essay. Nothing in the chat asks whether that starting idea was the right one.',
     departure: 'The bands would predict directive. Read the arc instead: the register-collision thesis arrives complete in your second turn, immediately after the AI was asked what makes the speech effective, and nothing after that tests it.',
     exception: 'You asked whether the argument holds across the whole speech, then answered your own question in the AI\u2019s terms rather than the text\u2019s.',
     dimensions: [
@@ -543,8 +540,7 @@ const READINGS = {
   bikeguide: {
     level: 'Directive',
     levelIndex: 3,
-    shape: 'You set what each section of the guide had to do before the AI wrote any of it.',
-    body: 'The agenda was yours and the AI worked to it, section by section. What you asked for in your first message is what the finished guide does — nothing in the conversation moved the plan.',
+    body: 'You set the format, the audience and the five systems in your first message, then took the AI through them one at a time, adding a tool list, a lube guide and a maintenance table. The guide at the end is the one you specified at the start.',
     departure: null,
     exception: 'The one thing you took without checking was the replacement reference — moments after that same source had been caught inventing one.',
     dimensions: [

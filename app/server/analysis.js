@@ -527,13 +527,21 @@ For each dimension return:
 
 One level, named, describing WHERE THE STUDENT'S THINKING ENTERED THE WORK. It is read from the shape the four readings make, the assignment, and the session as a whole — never from a sum or an average of the bands.
 
-Every name completes the same sentence: "In this session, the student's thinking was ___." The student's thinking is the subject and the AI is the instrument — never the reverse.
-- "Passive": The AI's thinking stood in for the student's. Nothing in the work started with them.
-- "Reactive": The student's thinking only ever responded to the AI's. Real work, all of it downstream of an AI turn.
-- "Directive": The student's thinking set the terms. The AI worked to them.
-- "Transformative": The student's thinking set the terms AND came out of the session changed. This is the only level requiring a CHANGE rather than a position — the thinking in the essay differs from what the student brought in, and the shift is traceable through the transcript. Do not award it for pushback alone.
+The levels are told apart by WHAT THE STUDENT ASKED THE AI FOR, which is the one part of their thinking the transcript actually shows. Read their turns for the ask, then read the essay for what became of the answer.
+- "Passive": The student asked for the answers and took what came back with little change. Answer-seeking.
+- "Reactive": The AI supplied the ideas; the student developed them into work of their own. Real work — often a lot of it — on material the AI got to first.
+- "Directive": The student led with their own ideas and worked with the AI to develop them further.
+- "Transformative": The student led the AI to investigate and challenge their ideas, developing new ones and changing the work. This is the only level requiring a CHANGE rather than a position — what the essay argues differs from what the student came in with, and the shift is traceable through the transcript. Do not award it for pushback alone, and do not award it for ideas ADDED alongside the originals; the original thinking has to have moved.
+
+The student is the actor across the set: by the end of each line it is the student doing something to the work. "Reactive" is the one that may name the AI first, because the AI getting there first is that level's defining fact — but its second clause returns the student to the acting role, and a set where the AI acts at every rung cannot tell its top from its bottom.
 
 The level reads AGENCY, not quality. A confidently directed shallow session is "Directive"; whether the work is any good is the teacher's judgement, not yours.
+
+CLAIM SIZE IN PART 2. This is not a grading tool and it does not audit an essay line by line, so "body" and "departure" do not make TOTALISING claims about the student's work. The test is what you can see:
+- An absence in the TRANSCRIPT is checkable, because the whole transcript is in front of you. "Nothing in the chat asks whether that idea was the right one" is allowed, and is the strongest thing you can say.
+- A universal about the ESSAY's ideas is not. "Every idea in the essay came from the AI first" asserts a complete provenance audit of the finished piece. Write "The ideas in your essay appear on the AI's side of the chat before they appear on yours" instead.
+- Never write a sentence "body" makes absolute and "departure" then contradicts. If one idea in the essay is the student's own, "body" cannot say every idea is the AI's.
+The generalisation is in the QUANTIFIER only. Stay just as specific about WHAT happened, WHERE, and in WHICH turn — vagueness is not the goal and is its own failure.
 
 VOICE FOR PART 2. Two separate observations, never one concessive sentence. State what the session shows; separately, state what it does not show. Do NOT join them with "but", "though", "however", "and yet", and do NOT qualify an observation as you make it — no "on the surface", "almost none of it", "looks strong until". Direct and factual. No praise offered and withdrawn.
 
@@ -544,24 +552,24 @@ Test every sentence you write in Part 2: if it can be rewritten as "you are ___"
 
 Return:
 - "level": one of the four names
-- "shape": one sentence naming THE SPECIFIC THING IN THIS CHAT THAT PUT IT AT THIS LEVEL. A student aged 14-18 reads this first, at the top of the page, directly under the level name, so it has to land on one read.
-  * It is EVIDENCE, not a definition. The student can already read the level name and the line explaining it — restating that in other words wastes the most-read sentence on the page. Point at what happened here.
-  * Wrong (a paraphrase of "reactive"): "You worked on what the AI gave you."
-  * Right (the evidence for it): "Every question you asked came after the AI had already named the thing you were asking about."
-  * Concrete acts, not characterisation. Name the thing that happened — asked, told it, kept, changed, turned down, brought their own. Do NOT name what kind of session or what kind of student this was.
-  * No metaphor and no figure of speech. "You directed this into existence", "an idea that started on the AI's side", "what the essay is made of" are all wrong: each one has to be decoded before it means anything.
+- "body": two sentences describing THIS PARTICULAR SESSION. The report already prints a fixed sentence defining the level; your job is the deeper dive under it. The relationship is definition to instance:
+      DEFINITION: "A bike is a two-wheeled, human-powered vehicle."
+      BODY:       "Yours is a carbon-fibre frame on narrow tyres, built for paved roads."
+  The definition says what kind of session this was. The body says WHICH session it was. Do not restate the definition in other words — that was the failure of the slot this replaces.
+  * Name the actual material. The real questions asked, the real thing the AI supplied, the real change made to the work. A teacher should be able to check every noun in under a minute.
+  * Right: "Your questions were which speech to pick, what the strategies in it are, and the difference between ethos and pathos. The essay's argument — that he used ethos and pathos to win support for the space program — is the answer to the third one."
+  * Right: "You set the format, the audience and the five systems in your first message, then took the AI through them one at a time, adding a tool list, a lube guide and a maintenance table. The guide at the end is the one you specified at the start."
+  * Wrong (a paraphrase of the definition): "You worked on what the AI gave you rather than setting the direction yourself."
+  * Wrong (true of any session at this level): "The ideas came from the AI and you developed them."
+  * Concrete acts, not characterisation. Name what happened — asked, told it, kept, changed, turned down, brought their own. Do NOT name what kind of session or what kind of student this was.
+  * No metaphor and no figure of speech. "You directed this into existence", "an idea that started on the AI's side", "what the essay is made of" are all wrong: each has to be decoded before it means anything.
   * Everyday words. Not: initiative, agency, discourse, elaborate, frame, register, substantive.
-  * ONE observation, not a contrast. No "but", "though", "however".
   * Never a rating, never a nickname, never a judgement of whether the work is any good.
-- "body": two sentences. The first names what this session shows most clearly. The second names something this level's definition requires that this chat does not contain — stated as a FACT ABOUT THE TRANSCRIPT, NOT as a shortfall against a higher rung and NOT as a comparison the student loses.
-  * Right: "Nothing in the essay appears in your turns before it appears in the AI's."
-  * Wrong: "You didn't reach the level where the thinking changes." / "You stopped short of directing it."
-  * At Transformative the requirement is that the thinking CHANGED, so the second sentence names what stayed fixed. Say what didn't move; do not imply it should have.
 - "departure": if the level lands somewhere the four bands would not predict, one sentence naming what you read in the assignment or the arc of the session to get there, pointing at something checkable. Otherwise null.
 - "exception": one or two sentences naming the single moment that most cuts against this level. Required.
 
 Return ONLY valid JSON:
-{"dimensions":[{"key":"PQ","band":4,"count":"...","claim":"...","moments":[{"quote":"...","note":"..."}],"counterexample":{"text":"..."}}, ...],"overall":{"level":"...","shape":"...","body":"...","departure":null,"exception":"..."}}`;
+{"dimensions":[{"key":"PQ","band":4,"count":"...","claim":"...","moments":[{"quote":"...","note":"..."}],"counterexample":{"text":"..."}}, ...],"overall":{"level":"...","body":"...","departure":null,"exception":"..."}}`;
 
 const LEVELS = ['Passive', 'Reactive', 'Directive', 'Transformative'];
 

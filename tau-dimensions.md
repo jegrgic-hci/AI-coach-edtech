@@ -420,25 +420,81 @@ Above the four sits **one overall level**, named — **passive, reactive, direct
 and **never numbered**. Numbering the rungs makes the second one read as a failing grade, which was
 the documented failure mode of the SAMR vocabulary this replaces.
 
-**The construct is where the student's thinking entered the work**, from *none of it was theirs* to
-*it was theirs and the session changed it*:
+**The construct is where the student's thinking entered the work**, from *they asked for the answer*
+to *they came with the idea and it changed in the making*:
 
 | Level | What it says |
 |---|---|
-| **Passive** | The AI's thinking stood in for the student's. Nothing in the work started with them. |
-| **Reactive** | The student's thinking only ever responded to the AI's. Real work, all of it downstream. |
-| **Directive** | The student's thinking set the terms. The AI worked to them. |
-| **Transformative** | The student's thinking set the terms and came out of the session changed. |
+| **Passive** | The student asked the AI for the answers and used them almost unchanged. |
+| **Reactive** | The AI gave the student the ideas; they made them into work of their own. |
+| **Directive** | The student led with their own ideas and used the AI to develop them. |
+| **Transformative** | The student led the AI to investigate and challenge their ideas, developing new ones that changed the work. |
+
+#### Definition and instance — the hero's two registers, settled 2026-08-22
+
+The report hero prints exactly two things about the level, and they are in different registers. Get
+this backwards and the card says one thing twice, which is what happened to the slot called `shape`
+before it was deleted.
+
+|  | Register | Written by | Example |
+|---|---|---|---|
+| **The definition** (`LEVEL_DEF`) | The **class**. What a session at this level *is*. | Fixed, per level | "A bike is a two-wheeled, human-powered vehicle." |
+| **`body`** | The **instance**. Which session *this* was. | The model, per session | "Yours is a carbon-fibre frame on narrow tyres, built for paved roads." |
+
+`body` therefore names real material — the actual questions asked, the actual thing the AI supplied,
+the actual change made to the work — and every noun in it should be checkable in under a minute. A
+`body` that would be true of any session at this level has failed: it has restated the definition.
+
+**`shape` was deleted in the same pass.** It sat between these two and belonged to neither. Specified
+as per-session evidence, it drifted into being a longer paraphrase of the definition — two generic
+sentences saying one thing, the second of them set at 24px. Its display slot passed to the
+definition, which is now the only generic line in the hero and can carry the size. Its per-session
+job passed to `body`, which was already doing it better. Any reading stored before that date still
+has a `shape` key; nothing reads it.
+
+**The level is the high-level guide and does not need to be specific.** The particulars live in
+`body`, in the `exception`, and in the four dimension cards below, each of which carries its own
+claim, quoted moments and counterexample.
+
+#### The levels are told apart by the ask — REWRITTEN 2026-08-22
+
+The wording above replaces a set built on what the student's thinking *did* ("the student's thinking
+only ever responded to the AI's"). That set could not be checked. The tool sees the transcript and
+the essay; it does not see a student's thinking, and `levels.html` says as much about passive in its
+own words — it "tells you the thinking isn't in the work; it does not tell you whether it exists."
+The definitions then claimed to know the opposite.
+
+**What the student ASKED FOR is the visible part.** It is in their turns, a teacher can point at it,
+and a student can argue with it. So the ladder is now read off the ask and what became of the answer:
+**answers taken → ideas developed → own ideas led with → own ideas challenged and changed.**
+
+Two consequences for anyone writing this copy again:
+
+- **Do not build the four to one sentence frame.** A pass on 2026-08-22 forced all four onto a shared
+  stem and every line came out worse; the wording that survived was written one line at a time. The
+  escalation is legible from the verbs without the sentences rhyming. The one place two lines relate
+  deliberately is directive → transformative, which is the real relationship (transformative is
+  directive plus a change).
+- **Hedge only where a line would otherwise overclaim.** "With little change" carries passive's; the
+  others name acts, and an act is not a quantity, so it needs no *mostly*.
 
 #### The frame every name has to satisfy
 
 Each label completes one sentence: **"In this session, the student's thinking was ______."**
 
-**The student's thinking holds the subject slot; the AI is the instrument.** A ladder written the
-other way round — *the AI substituted / directed / extended your thinking* — puts the AI in the
-actor's seat at every rung, and the top and the bottom stop being distinguishable, because in both
-sentences the AI is the one doing something. This is not a stylistic preference: the construct is the
-student's agency, so a name that makes the AI the actor is measuring something else.
+**The student is the actor across the set.** By the end of every line it is the student doing
+something to the work. A ladder written the other way round — *the AI substituted / directed /
+extended your thinking* — puts the AI in the actor's seat at every rung, and the top and the bottom
+stop being distinguishable, because in both sentences the AI is the one doing something. This is not
+a stylistic preference: the construct is the student's agency, so a set that makes the AI the actor
+throughout is measuring something else.
+
+**Refined 2026-08-22: the rule binds the set, not every clause.** *Reactive* now opens on the AI —
+"the AI supplied the ideas" — because the AI getting there first is that level's defining fact, and
+stating it any other way took a sentence to say what four words say. Its second clause returns the
+student to the acting role, and the other three rungs open on the student. The failure this rule
+exists to prevent is a ladder whose rungs are indistinguishable because the AI acts on all of them;
+one clause naming the AI as the source does not produce it.
 
 **The adjective describes the session, never the student.** *"A reactive session"*, *"the thinking
 here was passive"* — never *"you are passive."* The adjectival form makes that slip easy, and

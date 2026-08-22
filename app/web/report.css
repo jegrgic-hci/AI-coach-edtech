@@ -1019,26 +1019,30 @@
        right half empty and made the counterexample look like an indented
        afterthought — as a second column it reads as the other half of the
        same statement, which is what it is. */
-    /* The level said in a sentence, above the shape. Sized BELOW .hero-shape
-       deliberately: this line is the same for everyone at this level, and the
-       sentence about this particular chat is the one that should pull the eye.
+    /* The level said in a sentence, and now the hero's display line. It was set
+       one step DOWN from .hero-shape while shape existed, on the reasoning that
+       a line every student at this level shares should not pull the eye ahead
+       of the one about their own chat. Shape was deleted 2026-08-22 — it had
+       become a longer paraphrase of this sentence — so the reasoning inverts:
+       this is the only generic line left in the hero, the particular session is
+       described in .level-body beneath it, and a single statement of the level
+       should carry the size.
+
        The level name is bolded rather than coloured — the band colour is
-       already carrying the classification on the scale two inches left, and
-       saying it twice in colour makes the card read as a verdict. */
+       already carrying the classification on the scale, and saying it twice in
+       colour makes the card read as a verdict.
+
+       `pretty` not `balance`: balance splits a headline that runs just over one
+       line into two half-width lines, which is a ragged break by another route. */
     .level-summary .hero-level-def {
-      font-size: var(--tau-text-lg);
-      line-height: var(--tau-leading-snug);
-      color: var(--tau-ink-soft);
-      max-width: 52ch;
-      margin-bottom: var(--tau-s3);
-    }
-    .level-summary .hero-level-def b { color: var(--tau-ink); font-weight: 650; }
-    .level-summary .hero-shape {
       font-size: var(--tau-text-2xl);
       line-height: 1.3;
-      text-wrap: balance;
+      color: var(--tau-ink);
+      text-wrap: pretty;
       max-width: 46ch;
+      margin-bottom: var(--tau-s3);
     }
+    .level-summary .hero-level-def b { font-weight: 650; }
     .level-summary-body {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -1093,7 +1097,7 @@
 
        .eyebrow keeps its uppercase (it is the system's only sanctioned use) and
        keeps the draft, which is a position rather than a name. One size below
-       .hero-shape so the reading still leads the card and the title only
+       .hero-level-def so the reading still leads the card and the title only
        identifies it. designsystem.md: an .eyebrow labels a scanned section
        "unless a title one size up already names the group". */
     .report-hero-head {
@@ -1164,7 +1168,7 @@
       align-items: center;
       padding-left: calc(var(--dot-size) + var(--label-gap));
     }
-    /* The rail, drawn per row so the travelled part can be filled, clipped
+    /* The rail, drawn per row so the end rows can clip their own half, clipped
        at the end rows so it starts and stops on a dot rather than in air. */
     .level-step::before {
       content: "";
@@ -1197,9 +1201,16 @@
       border: var(--rail-w) solid var(--tau-line-strong);
     }
 
-    /* At or below where you are: the path travelled. */
-    .level-step.is-reached::before { background: var(--level-fg); }
-    .level-step.is-reached::after  { border-color: var(--level-fg); }
+    /* NO CUMULATIVE FILL — removed 2026-08-22. The rail below the marked rung
+       used to fill in --level-fg as "the path travelled", which asserts that a
+       directive session passed THROUGH passive and reactive on its way. It did
+       not. tau-dimensions.md calls the levels profile shapes, not thresholds
+       and not stages; nothing in the model claims accumulation. The filled-run
+       idiom belongs to progress bars, where the claim happens to be true.
+       What is left is what the measurement actually supports: one uniform axis
+       carrying four ordered positions, with the one that was read marked on it.
+       The marker keeps three channels (fill, ring, label weight), so it is no
+       less findable than when it also terminated a filled run. */
     .level-step.is-here::after {
       background: var(--level-fg);
       box-shadow: 0 0 0 4px var(--level-bg);
@@ -1245,18 +1256,30 @@
         var(--tau-s6) + (var(--tau-text-2xl) * 1.3 / 2) - (var(--row-h) / 2)
       );
     }
+    /* Sits in the space under the four rungs, which the summary column's prose
+       leaves empty at almost every length — so it costs the card no height.
+       Smallest text in the hero on purpose: it is a standing condition on how
+       to read the scale, not part of this session's reading. --tau-s5 keeps it
+       clear of the last rung's label without reading as a separate block. */
+    .hero-scale-foot {
+      margin: var(--tau-s5) 0 0;
+      font-size: var(--tau-text-sm);
+      line-height: var(--tau-leading-snug);
+      color: var(--tau-ink-faint);
+      max-width: 30ch;
+    }
+    @media (max-width: 880px) {
+      .hero-scale-foot { margin-top: var(--tau-s3); max-width: none; }
+    }
+
     .hero-two-col .level-summary { margin-top: 0; }
     .hero-two-col .level-summary::before { display: none; }
     .hero-two-col .level-summary-body { grid-template-columns: 1fr; gap: var(--tau-s4); }
     /* The headline takes the panel, and the panel is the measure. It carried a
-       30ch clamp here — a third of the column at this width — so it broke in
-       the middle of the panel with the paragraphs beneath it running on past
-       the break. `balance` goes with it: on a headline that runs just over one
-       line, balancing splits it into two half-width lines, which is the same
-       ragged break by another route. `pretty` only guards the last line. */
-    .hero-two-col .level-summary .hero-shape {
+       46ch clamp — under half the column at this width — so it broke mid-panel
+       with the paragraphs beneath it running on past the break. */
+    .hero-two-col .level-summary .hero-level-def {
       max-width: none;
-      text-wrap: pretty;
     }
 
     /* --- .turnplot — the session as a map, replacing the Agency Chart and

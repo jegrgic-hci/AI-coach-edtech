@@ -82,10 +82,10 @@ function levelChip(n, small) {
 // Only renderComposition reads these, so this changes one surface's voice and
 // nothing about the scale. The NAMES are untouched — named, never numbered.
 const LEVEL_GLOSS = [
-  "The AI's thinking stood in for your students'. Nothing in the work started with them.",
-  "Your students' thinking only ever answered the AI's. Real work, all of it downstream of something the AI said first.",
-  'Your students set the terms. The AI worked to them, and the conversation went where your students took it.',
-  'Your students set the terms and came out of the session thinking something different. What changed is traceable through the chat.',
+  'Your students asked the AI for the answers and used them almost unchanged.',
+  'The AI gave your students the ideas; they made them into work of their own.',
+  'Your students led with their own ideas and used the AI to develop them.',
+  'Your students led the AI to investigate and challenge their ideas, developing new ones that changed the work.',
 ];
 
 const DIM_KEYS  = ['pq', 'su', 'cs', 'oc'];
