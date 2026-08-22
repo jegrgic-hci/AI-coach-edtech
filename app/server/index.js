@@ -461,8 +461,8 @@ async function streamReply({ res, user, conversation, assignment, messages, role
     sseSend(res, 'notice', {
       kind: 'context',
       tone: 'quiet',
-      title: 'This chat is getting long',
-      detail: 'the AI re-reads all of it every time you send a message',
+      title: 'Long sessions get less focused',
+      detail: 'start a fresh session for each new topic to get better responses',
       action: { id: 'new-session', label: 'Start new session' },
     });
     await col('conversations').update(conversation.id, { contextNoticeAt: now() });
