@@ -33,8 +33,24 @@ Everything is behind a login. `npm run start:demo` creates a demo class — **pa
 | `jamie@school.dev` | student — American Literature, open assignment complete (all 3 drafts scored) |
 | `elena@school.dev` | student — American Literature, on the open assignment's final draft (in progress) |
 | `marcus@school.dev` | student — American Literature, integrity flags, open assignment complete |
-| `teacher@school.dev` | teacher — dashboard, roster, notes across all 3 classes |
-| `admin@school.dev` | administrator — teacher accounts + aggregate product metrics (`admin.html`) |
+| `teacher@school.dev` | teacher — dashboard, roster, notes across all 3 classes. **No admin grant** — see below |
+
+**No seeded account holds an admin grant, and this is a security boundary — do not restore one to
+make a surface easier to demo.** Until 2026-08-23 `admin@school.dev` was seeded as a platform-admin
+and `teacher@school.dev` as a school administrator. Both passed `canAdminPeople`, which opens every
+`/api/admin/*` route, and two of those compose into an **account takeover**: `teachers/:id/edit` sets
+any teacher's email address and `teachers/:id/send-reset` then mails a recovery link to it. With the
+password above published here and staging serving a public login page, that was a route into every
+real teacher account sharing the project — and a real teacher's class was in `cta-pilot-dev` at the
+time. `admin@school.dev` is deleted; `teacher@school.dev` keeps everything except the Administration
+link in the account chip.
+
+**To reach `admin.html`, use a real platform-admin account** — `bootstrap-admin.js` creates the first
+one on an empty store. A store seeded before this change still carries the old grants:
+`node app/server/revoke-seeded-admin.js --write` removes them (dry run without `--write`).
+
+*Still open, and not fixed by the above:* any legitimate admin can still change a teacher's email and
+then send a reset, and an email change is audited as a bare `edit` with no old→new detail.
 
 Three classes, each with its own open assignment staged at a different point (English 10 on draft 1, Journalism Elective on draft 2, American Literature on the final draft) — plus two closed assignments shared by every class: a 3-draft rhetorical-analysis cycle and a real 44-turn bicycle-maintenance-guide transcript (Claude.ai document co-creation, not a Socratic coach session), cloned onto every student so every roster row is fully scored.
 

@@ -21,7 +21,6 @@ const {
 } = require('./seed-data');
 
 const TEACHER_EMAIL = 'teacher@school.dev';
-const ADMIN_EMAIL = 'admin@school.dev';
 
 // Backdated so the growth strip has a real time axis instead of everything
 // landing in the same second.
@@ -305,15 +304,33 @@ async function seed() {
     return;
   }
 
-  // Flagged as a school administrator so the pilot shape is what dev exercises:
-  // one person who teaches and also runs the school's teacher accounts. She
-  // still owns classes and assignments below, which is the whole reason the
-  // grant hangs off a teacher rather than replacing the role.
-  const teacher = await upsertUser({ email: TEACHER_EMAIL, displayName: 'Ms. Karim', role: 'teacher', schoolAdmin: true });
-  // The platform tier: adds accounts, reads aggregate product metrics and what
-  // the tool costs. Owns no class and no assignment, so it needs no wiring
-  // into anything below — and deliberately has no route into student work.
-  await upsertUser({ email: ADMIN_EMAIL, displayName: 'Dana Okoye', role: 'platform-admin' });
+  // NO ADMIN GRANT ON ANY SEEDED ACCOUNT — 2026-08-23, and this is a security
+  // boundary rather than a demo-content decision, so do not restore either
+  // grant to make a surface easier to show.
+  //
+  // The demo password is published in this repo and staging serves a public
+  // login page. `canAdminPeople` (platform-admin OR schoolAdmin) opens every
+  // /api/admin/* route, and two of those compose into an account takeover:
+  // `teachers/:id/edit` sets any teacher's email address, and
+  // `teachers/:id/send-reset` then mails a recovery link to it. So a seeded
+  // account holding either grant hands anyone who reads the README a route
+  // into every real teacher's account in the same project.
+  //
+  // That was not theoretical — a real teacher's class was in `cta-pilot-dev`
+  // while both seeded accounts held a grant. `send-reset`'s comment claims an
+  // admin "cannot complete a recovery, only the mailbox owner can", which is
+  // true only while nobody can change which mailbox it is; the route above it
+  // can.
+  //
+  // Ms. Karim was a school administrator so dev exercised the pilot shape —
+  // one person who teaches and also runs the school's teacher accounts. That
+  // shape is worth exercising against a real admin account, not a shared one.
+  // The grant costs the demo only the Administration link in the account chip
+  // (`canAdmin`, index.js) — nothing about teaching, classes or assignments.
+  const teacher = await upsertUser({ email: TEACHER_EMAIL, displayName: 'Ms. Karim', role: 'teacher', schoolAdmin: false });
+  // The platform-admin account `admin@school.dev` (Dana Okoye) was seeded here
+  // and is deleted. `admin.html` is reached with a real platform-admin account;
+  // `bootstrap-admin.js` creates the first one on an empty store.
 
   // Users first, so class membership (which is by studentId) can be built
   // before any assignment or class record needs it.
