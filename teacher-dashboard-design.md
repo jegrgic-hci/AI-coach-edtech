@@ -75,8 +75,17 @@ not as a spec. This table is authoritative; where it and a body section disagree
 - **The composition IS the flow's final column**, by construction — both read
   `assignmentReadingCohort()`, i.e. the last closed draft. They disagreed once (2026-08-16, sixth
   entry); do not reintroduce a second cohort function.
-- Every band/level on every surface is still a **shim** — `bandFromLegacyScore()` off the retired 1–5
-  ratios. Nothing here is validated until `scoreTAU`'s signature changes.
+- ~~Every band/level on every surface is still a **shim**~~ **No longer true — 2026-08-23.** Every
+  band and level on every surface now reads `analysis.reading`, the same one `report.html` renders.
+  `total()`, `levelFromTotal()` and `bandFromLegacyScore()` are deleted; `subLevel(sub)` /
+  `subBand(sub, key)` replace them and compute nothing. **This was a live bug, not a tidy-up:** the
+  shim derived a level from `PQ+SU+CS+OC` bucketed at 17/13/9 while the student's report rendered the
+  reading, so one draft read two different levels — often two rungs apart — depending on who opened
+  it. Reported by a tester. See the session log's last entry.
+- **The reading was never gated on `scoreTAU`.** `readSession()` is a separate LLM read that has been
+  coding a level and four bands off the transcript, essay and assignment on every real submission
+  since it shipped; the dashboard was simply never wired to it. `scoreTAU` still gates the flag and
+  signal detectors (item 3b) and nothing else on this page.
 - **Never calibrate a threshold or a distribution shape on the demo seed** (`tau-dimensions.md`).
 - **Three flow axes, and the surface's scope picks one.** `FLOW_AXIS_TIME` (calendar buckets — Home,
   which spans classes running different work), `FLOW_AXIS_ASSIGNMENT` (one class, everyone did the
@@ -2129,6 +2138,39 @@ see `app/README.md`'s file map if you need to work on that surface instead.
 *Added 2026-07-27. Going forward, log dashboard-affecting sessions here — same convention
 `designsystem.md` uses for the rest of `app/`. Retroactive entries below reconstruct what's
 already landed; write new ones going forward rather than editing history in place.*
+
+**2026-08-23 — the dashboard and the report disagreed about the same draft, and the shim was why**
+
+A tester reported "different report results between student and teacher." It was not a data bug and
+not assignment-specific: **the two surfaces shared no inputs.** `report.html` renders
+`analysis.reading` — the level and four bands `readSession()` codes off the transcript, the essay and
+the assignment. `/api/teacher/dashboard` never sent `reading` at all; it sent `tau`'s retired 1–5
+scores, and `dashboard.html` derived a level from `PQ+SU+CS+OC` bucketed at 17/13/9 and a band from
+`round(score × 0.8)`.
+
+**On the demo roster the two disagreed on most drafts, frequently by two rungs.** Maya's rhetorical
+analysis draft 1 reads Transformative in the report and totalled 12, which the dashboard called
+Reactive. Her poetry explication reads Passive with all four bands at 1; the shim showed PQ at band 4,
+because `tau.PQ` reads 5 on nearly every transcript.
+
+**The fix was plumbing, and the shim's own comment predicted it exactly** — "the callers already speak
+bands, so nothing above this function changes when it goes." That held. The server sends `level` and
+`bands` per submission (nulled, never defaulted, on anything the reading could not see);
+`subLevel()` / `subBand()` replace the three derivation functions and compute nothing.
+
+**What the shim's comment got wrong was the timing:** it said it would be deleted "when `scoreTAU`
+lands," and every doc repeated that. `readSession()` is a *different function* — an LLM read that
+never needed `scoreTAU`'s signature change — and it had been producing a real reading on every
+submission for days while the dashboard drew a shim beside it. Worth remembering as a failure mode:
+a stated blocker outlived the thing that was actually blocking.
+
+**Free fix along the way:** a pending or failed draft used to render a "Passive" chip, because
+`total()` of four zeroes bucketed to level 1. It now renders off-scale, which is what it is.
+
+**Deliberately not converted:** the flag and signal detectors (score spike, "passive engagement",
+the two reflection mismatches) still read the retired total via `legacyTotal()`, kept for exactly
+that one reader. They are open item 3b above, their names are part of the flag system's IA, and half
+the job leaves a row line contradicting its own "Learn more."
 
 **2026-08-21 (later) — the drill panel's controls became controls, and the transcript went**
 

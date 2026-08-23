@@ -39,7 +39,7 @@
 //                 The reverse modelling would drop that person out of every
 //                 `role: 'teacher'` query that builds a roster. Only a
 //                 platform-admin may set the grant; see index.js.
-//                 researchEligible is a second grant on a teacher (2026-08-15),
+//                 improvementEligible is a second grant on a teacher (2026-08-15),
 //                 settable only by a platform-admin for the same reason: it
 //                 records that we hold a signed agreement with that person. It
 //                 authorises nothing by itself — it makes the per-class consent
@@ -53,12 +53,12 @@
 //                 (e.g. two different course sections) — that's the normal
 //                 case, not an edge case, once a school has more than one
 //                 pilot class running.
-//                 research: { grantedAt, grantedBy, grantedByName } | null —
+//                 improvement: { grantedAt, grantedBy, grantedByName } | null —
 //                 this class's work may be used to improve the measurement.
 //                 Absent/null means no. A stamp rather than a boolean because
 //                 the date is what separates work the agreement covered from
 //                 work that came later; a bare true loses it. Set only by the
-//                 owning teacher and only while they hold researchEligible;
+//                 owning teacher and only while they hold improvementEligible;
 //                 withdrawal is always allowed. Nothing in the product reads
 //                 it yet — the exporter that will is not built.
 //   assignments   { id, teacherId, classIds: [], title,
@@ -132,7 +132,7 @@
 //                 record has to survive a rename or a suspension of the very
 //                 account it describes, so it must not be a join at read time.
 //                 Grant changes are named in `detail` rather than folded into
-//                 a bare 'edit' — for researchEligible that line is the record
+//                 a bare 'edit' — for improvementEligible that line is the record
 //                 that a consent agreement was held on a given date.
 //   loginFailures { id, email, ip, ts }
 //                 Failed sign-ins, for the per-account throttle. `ip` is

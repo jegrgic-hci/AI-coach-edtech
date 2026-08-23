@@ -1541,21 +1541,39 @@ async function loadDashboardData() {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function total(sub) { return sub.pq + sub.su + sub.cs + sub.oc; }
-
-
-function levelFromTotal(t) {
-  const n = t >= 17 ? 4 : t >= 13 ? 3 : t >= 9 ? 2 : 1;
-  return { n, label: LEVEL_NAMES[n - 1], plain: BAND_PLAIN[n] };
+// A draft's level and its four bands, read off the submission exactly as the
+// server sent it. THESE TWO ARE THE ONLY WAY THIS PAGE MAY NAME A LEVEL OR A
+// BAND, and neither computes anything — the reading arrives already made.
+//
+// They replaced `total()` / `levelFromTotal()` / `bandFromLegacyScore()` on
+// 2026-08-23. Those three derived a level from PQ+SU+CS+OC bucketed at 17/13/9
+// and a band from `round(score × 0.8)`, both off the retired 1-5 scores, while
+// report.html rendered `analysis.reading` — so the same draft read one level to
+// the teacher and another to the student. That is what a tester reported, and
+// it was never a data bug: the two surfaces shared no inputs.
+//
+// The shim's own comment called itself "the first thing that gets deleted when
+// scoreTAU lands." It did not wait for scoreTAU: `readSession()` is a separate
+// LLM read that has been producing a level and four bands on every real
+// submission since it shipped, and the dashboard was simply never wired to it.
+//
+// Null means OFF-SCALE — an analysis older than readSession(), or a dimension
+// the session was too thin to judge. Never coerce it to 1: band 1 says the
+// behaviour was absent, null says we could not see it, and the whole non-score
+// exists to keep those apart (tau-dimensions.md; teacher-dashboard-design.md,
+// "Not enough here sits outside the ladder, always").
+function subLevel(sub) { return sub && sub.analysisStatus === 'complete' ? (sub.level ?? null) : null; }
+function subBand(sub, key) {
+  if (!sub || sub.analysisStatus !== 'complete' || !sub.bands) return null;
+  return sub.bands[DIM_KEYS.indexOf(key)] ?? null;
 }
-
 
 // A student's level from their latest readable session. ONE HOP, and never an
 // average: averaging a student's ordinal readings across a term is the operation
 // the scale change exists to remove (see homeCohort's note).
 function latestLevel(subs) {
   const done = subs.filter(s => s.analysisStatus === 'complete');
-  return done.length ? levelFromTotal(total(done[done.length - 1])).n : null;
+  return done.length ? subLevel(done[done.length - 1]) : null;
 }
 
 // classIds is which class(es) an assignment was given to; unscoped
@@ -1733,12 +1751,24 @@ function detectTrends(minCount = 2, scopeIds = null) {
     .filter(t => t.meta);
 }
 
+// THE RETIRED 4-20 TOTAL, and the only place this page is still allowed to
+// build one. Its readers are the flag and signal detectors below — the score
+// spike, the "passive engagement" threshold, the reflection mismatches — which
+// are open item 3b in teacher-dashboard-design.md: their detectors are gated on
+// scoreTAU's signature change and their NAMES are part of the flag system's IA,
+// so converting them is one job, not a side effect of this one. Half of it
+// leaves a row line contradicting its own "Learn more".
+//
+// Nothing that draws a level or a band may call this. Those read the reading —
+// see subLevel/subBand above.
+function legacyTotal(sub) { return sub.pq + sub.su + sub.cs + sub.oc; }
+
 function checkFlag(subs) {
   const flags = [];
   for (let i = 1; i < subs.length; i++) {
     const prev = subs[i-1], curr = subs[i];
     const mins      = (curr.ts - prev.ts) / 60000;
-    const scoreDiff = total(curr) - total(prev);
+    const scoreDiff = legacyTotal(curr) - legacyTotal(prev);
     const maxDim    = Math.max(...['pq','su','cs','oc'].map(d => curr[d] - prev[d]));
     if (mins <= 10 && (scoreDiff >= 5 || maxDim >= 3)) {
       flags.push({ submissionIndex: i, mins: Math.round(mins), scoreDiff, maxDim });
@@ -1826,10 +1856,10 @@ function _computeStudentSignal(studentId, assignmentId) {
     const avgPQ    = avg('pq');
     const avgCS    = avg('cs');
     const avgOC    = avg('oc');
-    const avgTotal = allSubs.reduce((s, sub) => s + total(sub), 0) / allSubs.length;
+    const avgTotal = allSubs.reduce((s, sub) => s + legacyTotal(sub), 0) / allSubs.length;
 
     const sorted    = [...allSubs].sort((a, b) => a.ts - b.ts);
-    const declining = sorted.length >= 3 && total(sorted[sorted.length - 1]) < total(sorted[0]) - 2;
+    const declining = sorted.length >= 3 && legacyTotal(sorted[sorted.length - 1]) < legacyTotal(sorted[0]) - 2;
 
     if (declining) signals.push({ tier: 'attention', reason: 'Engagement declining across recent submissions' });
     // avgTotal<9 and the CS+PQ combo overlap (the combo is a subset of low
@@ -1861,7 +1891,7 @@ function _computeStudentSignal(studentId, assignmentId) {
         }
         if (!sawDeltaMismatch && i > 0 && sub.reflectionType === 'delta' && sub.reflection) {
           const delta = (sub.reflection.delta || '').toLowerCase();
-          if (total(sub) <= total(subs[i - 1]) && IMPROVEMENT_KW.some(kw => delta.includes(kw))) {
+          if (legacyTotal(sub) <= legacyTotal(subs[i - 1]) && IMPROVEMENT_KW.some(kw => delta.includes(kw))) {
             signals.push({ tier: 'attention', reason: 'Student described improvement but scores didn\'t change', learnMoreKey: 'reflection-delta-mismatch' });
             sawDeltaMismatch = true;
           }
@@ -2331,22 +2361,13 @@ function detectPatternGroups(minCount = 2) {
 // rendering, rewired from the lab's fixtures onto the real payload.
 
 
-// TEMPORARY ADAPTER — 2026-08-14. tau-dimensions.md settles each dimension as
-// an ordinal band 1–4 read from the transcript, essay and assignment together,
-// and scoreTAU cannot see any of those yet: its signature change gates all four
-// dimensions and is unbuilt. So the bands below are DERIVED FROM THE OLD 1–5
-// SCORES, which is exactly the "no band derived from a count" the design docs
-// prohibit. It is here so the surface can be built and tweaked against real
-// rosters rather than fixtures, and it is the first thing that gets deleted
-// when scoreTAU lands — the callers already speak bands, so nothing above this
-// function changes when it goes.
+// bandFromLegacyScore() was deleted here, 2026-08-23 — the `round(score × 0.8)`
+// shim that stood in for a real band from 2026-08-14. Every caller now reads
+// subBand(), which returns the band readSession() coded off the transcript, the
+// essay and the assignment. Its own comment predicted this exactly ("the callers
+// already speak bands, so nothing above this function changes when it goes"),
+// and that held: the deletion touched the accessor and nothing else.
 //
-// Never read a threshold, a distribution shape or a finding off these numbers.
-function bandFromLegacyScore(v) {
-  if (v == null || v <= 0) return null;          // never analysed -> off-scale
-  return Math.min(4, Math.max(1, Math.round(v * 0.8)));
-}
-
 // One row per student: their most recent completed submission across every
 // assignment. "Most recent" rather than an average because a band is a reading
 // of a session, and averaging four ordinal readings is the operation this whole
@@ -2363,8 +2384,8 @@ function homeCohort() {
     if (!latest) return { student: st, level: null, bands: [null, null, null, null], patterns: [] };
     return {
       student: st,
-      level: levelFromTotal(total(latest)).n,
-      bands: DIM_KEYS.map(k => bandFromLegacyScore(latest[k])),
+      level: subLevel(latest),
+      bands: DIM_KEYS.map(k => subBand(latest, k)),
       patterns: latest.patterns || [],
     };
   });
@@ -2496,8 +2517,8 @@ function assignmentCohort(a, students) {
     const latest = subs.length ? subs[subs.length - 1] : null;
     return {
       student: st,
-      level: latest ? levelFromTotal(total(latest)).n : null,
-      bands: latest ? DIM_KEYS.map(k => bandFromLegacyScore(latest[k])) : [null, null, null, null],
+      level: latest ? subLevel(latest) : null,
+      bands: latest ? DIM_KEYS.map(k => subBand(latest, k)) : [null, null, null, null],
       patterns: latest ? (latest.patterns || []) : [],
     };
   });
@@ -2556,7 +2577,7 @@ function renderAgencyDistribution(a, students) {
   const slot = lastClosedDraft(a);
   return renderComposition(assignmentReadingCohort(a, students), {
     label: `Agency${slot ? `, ${slot.label.toLowerCase()}` : ''}`,
-    flow: draftFlow(a, students, sub => levelFromTotal(total(sub)).n),
+    flow: draftFlow(a, students, sub => subLevel(sub)),
     noFlowNote: 'Movement needs two closed drafts to compare. This assignment does not have two.',
   });
 }
@@ -2568,8 +2589,8 @@ function draftCohort(a, idx, students) {
     const sub = getSubs(st.id, a.id).find(s => s.cycleIndex === idx && s.analysisStatus === 'complete');
     return {
       student: st,
-      level: sub ? levelFromTotal(total(sub)).n : null,
-      bands: sub ? DIM_KEYS.map(k => bandFromLegacyScore(sub[k])) : [null, null, null, null],
+      level: sub ? subLevel(sub) : null,
+      bands: sub ? DIM_KEYS.map(k => subBand(sub, k)) : [null, null, null, null],
     };
   });
 }
@@ -2685,7 +2706,7 @@ function classCohort(students, assignments) {
     const latest = subs[subs.length - 1];
     return {
       student: st,
-      bands: latest ? DIM_KEYS.map(k => bandFromLegacyScore(latest[k])) : [null, null, null, null],
+      bands: latest ? DIM_KEYS.map(k => subBand(latest, k)) : [null, null, null, null],
     };
   });
 }
@@ -2714,7 +2735,7 @@ function renderAssignmentDimensions(a, students) {
     label: `Dimension bands${slot ? `, ${slot.label.toLowerCase()}` : ''}`,
     summary: `${read} read of ${n}`,
     lede,
-    flowFor: i => draftFlow(a, students, sub => bandFromLegacyScore(sub[DIM_KEYS[i]])),
+    flowFor: i => draftFlow(a, students, sub => subBand(sub, DIM_KEYS[i])),
   });
 }
 
@@ -2728,8 +2749,8 @@ function renderStudentTrace(a, studentId) {
     .find(x => x.cycleIndex === s.idx && x.analysisStatus === 'complete') || null);
   return renderTrace(
     slots.map(s => s.label),
-    DIM_KEYS.map(k => subs.map(s => s ? bandFromLegacyScore(s[k]) : null)),
-    subs.map(s => s ? levelFromTotal(total(s)).n : null));
+    DIM_KEYS.map(k => subs.map(s => s ? subBand(s, k) : null)),
+    subs.map(s => s ? subLevel(s) : null));
 }
 
 // Replaces assignmentCoachingNote(), which classified a mean delta. Same
@@ -2884,10 +2905,10 @@ function renderHome() {
   const nStr = `${n} student${n !== 1 ? 's' : ''}`;
   const scopeStr = `${nStr} · ${CLASSES.length} class${CLASSES.length !== 1 ? 'es' : ''}`;
   const agencySection = renderMovement('home-agency',
-    agencyEntries(cohortFlow(STUDENTS, sub => levelFromTotal(total(sub)).n)),
+    agencyEntries(cohortFlow(STUDENTS, sub => subLevel(sub))),
     scopeStr, FLOW_AXIS_TIME, { title: 'Agency over time' });
   const dimensionSection = renderMovement('home-dims',
-    dimensionEntries(DIM_KEYS.map(key => cohortFlow(STUDENTS, sub => bandFromLegacyScore(sub[key])))),
+    dimensionEntries(DIM_KEYS.map(key => cohortFlow(STUDENTS, sub => subBand(sub, key)))),
     scopeStr, FLOW_AXIS_TIME, { title: 'Dimensions over time' });
 
   // Layout: triage beside its own breakdown, then everything that carries a
@@ -3243,7 +3264,7 @@ function renderClassAggregateCard(cid, students, assignments, missingCount, flag
   // membership, which is the only claim the readings support.
   const nStr = `${students.length} student${students.length !== 1 ? 's' : ''}`;
   const closedCount = assignments.filter(a => a.status === 'closed').length;
-  const lvFlow = classFlow(students, assignments, sub => levelFromTotal(total(sub)).n);
+  const lvFlow = classFlow(students, assignments, sub => subLevel(sub));
   // States the cap when there is one, so four columns out of a longer term
   // never reads as the whole term.
   const scopeStr = lvFlow && closedCount > lvFlow.stages
@@ -3252,7 +3273,7 @@ function renderClassAggregateCard(cid, students, assignments, missingCount, flag
   // Same organism Home mounts; this tier only swaps the flows and the axis.
   const trendsPanel = renderMovement(`class:${cid}`,
     movementEntries(lvFlow,
-      DIM_KEYS.map(key => classFlow(students, assignments, sub => bandFromLegacyScore(sub[key])))),
+      DIM_KEYS.map(key => classFlow(students, assignments, sub => subBand(sub, key)))),
     scopeStr, FLOW_AXIS_ASSIGNMENT);
 
   const tab = classTab[cid] || 'overview';
@@ -3343,9 +3364,9 @@ function renderClassDetail(cid) {
   // enclosure is reserved for values that are both (designsystem.md, Hard
   // Constraints). It states the date because the stamp covers the class from
   // then on, and that is the fact a teacher would want to check.
-  if (cls.research) {
-    const since = new Date(cls.research.grantedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    metaParts.push(`Contributing to research since ${since}`);
+  if (cls.improvement) {
+    const since = new Date(cls.improvement.grantedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    metaParts.push(`Improving the measurement since ${since}`);
   }
 
   return `
@@ -4009,10 +4030,10 @@ function renderAssignmentAggregateContent(a, students, variant = 'full') {
 
   const scope = `${students.length} student${students.length !== 1 ? 's' : ''} · ${closedDrafts} closed drafts`;
   const agencyTrend = renderMovement(`assign-agency:${a.id}`,
-    agencyEntries(draftFlow(a, students, sub => levelFromTotal(total(sub)).n)),
+    agencyEntries(draftFlow(a, students, sub => subLevel(sub))),
     scope, FLOW_AXIS_DRAFT, { title: 'Summary · agency across the drafts' });
   const dimTrend = renderMovement(`assign-dims:${a.id}`,
-    dimensionEntries(DIM_KEYS.map(k => draftFlow(a, students, sub => bandFromLegacyScore(sub[k])))),
+    dimensionEntries(DIM_KEYS.map(k => draftFlow(a, students, sub => subBand(sub, k)))),
     scope, FLOW_AXIS_DRAFT, { title: 'Summary · dimensions across the drafts' });
 
   return `${statRow}${noteBlock}${workedBlock}
@@ -4275,7 +4296,7 @@ function renderReflectionSection(sub, prevSub) {
     // shifted?" with whether the reading shifted, so it says that in words and stays
     // neutral in all three directions.
     if (prevSub) {
-      const move = levelFromTotal(total(sub)).n - levelFromTotal(total(prevSub)).n;
+      const move = subLevel(sub) - subLevel(prevSub);
       scoreDelta = `<span class="score-delta chip-grey">${
         move > 0 ? 'Up a level' : move < 0 ? 'Back a level' : 'Same level'}</span>`;
     }
@@ -4304,7 +4325,6 @@ function renderDrillPanel(subs, label, sig, ctx) {
   const flagIdx = new Set(flags.map(f => f.submissionIndex));
   const rows = [...subs].reverse().map((sub, ri) => {
     const i = subs.length - 1 - ri;
-    const t        = total(sub);
     const flagInfo = flagIdx.has(i) ? flags.find(f => f.submissionIndex === i) : null;
     const iFlags   = sub.integrityFlags || [];
     const isLast   = i === subs.length - 1;
@@ -4350,7 +4370,7 @@ function renderDrillPanel(subs, label, sig, ctx) {
         <span class="sub-num">#${i + 1}</span>
         ${statusChip}
         <span class="sub-date">${formatDate(sub.ts)}</span>
-        <span class="sub-level">${levelChip(levelFromTotal(t).n, true)}</span>
+        <span class="sub-level">${levelChip(subLevel(sub), true)}</span>
         <div style="flex:1"></div>
         ${sub.id ? `<a href="/report.html?id=${sub.id}&role=teacher" target="_blank" onclick="event.stopPropagation()" class="btn btn-quiet btn-sm">Report →</a>` : ''}
       </div>
@@ -4848,13 +4868,13 @@ function classActionRow(cls) {
         label: 'Manage',
         items: [
           { icon: 'edit', title: 'Rename class', onClick: `openRenameClass('${cls.id}')` },
-          // Absent entirely unless the account has been granted the research
+          // Absent entirely unless the account has been granted the measurement-improvement
           // eligibility — a teacher with no agreement in place should never
           // see a control that implies they can give this consent. The server
           // refuses the field on the same rule.
-          VIEWER.researchEligible ? (cls.research
-            ? { icon: 'checklist', title: 'Stop contributing to research', desc: 'Work already exported is unaffected', onClick: `openResearchClass('${cls.id}')` }
-            : { icon: 'checklist', title: 'Contribute to research', desc: 'Lets this class’s work improve the measurement', onClick: `openResearchClass('${cls.id}')` }) : null,
+          VIEWER.improvementEligible ? (cls.improvement
+            ? { icon: 'checklist', title: 'Stop helping improve the measurement', desc: 'Work already exported is unaffected', onClick: `openImprovementClass('${cls.id}')` }
+            : { icon: 'checklist', title: 'Help improve the measurement', desc: 'Lets this class’s work improve how the tool reads sessions', onClick: `openImprovementClass('${cls.id}')` }) : null,
           { icon: 'archive', title: 'Archive class', desc: 'Keeps its records, clears it from the sidebar', onClick: `openArchiveClass('${cls.id}')` },
         ],
       },
@@ -4904,7 +4924,7 @@ function openObjModal({ title, subtitle = '', bodyHtml = '', confirmLabel, dange
   btn.textContent = confirmLabel;
   btn.classList.toggle('btn-danger', danger);
   // The button is shared across every modal this opens, and a caller can leave
-  // it disabled (the research attestation does, until it is ticked). Without
+  // it disabled (the improvement attestation does, until it is ticked). Without
   // this reset, dismissing that modal leaves the next one unconfirmable.
   btn.disabled = false;
   objModalConfirm = onConfirm;
@@ -4988,7 +5008,7 @@ function openRenameClass(cid) {
   });
 }
 
-// Research consent, on and off through one modal because the two directions
+// Measurement-improvement consent, on and off through one modal because the two directions
 // are the same decision read in opposite states.
 //
 // Turning it on is gated behind an explicit attestation rather than a bare
@@ -5000,10 +5020,10 @@ function openRenameClass(cid) {
 //
 // The stamp covers the class as it stands, work already done included, which
 // is why the modal says so rather than leaving it to be discovered.
-function openResearchClass(cid) {
+function openImprovementClass(cid) {
   const cls = CLASSES.find(c => c.id === cid);
   if (!cls) return;
-  const on = !!cls.research;
+  const on = !!cls.improvement;
 
   if (on) {
     openObjModal({
@@ -5011,7 +5031,7 @@ function openResearchClass(cid) {
       subtitle: 'New work from this class stops being available for the measurement. Anything already exported is unaffected — withdrawing here does not reach back into a copy that has left.',
       confirmLabel: 'Stop contributing',
       onConfirm: async () => {
-        await api(`/api/classes/${cid}/edit`, { method: 'POST', body: { research: false } });
+        await api(`/api/classes/${cid}/edit`, { method: 'POST', body: { improvement: false } });
         await loadDashboardData();
         render();
       },
@@ -5020,17 +5040,17 @@ function openResearchClass(cid) {
   }
 
   openObjModal({
-    title: `Contribute ${cls.name} to research`,
+    title: `Use ${cls.name}’s work to improve the measurement`,
     subtitle: 'Chat transcripts, essays and the assignment from this class become available to improve how the measurement works. Names are removed before anything leaves. This covers the class as it stands — work already done as well as work still to come.',
     bodyHtml: `<div class="field-check">
-      <input type="checkbox" id="research-attest">
-      <label for="research-attest">Everyone in this class has agreed their work can be used this way
+      <input type="checkbox" id="improvement-attest">
+      <label for="improvement-attest">Everyone in this class has agreed their work can be used this way
         <span class="field-help">You can withdraw this at any time from the same menu.</span>
       </label>
     </div>`,
-    confirmLabel: 'Contribute this class',
+    confirmLabel: 'Contribute this class’s work',
     onConfirm: async () => {
-      await api(`/api/classes/${cid}/edit`, { method: 'POST', body: { research: true } });
+      await api(`/api/classes/${cid}/edit`, { method: 'POST', body: { improvement: true } });
       await loadDashboardData();
       render();
     },
@@ -5038,7 +5058,7 @@ function openResearchClass(cid) {
 
   // openObjModal has no gating hook, so the coupling is wired here against the
   // body it just mounted.
-  const attest = document.getElementById('research-attest');
+  const attest = document.getElementById('improvement-attest');
   const confirm = document.getElementById('obj-modal-confirm');
   confirm.disabled = true;
   attest.addEventListener('change', () => { confirm.disabled = !attest.checked; });

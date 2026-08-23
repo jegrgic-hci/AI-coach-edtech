@@ -745,6 +745,22 @@ async function handleAuth(req, res, route) {
 // Still aggregate: a failed analysis is identified by its assignment and its
 // submission id, never by whose work it is. Fixing a broken report does not
 // require knowing whose report it is.
+// The order dashboard.html's DIM_KEYS uses, which is NOT the order
+// readSession() emits its dimensions in (PQ, CS, SU, OC). The dashboard's four
+// band rows are positional, so the wire format owes it this order explicitly
+// rather than whatever the reading happened to be built in.
+const DASHBOARD_DIM_ORDER = ['PQ', 'SU', 'CS', 'OC'];
+
+// A dimension's band out of a reading, or null. Null covers three different
+// things a teacher surface must render identically as off-scale: an analysis
+// written before readSession() existed, a dimension the model dropped, and a
+// session too thin to judge that one. All three mean "we could not see it",
+// which is never band 1.
+function bandOf(reading, key) {
+  const dim = (reading?.dimensions || []).find((d) => d.key === key);
+  return dim && Number.isInteger(dim.band) ? dim.band : null;
+}
+
 async function statusSummary() {
   const dayAgo = new Date(Date.now() - 86400000).toISOString();
   const todayStart = new Date().toISOString().slice(0, 10);
@@ -1530,11 +1546,11 @@ async function handleApi(req, res, user, route) {
         neverSignedIn: !t.passwordSetAt,
         lastSend: sendSummary(t.id),
         schoolAdmin: t.schoolAdmin === true,
-        researchEligible: t.researchEligible === true,
+        improvementEligible: t.improvementEligible === true,
         // How many of this teacher's classes have actually been marked. The
         // grant alone says nothing arrived — the teacher still has to tick the
         // class — and without this the two are indistinguishable from here.
-        researchClassCount: classes.filter((c) => c.research).length,
+        improvementClassCount: classes.filter((c) => c.improvement).length,
         classCount: classes.length,
         studentCount: new Set(classes.flatMap((c) => c.studentIds || [])).size,
         assignmentCount: allAssignments.filter((a) => a.teacherId === t.id).length,
@@ -1625,7 +1641,7 @@ async function handleApi(req, res, user, route) {
       // signed agreement with this person, so it can only be set by the tier
       // that holds the agreement. It authorises nothing on its own — it makes
       // the per-class consent control appear. See the class edit route.
-      researchEligible: isPlatformAdmin(user) && body.researchEligible === true,
+      improvementEligible: isPlatformAdmin(user) && body.improvementEligible === true,
       // Stays 'active'. "Invited but not signed in yet" is derived from the
       // absence of passwordSetAt, not from a third status value — a new status
       // would have to be understood by isSuspended(), the two status toggles,
@@ -1637,7 +1653,7 @@ async function handleApi(req, res, user, route) {
     const sent = await sendInvite(teacher, user);
     const grants = ['teacher'];
     if (teacher.schoolAdmin) grants.push('school administrator');
-    if (teacher.researchEligible) grants.push('research contributor');
+    if (teacher.improvementEligible) grants.push('measurement improvement contributor');
     await recordAdminEvent(user, 'create', teacher, grants.join(' + '));
     if (!sent.accepted) await recordAdminEvent(user, 'invite-failed', teacher, sent.failureReason);
     return json(res, 200, {
@@ -1669,20 +1685,20 @@ async function handleApi(req, res, user, route) {
       // silently promote them (or themselves) by replaying this field.
       if (isPlatformAdmin(user)) {
         patch.schoolAdmin = body.schoolAdmin === true;
-        patch.researchEligible = body.researchEligible === true;
+        patch.improvementEligible = body.improvementEligible === true;
       }
       await col('users').update(teacher.id, patch);
       // Both grants are named in the audit line rather than folded into a
       // generic "edited": which permissions an account holds is the part of an
-      // edit that has to be reconstructable later, and the research one is the
+      // edit that has to be reconstructable later, and the improvement one is the
       // record that a consent agreement was in place on a given date.
       const grantChanges = [];
       if (isPlatformAdmin(user)) {
         if (patch.schoolAdmin !== (teacher.schoolAdmin === true)) {
           grantChanges.push(patch.schoolAdmin ? 'granted school administrator' : 'revoked school administrator');
         }
-        if (patch.researchEligible !== (teacher.researchEligible === true)) {
-          grantChanges.push(patch.researchEligible ? 'granted research contributor' : 'revoked research contributor');
+        if (patch.improvementEligible !== (teacher.improvementEligible === true)) {
+          grantChanges.push(patch.improvementEligible ? 'granted measurement improvement contributor' : 'revoked measurement improvement contributor');
         }
       }
       await recordAdminEvent(user, 'edit', { ...teacher, displayName }, grantChanges.join('; ') || null);
@@ -1905,18 +1921,18 @@ async function handleApi(req, res, user, route) {
       patch.name = name;
     }
     if (typeof body.archived === 'boolean') patch.archived = body.archived;
-    // Research consent. Stored as a stamp rather than a boolean because the
+    // Measurement-improvement consent. Stored as a stamp rather than a boolean because the
     // exporter has to be able to tell work that predates the agreement from
     // work that followed it — a bare true loses the date, and the date is the
     // only thing that makes "this class, all of it" a decision someone made
     // rather than an assumption. Granting requires the platform-level
-    // researchEligible grant on the teacher; revoking never does, so consent
+    // improvementEligible grant on the teacher; revoking never does, so consent
     // can always be withdrawn even after the eligibility is taken away.
-    if (typeof body.research === 'boolean') {
-      if (body.research && user.researchEligible !== true) {
-        return json(res, 403, { error: 'this account is not set up to contribute work to research' });
+    if (typeof body.improvement === 'boolean') {
+      if (body.improvement && user.improvementEligible !== true) {
+        return json(res, 403, { error: 'this account is not set up to contribute class work to measurement improvement' });
       }
-      patch.research = body.research
+      patch.improvement = body.improvement
         ? { grantedAt: now(), grantedBy: user.id, grantedByName: user.displayName }
         : null;
     }
@@ -2132,6 +2148,28 @@ async function handleApi(req, res, user, route) {
         id: sub.id,
         ts: sub.submittedAt,
         cycleIndex: sub.cycleIndex,
+        // THE READING — the same one the student's report renders, and the
+        // only thing on the dashboard that may name a level or a band.
+        // Added 2026-08-23, because the two surfaces disagreed: the dashboard
+        // derived both from `tau` below (PQ+SU+CS+OC bucketed at 17/13/9) while
+        // report.html rendered `reading`, so a teacher and their student read
+        // different levels off one draft. `readSession()` is the model
+        // (tau-dimensions.md, "The scoring foundation"); tau is not.
+        //
+        // Null, never a default, on anything the reading could not see — an
+        // analysis older than readSession(), or a dimension the session was too
+        // thin to judge. "Not enough here" is off-scale, never band 1
+        // (teacher-dashboard-design.md, "The unit of every aggregate").
+        level: done ? (analysis.reading?.levelIndex ?? null) : null,
+        // In the dashboard's DIM_KEYS order (pq, su, cs, oc), not the order
+        // readSession() emits them (PQ, CS, SU, OC) — keyed across rather than
+        // indexed so the two orderings can never silently drift into each other.
+        bands: done ? DASHBOARD_DIM_ORDER.map((k) => bandOf(analysis.reading, k)) : [null, null, null, null],
+        // The retired 1-5 scores. Still on the wire for ONE reader: the flag
+        // and signal detectors (score spike, the "passive engagement" /
+        // low-skepticism thresholds), which are gated on scoreTAU's signature
+        // change and are open item 3b in teacher-dashboard-design.md. Nothing
+        // that draws a level or a band may read these.
         pq: done ? analysis.tau.PQ : 0,
         su: done ? analysis.tau.SU : 0,
         cs: done ? analysis.tau.CS : 0,
@@ -2181,13 +2219,13 @@ async function handleApi(req, res, user, route) {
       })),
       classes: classes.map((c) => ({
         id: c.id, name: c.name, studentIds: c.studentIds,
-        research: c.research || null,
+        improvement: c.improvement || null,
       })),
       // The dashboard needs to know whether to offer the consent control at
       // all. The server refuses the field regardless (see /api/classes/:id/
       // edit) — this stops the menu from implying a teacher can do something
       // no agreement covers.
-      viewer: { researchEligible: user.researchEligible === true },
+      viewer: { improvementEligible: user.improvementEligible === true },
       // Sent separately from `classes`, never merged into it: everything on
       // this page derives rosters and rollups from that list, and an archived
       // class appearing there would put a finished term back into every count.

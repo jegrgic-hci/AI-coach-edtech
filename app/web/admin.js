@@ -356,10 +356,10 @@ function renderAdminEvents() {
 // count because the grant on its own contributes nothing — only a class the
 // teacher has marked does, and the gap between the two is what an admin
 // checking on a pilot actually needs to see.
-function researchLine(t) {
-  if (!t.researchEligible) return '';
-  if (!t.researchClassCount) return '<br>No class marked for research';
-  return `<br>${t.researchClassCount} of ${plural(t.classCount, 'class', 'classes')} contributing`;
+function improvementLine(t) {
+  if (!t.improvementEligible) return '';
+  if (!t.improvementClassCount) return '<br>No class contributing work';
+  return `<br>${t.improvementClassCount} of ${plural(t.classCount, 'class', 'classes')} contributing`;
 }
 
 function renderTeachers() {
@@ -377,7 +377,7 @@ function renderTeachers() {
       <div class="teacher-counts">
         ${plural(t.classCount, 'class', 'classes')} · ${plural(t.studentCount, 'student', 'students')}<br>
         ${plural(t.assignmentCount, 'assignment', 'assignments')}
-        ${researchLine(t)}
+        ${improvementLine(t)}
       </div>
       <div class="teacher-actions">
         <button class="btn btn-quiet btn-sm" data-edit="${t.id}">Edit</button>
@@ -736,8 +736,8 @@ function openTeacherModal(teacher) {
   // not see a control they cannot use. The server refuses the field regardless
   // — this just stops the form from implying otherwise.
   $('schoolAdminField').classList.toggle('hidden', !data.viewer?.platformAdmin);
-  $('teacherResearchEligible').checked = teacher ? teacher.researchEligible === true : false;
-  $('researchEligibleField').classList.toggle('hidden', !data.viewer?.platformAdmin);
+  $('teacherImprovementEligible').checked = teacher ? teacher.improvementEligible === true : false;
+  $('improvementEligibleField').classList.toggle('hidden', !data.viewer?.platformAdmin);
   $('teacherError').classList.add('hidden');
   $('teacherModal').classList.remove('hidden');
   $('teacherName').focus();
@@ -812,17 +812,17 @@ $('teacherSave').onclick = async () => {
   const displayName = $('teacherName').value.trim();
   const email = $('teacherEmail').value.trim();
   const schoolAdmin = $('teacherSchoolAdmin').checked;
-  const researchEligible = $('teacherResearchEligible').checked;
+  const improvementEligible = $('teacherImprovementEligible').checked;
   const err = $('teacherError');
   err.classList.add('hidden');
   $('teacherSave').disabled = true;
   try {
     if (editingId) {
-      await api(`/api/admin/teachers/${editingId}/edit`, { method: 'POST', body: { displayName, email, schoolAdmin, researchEligible } });
+      await api(`/api/admin/teachers/${editingId}/edit`, { method: 'POST', body: { displayName, email, schoolAdmin, improvementEligible } });
       $('teacherModal').classList.add('hidden');
       await reload();
     } else {
-      const created = await api('/api/admin/teachers', { method: 'POST', body: { displayName, email, schoolAdmin, researchEligible } });
+      const created = await api('/api/admin/teachers', { method: 'POST', body: { displayName, email, schoolAdmin, improvementEligible } });
       $('teacherModal').classList.add('hidden');
       await reload();
       showSendResult('Invite sent', created.displayName, email, created.invite);

@@ -140,7 +140,7 @@
 .roster-search-count { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); white-space: nowrap; }
 
 /* .field-check moved to components.css (2026-08-15) — dashboard.html's class
-   research-consent modal became its second surface. */
+   measurement-improvement modal became its second surface. */
 
 .modal-card { width: min(460px, 100%); max-height: 90vh; overflow-y: auto; }
 .modal-title { font-size: var(--tau-text-xl); font-weight: 700; letter-spacing: -0.3px; }
@@ -229,9 +229,9 @@
     <!-- Same tier rule and the same reason for staying visible as the grant
          above. Grant it only against a signed agreement: it lets this teacher
          mark a class, and a marked class is work that can leave the product. -->
-    <div class="field-check hidden" id="researchEligibleField">
-      <input id="teacherResearchEligible" type="checkbox">
-      <label for="teacherResearchEligible">Research contributor
+    <div class="field-check hidden" id="improvementEligibleField">
+      <input id="teacherImprovementEligible" type="checkbox">
+      <label for="teacherImprovementEligible">Measurement improvement contributor
         <span class="field-help">Can mark their own classes as contributing work to improving the measurement. Nothing is contributed until they mark a class.</span>
       </label>
     </div>
