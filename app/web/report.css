@@ -160,7 +160,7 @@
 
     /* ── Turn label ────────────────────────────────────── */
     .label-badge {
-      font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--tau-r-pill);
+      font-size: var(--tau-text-label-sm); font-weight: 700; padding: 2px 8px; border-radius: var(--tau-r-pill);
       white-space: nowrap; flex-shrink: 0;
     }
     /* ── "Worth a chat" panel ──────────────────────────── */
@@ -212,7 +212,7 @@
     .report-jump-btn {
       display: flex; align-items: center; gap: 7px; flex: 1; white-space: nowrap;
       border: none; background: none; border-radius: var(--tau-r-md);
-      padding: 9px 13px; font: inherit; font-size: 13px; font-weight: 600;
+      padding: 9px 13px; font: inherit; font-size: var(--tau-text-sm); font-weight: 600;
       color: var(--tau-ink-faint); cursor: pointer;
       transition: background var(--tau-dur-short) var(--tau-ease-standard), color var(--tau-dur-short) var(--tau-ease-standard);
     }
@@ -243,8 +243,8 @@
       font-size: 17px; font-weight: 700; color: var(--tau-forest);
       font-variant-numeric: tabular-nums;
     }
-    .report-jump-score-of { font-size: 11px; font-weight: 500; color: var(--tau-ink-faint); }
-    .report-jump-score-band { font-size: 12px; font-weight: 600; padding-right: 10px; }
+    .report-jump-score-of { font-size: var(--tau-text-label-sm); font-weight: 500; color: var(--tau-ink-faint); }
+    .report-jump-score-band { font-size: var(--tau-text-label-md); font-weight: 600; padding-right: 10px; }
 
     @media (max-width: 640px) {
       .report-jump-btn { flex: 0 0 auto; padding: 9px 11px; }
@@ -353,18 +353,18 @@
       transition: border-color var(--tau-dur-short) var(--tau-ease-standard), box-shadow var(--tau-dur-short) var(--tau-ease-standard);
     }
     .group-nav button:hover { border-color: var(--tau-forest); box-shadow: var(--tau-shadow); }
-    .group-nav .n { font-size: 18px; font-weight: 800; color: var(--tau-ink); font-variant-numeric: tabular-nums; }
+    .group-nav .n { font-size: var(--tau-text-xl); font-weight: 800; color: var(--tau-ink); font-variant-numeric: tabular-nums; }
     /* Forest, not ink-soft — this is the jump-link's clickable label, and
        forest is this system's one reserved "interactive text" colour
        (tokens.css §1). A static, read-only chip (.flag-type, .turn-role)
        never carries it, so forest text is the at-a-glance tell for
        "this does something" versus "this is just describing something." */
-    .group-nav .lbl { font-size: 11px; color: var(--tau-forest); line-height: 1.3; font-weight: 600; }
+    .group-nav .lbl { font-size: var(--tau-text-label-sm); color: var(--tau-forest); line-height: 1.3; font-weight: 600; }
 
     .group { margin-bottom: var(--tau-s6); scroll-margin-top: var(--tau-s4); }
     .group-head { margin-bottom: var(--tau-s3); }
-    .group-title { font-size: 14px; font-weight: 800; color: var(--tau-ink); margin: 0 0 3px; }
-    .group-desc { font-size: 12px; line-height: var(--tau-leading-body); color: var(--tau-ink-soft); margin: 0; }
+    .group-title { font-size: var(--tau-text-md); font-weight: 800; color: var(--tau-ink); margin: 0 0 3px; }
+    .group-desc { font-size: var(--tau-text-sm); line-height: var(--tau-leading-body); color: var(--tau-ink-soft); margin: 0; }
 
     .turn-list { display: flex; flex-direction: column; gap: var(--tau-s3); }
     .turn {
@@ -380,27 +380,27 @@
     .turn.landed, .turn.excluded { border-left-color: var(--tau-origin-you); }
     .turn.flagged { border-left-color: var(--tau-ink-faint); }
     .turn-num {
-      font-size: 11px; font-weight: 700; color: var(--tau-ink-faint);
+      font-size: var(--tau-text-label-sm); font-weight: 700; color: var(--tau-ink-faint);
       min-width: 20px; padding-top: 2px; font-variant-numeric: tabular-nums;
     }
     .turn-body { flex: 1; min-width: 0; }
     .turn-top-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
     /* KEEPS its caps through the m3-lab §6b pass, deliberately. This and the
-       five chips below (.div-role-tag, .div-ai-chip, .div-student-chip,
-       .dt-cat-seq-chip--s/--a) all name WHO SPOKE, which is components.css's
-       .turn-speaker exception: caps carry a voice, not a hierarchy. Everything
-       in these sheets that names a GROUP went to sentence case. If a seventh
-       appears, the test is that question, not the size it happens to be. */
-    .turn-role { font-size: 10px; font-weight: 700; color: var(--tau-ink-faint); text-transform: uppercase; letter-spacing: .04em; }
+       three chips below (.div-role-tag, .div-ai-chip, .div-student-chip) all
+       name WHO SPOKE, which is components.css's .turn-speaker exception: caps
+       carry a voice, not a hierarchy. Everything in these sheets that names a
+       GROUP went to sentence case. If a fifth appears, the test is that
+       question, not the size it happens to be. */
+    .turn-role { font-size: var(--tau-text-label-sm); font-weight: 700; color: var(--tau-ink-faint); text-transform: uppercase; letter-spacing: .04em; }
     .turn-text {
       font-size: var(--tau-text-sm); line-height: var(--tau-leading-body); color: var(--tau-ink);
       white-space: pre-wrap; word-break: break-word;
     }
     .turn-pattern-note {
-      margin-top: 6px; font-size: 11px; color: var(--tau-ink-faint); font-style: italic;
+      margin-top: 6px; font-size: var(--tau-text-sm); color: var(--tau-ink-faint); font-style: italic;
     }
     .turn-caption {
-      margin: 8px 0 0; font-size: 12px; line-height: var(--tau-leading-body); color: var(--tau-ink-soft);
+      margin: 8px 0 0; font-size: var(--tau-text-sm); line-height: var(--tau-leading-body); color: var(--tau-ink-soft);
     }
 
     /* Compact row — the default for turns that didn't feed the draft either
@@ -423,8 +423,8 @@
       margin-top: 10px; display: flex; gap: 8px; align-items: flex-start;
       border-radius: var(--tau-r-sm); padding: 8px 10px;
     }
-    .side-panel .glyph { font-size: 13px; line-height: 1.5; flex-shrink: 0; }
-    .side-panel-text { font-size: 11.5px; line-height: 1.5; color: var(--tau-ink); }
+    .side-panel .glyph { font-size: var(--tau-text-sm); line-height: 1.5; flex-shrink: 0; }
+    .side-panel-text { font-size: var(--tau-text-sm); line-height: 1.5; color: var(--tau-ink); }
     .side-panel-text .tag {
       display: block; font-size: var(--tau-text-label-sm); font-weight: 700;
       margin-bottom: 2px;
@@ -437,7 +437,7 @@
     .side-panel.flagged .glyph, .side-panel.flagged .tag { color: var(--tau-ink-soft); }
 
     .no-essay-note {
-      font-size: 12px; color: var(--tau-ink-faint); font-style: italic;
+      font-size: var(--tau-text-sm); color: var(--tau-ink-faint); font-style: italic;
       margin-bottom: var(--tau-s3);
     }
 
@@ -462,7 +462,7 @@
       display: inline-flex; align-items: center; justify-content: center;
       width: 18px; height: 18px; border-radius: 50%;
       background: var(--tau-origin-together-bg); color: var(--tau-forest);
-      font-size: 11px; font-weight: 600; cursor: help;
+      font-size: var(--tau-text-label-sm); font-weight: 600; cursor: help;
       border: none; line-height: 1; flex-shrink: 0; font-family: inherit;
       transition: background var(--tau-dur-short) var(--tau-ease-standard), color var(--tau-dur-short) var(--tau-ease-standard);
     }
@@ -488,8 +488,8 @@
 
     /* ── Pattern sidebar ─────────────────────────────────────────────── */
     /* Opens from a bracket on the agency chart with the exchange behind one
-       pattern — distinct from the Pattern Guide tab's static catalogue of
-       all patterns, so it keeps its own id/classes. */
+       pattern — the only pattern surface in the report now that the static
+       catalogue of all patterns is gone. */
     .div-pat-sidebar {
       position: fixed; top: 0; right: 0; width: 400px; height: 100vh;
       background: var(--tau-surface); border-left: 1px solid var(--tau-line);
@@ -505,7 +505,7 @@
     }
     .div-pat-sidebar-title { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); }
     .div-pat-sidebar-close {
-      background: none; border: none; font-size: 18px; color: var(--tau-ink-faint);
+      background: none; border: none; font-size: var(--tau-text-xl); color: var(--tau-ink-faint);
       cursor: pointer; line-height: 1; flex-shrink: 0;
     }
     .div-pat-sidebar-close:hover { color: var(--tau-ink); }
@@ -515,12 +515,12 @@
       color: var(--tau-ink); margin-bottom: 22px;
     }
     .div-exchange-label {
-      font-size: 10px; font-weight: 600; letter-spacing: var(--tau-track-label);
+      font-size: var(--tau-text-label-sm); font-weight: 600; letter-spacing: var(--tau-track-label);
       color: var(--tau-ink-faint); margin-bottom: 12px;
     }
     .div-ai-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
     .div-role-tag {
-      font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+      font-size: var(--tau-text-label-sm); font-weight: 600; letter-spacing: 0.06em;
       text-transform: uppercase; color: var(--tau-ink-faint);
     }
     /* Student/AI chips reuse the origin vocabulary (you / the coach) rather
@@ -529,9 +529,9 @@
     .div-ai-chip {
       padding: 2px 7px; border-radius: var(--tau-r-pill); background: var(--tau-origin-coach-bg);
       color: var(--tau-ink-soft);
-      font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+      font-size: var(--tau-text-label-sm); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
     }
-    .div-arrow { font-size: 11px; color: var(--tau-ink-faint); margin: 2px 0 4px 2px; display: block; }
+    .div-arrow { font-size: var(--tau-text-label-sm); color: var(--tau-ink-faint); margin: 2px 0 4px 2px; display: block; }
     .div-student-row { background: var(--tau-surface-2); border-radius: var(--tau-r-sm); padding: 10px 12px; }
     .div-student-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
     .div-turn-num {
@@ -540,32 +540,10 @@
     }
     .div-student-chip {
       padding: 2px 7px; border-radius: var(--tau-r-pill); background: var(--tau-origin-you-bg); color: var(--tau-ink);
-      font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+      font-size: var(--tau-text-label-sm); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
     }
     .div-student-text { font-family: var(--tau-font-serif); font-size: var(--tau-text-sm); line-height: 1.6; color: var(--tau-ink); }
     .div-exchange-divider { border: none; border-top: 1px solid var(--tau-line); margin: 12px 0; }
-
-    /* ── Pattern Guide modal ─────────────────────────────── */
-    /* Demo/explainer material behind a header button rather than a tab —
-       slated to be sunset, so it gets a lightweight modal, not a permanent
-       fixture in the report's layout. */
-    #patternGuideModal {
-      display: none; position: fixed; inset: 0; z-index: 500;
-      background: var(--tau-scrim);
-      align-items: center; justify-content: center;
-    }
-    #patternGuideModal.open { display: flex; }
-    /* Chrome (background/border/radius/shadow) comes from components.css's
-       .confirm — this is only the size/scroll override the guide's content needs. */
-    .pattern-guide-modal-box {
-      max-width: 720px; width: 92vw; max-height: 82vh; overflow-y: auto;
-      position: relative; padding: 32px 36px;
-    }
-    #patternGuideModalClose {
-      position: absolute; top: 14px; right: 18px;
-      background: none; border: none; font-size: 18px; color: var(--tau-ink-faint); cursor: pointer;
-    }
-    #patternGuideModalClose:hover { color: var(--tau-ink); }
 
     /* ── Agency chart tab (summary strip, legend, tooltip, turn modal,
        pattern catalogue sidebar) ─────────────────────────────────────── */
@@ -587,21 +565,21 @@
     }
     .dt-verdict-chip {
       display: inline-block; padding: 3px 10px; border-radius: var(--tau-r-pill);
-      font-size: 12px; font-weight: 600; white-space: nowrap; align-self: flex-start;
+      font-size: var(--tau-text-label-md); font-weight: 600; white-space: nowrap; align-self: flex-start;
     }
     /* A session verdict describes the shape of the session, not the student's
        standing, so the ordered band ramp carries it rather than a red/green
        pair. The old #b85c38-on-#fdf0ea read as a warning. */
     .dt-verdict-passive { background: var(--tau-band-2-bg); color: var(--tau-band-2-fg); }
     .dt-verdict-high    { background: var(--tau-band-4-bg); color: var(--tau-band-4-fg); }
-    .dt-verdict-plain   { font-size: 14px; font-weight: 600; color: var(--tau-ink); }
-    .dt-stat-value { font-size: 14px; font-weight: 600; color: var(--tau-ink); line-height: 1.3; }
-    .dt-stat-sub   { font-size: 11px; color: var(--tau-ink-faint); }
+    .dt-verdict-plain   { font-size: var(--tau-text-md); font-weight: 600; color: var(--tau-ink); }
+    .dt-stat-value { font-size: var(--tau-text-md); font-weight: 600; color: var(--tau-ink); line-height: 1.3; }
+    .dt-stat-sub   { font-size: var(--tau-text-sm); color: var(--tau-ink-faint); }
     .dt-verdict-info-btn {
       width: 16px; height: 16px; border-radius: 50%;
       border: 1px solid var(--tau-line-strong);
       background: var(--tau-surface); color: var(--tau-ink-faint);
-      font-family: inherit; font-size: 10px; font-weight: 700; cursor: pointer;
+      font-family: inherit; font-size: var(--tau-text-label-sm); font-weight: 700; cursor: pointer;
       display: inline-flex; align-items: center; justify-content: center;
       flex-shrink: 0; transition: border-color var(--tau-dur-short) var(--tau-ease-standard), color var(--tau-dur-short) var(--tau-ease-standard); margin-left: 6px;
     }
@@ -626,7 +604,7 @@
     .legend-divider { width: 100%; max-width: 480px; border-top: 1px solid var(--tau-line); }
     .legend-row-meta { gap: 14px 28px; }
     .legend-row-meta .legend-group-label { color: var(--tau-ink-faint); }
-    .legend-row-meta .legend-item { font-size: 11px; color: var(--tau-ink-faint); }
+    .legend-row-meta .legend-item { font-size: var(--tau-text-label-sm); color: var(--tau-ink-faint); }
     .legend-group { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
     .legend-group-label {
       font-size: var(--tau-text-label-sm); font-weight: 700;
@@ -641,8 +619,8 @@
     .legend-item-stacked { align-items: flex-start; }
     .legend-item-stacked .legend-swatch { margin-top: 3px; }
     .legend-item-text { display: flex; flex-direction: column; gap: 1px; }
-    .legend-item-label { font-size: 12.5px; font-weight: 600; color: var(--tau-ink); }
-    .legend-item-sub { font-size: 10.5px; color: var(--tau-ink-faint); }
+    .legend-item-label { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); }
+    .legend-item-sub { font-size: var(--tau-text-label-sm); color: var(--tau-ink-faint); }
     /* Same pill-tray idiom as .tab-bar/.tab-btn, sized down — this switches
        chart layers, not report sections, so it reads as a lighter-weight
        sibling control rather than a second set of tabs. */
@@ -652,7 +630,7 @@
     }
     .chart-toggle-btn {
       padding: 5px 12px; border: none; background: none; border-radius: var(--tau-r-sm);
-      font-size: 12px; font-weight: 600; cursor: pointer; color: var(--tau-ink-faint);
+      font-size: var(--tau-text-sm); font-weight: 600; cursor: pointer; color: var(--tau-ink-faint);
       transition: background var(--tau-dur-short) var(--tau-ease-standard), color var(--tau-dur-short) var(--tau-ease-standard);
     }
     .chart-toggle-btn.is-active { color: var(--tau-sage); background: var(--tau-origin-together-bg); }
@@ -670,14 +648,14 @@
          floating surfaces. */
       position: fixed; display: none; max-width: 280px; background: var(--tau-surface);
       border: 1px solid transparent; border-radius: var(--tau-r-sm); padding: 12px 14px;
-      font-size: 12px; line-height: 1.6;
+      font-size: var(--tau-text-sm); line-height: 1.6;
       color: var(--tau-ink); box-shadow: var(--tau-shadow); pointer-events: auto; z-index: 400;
     }
     #dt-tooltip .dt-tooltip-title { font-weight: 600; margin-bottom: 6px; font-size: var(--tau-text-label-sm); }
     .dt-tooltip-learn-more {
       display: none; margin-top: 10px; padding: 4px 10px; border-radius: var(--tau-r-pill);
       border: 1px solid var(--tau-line-strong); background: var(--tau-surface); color: var(--tau-ink-soft);
-      font-size: 11px; font-weight: 600;
+      font-size: var(--tau-text-sm); font-weight: 600;
       cursor: pointer; transition: border-color var(--tau-dur-short) var(--tau-ease-standard), color var(--tau-dur-short) var(--tau-ease-standard);
     }
     .dt-tooltip-learn-more:hover { border-color: var(--tau-forest); color: var(--tau-forest); }
@@ -692,13 +670,12 @@
     .dt-modal-box { max-width: 480px; width: 90%; position: relative; padding: 28px 32px; }
     #dt-modal-turn { font-size: var(--tau-text-label-sm); font-weight: 600; color: var(--tau-ink-faint); margin-bottom: 12px; }
     /* Same student/coach vocabulary as the pattern sidebar's turn chips. */
-    /* Sentence case: this is a classifier label, the same object as
-       .dt-cat-card-name, which lost its caps in the m3-lab §6b pass. It is not
-       a speaker chip — those keep caps below, and the distinction is the whole
-       rule: caps mark a VOICE, never a rank. */
+    /* Sentence case: this is a classifier label, which lost its caps in the
+       m3-lab §6b pass. It is not a speaker chip — those keep caps below, and
+       the distinction is the whole rule: caps mark a VOICE, never a rank. */
     #dt-modal-classifier { display: inline-block; margin-bottom: 14px; padding: 2px 9px; border-radius: var(--tau-r-pill); background: var(--tau-origin-you-bg); color: var(--tau-ink); font-size: var(--tau-text-label-sm); font-weight: 600; }
-    #dt-modal-text { font-family: var(--tau-font-serif); font-size: 15px; line-height: 1.7; color: var(--tau-ink); }
-    #dt-modal-close { position: absolute; top: 14px; right: 18px; background: none; border: none; font-size: 18px; color: var(--tau-ink-faint); cursor: pointer; }
+    #dt-modal-text { font-family: var(--tau-font-serif); font-size: var(--tau-text-lg); line-height: 1.7; color: var(--tau-ink); }
+    #dt-modal-close { position: absolute; top: 14px; right: 18px; background: none; border: none; font-size: var(--tau-text-xl); color: var(--tau-ink-faint); cursor: pointer; }
     #dt-modal-close:hover { color: var(--tau-ink); }
     #dt-chart { display: block; }
     #agencyChart { display: block; }
@@ -708,51 +685,6 @@
        was: rendering it and looking, not reading the code. */
     .grid-line { stroke: var(--tau-line); stroke-width: 1; }
     .zero-line { stroke: var(--tau-line-strong); stroke-width: 1.5; }
-    .dt-cat-section-label {
-      font-size: 10px; font-weight: 700;
-      margin-bottom: 14px;
-    }
-    .dt-cat-card { margin-bottom: 18px; }
-    .dt-cat-card-name {
-      display: inline-block; padding: 2px 9px; border-radius: var(--tau-r-pill);
-      font-size: 11px; font-weight: 600;
-      margin-bottom: 8px;
-    }
-    /* Same "level, not verdict" band ramp as the pattern sidebar title — one
-       ramp for "how agentic", not a third blue/terra pair. */
-    .dt-cat-card-name--high { background: var(--tau-band-4-bg); color: var(--tau-band-4-fg); }
-    .dt-cat-card-name--low  { background: var(--tau-band-2-bg); color: var(--tau-band-2-fg); }
-    .dt-cat-card-desc { font-family: var(--tau-font-serif); font-size: 13px; line-height: 1.65; color: var(--tau-ink-soft); margin: 0; }
-    .dt-cat-divider { border: none; border-top: 1px solid var(--tau-line); margin: 16px 0; }
-    .dt-cat-seq-details { margin-top: 10px; }
-    .dt-cat-seq-toggle {
-      font-size: 11px; font-weight: 600;
-      color: var(--tau-ink-faint); cursor: pointer; list-style: none; user-select: none;
-      transition: color var(--tau-dur-short) var(--tau-ease-standard);
-    }
-    .dt-cat-seq-toggle::-webkit-details-marker { display: none; }
-    .dt-cat-seq-toggle::before { content: "▸  "; }
-    details[open] .dt-cat-seq-toggle::before { content: "▾  "; }
-    .dt-cat-seq-toggle:hover { color: var(--tau-ink-soft); }
-    .dt-cat-seq {
-      display: flex; flex-wrap: wrap; align-items: center; gap: 5px;
-      margin-top: 8px; padding: 10px 12px; background: var(--tau-surface-2); border-radius: var(--tau-r-sm);
-    }
-    /* Same student/coach vocabulary as .div-student-chip / .div-ai-chip. */
-    .dt-cat-seq-chip--s {
-      padding: 2px 8px; border-radius: var(--tau-r-pill); background: var(--tau-origin-you-bg); color: var(--tau-ink);
-      font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
-    }
-    .dt-cat-seq-chip--a {
-      padding: 2px 8px; border-radius: var(--tau-r-pill); background: var(--tau-origin-coach-bg); color: var(--tau-ink-soft);
-      font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
-    }
-    .dt-cat-seq-arrow { font-size: 11px; color: var(--tau-ink-faint); }
-    .dt-cat-seq-cont  { font-size: 11px; color: var(--tau-ink-faint); font-weight: 700; letter-spacing: 0.05em; }
-    .dt-cat-seq-legend {
-      display: flex; align-items: center; gap: 6px; margin-top: 7px;
-      font-size: 10px; color: var(--tau-ink-faint);
-    }
 
     /* ── Two-screen layout ───────────────────────────────────────── */
     #inputScreen  { display: block; }
@@ -773,7 +705,7 @@
 
        Four blocks, in the order the page uses them:
          1. .dim-card      one reading, one card (the four readings)
-         2. .level-scale   the agency ladder and the hero it sits in
+         2. .level-summary the agency level, stated in the hero
          3. .turnplot      the conversation on the time axis
          4. .provstrip     the draft on the authorship axis, and the
                            exchange components both of the above quote into
@@ -1004,46 +936,32 @@
     .lab-note p:last-child { margin-bottom: 0; }
     .lab-placeholder { color: var(--tau-ink-faint); font-size: var(--tau-text-sm); }
 
-    /* Variant C only — the ladder spans the hero above the two-column row,
-       taking the slot the 64px total used to own. */
-    /* --- .hero-level — the ladder and the summary as ONE object.
-       The two were separate blocks with nothing joining them, so the page
-       asked the reader to work out for themselves that the paragraph was
-       about the highlighted cell. Now the marked rung's own band fill
-       continues into the summary panel beneath it, and a notch points from
-       the rung to the panel. Both take their colour from one custom
-       property set on this wrapper, so a different level recolours the
-       whole object and moves the notch — nothing per-level is hardcoded in
-       the rules below.
+    /* --- .level-summary — the agency level, stated.
+       Takes its colour from one custom property pair set on the element by
+       renderReportHero, so a different level recolours the panel and nothing
+       per-level is hardcoded here:
          --level-bg / --level-fg : the band's pair from the existing ramp
-         --level-x               : the marked rung's centre, (i - 0.5) / 4 */
-    .hero-level { display: flex; flex-direction: column; }
+       (.hero-level and its .ladder-rung rules went with the horizontal
+       variant-C ladder on 2026-08-24; --level-x, the marked rung's centre,
+       went with the notch that used it.) */
 
-    .hero-level .ladder { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-    .hero-level .ladder-rung.is-here { background: var(--level-bg); color: var(--level-fg); }
+    /* The band fill is now the ONLY thing carrying the classification visually —
+       the scale that used to carry it came out 2026-08-24. It stays a fill and
+       not a text colour, per designsystem.md, and the level's name beside it is
+       still bolded rather than coloured: saying it twice in colour makes the
+       card read as a verdict.
 
+       The notch that used to sit in the gap above this panel went with the
+       scale — it was a pointer at the marked rung, and there is no rung to
+       point at. Nothing replaced it: with the ladder gone the panel is no
+       longer a paragraph ABOUT some other object, it is the statement itself. */
     .level-summary {
-      position: relative;
-      margin-top: 7px;
       background: var(--level-bg);
       border-radius: var(--tau-r-md);
       padding: var(--tau-s6) var(--tau-s7);
       display: flex;
       flex-direction: column;
       gap: var(--tau-s4);
-    }
-    /* The notch. Sits in the gap above the panel, aligned to the rung's
-       centre — the one piece of geometry that says "this paragraph is about
-       that cell" without repeating the level's name in words. */
-    .level-summary::before {
-      content: "";
-      position: absolute;
-      top: -7px;
-      left: var(--level-x);
-      transform: translateX(-50%);
-      border-left: 9px solid transparent;
-      border-right: 9px solid transparent;
-      border-bottom: 7px solid var(--level-bg);
     }
 
     /* The headline runs the panel's width; the two supporting paragraphs sit
@@ -1147,171 +1065,17 @@
     }
     .report-hero-eyebrow { color: var(--tau-ink-faint); }
 
-    /* --- .level-scale — the vertical alternative (variant D).
-       The horizontal ladder read as a tab bar, and it did so because it was
-       built like one: four equal boxed cells, borders between them, one
-       filled. This has no cells and no boxes. It is an axis — a rail with a
-       marker on it — which is the form a position on a scale already has
-       everywhere else a reader has met one.
-
-       Rendered bottom-up (column-reverse) so more agency is higher: a
-       vertical scale that increases upward is the one convention every
-       reader already has. DOM order stays Passive → Transformative, so
-       assistive tech reads the scale in its logical order.
-
-       Only the current level carries its explanatory line. All four would
-       be four paragraphs of text in a column that is meant to be glanced
-       at, which is how the horizontal version got heavy. */
-    /* Every row is the same height and every dot sits on its label's optical
-       centre, so the four markers are evenly spaced whatever the content.
-       The first pass sized the current level's name larger and hung an
-       explanatory line under it, which made one row taller than the other
-       three and threw the whole axis out of rhythm. Type size is now
-       constant down the scale and the current level is marked by weight,
-       colour and a filled dot — three channels, none of which move
-       anything. The explanation was cut: the summary beside it already
-       says the same sentence. */
-    .level-scale {
-      display: flex;
-      flex-direction: column-reverse;
-      /* Every dimension of this component is a knob, so the bench can drive
-         them and the tuned values can be read straight back out.
-         Tuned on the bench 2026-08-12. Three of the five landed exactly on
-         tokens and are written as tokens, not as the literals they were
-         dragged to, so they retheme with everything else. */
-      --dot-size:   var(--tau-s4);      /* 16 */
-      --rail-w:     3px;                /* rule weight; the system has no token for these */
-      --row-h:      var(--tau-s9);      /* 56 */
-      --label-size: 18px;               /* off the type ramp — see note */
-      --label-gap:  var(--tau-s6);      /* 24 */
-
-      /* Tuned on the bench 2026-08-12. Four of the five land on tokens and are
-         written as tokens so they retheme. One does not:
-         --label-size 18 — the type ramp has 15.5 (--tau-text-lg) and 19
-           (--tau-text-xl); 18 sits one pixel under the latter. Kept as tuned.
-         --rail-w 3 is a rule weight, and the system tokenises none of those —
-         1px hairlines and 3px card edges are literals everywhere else too. */
-    }
-
-    .level-step {
-      position: relative;
-      height: var(--row-h);
-      display: flex;
-      align-items: center;
-      padding-left: calc(var(--dot-size) + var(--label-gap));
-    }
-    /* The rail, drawn per row so the end rows can clip their own half, clipped
-       at the end rows so it starts and stops on a dot rather than in air. */
-    .level-step::before {
-      content: "";
-      position: absolute;
-      /* Derived, never hardcoded — the rail must stay centred on the dot
-         whatever either of them is sized to. */
-      left: calc(var(--dot-size) / 2 - var(--rail-w) / 2);
-      top: 0; bottom: 0;
-      width: var(--rail-w);
-      background: var(--tau-line);
-    }
-    .level-scale > .level-step:first-child::before { bottom: 50%; }
-    .level-scale > .level-step:last-child::before  { top: 50%; }
-
-    .level-step::after {
-      content: "";
-      position: absolute;
-      /* report.css's reset is `* { box-sizing: border-box }`, and `*` does
-         not match pseudo-elements — so this dot was content-box: 12px wide
-         PLUS two 2px borders = 16px, centre at 8px, while the rail sat at
-         6px. Two pixels off, on every dot, from a reset that looks global
-         and isn't. */
-      box-sizing: border-box;
-      left: 0;
-      top: 50%;
-      width: var(--dot-size); height: var(--dot-size);
-      margin-top: calc(var(--dot-size) / -2);
-      border-radius: 50%;
-      background: var(--tau-surface);
-      border: var(--rail-w) solid var(--tau-line-strong);
-    }
-
-    /* NO CUMULATIVE FILL — removed 2026-08-22. The rail below the marked rung
-       used to fill in --level-fg as "the path travelled", which asserts that a
-       directive session passed THROUGH passive and reactive on its way. It did
-       not. tau-dimensions.md calls the levels profile shapes, not thresholds
-       and not stages; nothing in the model claims accumulation. The filled-run
-       idiom belongs to progress bars, where the claim happens to be true.
-       What is left is what the measurement actually supports: one uniform axis
-       carrying four ordered positions, with the one that was read marked on it.
-       The marker keeps three channels (fill, ring, label weight), so it is no
-       less findable than when it also terminated a filled run. */
-    .level-step.is-here::after {
-      background: var(--level-fg);
-      box-shadow: 0 0 0 4px var(--level-bg);
-    }
-
-    .level-step-name {
-      font-size: var(--label-size);
-      font-weight: 500;
-      line-height: 1;
-      color: var(--tau-ink-faint);
-    }
-    .level-step.is-here .level-step-name { font-weight: 700; color: var(--tau-ink); }
-
-    /* Two columns: the scale is a fixed, narrow rail; the summary takes the
-       rest. The scale must not stretch with the viewport — a 400px-wide
-       axis is a table. */
-    .hero-two-col {
-      display: grid;
-      grid-template-columns: 15rem minmax(0, 1fr);
-      gap: var(--tau-s7);
-      align-items: stretch;
-    }
-    /* The scale is a constant; the summary is variable-length prose. They are
-       deliberately NOT matched in height — tying them would make the
-       instrument resize per report, and an instrument a reader is meant to
-       recognise at a glance has to be the same size every time.
-
-       So they share a starting line instead: the top rung's label sits on the
-       summary headline's first line.
-
-       That offset is computed, not typed: it depends on --row-h, and hardcoding
-       it meant the first row-height change silently broke the alignment. It also
-       requires the scale's top edge to be the column's top edge, which is why
-       the "How much you led" label sits above the grid rather than inside the
-       left column — in there it pushed the scale down by its own height and the
-       alignment was 17px out. The
-       headline's first line sits at the panel's padding (--tau-s6) plus half its
-       own line box (--tau-text-2xl x 1.3); the top rung's centre sits at
-       --row-h / 2. The scale is pushed down by the difference. */
-    .hero-scale-col { display: flex; flex-direction: column; }
-    .hero-scale-col .level-scale {
-      padding-top: calc(
-        var(--tau-s6) + (var(--tau-text-2xl) * 1.3 / 2) - (var(--row-h) / 2)
-      );
-    }
-    /* Sits in the space under the four rungs, which the summary column's prose
-       leaves empty at almost every length — so it costs the card no height.
-       Smallest text in the hero on purpose: it is a standing condition on how
-       to read the scale, not part of this session's reading. --tau-s5 keeps it
-       clear of the last rung's label without reading as a separate block. */
-    .hero-scale-foot {
+    /* The standing condition on how to read the hero, formerly .hero-scale-foot
+       hanging under the agency ladder. It outlived the ladder because it never
+       qualified the SCALE — it qualifies the reading, and the reading is still
+       here. Smallest text in the hero on purpose, and outside the band panel:
+       --tau-ink-faint is cleared for contrast on the surfaces, not on a band
+       fill. Same attachment as the dashboard's .viz-card-foot. */
+    .hero-level-foot {
       margin: var(--tau-s5) 0 0;
       font-size: var(--tau-text-sm);
       line-height: var(--tau-leading-snug);
       color: var(--tau-ink-faint);
-      max-width: 30ch;
-    }
-    @media (max-width: 880px) {
-      .hero-scale-foot { margin-top: var(--tau-s3); max-width: none; }
-    }
-
-    .hero-two-col .level-summary { margin-top: 0; }
-    .hero-two-col .level-summary::before { display: none; }
-    .hero-two-col .level-summary-body { grid-template-columns: 1fr; gap: var(--tau-s4); }
-    /* The headline takes the panel, and the panel is the measure. It carried a
-       46ch clamp — under half the column at this width — so it broke mid-panel
-       with the paragraphs beneath it running on past the break. */
-    .hero-two-col .level-summary .hero-level-def {
-      max-width: none;
     }
 
     /* --- .turnplot — the session as a map, replacing the Agency Chart and
@@ -1500,10 +1264,12 @@
     }
 
     /* Small caps labels on a tinted ground. The shipped rules put these at 10px
-       in --tau-ink-faint (#767D85), which is ~4.0:1 on white — under AA's 4.5:1
-       for text this size, and worse over --tau-surface-2. Raised to 11.5px in
+       in --tau-ink-faint, then #767D85 — ~4.0:1 on white, under AA's 4.5:1 for
+       text this size, and worse over --tau-surface-2. Raised to 11.5px in
        --tau-ink-soft (~7:1). Same treatment for all three so the exchange has
-       one label voice. */
+       one label voice. (The token itself was fixed globally 2026-08-24; this
+       rule stays for the size, and because soft is still the right weight
+       against a tint.) */
     .div-exchange-label, .div-role-tag, .div-turn-num {
       font-size: var(--tau-text-xs); color: var(--tau-ink-soft);
     }

@@ -10,135 +10,11 @@ function esc(s) {
 
 // ─── Turn Sequence Chart ──────────────────────────────────────────────────────
 
-const PAT_DESCRIPTIONS = {
-  "challenge-arc":      "Multiple consecutive challenge turns — the student is actively questioning AI responses rather than accepting them. Strong independent thinking signal.",
-  "rejection-redirect": "The student rejected an AI response and immediately refined their query. Shows evaluative thinking: the student knows what they want and what doesn't work.",
-  "claim-support":      "A full claim-building cycle: the student stated a position, sought conceptual grounding, extracted evidence, then returned to the claim. High-structure thinking.",
-  "extraction-landing": "An extraction followed by a high-agency turn (claim, challenge, or refinement). The student used AI content as a springboard rather than copying it.",
-  "extraction-loop":    "Three or more consecutive extractions. The student may be mining AI for content without engaging critically — watch for whether extracted ideas appear in the essay unchanged.",
-  "validation-spiral":  "Alternating extraction and validation turns. The student is asking AI to confirm its own outputs without independent evaluation.",
-  "helplessness-loop":  "A stuck turn followed by continued passivity. The student is relying on AI to resolve difficulty rather than working through it independently.",
-  "flitting":           "Multiple topic pivots without substantive turns between them. Suggests the student is exploring without depth — no thread is being developed.",
-  "argument-engaged":   "The AI made an argument and you pushed back with a challenge, rejection, or refinement. This is exactly the kind of critical engagement that develops independent thinking.",
-  "missed-argument":    "The AI was making arguments but your responses stayed passive. These are missed opportunities to evaluate, challenge, or build on what the AI was presenting.",
-  "correction-held":    "The AI pushed back on something you said, and you engaged with it — challenging, refining, or holding your position with a reason — instead of immediately accepting the correction. Calibrated skepticism: not every AI correction is right.",
-  "capitulation":       "The AI corrected or disagreed with you and you accepted it right away, without asking why or pushing back. Sometimes the AI is right — but folding every time it disagrees lets its confidence, not the evidence, decide. Worth asking: was the correction actually justified?",
-  "assertion-questioned":"The AI stated something as established fact and you questioned it — asking for evidence or pushing back — rather than taking it at face value. This is the habit that keeps AI honest.",
-  "assertion-unquestioned":"The AI asserted a definition or fact and you accepted it or built on it without checking. Confident phrasing isn't evidence — a quick “how do you know that?” would have been worth it here.",
-};
-
-// s = student chip, a = ai chip; strings are rendered as separators/annotations
-const PATTERN_SEQUENCES = {
-  "challenge-arc": [
-    {t:"a",l:"argument / claim"}, "→", {t:"s",l:"challenge"},
-    "→", {t:"a",l:"responds"}, "→", {t:"s",l:"challenge"}, "→", "···",
-  ],
-  "argument-engaged": [
-    {t:"a",l:"argument"}, "→", {t:"s",l:"challenge / rejection / refinement"},
-  ],
-  "rejection-redirect": [
-    {t:"a",l:"content / instruction"}, "→", {t:"s",l:"rejection"},
-    "→", {t:"a",l:"responds"}, "→", {t:"s",l:"refinement"},
-  ],
-  "claim-support": [
-    {t:"s",l:"claim"}, "→", {t:"a",l:"responds"}, "→", {t:"s",l:"conceptual"},
-    "→", {t:"a",l:"explains"}, "→", {t:"s",l:"extraction"}, "→", {t:"s",l:"claim"},
-  ],
-  "extraction-landing": [
-    {t:"a",l:"content"}, "→", {t:"s",l:"extraction"},
-    "→", {t:"a",l:"responds"}, "→", {t:"s",l:"claim / challenge / refinement"},
-  ],
-  "extraction-loop": [
-    {t:"a",l:"content"}, "→", {t:"s",l:"extraction"},
-    "→", {t:"a",l:"content"}, "→", {t:"s",l:"extraction"}, "→", "···",
-  ],
-  "validation-spiral": [
-    {t:"a",l:"content"}, "→", {t:"s",l:"extraction"},
-    "→", {t:"a",l:"content"}, "→", {t:"s",l:"validation"}, "→", "···", "×4+",
-  ],
-  "helplessness-loop": [
-    {t:"a",l:"content / instruction"}, "→", {t:"s",l:"stuck"},
-    "→", {t:"a",l:"rescues"}, "→", {t:"s",l:"extraction"}, "→", "···",
-  ],
-  "missed-argument": [
-    {t:"a",l:"argument"}, "→", {t:"s",l:"extraction / validation"},
-    "→", {t:"a",l:"argument"}, "→", {t:"s",l:"extraction / validation"}, "→", "···", "×3+",
-  ],
-  "flitting": [
-    {t:"a",l:"content"}, "→", {t:"s",l:"pivot"},
-    "→", {t:"a",l:"follows topic"}, "→", {t:"s",l:"pivot"}, "→", "···", "×3+",
-  ],
-  "correction-held": [
-    {t:"a",l:"correction"}, "→", {t:"s",l:"challenge / rejection / refinement"},
-  ],
-  "assertion-questioned": [
-    {t:"a",l:"definition"}, "→", {t:"s",l:"challenge / rejection"},
-  ],
-  "capitulation": [
-    {t:"a",l:"correction"}, "→", {t:"s",l:"validation / extraction"},
-  ],
-  "assertion-unquestioned": [
-    {t:"a",l:"definition"}, "→", {t:"s",l:"validation / extraction"},
-  ],
-};
-
-
 // getAILabelBefore and detectPatterns moved to patterns-core.js (2026-08-14)
 // and arrive as globals from the <script> tag ahead of this one. They left
 // because the server needs them too — the teacher dashboard was never able to
 // see a pattern while detection ran only in this file, at render time.
 // Everything below still calls them exactly as before.
-
-function renderPatternGuide() {
-  const HIGH = [
-    { id: "challenge-arc",        label: "Challenge Arc" },
-    { id: "argument-engaged",     label: "Argument Engaged" },
-    { id: "rejection-redirect",   label: "Rejection → Redirect" },
-    { id: "claim-support",        label: "Claim-Support Cycle" },
-    { id: "extraction-landing",   label: "Extraction → Insight" },
-    { id: "correction-held",      label: "Held Ground" },
-    { id: "assertion-questioned", label: "Questioned Assertion" },
-  ];
-  const PASSIVE = [
-    { id: "extraction-loop",        label: "Extraction Loop" },
-    { id: "validation-spiral",      label: "Validation Spiral" },
-    { id: "helplessness-loop",      label: "Helplessness Loop" },
-    { id: "missed-argument",        label: "Missed Argument" },
-    { id: "capitulation",           label: "Capitulation" },
-    { id: "assertion-unquestioned", label: "Unquestioned Assertion" },
-    { id: "flitting",               label: "Flitting" },
-  ];
-  function renderSeq(id) {
-    const seq = PATTERN_SEQUENCES[id];
-    if (!seq) return "";
-    const chips = seq.map(item => {
-      if (typeof item === "string") {
-        const cls = (item === "→" || item === "↓") ? "dt-cat-seq-arrow" : "dt-cat-seq-cont";
-        return `<span class="${cls}">${esc(item)}</span>`;
-      }
-      return `<span class="dt-cat-seq-chip--${item.t}">${esc(item.l)}</span>`;
-    }).join("");
-    return `<details class="dt-cat-seq-details">
-      <summary class="dt-cat-seq-toggle">See pattern</summary>
-      <div class="dt-cat-seq">${chips}</div>
-      <div class="dt-cat-seq-legend"><span class="dt-cat-seq-chip--a">AI</span> <span class="dt-cat-seq-chip--s">student</span></div>
-    </details>`;
-  }
-  function cardGroup(patterns, cls) {
-    return patterns.map((p, i) =>
-      `<div class="dt-cat-card">
-        <span class="dt-cat-card-name ${cls}">${esc(p.label)}</span>
-        <p class="dt-cat-card-desc">${esc(PAT_DESCRIPTIONS[p.id] || "")}</p>
-        ${renderSeq(p.id)}
-      </div>${i < patterns.length - 1 ? '<hr class="dt-cat-divider">' : ""}`
-    ).join("");
-  }
-  document.getElementById("patternGuideContent").innerHTML = `
-    <div class="dt-cat-section-label" style="color:var(--tau-band-4-fg);">High-agency patterns</div>
-    ${cardGroup(HIGH, "dt-cat-card-name--high")}
-    <div class="dt-cat-section-label" style="color:var(--tau-band-2-fg);margin-top:28px;">Passive patterns</div>
-    ${cardGroup(PASSIVE, "dt-cat-card-name--low")}`;
-}
 
 // One row per dimension: full name + its own five-pip .steps bar, the same
 // component the summary panel below uses — this is a preview of that panel,
@@ -164,32 +40,19 @@ function renderPatternGuide() {
 // to the hero shouldn't have to look up at the nav bar to remember which
 // draft this is.
 // ── The reading ─────────────────────────────────────────────────────────────
-// Everything below renders analysis.reading: agency as a NAMED LEVEL on a
-// four-rung ladder, and four dimensions each as a band 1-4 (or "not enough
-// here") with the evidence behind it — the claim, the moments that support it,
-// and the moment that doesn't. tau-dimensions.md, "The scoring foundation".
+// Everything below renders analysis.reading: agency as a NAMED LEVEL, and four
+// dimensions each as a band 1-4 (or "not enough here") with the evidence behind
+// it — the claim, the moments that support it, and the moment that doesn't.
+// tau-dimensions.md, "The scoring foundation".
 //
-// The ladder's rungs are never numbered: numbering makes the second one read as
-// a failing grade, which was the documented failure mode of the SAMR vocabulary
-// this replaced on 2026-08-21. Nothing is borrowed now, so the ladder no longer
-// carries a departure-from-Puentedura line — that requirement retired with the
-// names. What it does carry: the level names the SESSION, never the student.
-
-// The Pattern Guide is demo/explainer material rather than a destination, so
-// it lives behind a header button and a lightweight modal instead of taking a
-// permanent section. Slated to be sunset.
-function openPatternGuideModal() {
-  const modal = document.getElementById("patternGuideModal");
-  if (!modal) return;
-  renderPatternGuide();
-  modal.classList.add("open");
-  document.body.style.overflow = "hidden";
-}
-
-function closePatternGuideModal() {
-  document.getElementById("patternGuideModal")?.classList.remove("open");
-  document.body.style.overflow = "";
-}
+// The level is never numbered, and as of 2026-08-24 it is no longer SHOWN as a
+// position among four either: numbering makes the second rung read as a failing
+// grade, and a four-rung scale with a mark on it reads as a number whether or
+// not one is printed — the documented failure mode of the SAMR vocabulary this
+// replaced on 2026-08-21. LEVEL_ORDER survives because the order is real and
+// the trend needs it; the student sees the level in words. Nothing is borrowed
+// now, so no departure-from-Puentedura line — that requirement retired with the
+// names. What holds throughout: the level names the SESSION, never the student.
 
 const LEVEL_ORDER = ["Passive", "Reactive", "Directive", "Transformative"];
 
@@ -263,15 +126,10 @@ function renderReportHero(reading, submission) {
   // the 2026-08-21 rename are stored under the retired name and are never
   // rewritten. Without this the hero threw on `level` and rendered nothing.
   const level = levelName(reading.level);
+  // Still the band index — it colours the panel. The four-rung scale it also
+  // drove came out 2026-08-24; the level is now stated in words and in the
+  // panel's band fill, and nowhere as a position among four.
   const idx = LEVEL_ORDER.indexOf(level) + 1;
-  // One rung is marked; none is "reached". The cumulative class came out on
-  // 2026-08-22 — see the note in report.css. The order is still real, so the
-  // scale stays an ordered axis; what it no longer says is that the rungs
-  // below this one were climbed to get here.
-  const rungs = LEVEL_ORDER.map((name, i) => {
-    const cls = i + 1 === idx ? 'level-step is-here' : 'level-step';
-    return `<div class="${cls}"><span class="level-step-name">${esc(name)}</span></div>`;
-  }).join('');
 
   // The departure sentence only appears when the level lands somewhere the four
   // bands would not predict — when it doesn't depart, it says nothing extra.
@@ -280,44 +138,37 @@ function renderReportHero(reading, submission) {
     : '';
 
   return `
-    <div class="card card-lg card-hero report-hero hero-d">
+    <div class="card card-lg card-hero report-hero">
       ${heroHead}
-      <!-- Was "How much you led", which framed the ladder as a quantity — the
-           axis-switch defect the 2026-08-21 rename removed. The scale does not
-           measure how much of the leading was yours; it measures where your
+      <!-- Was "How much you led", which framed the level as a quantity — the
+           axis-switch defect the 2026-08-21 rename removed. The reading does
+           not measure how much of the leading was yours; it says where your
            thinking came into the work. -->
       <span class="eyebrow">Where your thinking came in</span>
-      <div class="hero-two-col" style="--level-bg: var(--tau-band-${idx}-bg); --level-fg: var(--tau-band-${idx}-fg)">
-        <div class="hero-scale-col">
-          <div class="level-scale" role="img" aria-label="A four-level scale, lowest to highest: ${LEVEL_ORDER.join(', ')}. This session sits at ${esc(level)}.">
-            ${rungs}
+      <div class="level-summary" style="--level-bg: var(--tau-band-${idx}-bg); --level-fg: var(--tau-band-${idx}-fg)">
+        ${LEVEL_DEF[level] ? `<p class="hero-level-def"><b>${esc(level)}.</b> ${esc(LEVEL_DEF[level])}</p>` : ''}
+        <div class="level-summary-body">
+          <div>
+            <p class="level-body">${esc(reading.body)}</p>
+            ${departure}
           </div>
-          <!-- The one thing the ladder cannot say for itself. A student sees a
-               four-rung scale with a dot near the bottom of it and no reason to
-               read that as anything but a mark out of four. Teachers are told
-               this twice (viz.js's flow foot, levels.html); until 2026-08-22 the
-               student was told it nowhere. It sits under the SCALE, not under
-               the prose, because the scale is the thing being qualified — same
-               attachment as the dashboard's .viz-card-foot. Permanent and
-               undismissable, per the voice rule that a reading is never a
-               verdict. No link: levels.html is teacher-only. -->
-          <p class="hero-scale-foot">This is about how the work got made, not how good it is. Your teacher marks the essay.</p>
-        </div>
-        <div class="level-summary">
-          ${LEVEL_DEF[level] ? `<p class="hero-level-def"><b>${esc(level)}.</b> ${esc(LEVEL_DEF[level])}</p>` : ''}
-          <div class="level-summary-body">
-            <div>
-              <p class="level-body">${esc(reading.body)}</p>
-              ${departure}
-            </div>
-            ${reading.exception ? `
-              <div class="aside">
-                <span class="eyebrow">The exception</span>
-                <p>${esc(reading.exception)}</p>
-              </div>` : ''}
-          </div>
+          ${reading.exception ? `
+            <div class="aside">
+              <span class="eyebrow">The exception</span>
+              <p>${esc(reading.exception)}</p>
+            </div>` : ''}
         </div>
       </div>
+      <!-- Teachers are told this twice (viz.js's flow foot, levels.html); until
+           2026-08-22 the student was told it nowhere. It hung under the agency
+           ladder while there was one; with the ladder gone it attaches to the
+           whole reading, and sits OUTSIDE the band panel rather than inside it —
+           it is a standing condition on how to read the card, not part of this
+           session's statement, and --tau-ink-faint is only cleared for contrast
+           on the surfaces, not on a band fill. Permanent and undismissable, per
+           the voice rule that a reading is never a verdict. No link:
+           levels.html is teacher-only. -->
+      <p class="hero-level-foot">This is about how the work got made, not how good it is. Your teacher marks the essay.</p>
     </div>`;
 }
 
@@ -590,12 +441,6 @@ function renderJumpScore(reading) {
   }, { threshold: 0 });
   heroWatch.observe(hero);
 })();
-
-document.getElementById("patternGuideBtn")?.addEventListener("click", () => openPatternGuideModal());
-document.getElementById("patternGuideModalClose")?.addEventListener("click", () => closePatternGuideModal());
-document.getElementById("patternGuideModal")?.addEventListener("click", (e) => {
-  if (e.target.id === "patternGuideModal") closePatternGuideModal();
-});
 
 // Bars / Trend line toggle — independent show/hide, not exclusive.
 document.querySelectorAll("#chartToggle [data-layer]").forEach(btn => {
