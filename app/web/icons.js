@@ -67,6 +67,12 @@ const ICONS = {
   plusCircle:
     '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>'
     + '<path d="M12 8.5v7M8.5 12h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  // A month grid with its two hanging rings — the shape that says "a date",
+  // where a clock face would say "a duration".
+  calendar:
+    '<rect x="3.5" y="5.5" width="17" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/>'
+    + '<path d="M3.5 10h17" stroke="currentColor" stroke-width="1.6"/>'
+    + '<path d="M8 3.5v3M16 3.5v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
   checklist:
     '<path d="M10 6.5h9M10 12h9M10 17.5h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'
     + '<path d="M4.5 6.2 6 7.7l2.5-2.8M4.5 11.7 6 13.2l2.5-2.8M4.5 17.2 6 18.7l2.5-2.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',

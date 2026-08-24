@@ -206,7 +206,8 @@
   // Returns the /api/me payload, as the old chip did, so callers that only
   // wanted to know who is signed in keep working unchanged.
   // `opts.extras` lets one page add its own menu items — {label, desc, icon,
-  // onClick} — without that page rebuilding the menu. They sit with the
+  // onClick} or {label, desc, icon, href, newTab} — without that page
+  // rebuilding the menu. They sit with the
   // navigation destinations, above Appearance, because they are the same kind
   // of thing: somewhere else to go, not a setting.
   async function mountAccountChip(el, opts = {}) {
@@ -238,8 +239,11 @@
           // a second tab, or send to a colleague, needs a middle-clickable href.
           const body = `<span class="mi-icon" aria-hidden="true">${x.icon || ''}</span>
           <span class="mi-body">${esc(x.label)}${x.desc ? `<span class="mi-desc">${esc(x.desc)}</span>` : ''}</span>`;
+          // newTab, same as a destination's: reference material opened from a
+          // surface someone is mid-task on belongs beside the task, not in
+          // place of it.
           return x.href
-            ? `<a href="${esc(x.href)}" class="menu-item">${body}</a>`
+            ? `<a href="${esc(x.href)}" class="menu-item"${x.newTab ? ' target="_blank" rel="noopener"' : ''}>${body}</a>`
             : `<button type="button" class="menu-item" data-extra="${i}">${body}</button>`;
         }).join('')}
         <div class="menu-divider"></div>

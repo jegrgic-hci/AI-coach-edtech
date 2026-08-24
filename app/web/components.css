@@ -677,6 +677,13 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 .draft-slot-rows { display: flex; flex-direction: column; gap: 6px; }
 .draft-slot-row { display: flex; align-items: center; gap: 8px; }
 .draft-slot-label { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); width: 52px; flex-shrink: 0; }
+/* The fact a teacher moving a deadline is actually deciding on: how much of
+   the class has already handed this draft in. Sits at the end of its own row
+   because it belongs to that draft, not to the assignment. */
+.draft-slot-note { font-size: var(--tau-text-label-sm); color: var(--tau-ink-faint); margin-left: auto; }
+/* Extend deadline labels a single-draft assignment's one row "Due date"
+   rather than "Final", which the 52px slot built for "Draft 1" can't hold. */
+.draft-slot-label-wide { width: 76px; }
 
 /* The template picker governs every field under it, so it sits above the
    first group rather than inside one, with a rule underneath separating "where

@@ -11,6 +11,7 @@ const { col } = require('./store');
 const { authenticate, isSuspended, login, logout, sessionCookie, clearedCookie, tokenFrom, inspectCredentialToken, redeemCredentialToken, DEMO_MODE, DEV_PASSWORD } = require('./auth');
 const { sendInvite, sendReset } = require('./invites');
 const { termsFor } = require('./terms');
+const { dueISO, isClosed } = require('./due');
 const { volume: mailVolume, settings: mailSettings } = require('./mail');
 const { streamChat, modelFor, MAX_EVAL_TOKENS } = require('./llm');
 const { chatMessages, auditorMessages } = require('./coach');
@@ -410,6 +411,13 @@ async function sessionFor(conversation) {
 async function assignmentFor(session) {
   return await col('assignments').get(session.assignmentId);
 }
+
+// What a student is told by any of the three write gates below (new
+// conversation, message, submit). Deliberately dateless: the server would have
+// to format a date in its own timezone, which on Cloud Run is UTC and on a
+// laptop is whatever the laptop says. The workspace states the actual date
+// from closedAt, in the student's own timezone, where it can be right.
+const CLOSED_MESSAGE = 'This assignment has closed — it is no longer accepting work.';
 
 // Composes the three teacher-authored fields into the one string the auditor
 // sees as "the assignment" — labeled so the model gets the what/why/must-haves
@@ -1051,13 +1059,23 @@ async function handleApi(req, res, user, route) {
       }
 
       const done = submissions.length >= a.draftBudget;
+      // A passed due date closes the assignment, whether or not the student
+      // finished it — 2026-08-24. It used to stay in `current` forever, so a
+      // shut assignment kept a live "Start Draft 3" button and an "Overdue"
+      // eyebrow that no longer asked for anything: the window it referred to
+      // was gone. Closed work belongs with the rest of the closed work, and
+      // the drafts that never came in read there as not submitted (pastCard).
+      // One shared isClosed() with the teacher dashboard and the write gates,
+      // so no two surfaces can disagree about whether this is open.
+      const closed = isClosed(a);
+
       const active = (await col('sessions')
         .list({ assignmentId: a.id, studentId: user.id, status: 'active' }))[0];
 
-      if (done) {
+      if (done || closed) {
         past.push({
-          id: a.id, title: a.title, className: classNameFor(a), dueDate: a.dueDate,
-          draftDueDates: a.draftDueDates, draftBudget: a.draftBudget, drafts,
+          id: a.id, title: a.title, className: classNameFor(a), dueDate: dueISO(a.dueDate),
+          draftDueDates: (a.draftDueDates || []).map(dueISO), draftBudget: a.draftBudget, drafts,
         });
       } else {
         // Live conversations in the open session — "where you left off" is part
@@ -1087,8 +1105,10 @@ async function handleApi(req, res, user, route) {
           description: a.description,
           purpose: a.purpose,
           requirements: a.requirements,
-          dueDate: a.dueDate,
-          draftDueDates: a.draftDueDates,
+          // Instants, never the bare date that may be in the store — the rule
+          // for reading one lives in due.js and stops at this boundary.
+          dueDate: dueISO(a.dueDate),
+          draftDueDates: (a.draftDueDates || []).map(dueISO),
           draftBudget: a.draftBudget,
           draftsUsed: submissions.length,
           hasActivity,
@@ -1163,7 +1183,15 @@ async function handleApi(req, res, user, route) {
     const submissions = await col('submissions').list((s) => s.assignmentId === assignment.id && s.studentId === user.id);
     let session = (await col('sessions').list((s) => s.assignmentId === assignment.id && s.studentId === user.id && s.status === 'active'))[0];
 
-    if (!session && submissions.length < assignment.draftBudget) {
+    // A closed assignment opens read-only rather than 404-ing: a report's
+    // "Session" toggle deep-links straight back into this view, and work a
+    // student can no longer add to is still work they must be able to read.
+    // The write gates are on the three endpoints that write (new conversation,
+    // message, submit); this one only declines to open a NEW session, so the
+    // deadline can't be beaten by opening the assignment one more time.
+    const closed = isClosed(assignment);
+
+    if (!closed && !session && submissions.length < assignment.draftBudget) {
       const cycleIndex = submissions.length;
       session = await col('sessions').add({
         assignmentId: assignment.id,
@@ -1202,11 +1230,20 @@ async function handleApi(req, res, user, route) {
     }
 
     return json(res, 200, {
-      assignment,
+      // Dates normalised on the way out, like every other payload — the
+      // workspace re-checks the deadline itself as the student works, so it
+      // must not be handed a bare date it would read as midnight.
+      assignment: {
+        ...assignment,
+        dueDate: dueISO(assignment.dueDate),
+        draftDueDates: (assignment.draftDueDates || []).map(dueISO),
+      },
       session: session || null,
       conversations,
       draftsUsed: submissions.length,
       hasActivity,
+      closed,
+      closedAt: closed ? dueISO(assignment.dueDate) : null,
     });
   }
 
@@ -1216,6 +1253,7 @@ async function handleApi(req, res, user, route) {
     const session = await col('sessions').get(body.sessionId);
     if (!session || session.studentId !== user.id) return json(res, 404, { error: 'session not found' });
     if (session.status !== 'active') return json(res, 409, { error: 'session is submitted' });
+    if (isClosed(await assignmentFor(session))) return json(res, 403, { error: CLOSED_MESSAGE, closed: true });
     const conversation = await col('conversations').add({
       sessionId: session.id,
       title: body.title || 'New conversation',
@@ -1250,6 +1288,12 @@ async function handleApi(req, res, user, route) {
     }
 
     if (conversation.locked) return json(res, 409, { error: 'conversation is locked' });
+
+    // The deadline stops the work, not just the handing in — 2026-08-24. A
+    // student who can still talk to the AI about a draft they can no longer
+    // submit is being invited to spend an evening on nothing. Sits below the
+    // GET and the rename so a closed session stays readable and nameable.
+    if (isClosed(assignment)) return json(res, 403, { error: CLOSED_MESSAGE, closed: true });
 
     // POST /api/conversations/:id/message { text, editOfTurnId? }
     if (req.method === 'POST' && seg3 === 'message') {
@@ -1341,6 +1385,9 @@ async function handleApi(req, res, user, route) {
     const session = await col('sessions').get(seg2);
     if (!session || session.studentId !== user.id) return json(res, 404, { error: 'session not found' });
     if (session.status !== 'active') return json(res, 409, { error: 'already submitted' });
+    // The deadline itself. Everything else about closing an assignment is
+    // presentation; this is the line that makes it mean something.
+    if (isClosed(await assignmentFor(session))) return json(res, 403, { error: CLOSED_MESSAGE, closed: true });
     const body = await readBody(req);
     const essayText = String(body.essayText || '').trim();
     if (!essayText) return json(res, 400, { error: 'essay draft required' });
@@ -1812,7 +1859,7 @@ async function handleApi(req, res, user, route) {
 
   // ---------- teacher routes ----------
 
-  if (seg1 === 'teacher' || (req.method === 'POST' && seg1 === 'assignments' && (!seg2 || seg3 === 'note' || seg3 === 'edit' || seg3 === 'delete' || seg3 === 'archive')) || (req.method === 'POST' && seg1 === 'submissions' && (seg3 === 'note' || seg3 === 'followed-up')) || (req.method === 'POST' && seg1 === 'classes') || (req.method === 'POST' && seg1 === 'templates')) {
+  if (seg1 === 'teacher' || (req.method === 'POST' && seg1 === 'assignments' && (!seg2 || seg3 === 'note' || seg3 === 'edit' || seg3 === 'due-dates' || seg3 === 'delete' || seg3 === 'archive')) || (req.method === 'POST' && seg1 === 'submissions' && (seg3 === 'note' || seg3 === 'followed-up')) || (req.method === 'POST' && seg1 === 'classes') || (req.method === 'POST' && seg1 === 'templates')) {
     if (user.role !== 'teacher') return json(res, 403, { error: 'teacher only' });
   }
 
@@ -1900,6 +1947,43 @@ async function handleApi(req, res, user, route) {
       draftBudget, draftDueDates,
       teacherNote: typeof body.teacherNote === 'string' ? body.teacherNote.trim().slice(0, 2000) : (assignment.teacherNote || ''),
       teacherNoteAt: noteChanged ? now() : assignment.teacherNoteAt,
+    });
+    return json(res, 200, await col('assignments').get(assignment.id));
+  }
+
+  // POST /api/assignments/:id/due-dates — move the deadlines, and nothing
+  // else. The Edit modal can already do this, but only by re-submitting all
+  // seven of an assignment's fields, which means a teacher extending a
+  // deadline posts cached copies of a description and requirements they never
+  // opened — and overwrites anything changed elsewhere since their page
+  // loaded. This endpoint writes the two date fields and cannot touch the
+  // rest, which is also why the Extend deadline modal can be a short form.
+  //
+  // Dates arrive as full instants built in the teacher's own timezone (see
+  // due.js). No "must be in the future" rule: extending AFTER a deadline has
+  // passed is the main thing this is for, and pulling one earlier to close
+  // something off today is legitimate too.
+  if (req.method === 'POST' && seg1 === 'assignments' && seg3 === 'due-dates') {
+    const assignment = await col('assignments').get(seg2);
+    if (!assignment) return json(res, 404, { error: 'assignment not found' });
+    if (assignment.teacherId !== user.id) return json(res, 403, { error: 'not your assignment' });
+    const body = await readBody(req);
+    const draftDueDates = Array.isArray(body.draftDueDates) ? body.draftDueDates : [];
+    // Length is the assignment's own budget, not anything the client chose:
+    // how many drafts a task takes is not a scheduling decision, and changing
+    // it here would silently move a checkpoint a student is mid-way through.
+    const budget = assignment.draftBudget || 1;
+    if (draftDueDates.length !== budget || draftDueDates.some((d) => !d || Number.isNaN(new Date(d).getTime()))) {
+      return json(res, 400, { error: 'one due date per draft slot required' });
+    }
+    for (let i = 1; i < draftDueDates.length; i++) {
+      if (new Date(draftDueDates[i]) < new Date(draftDueDates[i - 1])) {
+        return json(res, 400, { error: 'draft due dates must be in ascending order' });
+      }
+    }
+    await col('assignments').update(assignment.id, {
+      draftDueDates,
+      dueDate: draftDueDates[draftDueDates.length - 1],
     });
     return json(res, 200, await col('assignments').get(assignment.id));
   }
@@ -2144,10 +2228,10 @@ async function handleApi(req, res, user, route) {
     const assignments = ownAssignments.map((a) => ({
       id: a.id,
       name: a.title,
-      due: a.dueDate || new Date(new Date(a.createdAt).getTime() + 14 * 86400000).toISOString(),
-      status: a.dueDate && new Date(a.dueDate) < new Date() ? 'closed' : 'open',
+      due: dueISO(a.dueDate) || new Date(new Date(a.createdAt).getTime() + 14 * 86400000).toISOString(),
+      status: isClosed(a) ? 'closed' : 'open',
       draftBudget: a.draftBudget,
-      draftDueDates: a.draftDueDates || null,
+      draftDueDates: a.draftDueDates ? a.draftDueDates.map(dueISO) : null,
       // Intersected with the live classes, not passed through: an assignment
       // can span an archived section and a running one, and the archived id
       // would otherwise resolve to nothing on every lookup downstream.

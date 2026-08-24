@@ -61,6 +61,7 @@ const state = {
   conversations: [],
   submissions: [],
   hasActivity: false,
+  closed: false,
   conv: null,
   turns: [],
   streaming: false,
@@ -409,9 +410,26 @@ function draftChip(draft) {
   return chip;
 }
 
-function draftChipRow(drafts) {
+// A draft slot the assignment closed before it was handed in. Same muted
+// treatment as an analyzing draft and never a button: there is no report
+// behind it and nothing left to do about it, so it states the fact and
+// stops. It is still listed rather than dropped, so the row accounts for
+// every slot in the budget — a missing chip would read as a shorter
+// assignment instead of an unfinished one.
+function missingDraftChip(cycleIndex) {
+  const chip = el('span', 'draft-chip draft-chip-pending');
+  chip.append(el('span', 'chip-cycle', `Draft ${cycleIndex + 1}`));
+  chip.append(el('span', 'chip-status', 'Not submitted'));
+  return chip;
+}
+
+// budget is passed only by pastCard, where the assignment is closed and the
+// unfilled slots are final. An open assignment's unfilled slots are still
+// live work and belong to the draft ledger on its own card, not here.
+function draftChipRow(drafts, budget) {
   const row = el('div', 'chip-row');
   for (const d of drafts) row.append(draftChip(d));
+  for (let i = drafts.length; i < (budget || 0); i++) row.append(missingDraftChip(i));
   return row;
 }
 
@@ -708,14 +726,18 @@ function pastCard(a) {
     head.append(outcome);
   }
   card.append(head);
-  const meta = a.className
-    ? `${a.className} · ${a.drafts.length} draft${a.drafts.length === 1 ? '' : 's'} submitted`
+  // An assignment that closed with drafts still outstanding states the
+  // denominator: "1 of 3 drafts submitted" is the fact, and "1 draft
+  // submitted" would quietly read as a finished one-draft assignment.
+  const budget = a.draftBudget || a.drafts.length;
+  const counted = a.drafts.length < budget
+    ? `${a.drafts.length} of ${budget} drafts submitted`
     : `${a.drafts.length} draft${a.drafts.length === 1 ? '' : 's'} submitted`;
-  card.append(el('p', 'pcard-meta', meta));
+  card.append(el('p', 'pcard-meta', a.className ? `${a.className} · ${counted}` : counted));
 
   // A note's presence is the chip's own ✉ marker (draftChip) — the chip
   // already opens the report on click, which is where the note itself reads.
-  card.append(draftChipRow(a.drafts));
+  card.append(draftChipRow(a.drafts, budget));
   return card;
 }
 
@@ -772,21 +794,85 @@ async function openAssignment(id) {
   wsPrompt.innerHTML = '';
   wsPrompt.append(assignmentBriefBody(data.assignment));
 
-  // Only state left worth a banner now that coaching levels are gone: an
-  // active draft needs no announcement, a used-up budget does.
-  const banner = $('draftsDoneBanner');
-  banner.innerHTML = '';
-  if (!data.session) {
-    banner.append(el('strong', null, 'All drafts submitted.'));
-    banner.append(document.createTextNode(' These sessions stay readable, but you can\'t add to them.'));
-  }
-  banner.classList.toggle('hidden', !!data.session);
-  $('btnSubmit').disabled = !data.session;
+  state.closed = Boolean(data.closed);
+  applyClosedState();
 
   logEvent('episode-resume');
   renderSessionList();
   renderConversation();
   loadSubmissions().catch(() => {});
+}
+
+// ---------- the deadline ----------
+
+// The one client-side reading of "has this closed", against the same instant
+// the server compares (dates arrive normalised — see due.js). Re-read on every
+// action rather than trusted from page load, because the interesting case is
+// precisely the tab that was already open when the deadline passed.
+function deadlinePassed() {
+  const due = state.assignment && state.assignment.dueDate;
+  return Boolean(due) && new Date(due) < new Date();
+}
+
+function closedNoticeText() {
+  const due = state.assignment && state.assignment.dueDate;
+  const when = due
+    ? new Date(due).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : null;
+  return when ? `This assignment closed on ${when}.` : 'This assignment has closed.';
+}
+
+// Everything the workspace does differently once the assignment is shut, in
+// one place so the three ways in — opening it closed, the deadline passing
+// under an open tab, and a write the server refused — all land in the same
+// state rather than each disabling a different subset of the controls.
+//
+// Sessions stay readable. What goes is the ability to add to them: the
+// composer, the new-session button, and Submit. A student sees what they had,
+// and it is plainly over.
+function applyClosedState() {
+  if (deadlinePassed()) state.closed = true;
+
+  const banner = $('draftsDoneBanner');
+  banner.innerHTML = '';
+  // Two different "you can't add to this" states, and the closed one wins:
+  // a used-up draft budget is something the student did, a closed assignment
+  // is something that happened to them, and only one of them explains why
+  // the work stopped where it did.
+  if (state.closed) {
+    banner.append(el('strong', null, closedNoticeText()));
+    banner.append(document.createTextNode(
+      ' Your sessions stay readable. Any draft you didn\'t submit is recorded as not submitted.'));
+  } else if (!state.session) {
+    banner.append(el('strong', null, 'All drafts submitted.'));
+    banner.append(document.createTextNode(' These sessions stay readable, but you can\'t add to them.'));
+  }
+  banner.classList.toggle('hidden', !state.closed && !!state.session);
+
+  $('btnSubmit').disabled = state.closed || !state.session;
+  $('btnNewSession').disabled = state.closed || !state.session;
+  if (state.closed) {
+    $('composer').classList.add('hidden');
+    $('submitModal').classList.add('hidden');
+  }
+  scheduleDeadlineFlip();
+}
+
+// A student sitting in the workspace as the deadline passes should watch it
+// close, not discover it by pressing Send on work they've already done. One
+// timer per open assignment, and only for a deadline close enough to sit
+// through — setTimeout can't hold a term-length delay anyway.
+let deadlineTimer = null;
+function scheduleDeadlineFlip() {
+  clearTimeout(deadlineTimer);
+  const due = state.assignment && state.assignment.dueDate;
+  if (!due || state.closed) return;
+  const ms = new Date(due) - new Date();
+  if (ms <= 0 || ms > 12 * 3600 * 1000) return;
+  deadlineTimer = setTimeout(() => {
+    applyClosedState();
+    renderConversation();
+  }, ms + 1000);
 }
 
 // The header's breadcrumb and local toggle both come from workspace state,
@@ -837,7 +923,7 @@ function renderSessionList() {
   const currentCycle = state.session ? state.session.cycleIndex : null;
   const convs = state.conversations.filter((c) => c.cycleIndex === currentCycle);
 
-  $('btnNewSession').disabled = !state.session;
+  $('btnNewSession').disabled = state.closed || !state.session;
 
   if (!convs.length) {
     list.append(el('p', 'rail-empty', 'No sessions yet.'));
@@ -965,7 +1051,7 @@ function renderConversation() {
   $('btnRename').classList.toggle('hidden', !hasConv || !state.conv.id);
 
   const locked = hasConv && state.conv.locked;
-  $('composer').classList.toggle('hidden', !hasConv || locked);
+  $('composer').classList.toggle('hidden', !hasConv || locked || state.closed);
   renderReadingBanner(locked);
   // Hidden while reading an archived draft: "all drafts submitted" is about
   // the assignment as a whole, not the draft being read.
@@ -1161,6 +1247,15 @@ async function streamAction(path, body, role) {
 async function sendMessage() {
   const text = $('input').value.trim();
   if (!text || state.streaming || !state.conv || state.conv.locked) return;
+  // Checked here rather than left to the server's 403: refusing after the
+  // message is on screen leaves the student's own words sitting under an
+  // error, which reads as their message having failed rather than the
+  // assignment having ended.
+  if (deadlinePassed()) {
+    applyClosedState();
+    renderConversation();
+    return;
+  }
 
   const editOfTurnId = state.editingTurnId;
   cancelEdit();
@@ -1373,6 +1468,12 @@ $('essayText').oninput = updateSubmitEnabled;
 
 $('btnSubmit').onclick = () => {
   if (!state.session) return;
+  // The deadline may have passed since this button was last enabled.
+  if (deadlinePassed()) {
+    applyClosedState();
+    renderConversation();
+    return;
+  }
   const used = state.session.cycleIndex;
   const budget = state.assignment.draftBudget;
   const convCount = state.conversations.filter((c) => c.cycleIndex === state.session.cycleIndex).length || 1;
@@ -1398,6 +1499,16 @@ $('btnConfirmSubmit').onclick = async () => {
     // Straight to the draft report — full disclosure at the submission marker
     await showReport(submission.id);
   } catch (err) {
+    // The server is the authority on the deadline — a clock a few minutes
+    // fast on this machine must not be what decides it. If it refused on
+    // closure, the workspace takes that as the state rather than reporting
+    // it as a failed action the student could try again.
+    if (/closed/i.test(err.message)) {
+      state.closed = true;
+      applyClosedState();
+      renderConversation();
+      return;
+    }
     alert(err.message);
     updateSubmitEnabled();
   }

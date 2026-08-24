@@ -1053,7 +1053,9 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
   font-weight: 650;
   color: var(--tau-forest);
 }
-.new-here-link .nh-name::after { content: ' →'; }
+/* ↗, not →: these three open in a new tab, and the arrow that means "along
+   this page" would be promising the wrong thing. */
+.new-here-link .nh-name::after { content: ' ↗'; }
 .new-here-link .nh-desc {
   display: block;
   font-size: var(--tau-text-sm);
@@ -1293,8 +1295,12 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
          that node's innerHTML and would destroy the tauMenu binding. -->
     <div class="rail-actions">
       <div class="menu-wrap" id="add-wrap">
+        <!-- No chevron. The "+" already says this makes something, and at this
+             size the caret was a 7px mark carrying no information the button's
+             own aria-haspopup doesn't (tauMenu sets it), so a screen reader
+             still hears that it opens a menu. -->
         <button class="menu-trigger menu-trigger-primary" id="trig-manage" type="button">
-          + Add <span class="menu-chevron">▾</span>
+          + Add
         </button>
         <!-- Just a 3-way picker now — each choice opens a full-size modal
              (same .scrim/.confirm.modal/.tray-* chrome the New assignment,
@@ -1435,7 +1441,11 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
 
                 <div class="eyebrow" style="margin-top:6px">Drafts &amp; due dates</div>
                 <div class="assign-schedule-panel">
-                  <div class="form-row"><label>Due date <input type="date" id="newclass-assign-due"></label></div>
+                  <div class="form-row">
+                    <label>Due date <input type="date" id="newclass-assign-due"></label>
+                    <label>Time <input type="time" id="newclass-assign-time" value="23:59"></label>
+                  </div>
+                  <div class="field-help">Every draft is due at this time, in your timezone.</div>
                   <div class="form-row"><label>Draft budget <input type="number" id="newclass-assign-budget" value="3" min="1" max="10" style="width:60px"></label></div>
                   <label class="micro-label" style="margin-top:2px">Per-draft due dates</label>
                   <div class="draft-slot-rows" id="newclass-assign-draft-rows"></div>
@@ -1567,7 +1577,13 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
         <div class="assign-schedule-panel">
           <div class="form-row">
             <label>Due date <input type="date" name="dueDate" id="na-due-date" required></label>
+            <label>Time <input type="time" name="dueTime" id="na-due-time" value="23:59" required></label>
           </div>
+          <!-- One time for the whole assignment, not one per draft. A teacher
+               sets a house cutoff ("everything's due end of day", "drafts are
+               due at the start of class"); a per-draft time doubles the form
+               to buy a case that doesn't come up. -->
+          <div class="field-help">Every draft is due at this time, in your timezone. A draft can be submitted right up to it.</div>
           <div class="form-row">
             <label>Draft budget <input type="number" name="draftBudget" value="3" min="1" max="10" style="width:60px"></label>
           </div>
@@ -1766,6 +1782,13 @@ function checkpointStatus(subs, assignment) {
   const budget = assignment.draftBudget || 1;
   const next   = subs.length;
   if (next >= budget) return { stage: 'Final', late: false };
+  // A closed assignment closes its outstanding drafts with it — 2026-08-24.
+  // "Late" is a chase: it asks the teacher to go and get the work. Once the
+  // assignment's own window has shut there is nothing left to chase, and the
+  // outstanding draft stops being overdue and becomes a settled fact about
+  // what the student handed in. So the alert chip goes and the label states
+  // that fact, in the same words the class surfaces already use for it.
+  if (assignment.status === 'closed') return { stage: 'Not submitted', late: false };
   const dueStr  = (assignment.draftDueDates || [])[next];
   const overdue = dueStr && new Date(dueStr) < new Date();
   if (overdue) return { stage: `Draft ${next + 1}/${budget}`, late: true };
@@ -2514,19 +2537,23 @@ function newHereBlock() {
     <div class="card-lg new-here" style="max-width:520px;margin-top:var(--tau-s5)">
       <div class="eyebrow">New here</div>
       <div style="font-size:var(--tau-text-sm);color:var(--tau-ink-soft);line-height:1.6">
-        What this dashboard will show you that no other tool does. Worth ten minutes before the
+        Take a moment to read through the specific language of Transformative AI Use before the
         first submissions land.
       </div>
+      <!-- New tab, all three: this block sits on a dashboard a teacher is in
+           the middle of setting up, and a guide read at that moment is read
+           beside the work, not instead of it. Navigating away would cost the
+           scroll position, any open modal, and the reason they were here. -->
       <div class="new-here-links">
-        <a class="new-here-link" href="levels.html" onclick="logUse('dashboard','new-here-levels')">
+        <a class="new-here-link" href="levels.html" target="_blank" rel="noopener" onclick="logUse('dashboard','new-here-levels')">
           <span class="nh-name">Agency levels</span>
           <span class="nh-desc">Where a student's own thinking entered the work — and what each level does not mean</span>
         </a>
-        <a class="new-here-link" href="dimensions.html" onclick="logUse('dashboard','new-here-dimensions')">
+        <a class="new-here-link" href="dimensions.html" target="_blank" rel="noopener" onclick="logUse('dashboard','new-here-dimensions')">
           <span class="nh-name">The four dimensions</span>
           <span class="nh-desc">The four questions asked of every session, how each is scored, and why they are never added up</span>
         </a>
-        <a class="new-here-link" href="signals.html" onclick="logUse('dashboard','new-here-signals')">
+        <a class="new-here-link" href="signals.html" target="_blank" rel="noopener" onclick="logUse('dashboard','new-here-signals')">
           <span class="nh-name">Worth a chat</span>
           <span class="nh-desc">The signals we check every submission for, and why each one is a question rather than a verdict</span>
         </a>
@@ -5145,6 +5172,10 @@ function assignmentActionRow(a) {
     primary: [{ label: 'Goal & requirements', onClick: `openGoalModal('${a.id}')` }],
     groups: [{
       items: [
+        // Above Edit: once work is underway this is the more common of the
+        // two, and the one a teacher comes looking for after a deadline has
+        // passed. Edit is where you go to change what the task IS.
+        { icon: 'calendar', title: 'Extend deadline', desc: 'Move draft due dates, before or after they pass', onClick: `openExtendDeadline('${a.id}')` },
         { icon: 'edit', title: 'Edit assignment', onClick: `openEditAssignmentModal('${a.id}')` },
         { icon: 'copy', title: 'Duplicate assignment', desc: 'Opens a copy to change before you create it', onClick: `duplicateAssignment('${a.id}')` },
         // Above Delete, and worded so the pair reads as one decision: archive is
@@ -5415,6 +5446,81 @@ function openArchiveAssignment(aid) {
   });
 }
 
+// ── Extend deadline ─────────────────────────────────────────────────────────
+// The dates, and only the dates. Edit assignment can already move them, but
+// only by re-submitting all seven fields of the creation form — the wrong size
+// of instrument for the one thing a teacher does most often once work is
+// underway, and hard to find behind a control called "Edit".
+//
+// Named for the case that brings a teacher here (a deadline that has passed,
+// or is about to) even though it moves a date either way — the description
+// carries the rest. Findability beats precision in a menu item; the honest
+// wording is one line below it.
+//
+// Each row carries how much of the class has already submitted that draft,
+// because that is the fact the decision actually turns on — extending a draft
+// two students still owe is a different act from extending one twenty do.
+function openExtendDeadline(aid) {
+  const a = ASSIGNMENTS.find(x => x.id === aid);
+  if (!a) return;
+  const budget = a.draftBudget || 1;
+  const students = studentsFor(a);
+  // An assignment created before per-draft dates existed has only its final
+  // date — spread the slots back from it rather than opening with blanks the
+  // teacher has to invent.
+  const current = (a.draftDueDates && a.draftDueDates.length === budget)
+    ? a.draftDueDates.map(dueDateValue)
+    : naDueDateSpacedDefaults(dueDateValue(a.due), budget);
+  const time = (a.draftDueDates && a.draftDueDates.length)
+    ? dueTimeValue(a.draftDueDates[a.draftDueDates.length - 1])
+    : DEFAULT_DUE_TIME;
+
+  // A one-draft assignment has no sequence, so it gets no position in one:
+  // "Final" there names a slot the teacher can't see the rest of, which reads
+  // as earlier drafts existing somewhere out of reach. The count names its
+  // unit for the same reason — "1 of 3" beside a draft label reads as drafts,
+  // and the 3 is the class.
+  const rows = Array.from({ length: budget }, (_, i) => {
+    const inCount = students.filter(s => getSubs(s.id, a.id).length > i).length;
+    const label = budget === 1 ? 'Due date' : (i === budget - 1 ? 'Final' : `Draft ${i + 1}`);
+    return `<div class="draft-slot-row">
+      <span class="draft-slot-label draft-slot-label-wide">${label}</span>
+      <input type="date" class="extend-due-input" data-slot="${i}" value="${current[i] || ''}" required>
+      <span class="draft-slot-note">${inCount} of ${students.length} student${students.length === 1 ? '' : 's'} submitted</span>
+    </div>`;
+  }).join('');
+
+  openObjModal({
+    title: 'Extend deadline',
+    subtitle: `${a.name} — move any draft's due date, before or after it has passed. Students see the change straight away, and pushing the final date past today reopens the assignment.`,
+    bodyHtml: `<div class="assign-schedule-panel">
+      <label class="micro-label">${budget === 1 ? 'Due date' : 'Per-draft due dates'}</label>
+      <div class="draft-slot-rows">${rows}</div>
+      <div class="form-row"><label>Time <input type="time" id="extend-due-time" value="${time}"></label></div>
+      <div class="field-help">${budget === 1 ? 'The draft' : 'Every draft'} is due at this time, in your timezone.</div>
+    </div>`,
+    confirmLabel: 'Save dates',
+    onConfirm: async () => {
+      const inputs = [...document.querySelectorAll('#obj-modal-body .extend-due-input')];
+      const dates = inputs.map(i => i.value);
+      const missingAt = dates.findIndex(d => !d);
+      if (missingAt !== -1) throw new Error(`Draft ${missingAt + 1} has no due date — every draft needs one.`);
+      for (let i = 1; i < dates.length; i++) {
+        if (dates[i] < dates[i - 1]) {
+          throw new Error(`Draft ${i + 1} is due before draft ${i}. Each draft has to be due on or after the one before it.`);
+        }
+      }
+      const at = document.getElementById('extend-due-time').value || DEFAULT_DUE_TIME;
+      await api(`/api/assignments/${aid}/due-dates`, {
+        method: 'POST',
+        body: { draftDueDates: dates.map(d => dueInstant(d, at)) },
+      });
+      await loadDashboardData();
+      render();
+    },
+  });
+}
+
 function openArchivedAssignments() {
   const rows = ARCHIVED_ASSIGNMENTS.length
     ? ARCHIVED_ASSIGNMENTS.map(a => {
@@ -5584,6 +5690,28 @@ function openSubmissionNote(subId, draftNumber) {
 // POST /api/assignments/:id/edit instead of POST /api/assignments.
 
 let editingAssignmentId = null;
+
+// ── Deadlines: date picker ↔ stored instant ─────────────────────────────────
+// A stored due date is a full instant (see app/server/due.js). An
+// <input type="date"> is a bare calendar date with no timezone and an
+// <input type="time"> a bare wall-clock time, so the pair has to be joined
+// into an instant here — in the browser, which is the only party that knows
+// what timezone the teacher is in. Reading one back has to come apart the
+// same way: never through toISOString(), which reports UTC and lands a day
+// early or late for most of the world.
+const DEFAULT_DUE_TIME = '23:59';
+const pad2 = n => String(n).padStart(2, '0');
+function dueDateValue(iso) {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+function dueTimeValue(iso) {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? DEFAULT_DUE_TIME : `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+function dueInstant(dateStr, timeStr) {
+  return new Date(`${dateStr}T${timeStr || DEFAULT_DUE_TIME}`).toISOString();
+}
 
 // Row markup factored out of naSyncDraftRows() so the edit-open path can
 // build rows straight from an assignment's own draftDueDates instead of
@@ -5776,10 +5904,12 @@ function openEditAssignmentModal(aid) {
   form.elements.requirements.value = a.requirements || '';
   form.elements.teacherNote.value = a.teacherNote || '';
   form.elements.draftBudget.value = a.draftBudget || 1;
-  // draftDueDates may be full ISO datetimes (seed.js computes them as Date
-  // objects) — an <input type="date"> only accepts a bare YYYY-MM-DD value,
-  // so slice off the time component before pre-filling.
-  const editDates = (a.draftDueDates || []).map(d => new Date(d).toISOString().slice(0, 10));
+  // Instants in, date-picker values out — split in local time, never via
+  // toISOString() (see dueDateValue).
+  const editDates = (a.draftDueDates || []).map(dueDateValue);
+  document.getElementById('na-due-time').value = a.draftDueDates && a.draftDueDates.length
+    ? dueTimeValue(a.draftDueDates[a.draftDueDates.length - 1])
+    : DEFAULT_DUE_TIME;
   document.getElementById('newAssignmentDraftRows').innerHTML =
     naDraftRowsHtml(a.draftBudget || 1, editDates);
   // An existing assignment's per-draft dates are already deliberate — never
@@ -5950,6 +6080,7 @@ document.getElementById('newAssignmentForm').onsubmit = async (e) => {
       return assignFormError(`Draft ${i + 1} is due before draft ${i}. Each draft has to be due on or after the one before it.`, dueInputs[i]);
     }
   }
+  const dueTime = document.getElementById('na-due-time').value || DEFAULT_DUE_TIME;
   const body = {
     classIds,
     title: form.elements.title.value,
@@ -5958,7 +6089,11 @@ document.getElementById('newAssignmentForm').onsubmit = async (e) => {
     requirements: form.elements.requirements.value,
     teacherNote: form.elements.teacherNote.value,
     draftBudget: parseInt(form.elements.draftBudget.value, 10),
-    draftDueDates,
+    // Sent as instants, never as the bare picker values: a bare date is read
+    // as midnight UTC, which expires a deadline before the day it names has
+    // begun. The ascending check above ran on the bare dates, which is the
+    // same ordering — every draft shares one time of day.
+    draftDueDates: draftDueDates.map(d => dueInstant(d, dueTime)),
   };
   const endpoint = editingAssignmentId ? `/api/assignments/${editingAssignmentId}/edit` : '/api/assignments';
   const wasCreate = !editingAssignmentId;
@@ -6353,6 +6488,7 @@ function resetNewClassAttachPanels() {
   document.getElementById('newclass-assign-requirements').value = '';
   document.getElementById('newclass-assign-note').value = '';
   document.getElementById('newclass-assign-due').value = '';
+  document.getElementById('newclass-assign-time').value = DEFAULT_DUE_TIME;
   document.getElementById('newclass-assign-budget').value = 3;
   document.getElementById('newclass-assign-draft-rows').innerHTML = '';
   ncAssignDraftDatesDirty = false;
@@ -6473,11 +6609,12 @@ document.getElementById('hdrNewClassForm').onsubmit = async (e) => {
       alert('The assignment needs a description, purpose, requirements, and a due date for every draft — fill those in, or close the Assignment panel and add work to this class later.');
       return;
     }
+    const ncTime = document.getElementById('newclass-assign-time').value || DEFAULT_DUE_TIME;
     assignBody = {
       title: assignTitle, description, purpose, requirements,
       teacherNote: document.getElementById('newclass-assign-note').value.trim(),
       draftBudget: parseInt(document.getElementById('newclass-assign-budget').value, 10),
-      draftDueDates,
+      draftDueDates: draftDueDates.map(d => dueInstant(d, ncTime)),
     };
   }
 
@@ -6564,21 +6701,27 @@ document.getElementById('add-students-close-btn').innerHTML = iconSVG('close');
 // report, the four dimensions sit under every level, a signal is on some
 // students only. Most general first.
 mountAccountChip(document.getElementById('accountChip'), {
+  // All three open in a new tab — the same reason the New here block does. A
+  // teacher reaches for one of these while looking at a student, and comes
+  // back to that student, not to a reloaded dashboard.
   extras: [{
     icon: 'ⓘ',
     label: 'Agency levels, explained',
-    desc: 'What each level means, and what it does not',
+    desc: 'What each level means, and what it does not · new tab',
     href: 'levels.html',
+    newTab: true,
   }, {
     icon: 'ⓘ',
     label: 'The four dimensions, explained',
-    desc: 'What each reading measures, and how they relate',
+    desc: 'What each reading measures, and how they relate · new tab',
     href: 'dimensions.html',
+    newTab: true,
   }, {
     icon: 'ⓘ',
     label: 'Worth a chat, explained',
-    desc: 'What each signal means, and what it does not',
+    desc: 'What each signal means, and what it does not · new tab',
     href: 'signals.html',
+    newTab: true,
   }],
 }).catch(() => {});
 
