@@ -202,21 +202,24 @@ button:hover { border-color: var(--tau-forest); }
   font-size: var(--tau-text-sm);
   padding-left: 2px;
 }
-/* A breathing orb, not three static dots — this is the one moment the
+/* The brand leaf breathing, not three static dots — this is the one moment the
    product is visibly an AI reasoning in real time, and a row of grey dots is
-   indistinguishable from any loading spinner on the web. Sage-to-forest, the
-   same two brand colours already in the token set doing one more job, not a
-   new colour invented for this. */
-.thinking-orb {
-  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
-  background: radial-gradient(circle at 32% 30%, var(--tau-origin-together-bg), var(--tau-forest) 75%);
+   indistinguishable from any loading spinner on the web. The mark itself does
+   the job the orb was doing, so the wait reads as ours rather than as generic
+   chrome; no colour is invented for it, the leaf ships sage.
+   The orb's expanding ring is gone with it: a radial halo traces the edge of a
+   circle, and around a leaf silhouette it would read as a square glow. Scale
+   and opacity alone carry the breath. */
+.thinking-leaf {
+  width: 24px; height: 24px; flex-shrink: 0;
+  transform-origin: 8% 82%; /* the base spur — the leaf pivots from its stem, not its box */
   animation: tau-breathe 2.1s ease-in-out infinite;
 }
 @keyframes tau-breathe {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in oklab, var(--tau-forest) 28%, transparent); }
-  50% { transform: scale(1.12); box-shadow: 0 0 0 6px color-mix(in oklab, var(--tau-forest) 0%, transparent); }
+  0%, 100% { transform: scale(1); opacity: 0.62; }
+  50% { transform: scale(1.1); opacity: 1; }
 }
-@media (prefers-reduced-motion: reduce) { .thinking-orb { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .thinking-leaf { animation: none; opacity: 1; } }
 
 .msg-edit-btn {
   position: absolute;

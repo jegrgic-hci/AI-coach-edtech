@@ -1041,7 +1041,12 @@ function renderTurn(t) {
 // token lands and the placeholder is swapped for the real bubble.
 function thinkingIndicator(role) {
   const wrap = el('div', 'thinking');
-  wrap.append(el('span', 'thinking-orb'));
+  // The brand leaf, loaded from the one file that holds the shape rather than
+  // inlined here, so it cannot drift from the mark used everywhere else.
+  const leaf = el('img', 'thinking-leaf');
+  leaf.src = 'assets/leaf.svg';
+  leaf.alt = '';
+  wrap.append(leaf);
   // "Thinking" is vague; naming what's actually happening makes the wait
   // legible instead of just decorative.
   wrap.append(el('span', null, role === 'auditor' ? 'Auditor is reading…' : 'Reading your last message…'));
