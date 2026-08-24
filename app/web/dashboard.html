@@ -1420,6 +1420,18 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
            message at the submit button, in the app's voice. Two error systems
            on one form was the thing being fixed, not one. -->
       <form class="new-assignment-form field" id="newAssignmentForm" novalidate>
+        <!-- Above everything because it governs everything below it: picking
+             one fills the wording, the purpose, the requirements and the draft
+             budget. Rendered only once this teacher has saved one — an empty
+             picker teaches nothing and costs a row on every create. -->
+        <div class="template-pick" id="na-template-row" hidden>
+          <label class="micro-label" for="na-template">Template</label>
+          <div class="template-pick-row">
+            <select id="na-template" onchange="applyTemplate(this.value)"></select>
+            <button type="button" class="link-btn" onclick="openTemplateManager()">Manage templates</button>
+          </div>
+        </div>
+
         <div class="eyebrow-row">
           <span class="eyebrow">Classes</span>
           <button type="button" class="link-btn" id="assign-selectall-btn" onclick="toggleAllAssignClasses()">Select all</button>
@@ -1452,6 +1464,21 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
 
         <div class="eyebrow deemphasized" style="margin-top:6px">Note to yourself <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--tau-ink-faint)">— optional</span></div>
         <textarea name="teacherNote" rows="2" placeholder="A rubric-style reminder, shown to you, not the AI" class="deemphasized"></textarea>
+
+        <!-- Saving happens with the assignment, not as a second errand
+             afterwards: the wording a teacher would reuse is the wording they
+             just finished writing. Hidden while editing an existing
+             assignment — that flow is fixing this one, not stocking a shelf. -->
+        <div class="field-check save-template" id="na-save-template-row">
+          <input type="checkbox" id="na-save-template" name="saveTemplate">
+          <label for="na-save-template">Save as a template for next time
+            <span class="field-help">Keeps the title, description, purpose, requirements, your note and the draft budget. Classes and due dates aren’t saved — you set those each time.</span>
+          </label>
+        </div>
+        <div id="na-template-name-row" hidden>
+          <label class="micro-label" for="na-template-name">Template name</label>
+          <input id="na-template-name" placeholder="e.g. Rhetorical analysis">
+        </div>
 
         <!-- Inline, at the point of submit, replacing the chain of blocking
              alert()s this form used to fire one at a time — each of which had
@@ -5502,6 +5529,10 @@ function openNewAssignmentModal(preselect) {
   pendingAssignClassIds = null;
   naDraftDatesDirty = false;
   naSyncDraftRows();
+  renderTemplatePicker();
+  document.getElementById('na-save-template-row').hidden = false;
+  document.getElementById('na-template-name').value = '';
+  naSyncTemplateNameRow();
   document.getElementById('new-assignment-modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -5537,8 +5568,92 @@ function openEditAssignmentModal(aid) {
   // let the due-date auto-spacing below silently rewrite them.
   naDraftDatesDirty = true;
   document.getElementById('na-due-date').value = editDates[editDates.length - 1] || '';
+  // Editing is fixing this assignment, not stocking a shelf: both template
+  // controls stay out of the way.
+  renderTemplatePicker();
+  document.getElementById('na-save-template').checked = false;
+  document.getElementById('na-save-template-row').hidden = true;
+  document.getElementById('na-template-name-row').hidden = true;
   document.getElementById('new-assignment-modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+// ── Templates ────────────────────────────────────────────────────────────
+// A template is the wording, not the schedule. Everything here is written so
+// that applying one leaves the two term-specific decisions — which classes,
+// which dates — exactly as the teacher left them.
+
+// The picker exists only for a teacher who has saved something, and only on
+// create: while editing, the fields already hold this assignment's own words
+// and overwriting them from a list would be a destructive convenience.
+function renderTemplatePicker() {
+  const row = document.getElementById('na-template-row');
+  const show = TEMPLATES.length > 0 && !editingAssignmentId;
+  row.hidden = !show;
+  if (!show) return;
+  const sel = document.getElementById('na-template');
+  sel.innerHTML = `<option value="">Start blank</option>`
+    + TEMPLATES.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  sel.value = '';
+}
+
+// Fills content only. Classes stay as checked, dates stay as set — including
+// when both are still empty, which is the usual case at this point in the form.
+function applyTemplate(tid) {
+  if (!tid) return;
+  const t = TEMPLATES.find(x => x.id === tid);
+  if (!t) return;
+  const form = document.getElementById('newAssignmentForm');
+  form.elements.title.value = t.title || '';
+  form.elements.description.value = t.description || '';
+  form.elements.purpose.value = t.purpose || '';
+  form.elements.requirements.value = t.requirements || '';
+  form.elements.teacherNote.value = t.teacherNote || '';
+  form.elements.draftBudget.value = t.draftBudget || 3;
+  // The budget changed, so the per-draft date rows have to follow it. Dates
+  // already typed are preserved by naSyncDraftRows itself.
+  naSyncDraftRows();
+  clearAssignFormErrors();
+  // Saving a template you just started from would stock a near-duplicate on
+  // the shelf, which is how a template list becomes unreadable.
+  document.getElementById('na-save-template').checked = false;
+  naSyncTemplateNameRow();
+  logUse('dashboard', 'template-apply');
+}
+
+// The name field appears only once saving is actually chosen — it's optional
+// (the title stands in), so it has nothing to say until then.
+function naSyncTemplateNameRow() {
+  const on = document.getElementById('na-save-template').checked;
+  document.getElementById('na-template-name-row').hidden = !on;
+  const nameInput = document.getElementById('na-template-name');
+  if (on && !nameInput.value.trim()) {
+    nameInput.value = document.getElementById('newAssignmentForm').elements.title.value.trim();
+  }
+}
+
+function openTemplateManager() {
+  const rows = TEMPLATES.length
+    ? TEMPLATES.map(t => `<div class="modal-choice">
+        <span>${esc(t.name)}</span>
+        <span class="modal-choice-sub">${t.draftBudget} draft${t.draftBudget !== 1 ? 's' : ''}</span>
+        <button type="button" class="btn btn-quiet btn-sm" onclick="deleteTemplate('${t.id}')">Delete</button>
+      </div>`).join('')
+    : '<div style="font-size:var(--tau-text-sm);color:var(--tau-ink-soft)">Nothing saved yet.</div>';
+  openObjModal({
+    title: 'Templates',
+    subtitle: 'Deleting one leaves every assignment made from it untouched — applying a template copies its wording in and keeps no link back.',
+    bodyHtml: `<div class="modal-choices">${rows}</div>`,
+    confirmLabel: 'Done',
+    onConfirm: async () => {},
+  });
+}
+
+async function deleteTemplate(tid) {
+  await api(`/api/templates/${tid}/delete`, { method: 'POST', body: {} });
+  TEMPLATES = TEMPLATES.filter(t => t.id !== tid);
+  renderTemplatePicker();
+  openTemplateManager();
 }
 
 function closeNewAssignmentModal(e) {
@@ -5547,6 +5662,7 @@ function closeNewAssignmentModal(e) {
   document.body.style.overflow = '';
 }
 
+document.getElementById('na-save-template').onchange = naSyncTemplateNameRow;
 document.getElementById('newAssignmentForm').elements.draftBudget.oninput = naSyncDraftRows;
 document.getElementById('na-due-date').oninput = naApplyDueDateDefaults;
 // Delegated so it survives naSyncDraftRows()/naDraftRowsHtml() replacing
@@ -5650,6 +5766,33 @@ document.getElementById('newAssignmentForm').onsubmit = async (e) => {
   submitBtn.disabled = false;
   submitBtn.textContent = submitLabel;
 
+  // After the assignment is safely created, never before: a template is a
+  // convenience, and failing to save one must not read as failing to create
+  // the assignment. If it fails, the assignment still exists and the message
+  // says which of the two didn't happen.
+  const saveTemplate = wasCreate && document.getElementById('na-save-template').checked;
+  let templateError = null;
+  if (saveTemplate) {
+    try {
+      const savedTemplate = await api('/api/templates', {
+        method: 'POST',
+        body: {
+          name: document.getElementById('na-template-name').value.trim() || body.title,
+          title: body.title,
+          description: body.description,
+          purpose: body.purpose,
+          requirements: body.requirements,
+          teacherNote: body.teacherNote,
+          draftBudget: body.draftBudget,
+        },
+      });
+      TEMPLATES = [savedTemplate, ...TEMPLATES];
+      logUse('dashboard', 'template-save');
+    } catch (err) {
+      templateError = err.message || 'the template could not be saved';
+    }
+  }
+
   // Confirm before refetching, not after. /api/teacher/dashboard walks every
   // student × assignment × submission and takes real seconds on a seeded
   // install — long enough that confirming afterwards left the teacher looking
@@ -5657,7 +5800,12 @@ document.getElementById('newAssignmentForm').onsubmit = async (e) => {
   const students = classIds.reduce((sum, id) => sum + ((CLASSES.find(c => c.id === id)?.studentIds || []).length), 0);
   if (wasCreate) {
     modalSuccess('new-assignment', {
-      message: `<strong>${esc(body.title)}</strong> created — sent to ${students} student${students !== 1 ? 's' : ''} across ${classIds.length} class${classIds.length !== 1 ? 'es' : ''}.`,
+      // The template line is appended to the same sentence rather than raised
+      // as its own notice: it's a side effect of the create the teacher asked
+      // for, and only the failure case needs to say anything is wrong.
+      message: `<strong>${esc(body.title)}</strong> created — sent to ${students} student${students !== 1 ? 's' : ''} across ${classIds.length} class${classIds.length !== 1 ? 'es' : ''}.`
+        + (saveTemplate && !templateError ? ' Saved as a template for next time.' : '')
+        + (templateError ? ` The assignment is created; ${esc(templateError)} — tick the box again on the next one to retry.` : ''),
       actions: [
         // The id comes from the create response, not from searching ASSIGNMENTS
         // by name after a reload — two assignments can share a title.
