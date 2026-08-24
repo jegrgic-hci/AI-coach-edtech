@@ -1039,6 +1039,10 @@ async function handleApi(req, res, user, route) {
           hasTeacherNote: Boolean(sub.teacherNote),
           teacherNote: sub.teacherNote || null,
           teacherNoteAt: sub.teacherNoteAt || null,
+          // Read state, not just presence: the home's hero announces a note
+          // only while it's unread. A note edited after it was read has a
+          // newer teacherNoteAt and goes unread again, no special case.
+          teacherNoteReadAt: sub.teacherNoteReadAt || null,
           assignmentTitle: a.title,
         });
       }
@@ -1407,6 +1411,16 @@ async function handleApi(req, res, user, route) {
       ...analysis,
       ...(isTeacher ? {} : { flags: undefined }),
     };
+
+    // Opening the report IS reading the note — this is the only moment the
+    // app can observe it, and a separate "mark read" call would be a second
+    // round trip asserting the same thing. Deliberately a write inside a GET.
+    // Only the student it was written for clears it: a teacher opening their
+    // own note must not mark it read on the student's behalf.
+    if (!isTeacher && submission.teacherNoteAt
+        && (!submission.teacherNoteReadAt || submission.teacherNoteReadAt < submission.teacherNoteAt)) {
+      await col('submissions').update(submission.id, { teacherNoteReadAt: now() });
+    }
 
     // The nav's breadcrumb and its "Conversation" toggle both need to name
     // and link back to the assignment this draft belongs to — neither was

@@ -765,13 +765,6 @@ button:hover { border-color: var(--tau-forest); }
 .dash-rail, .ws-body > .rail { background: var(--tau-shell); }
 .dash-rail .rail-item.active, .ws-body > .rail .rail-item.active { background: var(--tau-surface-2); }
 .dash-rail .rail-item-meta, .ws-body > .rail .rail-item-meta { color: var(--tau-ink-soft); }
-/* A fourth, and the one that is easy to miss: components.css sets the avatar
-   on a rail to --tau-surface-3, reasoning "surface-2 is the rail's ground, so
-   go one step further down the ramp." On the shell that reasoning inverts —
-   surface-3 is now LIGHTER than the rail by ~3%, which is the invisible edge
-   again, and the circle all but disappears. Back to surface-2, which is the
-   one raised fill this shell uses for everything. */
-.dash-rail .avatar { background: var(--tau-surface-2); }
 
 /* Pinned to the bottom by .rail-foot's margin-top:auto — whatever room the
    assignment list doesn't use, this claims, so guidance reads as the rail's
@@ -794,6 +787,51 @@ button:hover { border-color: var(--tau-forest); }
    a sentence carries more than either did on its own, so it replaces both
    rather than sitting alongside them. */
 .meter-guidance { font-size: 12.5px; color: var(--tau-ink-soft); line-height: 1.5; }
+
+/* ---------- hero ---------- */
+
+/* Type on the shell, with no fill and no border of its own. Raised is
+   reserved for content (designsystem.md's shell rule), so a filled bar here
+   would out-pop the assignment cards it introduces — and what was wrong with
+   the name in the rail was its 13px, not its container. It spans the rail as
+   well as the content pane, so it sits outside .dash and doesn't scroll:
+   about 90px held permanently, bought by the rail head it replaces. */
+.hero {
+  flex: none;
+  display: flex; align-items: flex-end; gap: var(--tau-s5); flex-wrap: wrap;
+  padding: var(--tau-s6) var(--tau-s7) var(--tau-s5);
+  background: var(--tau-shell);
+}
+.hero-text { min-width: 0; }
+.hero-greeting {
+  font-size: var(--tau-text-3xl); line-height: 1.15; letter-spacing: -0.015em;
+  margin: 0 0 var(--tau-s1); text-wrap: balance;
+}
+/* One segment per live fact, each rendered only when non-zero — bare text,
+   since a count is the common case and fails the enclosure test's rare half. */
+.hero-state {
+  margin: 0; display: flex; align-items: baseline; gap: var(--tau-s2); flex-wrap: wrap;
+  font-size: var(--tau-text-md);
+}
+.hero-sep { color: var(--tau-line-strong); }
+.hero-state-late { color: var(--tau-attention); font-weight: 600; }
+.hero-state-quiet { color: var(--tau-ink-soft); font-size: var(--tau-text-sm); }
+
+/* The one enclosed thing in the hero, and only while a note is unread:
+   actionable and rare is the whole test. Auditor tint, the colour a teacher's
+   note already carries on the draft tile and the past-assignment chips. */
+.hero-news { margin-left: auto; display: flex; gap: var(--tau-s2); flex-wrap: wrap; }
+.hero-news-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 40px; padding: 8px 15px;
+  font: inherit; font-size: var(--tau-text-sm); font-weight: 600;
+  border-radius: var(--tau-r-pill); cursor: pointer;
+  background: var(--tau-auditor-bg); color: var(--tau-auditor);
+  border: 1px solid color-mix(in oklab, var(--tau-auditor) 30%, transparent);
+  transition: border-color var(--tau-dur-short) var(--tau-ease-standard);
+}
+.hero-news-chip:hover { border-color: var(--tau-auditor); }
+.hero-news-chip .tau-icon { width: 15px; height: 15px; }
 
 /* ---------- content chunks ---------- */
 
@@ -853,16 +891,14 @@ button:hover { border-color: var(--tau-forest); }
 }
 .draft-row-due { font-size: var(--tau-text-label-sm); font-weight: 700; }
 
-/* Line 3 — functionality: a button (current draft), a report link
-   (submitted), or just the detail text explaining why there's nothing to do
-   (locked, still analyzing). */
-.draft-row-body { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+/* Line 2 — state: the status word and, where there is one, the detail that
+   carries it ("In progress · 2 sessions · last worked today"). One sentence
+   about where this draft stands, so line 3 is the action and nothing else. */
+.draft-row-state { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .draft-row-detail { color: var(--tau-ink-soft); }
-/* Explicitly inert, not just quieter: no bold num, no colored status word,
-   reduced opacity on the whole row — has to read as "can't touch this yet"
-   at a glance, not as a same-weight row that happens to be gray. */
-.draft-row-locked { opacity: 0.55; border-style: dashed; }
-.draft-row-locked .draft-row-num { font-weight: 400; color: var(--tau-ink-faint); }
+
+/* Line 3 — functionality: the one button this row offers. */
+.draft-row-body { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
 /* draft-row-in-progress/-not-started only ever apply to the current cycle's
    row (see draftRowStatus) — the ledger's "you are here" row, anchored so a
@@ -883,10 +919,50 @@ button:hover { border-color: var(--tau-forest); }
 .status-in-progress { color: var(--tau-forest); font-weight: 600; }
 .status-locked { color: var(--tau-ink-faint); }
 
+/* A submitted draft's only move is to point at its report, so the whole row
+   is the control — one line instead of three, and a 44px target (--tau-target)
+   without a button of its own. It borrows the closed-assignment chip's shape
+   but never its SAMR band: a number here invites reading it as a grade.
+   Analyzing has nothing to open yet, so it renders as an inert div and drops
+   the hover and the affordance with it. */
+.draft-tile {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; min-height: var(--tau-target);
+  padding: 10px 14px; font: inherit; font-size: 13px; text-align: left;
+  color: var(--tau-ink); background: var(--tau-surface);
+  border: 1px solid var(--tau-line); border-radius: var(--tau-r-md);
+  transition: border-color var(--tau-dur-short) var(--tau-ease-standard),
+              background var(--tau-dur-short) var(--tau-ease-standard);
+}
+.draft-tile-num { font-weight: 600; }
+.draft-tile-status { color: var(--tau-ink-soft); }
+.draft-tile-go {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  color: var(--tau-forest); font-weight: 600;
+}
+button.draft-tile { cursor: pointer; }
+/* Named fill, not a translucent overlay — a state layer with `transparent`
+   as its base would replace this tile's own fill instead of layering on it
+   (designsystem.md, state-layer rule). */
+button.draft-tile:hover {
+  border-color: var(--tau-forest);
+  background: color-mix(in oklab, var(--tau-ink) var(--tau-state-hover), var(--tau-surface));
+}
+
+/* An upcoming draft is neither actionable nor rare, so it takes weight and
+   colour and never a filled boundary (designsystem.md's enclosure test).
+   Padding matches the tiles' horizontal inset so every draft's number starts
+   on the same vertical line down the ledger. */
+.draft-upcoming {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  padding: 3px 15px; font-size: 13px; color: var(--tau-ink-faint);
+}
+.draft-upcoming-num { font-weight: 600; }
+
 /* A teacher note on a submitted draft is never guaranteed and never the
-   point of the row — it's a quiet flag, not a block, so it can't crowd out
-   the row's one real action (View report). The note itself only ever reads
-   in the report, same place the flag's icon (✉) already means "teacher
+   point of the row — it's a quiet flag, not a block, riding along on the
+   tile's one line next to the draft it belongs to. The note itself only ever
+   reads in the report, same place the flag's icon (✉) already means "teacher
    note" on the past-assignment chips. */
 .draft-row-note-flag {
   display: inline-flex; align-items: center; gap: 4px;

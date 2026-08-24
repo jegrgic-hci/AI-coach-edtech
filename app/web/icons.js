@@ -18,6 +18,10 @@ const ICONS = {
     + '<path d="M8 15.5 6.8 19 11 15.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
   expandMore:
     '<path d="M5 8.5 12 15l7-6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+  // expandMore's path turned a quarter — same stroke and joint, so a row that
+  // leads somewhere and a section that opens downward read as one family.
+  chevronRight:
+    '<path d="M8.5 5 15 12l-6.5 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
   close:
     '<path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
   description:

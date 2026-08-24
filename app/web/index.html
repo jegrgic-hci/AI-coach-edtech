@@ -30,19 +30,23 @@
 
 <!-- View 1: student home -->
 <div id="viewAssignments" class="view">
-  <!-- The rail is the dashboard's fixed ground: who you are and where you stand.
-       It does not change as assignments come and go. Content scrolls beside it. -->
+  <!-- The hero runs the full width, above the rail as well as the content: a
+       student's own name was a 13px label in the quietest column of their own
+       dashboard. It is type on the shell with no fill of its own — only
+       content is raised off the shell, and a filled bar here would out-pop the
+       assignment cards it introduces. -->
+  <header class="hero">
+    <div class="hero-text">
+      <h1 class="hero-greeting" id="heroGreeting"></h1>
+      <p class="hero-state" id="heroState"></p>
+    </div>
+    <div class="hero-news" id="heroNews"></div>
+  </header>
+
+  <!-- The rail is the dashboard's fixed ground: where you stand and what's
+       open. Content scrolls beside it. -->
   <div class="dash">
     <aside class="rail dash-rail">
-      <div class="rail-head">
-        <div class="rail-identity">
-          <div class="avatar avatar-lg" id="railAvatar"></div>
-          <div class="rail-who">
-            <span class="rail-who-name" id="railName"></span>
-            <span class="rail-who-sub" id="railSub"></span>
-          </div>
-        </div>
-      </div>
       <div class="rail-body" id="railNav"></div>
       <div class="rail-foot rail-progress" id="railProgress"></div>
     </aside>

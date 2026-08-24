@@ -259,26 +259,28 @@ function draftRowStatus(cycleIndex, { currentCycle, hasActivity, submission }) {
 // be forming their read of a draft. That's the report's job; this row's
 // only move is to point there.
 //
-// Every row reads in the same three lines regardless of state, so a locked
-// row and an in-progress row visually rhyme instead of each showing whatever
-// fields happen to apply: identity (which draft, when it's due), status (one
-// word, its own line), functionality (the one thing — a button, a report
-// link, or the reason there's nothing to do — this row offers right now).
+// A slot gets vertical space in proportion to what it offers. The current
+// draft is the only destination in the ledger and keeps all three lines;
+// a submitted draft is one clickable row that points at its report; an
+// upcoming draft is one muted line stating when it opens. Every slot is
+// still listed with its own status — this is density, not concealment.
 function draftRow(cycleIndex, status, opts = {}) {
-  const reportId = opts.submission?.submissionId;
+  if (status.key === 'locked') return upcomingDraftLine(cycleIndex, status, opts);
+  if (status.key === 'submitted') return submittedDraftTile(cycleIndex, status, opts);
+  return currentDraftRow(cycleIndex, status, opts);
+}
+
+// The current draft. Line 1 identity, line 2 state, line 3 the one action.
+// The activity detail ("2 sessions · last worked today") sits with the
+// status rather than beside the button: the two facts describing where this
+// draft stands read as one sentence, and the button gets a line to itself so
+// it reads as the single thing this row is for.
+function currentDraftRow(cycleIndex, status, opts) {
   const row = el('div', `draft-row draft-row-${status.key}`);
 
-  // The current draft's activity detail ("3 sessions · last worked
-  // today") travels with its button rather than sitting up in the head —
-  // it's context for the action, so it reads next to the thing it explains.
-  const detailGoesWithButton = opts.isCurrent && status.key === 'in-progress' && status.detail;
-
-  // Line 1 — identity: which draft, and when it's due.
   const id = el('div', 'draft-row-id');
   id.append(el('span', 'draft-row-num', `Draft ${cycleIndex + 1}`));
-  // Only shown pre-submission — once a draft is in, its due date is no
-  // longer a live fact the student needs on this row.
-  if (status.key !== 'submitted' && opts.dueDate) {
+  if (opts.dueDate) {
     const due = dueInfo(opts.dueDate);
     if (due.text) {
       id.append(el('span', 'draft-row-sep', '·'));
@@ -290,43 +292,82 @@ function draftRow(cycleIndex, status, opts = {}) {
   if (opts.isFinal) id.append(el('span', 'draft-row-final-badge', 'Final draft'));
   row.append(id);
 
-  // Line 2 — status: one word, its own line, never sharing space with the
-  // due date or the identity line.
-  row.append(el('div', `draft-row-status status-${status.key}`, status.label));
-
-  // Line 3 — functionality: whatever this row lets you do right now.
-  const body = el('div', 'draft-row-body');
-  if (opts.isCurrent) {
-    // The one action a student can take lives in the row of the draft it
-    // moves forward — not in a card-level footer that repeats "Draft N".
-    const go = el('button', 'acard-btn draft-row-btn');
-    go.innerHTML = `${status.key === 'in-progress' ? 'Continue' : 'Start'} Draft ${cycleIndex + 1} ${iconSVG('arrowForward')}`;
-    go.onclick = () => openAssignment(opts.assignmentId);
-    body.append(go);
-    if (detailGoesWithButton) body.append(el('span', 'draft-row-action-detail', status.detail));
-  } else if (status.key === 'submitted' && reportId && !status.detail) {
-    // .btn-quiet — same component and same visible-border-at-rest as the
-    // "Prompt & rubric" tray trigger, not a one-off text link. .btn-tertiary
-    // sets border-color: transparent by design, so it reads as plain text
-    // until hovered — no better than what this replaced.
-    const link = el('button', 'btn btn-quiet btn-sm');
-    link.innerHTML = `${iconSVG('description')} View report`;
-    link.onclick = () => { logUse('student-home', 'past-report'); showReport(reportId); };
-    body.append(link);
-  } else if (status.detail) {
-    body.append(el('span', 'draft-row-detail', status.detail));
+  const state = el('div', 'draft-row-state');
+  state.append(el('span', `draft-row-status status-${status.key}`, status.label));
+  if (status.detail) {
+    state.append(el('span', 'draft-row-sep', '·'));
+    state.append(el('span', 'draft-row-detail', status.detail));
   }
+  row.append(state);
+
+  // The one action a student can take lives in the row of the draft it
+  // moves forward — not in a card-level footer that repeats "Draft N".
+  const body = el('div', 'draft-row-body');
+  const go = el('button', 'acard-btn draft-row-btn');
+  go.innerHTML = `${status.key === 'in-progress' ? 'Continue' : 'Start'} Draft ${cycleIndex + 1} ${iconSVG('arrowForward')}`;
+  go.onclick = () => openAssignment(opts.assignmentId);
+  body.append(go);
+  row.append(body);
+
+  return row;
+}
+
+// A submitted draft's only move is to point at its report, so the whole row
+// is the control rather than a status line with a 36px button parked under
+// it — one line instead of three, and a target well over --tau-target.
+//
+// It never shows its score or SAMR band, unlike the closed-assignment chips
+// this borrows its shape from: a number invites reading it as a grade, and
+// the ledger isn't where a student should be forming their read of a draft.
+// That's the report's job.
+//
+// While a draft is still analyzing there is nothing to open, so the same
+// shape renders as an inert div — a button that can't act is worse than no
+// button.
+function submittedDraftTile(cycleIndex, status, opts) {
+  const reportId = opts.submission?.submissionId;
+  const openable = reportId && !status.detail;
+  const tile = el(openable ? 'button' : 'div', 'draft-tile');
+  if (!openable) tile.setAttribute('aria-disabled', 'true');
+
+  tile.append(el('span', 'draft-tile-num', `Draft ${cycleIndex + 1}`));
+  tile.append(el('span', 'draft-tile-status', status.detail || status.label));
+
   // A teacher note is never guaranteed and never the point of the row — a
-  // quiet flag, not a block, so it can't crowd out the row's one real
-  // action. The note itself only ever reads in the report.
+  // quiet flag, not a block. The note itself only ever reads in the report.
   if (opts.submission?.teacherNote) {
     const flag = el('span', 'draft-row-note-flag');
     flag.innerHTML = `${iconSVG('chat')} Note from your teacher`;
-    body.append(flag);
+    tile.append(flag);
   }
-  if (body.childNodes.length) row.append(body);
 
-  return row;
+  if (openable) {
+    const go = el('span', 'draft-tile-go');
+    go.innerHTML = `View report ${iconSVG('chevronRight')}`;
+    tile.append(go);
+    tile.onclick = () => { logUse('student-home', 'past-report'); showReport(reportId); };
+  }
+  return tile;
+}
+
+// An upcoming draft is neither actionable nor rare, so it gets weight and
+// colour, never a filled boundary (designsystem.md's enclosure test). It
+// also drops "Not available yet": "Opens after Draft 2 is submitted" states
+// the same fact and states the useful half. Still one line per slot, so the
+// budget stays as explicit as every other row.
+function upcomingDraftLine(cycleIndex, status, opts) {
+  const line = el('div', 'draft-upcoming');
+  line.append(el('span', 'draft-upcoming-num', `Draft ${cycleIndex + 1}`));
+
+  // Lowercased because it runs on after a separator here rather than opening
+  // its own line, the way it does everywhere else draftRowStatus is read.
+  const opens = status.detail.charAt(0).toLowerCase() + status.detail.slice(1);
+  const rest = [];
+  const due = opts.dueDate ? dueInfo(opts.dueDate) : null;
+  if (due?.text) rest.push(due.text);
+  rest.push(opts.isFinal ? `Final · ${opens}` : opens);
+  line.append(el('span', null, rest.join(' · ')));
+  return line;
 }
 
 function relTime(iso) {
@@ -437,11 +478,74 @@ function renderRailNav(home) {
   host.append(group);
 }
 
+// A note is unread until the student opens that draft's report, and a note
+// the teacher edits afterwards goes unread again — its teacherNoteAt moves
+// past the read stamp. Scoped to open assignments: a note on work that's
+// closed has no next draft to apply it to, so announcing it in the hero
+// would leave a chip nothing can act on or clear.
+function unreadNotes(home) {
+  return home.current
+    .flatMap((a) => a.drafts.map((d) => ({ ...d, assignmentTitle: a.title })))
+    .filter((d) => d.teacherNoteAt && (!d.teacherNoteReadAt || d.teacherNoteReadAt < d.teacherNoteAt))
+    .sort((x, y) => (x.teacherNoteAt < y.teacherNoteAt ? -1 : 1));
+}
+
+// The hero states who you are and what's true right now. Every segment is a
+// count of something live and renders only when it's non-zero, so a quiet
+// week is one segment and no dangling separators. Bare text, never chips: a
+// count is the common case, which is the half of the enclosure test a chip
+// has to clear.
+function renderHero(home) {
+  const first = home.student.displayName.split(' ')[0];
+  const open = home.current.length;
+  $('heroGreeting').textContent = open ? `Welcome back, ${first}` : `Welcome, ${first}`;
+
+  const state = $('heroState');
+  state.innerHTML = '';
+  const segs = [];
+  if (open) {
+    segs.push({ text: `${open} assignment${open === 1 ? '' : 's'} open` });
+    // Counts the draft a student would actually sit down to — the open slot
+    // on each assignment — not every dated slot in every budget.
+    const due = home.current.map((a) => dueInfo(a.draftDueDates?.[a.draftsUsed] || a.dueDate));
+    const today = due.filter((d) => d.days === 0).length;
+    const late = due.filter((d) => d.days < 0).length;
+    if (today) segs.push({ text: `${today} draft${today === 1 ? '' : 's'} due today` });
+    // Colour AND the word — "overdue" states it on its own for anyone the
+    // attention tone doesn't reach.
+    if (late) segs.push({ text: `${late} overdue`, cls: 'hero-state-late' });
+  }
+
+  if (!segs.length) {
+    state.append(el('span', 'hero-state-quiet',
+      'No assignments yet — when your teacher sets one, it lands here.'));
+  } else {
+    segs.forEach((seg, i) => {
+      if (i) state.append(el('span', 'hero-sep', '·'));
+      state.append(el('span', seg.cls || null, seg.text));
+    });
+  }
+
+  // The one enclosed thing in the hero, and only while a note is unread:
+  // actionable and rare, which is both halves of the enclosure test. Reading
+  // it is what clears it — the ✉ on the draft's own tile stays either way,
+  // because the note remains a property of that draft.
+  const news = $('heroNews');
+  news.innerHTML = '';
+  const unread = unreadNotes(home);
+  if (!unread.length) return;
+  const newest = unread[unread.length - 1];
+  const chip = el('button', 'hero-news-chip');
+  chip.type = 'button';
+  chip.innerHTML = `${iconSVG('chat')} ${unread.length === 1
+    ? 'Note from your teacher'
+    : `${unread.length} notes from your teacher`}`;
+  chip.onclick = () => { logUse('student-home', 'hero-note'); showReport(newest.submissionId); };
+  news.append(chip);
+}
+
 function renderRail(home) {
   const first = home.student.displayName.split(' ')[0];
-  $('railAvatar').textContent = home.student.displayName
-    .split(' ').slice(0, 2).map((p) => p[0]).join('').toUpperCase();
-  $('railName').textContent = home.student.displayName;
 
   renderRailNav(home);
 
@@ -450,20 +554,10 @@ function renderRail(home) {
   host.innerHTML = '';
 
   if (!scored.length) {
-    $('railSub').textContent = 'No drafts submitted yet';
     host.append(el('p', 'rail-empty',
       `Submit your first draft, ${first}, and this is where you'll see how you're working with the AI.`));
     return;
   }
-
-  // A cumulative, always-true fact rather than a score — the one thing on
-  // the rail that only ever goes up, regardless of how any single draft
-  // scored. Per-draft score and SAMR band already live on the assignment
-  // cards (current and past); the rail doesn't repeat them.
-  const assignmentCount = new Set(scored.map((d) => d.assignmentTitle)).size;
-  $('railSub').textContent = assignmentCount > 1
-    ? `${scored.length} draft${scored.length === 1 ? '' : 's'} · ${assignmentCount} assignments`
-    : `${scored.length} draft${scored.length === 1 ? '' : 's'} submitted`;
 
   const last = scored[scored.length - 1];
   const earlier = scored.slice(0, -1);
@@ -580,16 +674,19 @@ function currentCard(a) {
   // draft's action button and any teacher note live inside that same row —
   // content maps to the specific draft it belongs to, not to the card as a
   // whole.
+  // Newest slot first — final, then back down to draft 1 — so the current
+  // draft and what's still ahead sit above the drafts already handed in,
+  // rather than under a growing stack of finished work.
   const currentCycle = a.draftsUsed;
   const rows = el('div', 'draft-rows');
-  for (let i = 0; i < a.draftBudget; i++) {
+  for (let i = a.draftBudget - 1; i >= 0; i--) {
     const submission = a.drafts.find((d) => d.cycleIndex === i);
     const status = draftRowStatus(i, { currentCycle, hasActivity: a.hasActivity, submission });
     if (status.key === 'in-progress') {
       status.detail = `${a.conversationCount} session${a.conversationCount === 1 ? '' : 's'} · last worked ${relTime(a.lastActiveAt)}`;
     }
     rows.append(draftRow(i, status, {
-      submission, isCurrent: i === currentCycle, assignmentId: a.id,
+      submission, assignmentId: a.id,
       dueDate: a.draftDueDates?.[i], isFinal: i === a.draftBudget - 1,
     }));
   }
@@ -631,6 +728,7 @@ async function showAssignments() {
   // only re-raises it on the next reply, which is one reply too late.
   syncBudgetNotice(home.budget);
 
+  renderHero(home);
   renderRail(home);
   renderNavCrumbs($('navCrumbs'), [{ label: 'All assignments', current: true }]);
   renderNavLocal($('navLocal'), []);
