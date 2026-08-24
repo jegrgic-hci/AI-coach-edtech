@@ -25,7 +25,7 @@ body {
   font-family: var(--tau-font-ui);
   background: var(--tau-bg);
   color: var(--tau-ink);
-  font-size: 14px;
+  font-size: var(--tau-text-md);
   line-height: 1.5;
   display: flex;
   flex-direction: column;
@@ -40,19 +40,33 @@ body {
    .content's own scroll — the page body does not scroll, the content pane
    does. The extra height is also what lets "+ Add" be a 40px control without
    crowding the row. */
+/* Three columns, not flex, since 2026-08-24. The centre holds global search
+   and has to sit on the page's true centre — the lead (wordmark + title) is
+   ~220px and the trailing account chip is ~40px, so flex with margin-left:auto
+   would park it visibly right of centre. Equal 1fr gutters centre the middle
+   column regardless of what the sides weigh. */
 header {
   background: var(--tau-surface);
   border-bottom: 1px solid transparent;
   min-height: 64px;
   padding: 0 var(--tau-s6);
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 460px) 1fr;
   align-items: center;
-  gap: var(--tau-s3);
+  gap: var(--tau-s4);
   flex-shrink: 0;
   transition: background var(--tau-dur-medium) var(--tau-ease-standard);
 }
+.header-lead { display: flex; align-items: center; gap: var(--tau-s3); min-width: 0; }
+/* The title yields before the search field does — min-width:0 on the track
+   alone isn't enough to let a grid item shrink past its content. */
+.header-lead h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.header-end { display: flex; align-items: center; justify-content: flex-end; gap: var(--tau-s2); }
 header.scrolled { background: var(--tau-surface-2); }
-header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.4px; }
+/* Identical to .app-header h1 on teacher/admin and to header h1 on levels/
+   signals/dimensions. Same object on all six — wordmark, page name, controls —
+   and this was the one surface dissenting, on size AND weight AND tracking. */
+header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.2px; }
 /* ── Header utility menus (Manage / Account) ──────────────────────────────
    Two dropdowns replace what used to be five flat, equal-weight buttons —
    see teacher-dashboard-design.md's header session log for the reasoning.
@@ -89,7 +103,7 @@ header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.4px; }
 
 .roadmap-next-hint {
   margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--tau-line);
-  font-size: var(--tau-text-xs); color: var(--tau-ink-faint); line-height: 1.5;
+  font-size: var(--tau-text-sm); color: var(--tau-ink-faint); line-height: 1.5;
 }
 
 /* Optional attach panel — New class door's "Students"/"Assignment" sections.
@@ -117,13 +131,13 @@ header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.4px; }
   font-size: var(--tau-text-label-sm); font-weight: 700; color: var(--tau-ink-faint);
   background: var(--tau-surface-2); padding: 2px 6px; border-radius: var(--tau-r-pill);
 }
-.attach .ah-desc { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); margin-top: 1px; }
-.attach .ah-chevron { color: var(--tau-ink-faint); font-size: 11px; transition: transform var(--tau-dur-short) var(--tau-ease-standard); }
+.attach .ah-desc { font-size: var(--tau-text-sm); color: var(--tau-ink-faint); margin-top: 1px; }
+.attach .ah-chevron { color: var(--tau-ink-faint); font-size: var(--tau-text-label-sm); transition: transform var(--tau-dur-short) var(--tau-ease-standard); }
 .attach.open .ah-chevron { transform: rotate(180deg); }
 .attach.open .attach-head { border-bottom: 1px solid var(--tau-line); background: var(--tau-surface-2); }
 .attach-body { display: none; padding: 13px; flex-direction: column; gap: 12px; }
 .attach.open .attach-body { display: flex; animation: tau-reveal var(--tau-dur-medium) var(--tau-ease-decelerate); }
-.attach .section-note { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); line-height: 1.5; }
+.attach .section-note { font-size: var(--tau-text-sm); color: var(--tau-ink-faint); line-height: 1.5; }
 .attach .field-locked {
   display: flex; align-items: center; gap: 8px; padding: 8px 11px; border: 1px solid var(--tau-line);
   border-radius: var(--tau-r-sm); background: var(--tau-surface-2); font-size: var(--tau-text-sm); font-weight: 600;
@@ -142,7 +156,7 @@ header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.4px; }
 .roster-row:last-child { border-bottom: none; }
 .roster-label { color: var(--tau-ink); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .roster-email { font-weight: 400; color: var(--tau-ink-faint); }
-.roster-chip { flex-shrink: 0; font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: var(--tau-r-pill); white-space: nowrap; }
+.roster-chip { flex-shrink: 0; font-size: var(--tau-text-label-sm); font-weight: 700; padding: 2px 7px; border-radius: var(--tau-r-pill); white-space: nowrap; }
 .roster-chip-new { background: var(--tau-positive-bg); color: var(--tau-positive); }
 .roster-chip-existing { background: var(--tau-band-2-bg); color: var(--tau-band-2-fg); }
 .roster-chip-warn { background: var(--tau-caution-bg); color: var(--tau-caution); }
@@ -168,7 +182,7 @@ header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.4px; }
   border: none; background: none; padding: 0; border-radius: 0;
 }
 .class-check-count { margin-left: auto; font-weight: 400; font-size: var(--tau-text-xs); color: var(--tau-ink-faint); }
-.assign-scope-note { margin: var(--tau-s2) 0 0; font-size: var(--tau-text-xs); color: var(--tau-ink-soft); line-height: 1.5; }
+.assign-scope-note { margin: var(--tau-s2) 0 0; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.5; }
 /* The checklist's own last row — starting a class you don't have yet is a
    variant of picking one you do, not a separate errand. Dashed border marks
    it as an action, not another selectable class. */
@@ -203,54 +217,117 @@ header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.4px; }
    Chrome is components.css §13. What's left here is this rail's own search
    field and its results overlay, which no other rail has. ── */
 
-/* Anchor for the results dropdown — scoped to the input alone, not the whole
-   .rail-search block (which also holds the hint text below it). Anchoring
-   to the wider block would resolve top:100% against the hint's bottom edge
-   instead of the input's, leaving the panel visibly detached from the box
-   a teacher is actually typing into. */
-.rail-search-anchor { position: relative; }
-.rail-search input {
+/* ── Global search, in the app bar's centre column ────────────────────────
+   The persistent hint that used to sit under the rail field is gone: it read
+   "the fast path once a class has more than a few students," which was
+   rail-and-roster framing describing why the control exists rather than
+   naming what it searches. The placeholder already names all three object
+   types, which is the label doing the job. ── */
+.header-search { position: relative; width: 100%; }
+.header-search input {
   width: 100%;
-  padding: 7px 10px;
-  min-height: var(--tau-target);
-  border: 1px solid var(--tau-line);
-  border-radius: var(--tau-r-sm);
-  font-size: var(--tau-text-xs);
-  /* Matching the rail's selected row, which moved from white to sage when
-     the rail moved onto the shell (2026-08-22). Left at white it would be a
-     bigger lightness jump than the bands themselves and become the loudest
-     object in the rail — the same reason .rail-item.active moved. */
-  background: var(--tau-surface-2);
+  min-height: var(--tau-h-control);
+  padding: 0 52px 0 38px;   /* leading magnifier, trailing ⌘K badge */
+  /* White on a white bar, defined by its border — deliberately not a
+     --tau-surface-2 fill, because header.scrolled takes surface-2 itself and
+     the field would dissolve into the bar at exactly the moment content is
+     moving under it. */
+  background: var(--tau-surface);
+  border: 1px solid var(--tau-line-strong);
+  border-radius: var(--tau-r-pill);
   color: var(--tau-ink);
   font-family: inherit;
+  font-size: var(--tau-text-sm);
 }
-.rail-search input:focus {
+.header-search input::placeholder { color: var(--tau-ink-faint); }
+.header-search input:focus {
   outline: var(--tau-focus-ring); outline-offset: var(--tau-focus-gap);
   border-color: var(--tau-forest);
 }
-/* ink-soft, not ink-faint: this text sits on --tau-shell, where ink-faint
-   measures 2.79:1 and fails AA. Same correction as .rail-item-meta. */
-.rail-search-hint { font-size: 10.5px; color: var(--tau-ink-soft); margin: 5px 2px 0; }
-.rail-search-hint.hidden { display: none; }
-/* Overlay, not reflow — a query used to push Home/Classes/Assignments/
-   Students down the rail on every keystroke (up to ~14 rows worst case).
-   Floating the results over the nav instead (Jakob's Law: this is how every
-   other type-ahead a teacher has used already behaves) keeps the rest of the
-   rail exactly where it was while they type. */
+.header-search-icon {
+  position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+  display: inline-flex; color: var(--tau-ink-soft); pointer-events: none;
+}
+.header-search-icon .tau-icon { width: 17px; height: 17px; }
+/* Teaches the shortcut. It is the whole mitigation for search no longer
+   sitting in the rail where a teacher stumbled onto it. */
+.header-search-kbd {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  font-family: var(--tau-font-ui); font-size: var(--tau-text-label-sm); font-weight: 600;
+  color: var(--tau-ink-soft); background: var(--tau-surface-2);
+  border: 1px solid var(--tau-line); border-radius: var(--tau-r-sm);
+  padding: 2px 6px; line-height: 1.4; pointer-events: none;
+}
+.header-search input:focus ~ .header-search-kbd { display: none; }
+
+/* Overlay, not reflow — this floats over the content pane rather than
+   displacing it (Jakob's Law: every other type-ahead a teacher has used
+   behaves this way). z-index clears the content but stays under .scrim. */
 #global-search-results {
   position: absolute;
   left: 0;
   right: 0;
-  top: calc(100% + 4px);
-  z-index: 20;
+  top: calc(100% + 6px);
+  z-index: 60;
 }
-.rail-search-results {
-  border: 1px solid transparent;
-  border-radius: var(--tau-r-sm);
+.gs-panel {
+  border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-md);
   background: var(--tau-surface);
-  box-shadow: var(--tau-shadow);
+  box-shadow: var(--tau-shadow-lift);
   overflow: hidden;
   padding: var(--tau-s1);
+  max-height: 62vh;
+  overflow-y: auto;
+}
+/* Type is a GROUP HEADING, not a per-row tag. The old rail dropdown put
+   "Student"/"Class"/"Assignment" in each row's sub slot, which spent the only
+   line of context a 272px row had on something three identical rows already
+   made obvious — and left two students called Maya indistinguishable. The
+   heading carries the type; the row's sub carries which class they're in. */
+.gs-group {
+  font-size: var(--tau-text-label-sm); font-weight: 700; color: var(--tau-ink-soft);
+  padding: var(--tau-s3) var(--tau-s3) var(--tau-s1);
+}
+.gs-group:first-child { padding-top: var(--tau-s2); }
+.gs-row {
+  display: flex; align-items: center; gap: var(--tau-s4);
+  width: 100%; text-align: left; border: 0; background: none; font: inherit;
+  padding: var(--tau-s2) var(--tau-s3); border-radius: var(--tau-r-sm);
+  min-height: var(--tau-h-chip); cursor: pointer; color: var(--tau-ink);
+}
+/* Hover and keyboard selection are ONE state, deliberately: with both visible
+   at once a teacher cannot tell which one Enter will act on. */
+.gs-row:hover, .gs-row.is-active {
+  background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent);
+}
+/* Both can ellipsis, but the name grows and the context doesn't — so a long
+   assignment title takes the room, and a student on four classes truncates
+   their class list rather than squeezing their own name. */
+.gs-row-name {
+  flex: 1 1 auto; min-width: 0;
+  font-size: var(--tau-text-sm); font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gs-row-sub {
+  flex: 0 1 auto; min-width: 0; padding-left: var(--tau-s3);
+  font-size: var(--tau-text-sm); color: var(--tau-ink-soft);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gs-empty { padding: var(--tau-s3); font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+
+/* ── "+ Add", at the top of the rail ──
+   Full width so it reads as the rail's own primary action rather than a
+   floating chip, and .menu-trigger's own 40px/pill/forest treatment is left
+   completely alone — that shape is what stops it reading as a .rail-item. */
+.rail-actions { flex-shrink: 0; }
+.rail-actions .menu-trigger { width: 100%; justify-content: center; }
+/* .rail is the flex column and .rail-body's flex:1/overflow-y is what makes
+   the class list scroll — so this wrapper, now sitting between them, has to
+   carry the column itself or the rail stops scrolling and the gap collapses. */
+#sidebar-nav {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column; gap: var(--tau-s5);
 }
 
 /* ── Rail, on the shell ──
@@ -329,7 +406,7 @@ header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.4px; }
   color: var(--tau-ink);
 }
 .content-meta {
-  font-size: var(--tau-text-xs);
+  font-size: var(--tau-text-sm);
   color: var(--tau-ink-soft);
   margin-top: 4px;
 }
@@ -354,7 +431,10 @@ table.roster th, table.roster td {
    reinforces it as the one row that's always "on top." */
 table.roster th {
   font-size: var(--tau-text-label-md);
-  color: var(--tau-ink-faint); font-weight: 600;
+  /* ink-soft, not ink-faint: this is the one label sitting on --tau-surface-3,
+     the darkest ground either muted ink meets, and faint does not clear 4.5:1
+     against it in either theme. */
+  color: var(--tau-ink-soft); font-weight: 600;
   background: var(--tau-surface-3);
   border-bottom: 1px solid var(--tau-line-strong);
   white-space: nowrap;
@@ -369,7 +449,10 @@ table.roster-browse { table-layout: fixed; min-width: 760px; }
 table.roster-browse td { vertical-align: top; }
 table.roster th.sortable { cursor: pointer; user-select: none; }
 table.roster th.sortable:hover { color: var(--tau-ink); }
-table.roster th.sortable .sort-arrow { font-size: 10px; margin-left: 3px; opacity: 0.35; font-style: normal; }
+/* No opacity on the resting arrow: 0.35 put it at ~1.5:1 on the header fill,
+   and it is the affordance saying the column sorts (WCAG 1.4.11 wants 3:1).
+   Rest vs. active is carried by colour instead, on the line below. */
+table.roster th.sortable .sort-arrow { font-size: var(--tau-text-label-sm); margin-left: 3px; color: var(--tau-ink-faint); font-style: normal; }
 table.roster th.sort-active { color: var(--tau-forest); }
 table.roster th.sort-active .sort-arrow { opacity: 1; color: var(--tau-forest); }
 table.roster tbody tr:last-child td { border-bottom: none; }
@@ -481,13 +564,13 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .dim-row { display: flex; align-items: flex-start; gap: var(--tau-s3); padding: 11px 0; border-bottom: 1px solid var(--tau-line); }
 .dim-row:last-child { border-bottom: none; }
 .dim-name { width: 172px; flex-shrink: 0; font-size: var(--tau-text-sm); font-weight: 600; padding-top: 2px; }
-.dim-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: var(--tau-r-pill); white-space: nowrap; flex-shrink: 0; width: 150px; justify-content: center; }
+.dim-badge { display: inline-flex; align-items: center; gap: 4px; font-size: var(--tau-text-label-sm); font-weight: 700; padding: 4px 9px; border-radius: var(--tau-r-pill); white-space: nowrap; flex-shrink: 0; width: 150px; justify-content: center; }
 .dim-badge.up      { background: var(--tau-positive-bg);  color: var(--tau-positive); }
 .dim-badge.down    { background: var(--tau-attention-bg); color: var(--tau-attention); }
 .dim-badge.floor   { background: var(--tau-caution-bg);   color: var(--tau-caution); }
 .dim-badge.ceiling,
 .dim-badge.mid     { background: var(--tau-surface-2); color: var(--tau-ink-soft); border: 1px solid var(--tau-line); }
-.dim-note { flex: 1; font-size: var(--tau-text-xs); color: var(--tau-ink-soft); padding-top: 2px; }
+.dim-note { flex: 1; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); padding-top: 2px; }
 
 .origin-mix { display: flex; gap: var(--tau-s2); flex-wrap: wrap; align-items: center; }
 /* Legend-style pill (swatch dot + count), a different shape than
@@ -538,7 +621,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    fragment of something rather than an object. The VOICE is unchanged and
    still double-encoded — tool-info tint plus the mono blue eyebrow — so
    nothing was lost with the stripe except the alignment break. */
-.teach-note { padding: var(--tau-s3) var(--tau-s4); border-radius: var(--tau-r-md); background: var(--tau-tool-info-bg); border: 1px solid transparent; box-shadow: var(--tau-shadow); font-size: var(--tau-text-xs); color: var(--tau-ink); }
+.teach-note { padding: var(--tau-s3) var(--tau-s4); border-radius: var(--tau-r-md); background: var(--tau-tool-info-bg); border: 1px solid transparent; box-shadow: var(--tau-shadow); font-size: var(--tau-text-sm); color: var(--tau-ink); }
 /* Only when the note is stacked above other blocks (the aggregate panel's
    conclusion-first order) — not in the persisted card, where it sits beside
    the highlight rows in a flex row and an extra bottom margin would just
@@ -596,7 +679,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .schedule-slot { flex: 1; min-width: 140px; border: 1px solid var(--tau-line); border-radius: var(--tau-r-md); padding: 10px 12px; }
 .schedule-slot.overdue { border-color: color-mix(in oklab, var(--tau-attention) 40%, var(--tau-line)); background: var(--tau-attention-bg); }
 .schedule-slot.live { border-color: color-mix(in oklab, var(--tau-caution) 40%, var(--tau-line)); }
-.schedule-slot-name { font-size: 12.5px; font-weight: 700; }
+.schedule-slot-name { font-size: var(--tau-text-sm); font-weight: 700; }
 .schedule-slot-date { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); margin-top: 2px; }
 .schedule-slot.overdue .schedule-slot-date { color: var(--tau-attention); font-weight: 600; }
 
@@ -619,7 +702,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .tl-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--tau-s3); margin-bottom: var(--tau-s3); flex-wrap: wrap; }
 .tl-title { font-size: var(--tau-text-md); font-weight: 700; }
 .tl-when { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
-.future-line { font-size: 12.5px; }
+.future-line { font-size: var(--tau-text-sm); }
 
 /* Per-draft stat row — plain, not the coloured .stat-tile the Overview card
    uses; a draft's own submitted/average/range/sessions figures are facts
@@ -627,13 +710,13 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .draft-stat-row { display: flex; gap: var(--tau-s3); flex-wrap: wrap; margin-bottom: var(--tau-s4); }
 .draft-stat { flex: 1; min-width: 120px; border: 1px solid var(--tau-line); border-radius: var(--tau-r-sm); padding: 9px 11px; background: var(--tau-surface-2); }
 .draft-stat-val { font-size: var(--tau-text-lg); font-weight: 700; font-variant-numeric: tabular-nums; }
-.draft-stat-label { font-size: 11px; color: var(--tau-ink-soft); margin-top: 1px; }
+.draft-stat-label { font-size: var(--tau-text-label-sm); color: var(--tau-ink-soft); margin-top: 1px; }
 
 /* Live in-progress card — amber, not violet/blue: this is the tool
    describing a live, unfinished state, not a judgment or a quote. */
-.pace-block { padding: var(--tau-s3) var(--tau-s4); border-radius: var(--tau-r-md); background: var(--tau-caution-bg); border: 1px solid color-mix(in oklab, var(--tau-caution) 30%, var(--tau-line)); font-size: var(--tau-text-xs); margin-bottom: var(--tau-s3); }
+.pace-block { padding: var(--tau-s3) var(--tau-s4); border-radius: var(--tau-r-md); background: var(--tau-caution-bg); border: 1px solid color-mix(in oklab, var(--tau-caution) 30%, var(--tau-line)); font-size: var(--tau-text-sm); margin-bottom: var(--tau-s3); }
 .pace-block .eyebrow-lbl { color: var(--tau-caution); }
-.watch-line { font-size: 12.5px; color: var(--tau-ink-soft); }
+.watch-line { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
 .watch-line b { color: var(--tau-ink); }
 
 /* Overview/Distributions tabs — plain underline, no boxed chrome; this page
@@ -701,7 +784,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 /* The teacher's own note, in the auditor voice the assignment-wide note
    already uses — same component, one tier down (a note on one draft rather
    than to the whole class). */
-.sub-note { padding: var(--tau-s3) var(--tau-s4); font-size: var(--tau-text-xs); margin-top: var(--tau-s2); }
+.sub-note { padding: var(--tau-s3) var(--tau-s4); font-size: var(--tau-text-sm); margin-top: var(--tau-s2); }
 .integrity-flags-row {
   display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
   margin-top: 7px; padding-top: 7px;
@@ -709,11 +792,11 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 }
 .flag-line {
   display: flex; align-items: baseline; gap: var(--tau-s2);
-  font-size: var(--tau-text-xs);
+  font-size: var(--tau-text-sm);
   color: var(--tau-ink-soft);
 }
 .flag-learn-more {
-  font-size: 10px; font-weight: 600;
+  font-size: var(--tau-text-sm); font-weight: 600;
   color: var(--tau-forest);
   text-decoration: none;
   white-space: nowrap;
@@ -723,7 +806,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .flag-learn-more:hover { text-decoration: underline; }
 /* The receipt the Undo button sits beside — a fact, so plain text next to the
    control rather than a second control. */
-.flag-followed-up { font-size: 11px; font-weight: 600; color: var(--tau-ink-faint); }
+.flag-followed-up { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink-faint); }
 /* Followed up is not an alert, so the flags it covers step back with the
    row's caution fill — the evidence is unchanged, its salience isn't. */
 .integrity-flags-row-followed-up .flag-line { color: var(--tau-ink-faint); }
@@ -767,7 +850,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    "more of this" rather than a second, competing alert. */
 .signal-pill-count {
   display: inline-block; margin-left: 5px; padding: 1px 6px; border-radius: var(--tau-r-pill);
-  font-size: 10px; font-weight: 700; background: color-mix(in oklab, var(--tau-caution) 22%, transparent);
+  font-size: var(--tau-text-label-sm); font-weight: 700; background: color-mix(in oklab, var(--tau-caution) 22%, transparent);
 }
 
 /* ── Roster filter chips: muted by default, full colour only when the
@@ -811,11 +894,11 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
   box-shadow: var(--tau-shadow-lift); padding: 4px;
 }
 .chip-dd.open .chip-dd-menu { display: block; }
-.chip-dd-item { display: flex; justify-content: space-between; gap: 10px; padding: 7px 10px; border-radius: 5px; cursor: pointer; font-size: 12.5px; }
+.chip-dd-item { display: flex; justify-content: space-between; gap: 10px; padding: 7px 10px; border-radius: 5px; cursor: pointer; font-size: var(--tau-text-sm); }
 .chip-dd-item:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
 .chip-dd-item .cnt { color: var(--tau-ink-faint); font-variant-numeric: tabular-nums; }
 .chip-dd-item.reset { color: var(--tau-ink-faint); border-top: 1px solid var(--tau-line); margin-top: 2px; padding-top: 8px; }
-.chip-dd-empty { padding: 8px 10px; font-size: 12px; color: var(--tau-ink-faint); }
+.chip-dd-empty { padding: 8px 10px; font-size: var(--tau-text-sm); color: var(--tau-ink-faint); }
 
 /* ── Finding cards (Home) — 2026-08-08 ──
    One card shape for both Home sections. Each card holds a finding: a name,
@@ -857,11 +940,11 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .finding-summary:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
 .finding-summary:focus-visible { outline: var(--tau-focus-ring); outline-offset: calc(-1 * var(--tau-focus-gap)); }
 .f-body { flex: 1; min-width: 0; }
-.pattern-title { font-size: 14.5px; font-weight: 700; display: block; }
+.pattern-title { font-size: var(--tau-text-md); font-weight: 700; display: block; }
 /* The count never stands alone — it sits in the phrase that names its unit
    ("3 students"), weighted and coloured inside that sentence so it still
    reads first. A bare numeral in a column is a number the reader decodes. */
-.f-where { font-size: 12px; color: var(--tau-ink-soft); margin-top: 3px; display: block; }
+.f-where { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); margin-top: 3px; display: block; }
 .f-where .num { color: var(--tau-caution); font-weight: 700; font-variant-numeric: tabular-nums; }
 .f-where.attn .num { color: var(--tau-attention); }
 .f-where.neutral .num { color: var(--tau-ink); }
@@ -882,11 +965,11 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
   display: flex; flex-direction: column; align-items: flex-start; gap: 9px;
   background: var(--tau-surface); border: 1px solid var(--tau-line);
   border-radius: var(--tau-r-sm); padding: 10px 12px;
-  font-size: 12.5px; color: var(--tau-ink-soft); line-height: 1.5; margin: 0 0 var(--tau-s3);
+  font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.5; margin: 0 0 var(--tau-s3);
 }
 .f-measure b { color: var(--tau-ink); font-variant-numeric: tabular-nums; }
 .f-detail > :last-child { margin-bottom: 0; }
-.pattern-link { display: inline-block; font-size: 12.5px; font-weight: 600; color: var(--tau-forest); cursor: pointer; }
+.pattern-link { display: inline-block; font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-forest); cursor: pointer; }
 
 /* ── Home layout: one band per section ──
    Home was three sections of white cards on the white .content pane, told
@@ -973,7 +1056,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .new-here-link .nh-name::after { content: ' →'; }
 .new-here-link .nh-desc {
   display: block;
-  font-size: var(--tau-text-xs);
+  font-size: var(--tau-text-sm);
   line-height: 1.55;
   color: var(--tau-ink-soft);
   margin-top: 2px;
@@ -1002,7 +1085,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .class-row:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
 .class-row-name { flex: 1; min-width: 0; font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-forest); }
 .class-row-go {
-  flex-shrink: 0; color: var(--tau-ink-faint); font-size: 13px; line-height: 1;
+  flex-shrink: 0; color: var(--tau-ink-faint); font-size: var(--tau-text-sm); line-height: 1;
   transition: transform var(--tau-dur-short) var(--tau-ease-standard);
 }
 .class-row:hover .class-row-go { transform: translateX(2px); color: var(--tau-forest); }
@@ -1059,7 +1142,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    a student's overdue work. */
 .form-error {
   display: flex; gap: 7px; align-items: flex-start;
-  font-size: var(--tau-text-xs); color: var(--tau-attention);
+  font-size: var(--tau-text-sm); color: var(--tau-attention);
   background: var(--tau-attention-bg); border: 1px solid color-mix(in oklab, var(--tau-attention) 25%, transparent);
   border-radius: var(--tau-r-sm); padding: 8px 11px; margin-top: var(--tau-s3); line-height: 1.45;
 }
@@ -1076,10 +1159,10 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .flag-card:last-child { border-bottom: none; }
 .flag-card-header { display: flex; align-items: center; gap: var(--tau-s3); margin-bottom: var(--tau-s2); }
 .flag-card-title { font-size: var(--tau-text-sm); font-weight: 700; }
-.flag-card-desc { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
+.flag-card-desc { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
 .flag-card .tray-section-label { margin: var(--tau-s3) 0 4px; }
 .flag-card-steps { margin: 0; padding-left: var(--tau-s5); display: flex; flex-direction: column; gap: 3px; }
-.flag-card-steps li { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); line-height: 1.5; }
+.flag-card-steps li { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.5; }
 .flag-type-label {
   font-size: var(--tau-text-label-sm); font-weight: 700;
   padding: 2px 7px; border-radius: var(--tau-r-pill);
@@ -1140,7 +1223,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 }
 details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg); }
 .score-delta {
-  font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
+  font-size: var(--tau-text-label-sm); font-weight: 700; padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
 }
 .reflect-excerpt { color: var(--tau-ink-soft); font-style: italic; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .reflect-full {
@@ -1148,7 +1231,7 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
   background: var(--tau-surface-2); border-radius: var(--tau-r-sm);
   display: flex; flex-direction: column; gap: 6px;
 }
-.reflect-section { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); line-height: 1.5; }
+.reflect-section { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.5; }
 .reflect-label { color: var(--tau-ink-soft); margin-right: 5px; }
 
   /* Groups the two "we have no reading on this student" rows under the one
@@ -1166,22 +1249,60 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
 <body>
 
 <header>
-  <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="Tau" width="391" height="192">Thinking</span>
-  <h1>Teacher Dashboard</h1>
+  <div class="header-lead">
+    <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="Tau" width="391" height="192">Thinking</span>
+    <h1>Teacher Dashboard</h1>
+  </div>
 
-  <div style="margin-left:auto;display:flex;align-items:center;gap:var(--tau-s2)">
+  <!-- The global search field, moved out of the rail 2026-08-24. It always
+       searched students, classes AND assignments and navigated anywhere, but
+       sitting in the rail directly above a list headed "Classes" it read as
+       "filter this list" — placement is a labelling channel, and it was
+       labelling the control wrong. The centre column of the app bar is the
+       one position that says "this reaches the whole app."
+       See teacher-dashboard-design.md's Global Search section. -->
+  <div class="header-search">
+    <span class="header-search-icon" data-icon="search" aria-hidden="true"></span>
+    <input type="text" id="global-search-input" autocomplete="off" spellcheck="false"
+           placeholder="Search students, classes, assignments…"
+           role="combobox" aria-expanded="false" aria-controls="global-search-results"
+           aria-autocomplete="list" aria-label="Search students, classes and assignments"
+           oninput="runGlobalSearch(this.value)">
+    <kbd class="header-search-kbd" id="global-search-kbd" aria-hidden="true">⌘K</kbd>
+    <div id="global-search-results" role="listbox" aria-label="Search results"></div>
+  </div>
 
-    <div class="menu-wrap" id="add-wrap">
-      <button class="menu-trigger menu-trigger-primary" id="trig-manage" type="button">
-        + Add <span class="menu-chevron">▾</span>
-      </button>
-      <!-- Just a 3-way picker now — each choice opens a full-size modal
-           (same .scrim/.confirm.modal/.tray-* chrome the New assignment,
-           Goal, and per-class roster modals already use) rather than
-           cramming a form into this 240px dropdown. A roster paste or a
-           class-scope decision needs room to read, not a maze of small
-           panels — see teacher-dashboard-design.md, 2026-08-03. -->
-      <div class="menu-panel" id="panel-manage" hidden role="menu">
+  <div class="header-end">
+    <!-- The shared account menu (api.js mountAccountChip -> components.css
+         §14). Was hand-built here, which is why the other four surfaces had no
+         menu at all and admin.html had nowhere to put a way back. -->
+    <div class="account-chip" id="accountChip"></div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside id="sidebar" class="rail">
+    <!-- "+ Add" lives here, not in the app bar, since 2026-08-24 — the search
+         field took the header's centre and this is the better home for it
+         anyway: creation sits beside the index of the things it creates.
+         It stays a BUTTON and never takes .rail-item's shape. The rail is
+         otherwise pure navigation ("go somewhere"); this is a command ("do
+         something"), and form is what keeps the two from being confused —
+         position alone would just repeat the mistake we moved search to fix.
+         Static markup, outside #sidebar-nav, because renderSidebar() replaces
+         that node's innerHTML and would destroy the tauMenu binding. -->
+    <div class="rail-actions">
+      <div class="menu-wrap" id="add-wrap">
+        <button class="menu-trigger menu-trigger-primary" id="trig-manage" type="button">
+          + Add <span class="menu-chevron">▾</span>
+        </button>
+        <!-- Just a 3-way picker now — each choice opens a full-size modal
+             (same .scrim/.confirm.modal/.tray-* chrome the New assignment,
+             Goal, and per-class roster modals already use) rather than
+             cramming a form into this 240px dropdown. A roster paste or a
+             class-scope decision needs room to read, not a maze of small
+             panels — see teacher-dashboard-design.md, 2026-08-03. -->
+        <div class="menu-panel" id="panel-manage" hidden role="menu">
         <!-- Icons come from icons.js, same set the object action menus use.
              These were emoji (📄 👤 🗂) while that file sat unused beside
              them — two icon systems across two menus that are meant to read
@@ -1190,31 +1311,23 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
              pointing at a class's own page are both gone: both existed to
              explain an absence, and those actions now live on the object
              itself, where the menu no longer has to say where they are. -->
-        <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openNewAssignmentModal()">
-          <span class="mi-icon" data-icon="description"></span>
-          <span class="mi-body">New assignment<span class="mi-desc">Title, description, classes — pick or start one</span></span>
-        </button>
-        <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openAddStudentsModal()">
-          <span class="mi-icon" data-icon="personAdd"></span>
-          <span class="mi-body">Add students<span class="mi-desc">Paste a roster — pick a class or start one</span></span>
-        </button>
-        <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openNewClassModal()">
-          <span class="mi-icon" data-icon="folder"></span>
-          <span class="mi-body">New class<span class="mi-desc">Start an empty class — nobody on it yet</span></span>
-        </button>
+          <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openNewAssignmentModal()">
+            <span class="mi-icon" data-icon="description"></span>
+            <span class="mi-body">New assignment<span class="mi-desc">Title, description, classes — pick or start one</span></span>
+          </button>
+          <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openAddStudentsModal()">
+            <span class="mi-icon" data-icon="personAdd"></span>
+            <span class="mi-body">Add students<span class="mi-desc">Paste a roster — pick a class or start one</span></span>
+          </button>
+          <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openNewClassModal()">
+            <span class="mi-icon" data-icon="folder"></span>
+            <span class="mi-body">New class<span class="mi-desc">Start an empty class — nobody on it yet</span></span>
+          </button>
+        </div>
       </div>
     </div>
-
-    <!-- The shared account menu (api.js mountAccountChip -> components.css
-         §14). Was hand-built here, which is why the other four surfaces had no
-         menu at all and admin.html had nowhere to put a way back. -->
-    <div class="account-chip" id="accountChip"></div>
-
-  </div>
-</header>
-
-<div class="layout">
-  <aside id="sidebar" class="rail"></aside>
+    <div id="sidebar-nav"></div>
+  </aside>
   <main id="content" class="content"></main>
 </div>
 
@@ -1275,7 +1388,7 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
       <div id="new-class-view-form">
         <form id="hdrNewClassForm" class="field">
           <label class="menu-field" style="padding:0;margin-bottom:6px">Class name
-            <input type="text" name="name" id="newclass-name-input" placeholder="e.g. AP Literature" required style="min-height:42px;font-size:14.5px">
+            <input type="text" name="name" id="newclass-name-input" placeholder="e.g. AP Literature" required style="min-height:42px;font-size:var(--tau-text-md)">
           </label>
 
           <div class="attach" id="newclass-att-students">
@@ -1368,14 +1481,14 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
       <div id="add-students-view-success" hidden></div>
       <div id="add-students-view-form">
       <label class="menu-field" style="padding:0;margin-bottom:16px">Students <span class="menu-field-optional">one per line — "Name, email" or just an email</span>
-        <textarea id="hdr-addstudent-roster-input" rows="7" placeholder="Jordan Lee, jordan@school.edu" oninput="renderRosterPreview('hdr')" style="font-size:14px"></textarea>
+        <textarea id="hdr-addstudent-roster-input" rows="7" placeholder="Jordan Lee, jordan@school.edu" oninput="renderRosterPreview('hdr')" style="font-size:var(--tau-text-md)"></textarea>
       </label>
       <label class="menu-field" id="hdr-addstudent-class-field" style="padding:0">Class
-        <select id="hdr-addstudent-class-select" onchange="handleAddStudentsClassSelect()" style="min-height:42px;font-size:14.5px"></select>
+        <select id="hdr-addstudent-class-select" onchange="handleAddStudentsClassSelect()" style="min-height:42px;font-size:var(--tau-text-md)"></select>
         <span class="inline-new-class" id="hdr-addstudent-newclass-row" hidden style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
           <label class="micro-label" for="hdr-addstudent-newclass-input" style="margin-bottom:0">New class name</label>
           <span style="display:flex;gap:8px">
-            <input type="text" id="hdr-addstudent-newclass-input" placeholder="e.g. AP Literature" style="flex:1;min-height:34px;font-size:13.5px">
+            <input type="text" id="hdr-addstudent-newclass-input" placeholder="e.g. AP Literature" style="flex:1;min-height:34px;font-size:var(--tau-text-sm)">
             <button type="button" class="btn btn-primary btn-sm" onclick="commitAddStudentsNewClass()">Add</button>
           </span>
         </span>
@@ -1665,7 +1778,7 @@ function checkpointStatus(subs, assignment) {
 // word inside the chip. One function so the split can't drift per-site the
 // way the four independent chip-wrapping spans once did.
 function checkpointChip(st, small) {
-  const size = small ? ' style="font-size:10px"' : '';
+  const size = small ? ' style="font-size:var(--tau-text-label-sm)"' : '';
   const stage = `<span${size} style="color:var(--tau-ink-soft)">${st.stage}</span>`;
   return st.late ? `${stage} <span class="chip chip-attention"${size}>Late</span>` : stage;
 }
@@ -2139,8 +2252,10 @@ let expandedInStudent    = null;
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 
+// Fills #sidebar-nav, not #sidebar: "+ Add" is static chrome above it and its
+// tauMenu binding must survive a re-render.
 function renderSidebar() {
-  const el = document.getElementById('sidebar');
+  const el = document.getElementById('sidebar-nav');
 
   // No trailing dot on class/assignment rows (2026-07-28, designsystem.md's
   // dot rule) — the row's own text carries nothing that names a flag or a
@@ -2165,14 +2280,6 @@ function renderSidebar() {
 
   el.innerHTML = `
     <div class="rail-head">
-      <div class="rail-search">
-        <div class="rail-search-anchor">
-          <input type="text" id="global-search-input" placeholder="Search students, classes, assignments…"
-                 oninput="runGlobalSearch(this.value)" value="">
-          <div id="global-search-results"></div>
-        </div>
-        <div class="rail-search-hint" id="global-search-hint">Type a name — the fast path once a class has more than a few students.</div>
-      </div>
       <div class="rail-group">
         <div class="rail-item ${screen === 'home' ? 'active' : ''}" onclick="goHome()">
           <span class="rail-item-text"><span class="rail-item-name">Home</span></span>
@@ -2226,29 +2333,140 @@ function renderSidebar() {
   `;
 }
 
+// The flat list behind the dropdown — one entry per visible row, in the order
+// they render. Keyboard selection indexes into THIS rather than reading the
+// DOM, so ↑↓ and a click are acting on the same model.
+let gsResults  = [];
+let gsActive   = -1;
+
 function runGlobalSearch(q) {
-  const box = document.getElementById('global-search-results');
-  const hint = document.getElementById('global-search-hint');
+  const box   = document.getElementById('global-search-results');
+  const input = document.getElementById('global-search-input');
   const query = q.toLowerCase().trim();
-  hint.classList.toggle('hidden', !!query);
-  if (!query) { box.innerHTML = ''; return; }
 
-  const studentMatches    = STUDENTS.filter(s => s.name.toLowerCase().includes(query)).slice(0, 6);
-  const classMatches      = CLASSES.filter(c => c.name.toLowerCase().includes(query)).slice(0, 4);
-  const assignmentMatches = ASSIGNMENTS.filter(a => a.name.toLowerCase().includes(query)).slice(0, 4);
+  gsResults = [];
+  gsActive  = -1;
 
-  if (!studentMatches.length && !classMatches.length && !assignmentMatches.length) {
-    box.innerHTML = `<div class="rail-search-results"><div class="rail-empty">No matches</div></div>`;
+  if (!query) { closeGlobalSearch(); return; }
+
+  const groups = [
+    ['Students', STUDENTS.filter(s => s.name.toLowerCase().includes(query)).slice(0, 6).map(s => ({
+      name: s.name,
+      // Which class, not the word "Student" — the group heading already says
+      // that, and two students sharing a first name are otherwise identical.
+      // All their classes, not the first: a student on English 10 AND
+      // Journalism shown as only one of them is a wrong answer, not a short
+      // one, and picking whichever the class list happened to order first is
+      // exactly the arbitrary half a teacher would have to double-check.
+      sub:  classesForStudent(s.id).map(c => c.name).join(', ') || 'No class',
+      go:   () => gotoStudentFromClass(s.id),
+    }))],
+    ['Classes', CLASSES.filter(c => c.name.toLowerCase().includes(query)).slice(0, 4).map(c => ({
+      name: c.name,
+      sub:  `${c.studentIds.length} student${c.studentIds.length !== 1 ? 's' : ''}`,
+      go:   () => gotoClass(c.id),
+    }))],
+    ['Assignments', ASSIGNMENTS.filter(a => a.name.toLowerCase().includes(query)).slice(0, 4).map(a => ({
+      name: a.name,
+      sub:  a.status === 'open' ? 'Open' : 'Closed',
+      go:   () => gotoAssignment(a.id),
+    }))],
+  ].filter(([, items]) => items.length);
+
+  input.setAttribute('aria-expanded', 'true');
+
+  if (!groups.length) {
+    box.innerHTML = `<div class="gs-panel"><div class="gs-empty">No matches for “${esc(q.trim())}”</div></div>`;
     return;
   }
 
-  const rows = [
-    ...studentMatches.map(s => sidebarItem({ name: s.name, sub: 'Student', onClick: `gotoStudentFromClass('${s.id}')` })),
-    ...classMatches.map(c => sidebarItem({ name: c.name, sub: 'Class', onClick: `gotoClass('${c.id}')` })),
-    ...assignmentMatches.map(a => sidebarItem({ name: a.name, sub: 'Assignment', onClick: `gotoAssignment('${a.id}')` })),
-  ].join('');
-  box.innerHTML = `<div class="rail-search-results">${rows}</div>`;
+  const html = groups.map(([label, items]) => {
+    const rows = items.map((item) => {
+      const i = gsResults.push(item) - 1;
+      return `<button type="button" class="gs-row" role="option" id="gs-row-${i}" aria-selected="false"
+                      data-idx="${i}" onclick="gsGo(${i})">
+        <span class="gs-row-name">${esc(item.name)}</span>
+        <span class="gs-row-sub">${esc(item.sub)}</span>
+      </button>`;
+    }).join('');
+    return `<div class="gs-group">${label}</div>${rows}`;
+  }).join('');
+
+  box.innerHTML = `<div class="gs-panel">${html}</div>`;
 }
+
+function gsGo(i) {
+  const item = gsResults[i];
+  if (!item) return;
+  closeGlobalSearch({ clear: true });
+  item.go();
+}
+
+function closeGlobalSearch({ clear = false } = {}) {
+  const box   = document.getElementById('global-search-results');
+  const input = document.getElementById('global-search-input');
+  box.innerHTML = '';
+  gsResults = [];
+  gsActive  = -1;
+  input.setAttribute('aria-expanded', 'false');
+  input.removeAttribute('aria-activedescendant');
+  if (clear) input.value = '';
+}
+
+// Moves the highlight without moving focus off the input, so typing keeps
+// working mid-selection — the reason aria-activedescendant exists rather than
+// roving tabindex.
+function gsMove(delta) {
+  if (!gsResults.length) return;
+  const rows = document.querySelectorAll('#global-search-results .gs-row');
+  if (gsActive >= 0 && rows[gsActive]) {
+    rows[gsActive].classList.remove('is-active');
+    rows[gsActive].setAttribute('aria-selected', 'false');
+  }
+  gsActive = (gsActive + delta + gsResults.length) % gsResults.length;
+  const row = rows[gsActive];
+  row.classList.add('is-active');
+  row.setAttribute('aria-selected', 'true');
+  row.scrollIntoView({ block: 'nearest' });
+  document.getElementById('global-search-input').setAttribute('aria-activedescendant', row.id);
+}
+
+(function bindGlobalSearch() {
+  const input = document.getElementById('global-search-input');
+
+  // Non-Mac keyboards say Ctrl, and a badge teaching the wrong key is worse
+  // than no badge.
+  if (!/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) {
+    document.getElementById('global-search-kbd').textContent = 'Ctrl K';
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      input.focus();
+      input.select();
+    }
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown')      { e.preventDefault(); gsMove(1); }
+    else if (e.key === 'ArrowUp')   { e.preventDefault(); gsMove(-1); }
+    else if (e.key === 'Enter')     { if (gsActive >= 0) { e.preventDefault(); gsGo(gsActive); } }
+    else if (e.key === 'Escape')    {
+      // First Escape drops the dropdown, second gives the field up entirely —
+      // so Escape never strands a teacher with focus in a box they've finished
+      // with, and never blows away a query they were still editing.
+      if (gsResults.length) closeGlobalSearch();
+      else { closeGlobalSearch({ clear: true }); input.blur(); }
+    }
+  });
+
+  // A click anywhere else dismisses the dropdown but keeps the query, which is
+  // what a teacher who clicked away to read something expects on returning.
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.header-search')) closeGlobalSearch();
+  });
+})();
 
 
 // ── Home ──────────────────────────────────────────────────────────────────────
@@ -2275,8 +2493,8 @@ function renderFirstRun() {
         automatically, so there's no roster to hand-pick each time.
       </div>
       <button class="btn btn-primary" onclick="openNewClassModal()">Create your first class</button>
-      <div style="font-size:var(--tau-text-xs);color:var(--tau-ink-faint);margin-top:var(--tau-s4)">
-        Everything here also lives in <strong>+ Add</strong>, top right, once you're running.
+      <div style="font-size:var(--tau-text-sm);color:var(--tau-ink-faint);margin-top:var(--tau-s4)">
+        Everything here also lives in <strong>+ Add</strong>, top of the sidebar, once you're running.
       </div>
     </div>
     ${newHereBlock()}`;
@@ -2919,9 +3137,9 @@ function renderHome() {
       <div class="eyebrow">Behavioral patterns</div>
       <div class="section-summary">${patternsSummary}</div>
     </div>
-    ${patternGroup(groups.low, 'Passive patterns', '--tau-scale-1', 'None showing across two or more students.')}
+    ${patternGroup(groups.low, 'Passive patterns', '--tau-band-1-fg', 'None showing across two or more students.')}
     <div style="height:var(--tau-s5)"></div>
-    ${patternGroup(groups.high, 'High-agency patterns', '--tau-scale-4', 'None showing across two or more students yet.')}`;
+    ${patternGroup(groups.high, 'High-agency patterns', '--tau-band-4-fg', 'None showing across two or more students yet.')}`;
 
   // ── 3. Movement over time ─────────────────────────────────────────────────
   // The Movement organism, the same one the class overview's Trends tab mounts.
@@ -3012,7 +3230,7 @@ function renderBrowseStudents() {
     </div>
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
       <input id="browseSearchInput" type="text" placeholder="Search by name…" value="${browseSearch}" oninput="setBrowseSearch(this.value)"
-             style="padding:6px 10px;min-height:var(--tau-target);border:1px solid var(--tau-line);border-radius:var(--tau-r-sm);font-size:12.5px;background:var(--tau-surface);color:var(--tau-ink);font-family:inherit;min-width:180px">
+             style="padding:6px 10px;min-height:var(--tau-target);border:1px solid var(--tau-line);border-radius:var(--tau-r-sm);font-size:var(--tau-text-sm);background:var(--tau-surface);color:var(--tau-ink);font-family:inherit;min-width:180px">
       ${chips}
       <div class="chip-dd" id="patternDD">
         <button class="chip-dd-btn ${activePattern ? 'set' : ''}" type="button" onclick="document.getElementById('patternDD').classList.toggle('open')">${ddLabel} ▾</button>
@@ -3357,9 +3575,9 @@ function renderClassAssignmentCard(a, students) {
   return `<div class="overview-card">
     <div class="drill-panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:var(--tau-s4)">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span style="font-size:14px;font-weight:700">${a.name}</span>
+        <span style="font-size:var(--tau-text-md);font-weight:700">${a.name}</span>
         <span class="chip ${closed ? 'chip-grey' : 'chip-neutral'}">${closed ? 'Closed' : 'Open'}</span>
-        <span style="font-size:12px;color:var(--tau-ink-soft)">${statusMeta}</span>
+        <span style="font-size:var(--tau-text-sm);color:var(--tau-ink-soft)">${statusMeta}</span>
       </div>
       <a class="agg-link-btn" onclick="gotoAssignment('${a.id}')">View full assignment →</a>
     </div>
@@ -3744,7 +3962,7 @@ function goalModalBody(a) {
     ${briefField('Description', a.description)}
     ${briefField('Purpose', a.purpose)}
     ${briefField('Requirements', a.requirements)}
-    ${a.teacherNote ? `<div class="card-edge-auditor" style="padding:var(--tau-s3) var(--tau-s4);font-size:var(--tau-text-xs)">
+    ${a.teacherNote ? `<div class="card-edge-auditor" style="padding:var(--tau-s3) var(--tau-s4);font-size:var(--tau-text-sm)">
       <span class="eyebrow-lbl" style="color:var(--tau-auditor)">${iconSVG('chat')}Note to the whole class</span>
       ${esc(a.teacherNote)}
     </div>` : ''}`;
@@ -3968,9 +4186,9 @@ function renderAssignmentAggregateContent(a, students, variant = 'full') {
         </div>
         <p class="agg-sample-note">Each pattern counts the students it was found in. Nothing here
           describes the class as a whole — that waits until everyone is in.</p>
-        ${groups.low.length ? group(groups.low, 'Passive patterns', '--tau-scale-1') : ''}
+        ${groups.low.length ? group(groups.low, 'Passive patterns', '--tau-band-1-fg') : ''}
         ${groups.low.length && groups.high.length ? `<div style="height:var(--tau-s5)"></div>` : ''}
-        ${groups.high.length ? group(groups.high, 'High-agency patterns', '--tau-scale-4') : ''}`;
+        ${groups.high.length ? group(groups.high, 'High-agency patterns', '--tau-band-4-fg') : ''}`;
     }
 
     return `${section(`${statRow}${pace}`)}${section(patternBlock)}`;
@@ -4220,7 +4438,7 @@ function renderBrowseAssignments() {
     </div>
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
       <input id="browseAssignSearchInput" type="text" placeholder="Search by name…" value="${browseAssignSearch}" oninput="setBrowseAssignSearch(this.value)"
-             style="padding:6px 10px;min-height:var(--tau-target);border:1px solid var(--tau-line);border-radius:var(--tau-r-sm);font-size:12.5px;background:var(--tau-surface);color:var(--tau-ink);font-family:inherit;min-width:180px">
+             style="padding:6px 10px;min-height:var(--tau-target);border:1px solid var(--tau-line);border-radius:var(--tau-r-sm);font-size:var(--tau-text-sm);background:var(--tau-surface);color:var(--tau-ink);font-family:inherit;min-width:180px">
       ${chips}
     </div>
     <div id="browse-assignments-container">${browseAssignmentTable()}</div>
@@ -4257,21 +4475,21 @@ function renderStudentDetail(sid) {
           <span style="width:150px;flex-shrink:0">${levelChip(level, true)}</span>
           <span style="width:150px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${signalPill(asig)}</span>
           <span style="width:108px;text-align:center;flex-shrink:0">${checkpointChip(st, true)}</span>
-          <span style="width:44px;text-align:right;flex-shrink:0;font-size:11px;color:var(--tau-ink-soft)">${subs.length} sub${subs.length !== 1 ? 's' : ''}</span>
+          <span style="width:44px;text-align:right;flex-shrink:0;font-size:var(--tau-text-sm);color:var(--tau-ink-soft)">${subs.length} sub${subs.length !== 1 ? 's' : ''}</span>
         </div>
         ${drillPanel}
       </div>`;
     }).join('');
 
     return `<div class="eyebrow" style="margin:0 0 8px">${cls.name}</div>
-    <div style="margin-bottom:var(--tau-s5)">${sections || '<div style="color:var(--tau-ink-soft);font-size:13px">No assignments in this class yet.</div>'}</div>`;
+    <div style="margin-bottom:var(--tau-s5)">${sections || '<div style="color:var(--tau-ink-soft);font-size:var(--tau-text-sm)">No assignments in this class yet.</div>'}</div>`;
   }).join('');
 
   return `
     <div class="content-header">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
         <div style="display:flex;align-items:center;gap:12px">
-          <div class="avatar" style="width:40px;height:40px;font-size:14px">${s.initials}</div>
+          <div class="avatar" style="width:40px;height:40px;font-size:var(--tau-text-md)">${s.initials}</div>
           <div>
             <div style="display:flex;align-items:center;gap:8px">
               <div class="content-title">${s.name}</div>
@@ -4359,7 +4577,7 @@ function renderReflectionSection(sub, prevSub) {
 }
 
 function renderDrillPanel(subs, label, sig, ctx) {
-  if (!subs.length) return `<div class="drill-panel"><em style="color:var(--tau-ink-soft);font-size:13px">No submissions for this assignment.</em></div>`;
+  if (!subs.length) return `<div class="drill-panel"><em style="color:var(--tau-ink-soft);font-size:var(--tau-text-sm)">No submissions for this assignment.</em></div>`;
   const flags   = checkFlag(subs);
   const flagIdx = new Set(flags.map(f => f.submissionIndex));
   const rows = [...subs].reverse().map((sub, ri) => {
@@ -4401,8 +4619,8 @@ function renderDrillPanel(subs, label, sig, ctx) {
       : '';
 
     const statusChip = isLast
-      ? `<span class="sub-chip" style="font-size:10px;font-weight:600;color:var(--tau-positive);background:var(--tau-positive-bg);padding:2px 7px;border-radius:20px">Final</span>`
-      : `<span class="sub-chip" style="font-size:10px;font-weight:600;color:var(--tau-ink-soft);background:var(--tau-surface-2);border:1px solid var(--tau-line);padding:2px 7px;border-radius:20px">Draft</span>`;
+      ? `<span class="sub-chip" style="font-size:var(--tau-text-label-sm);font-weight:600;color:var(--tau-positive);background:var(--tau-positive-bg);padding:2px 7px;border-radius:20px">Final</span>`
+      : `<span class="sub-chip" style="font-size:var(--tau-text-label-sm);font-weight:600;color:var(--tau-ink-soft);background:var(--tau-surface-2);border:1px solid var(--tau-line);padding:2px 7px;border-radius:20px">Draft</span>`;
 
     return `<div class="sub-row list-row-boxed ${(flagInfo || iFlags.length) && !followedUp ? 'flagged' : ''}">
       <div class="sub-row-main">
@@ -4434,7 +4652,7 @@ function renderDrillPanel(subs, label, sig, ctx) {
   const engagementNote = attentionSignals.length
     ? `<div style="padding:8px 14px;border-top:1px solid var(--tau-line)">
          ${sig.status === 'review' ? '<div style="font-size:var(--tau-text-label-sm);font-weight:700;color:var(--tau-ink-faint);margin-bottom:5px">Also noticed</div>' : ''}
-         <ul class="note-list" style="font-size:11px;color:var(--tau-ink-soft)">
+         <ul class="note-list" style="font-size:var(--tau-text-sm);color:var(--tau-ink-soft)">
            ${attentionSignals.map(s => `<li>${s.reason}${s.learnMoreKey ? ` <a class="flag-learn-more" onclick="openFlagTray('${s.learnMoreKey}');event.stopPropagation()">Learn more</a>` : ''}</li>`).join('')}
          </ul>
        </div>`
@@ -5840,8 +6058,8 @@ function rosterModalListHtml(cls) {
     ${students.map(s => `<div class="list-row-boxed" style="display:flex;align-items:center;gap:10px;padding:9px 12px">
       <div class="avatar avatar-sm">${s.initials}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:500;font-size:13px">${esc(s.name)}</div>
-        <div style="font-size:11.5px;color:var(--tau-ink-soft)">${esc(s.email || '')}</div>
+        <div style="font-weight:500;font-size:var(--tau-text-sm)">${esc(s.name)}</div>
+        <div style="font-size:var(--tau-text-xs);color:var(--tau-ink-soft)">${esc(s.email || '')}</div>
       </div>
       <button type="button" class="btn btn-quiet btn-sm" onclick="removeStudentFromClass('${s.id}')">Remove</button>
     </div>`).join('')}

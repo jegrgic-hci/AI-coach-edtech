@@ -37,7 +37,7 @@ button:hover { border-color: var(--tau-forest); }
 
 /* ---------- assignment list ---------- */
 
-.visibility-cue { font-size: 12px; color: var(--tau-ink-soft); padding: 10px 32px 0; }
+.visibility-cue { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); padding: 10px 32px 0; }
 
 /* ---------- workspace ---------- */
 
@@ -91,7 +91,7 @@ button:hover { border-color: var(--tau-forest); }
 
 /* Every session's title is one line, so this rail uses .rail-item's name slot
    and nothing else — no .rail-item-sub, no .rail-item-meta. */
-.conv-item.locked .rail-item-name::after { content: ' 🔒'; font-size: 11px; }
+.conv-item.locked .rail-item-name::after { content: ' 🔒'; font-size: var(--tau-text-label-sm); }
 /* --tau-h-control, stated rather than left to fall out of the padding —
    m3-lab §3's point is that a control's height is a token, not an accident of
    its line-box. This one already measured 40px; now it says so. */
@@ -126,7 +126,7 @@ button:hover { border-color: var(--tau-forest); }
   align-items: center;
   gap: 10px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--tau-text-md);
 }
 /* Drawn small, reaching --tau-target through a transparent expansion rather
    than by growing its box (m3-lab §3) — the same construction .btn::after and
@@ -179,7 +179,7 @@ button:hover { border-color: var(--tau-forest); }
 .messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
 
 .empty-state { margin: auto; text-align: center; color: var(--tau-ink-soft); max-width: 420px; }
-.empty-state .empty-sub { font-size: 13px; margin-top: 8px; }
+.empty-state .empty-sub { font-size: var(--tau-text-sm); margin-top: 8px; }
 
 /* ---------- turns ---------- */
 
@@ -188,7 +188,7 @@ button:hover { border-color: var(--tau-forest); }
    affordance and the interrupted-response note, neither of which exists on a
    surface you can only read. */
 
-.msg .stopped-note { display: block; font-size: 11px; color: var(--tau-ink-soft); margin-top: 6px; font-style: italic; }
+.msg .stopped-note { display: block; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); margin-top: 6px; font-style: italic; }
 
 /* ---------- coach is thinking ---------- */
 
@@ -199,7 +199,7 @@ button:hover { border-color: var(--tau-forest); }
   align-items: center;
   gap: var(--tau-s2);
   color: var(--tau-ink-faint);
-  font-size: 13.5px;
+  font-size: var(--tau-text-sm);
   padding-left: 2px;
 }
 /* A breathing orb, not three static dots — this is the one moment the
@@ -332,7 +332,7 @@ button:hover { border-color: var(--tau-forest); }
   border-radius: var(--tau-r-sm);
   color: inherit;
   opacity: 0.6;
-  font-size: 15px;
+  font-size: var(--tau-text-lg);
   line-height: 1;
 }
 .composer-notice-close:hover { opacity: 1; background: color-mix(in oklab, currentColor 12%, transparent); }
@@ -375,13 +375,13 @@ button:hover { border-color: var(--tau-forest); }
 
 .edit-banner {
   width: 100%;
-  font-size: 12px;
+  font-size: var(--tau-text-sm);
   color: var(--tau-forest);
   background: var(--tau-surface-2);
   border-radius: 6px;
   padding: 4px 10px;
 }
-.edit-banner button { border: none; background: none; color: var(--tau-ink-soft); font-size: 12px; padding: 0 4px; }
+.edit-banner button { border: none; background: none; color: var(--tau-ink-soft); font-size: var(--tau-text-sm); padding: 0 4px; }
 
 .stop-btn { color: var(--tau-attention); border-color: var(--tau-attention); }
 
@@ -415,7 +415,7 @@ button:hover { border-color: var(--tau-forest); }
   padding: 10px 24px;
   background: var(--tau-auditor-bg);
   border-bottom: 1px solid var(--tau-line);
-  font-size: 13px;
+  font-size: var(--tau-text-sm);
   color: var(--tau-ink);
   display: flex;
   align-items: center;
@@ -423,7 +423,7 @@ button:hover { border-color: var(--tau-forest); }
 }
 .reading-banner-return {
   background: none; border: 1px solid var(--tau-auditor); color: var(--tau-auditor);
-  padding: 4px 10px; font-size: 12px; border-radius: 7px;
+  padding: 4px 10px; font-size: var(--tau-text-sm); border-radius: 7px;
 }
 .reading-banner-return:hover { background: var(--tau-auditor-bg); border-color: var(--tau-auditor); }
 
@@ -444,7 +444,7 @@ button:hover { border-color: var(--tau-forest); }
   padding: 24px; text-align: center;
 }
 .samr-hero .samr-level { font-size: 26px; font-weight: 700; }
-.samr-hero .samr-total { color: var(--tau-ink-soft); font-size: 14px; margin-top: 4px; }
+.samr-hero .samr-total { color: var(--tau-ink-soft); font-size: var(--tau-text-md); margin-top: 4px; }
 
 .tau-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
 .tau-card {
@@ -452,22 +452,22 @@ button:hover { border-color: var(--tau-forest); }
 }
 .tau-card .tau-name { font-size: var(--tau-text-label-md); color: var(--tau-ink-soft); }
 .tau-card .tau-score { font-size: 28px; font-weight: 700; margin: 4px 0; }
-.tau-card .tau-desc { font-size: 12px; color: var(--tau-ink-soft); line-height: 1.45; }
+.tau-card .tau-desc { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.45; }
 .tau-bar { height: 6px; background: var(--tau-meter-track); border-radius: 3px; margin: 8px 0; overflow: hidden; }
 .tau-bar > div { height: 100%; background: var(--tau-forest); border-radius: 3px; }
 
 .report-panel { background: var(--tau-surface); border: 1px solid var(--tau-line); border-radius: 12px; padding: 20px; }
-.report-panel h3 { font-size: 15px; margin-bottom: 12px; }
+.report-panel h3 { font-size: var(--tau-text-lg); margin-bottom: 12px; }
 
 .strength { border-left: 3px solid var(--tau-forest); padding: 6px 14px; margin-bottom: 12px; }
 .strength .quote { font-style: italic; }
-.strength .note { font-size: 13px; color: var(--tau-ink-soft); margin-top: 4px; }
-.growth-move { padding: 8px 14px; background: var(--tau-surface-2); border-radius: 8px; margin-bottom: 8px; font-size: 14px; }
-.bridge { font-size: 14px; color: var(--tau-ink-soft); margin-top: 12px; line-height: 1.5; }
+.strength .note { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); margin-top: 4px; }
+.growth-move { padding: 8px 14px; background: var(--tau-surface-2); border-radius: 8px; margin-bottom: 8px; font-size: var(--tau-text-md); }
+.bridge { font-size: var(--tau-text-md); color: var(--tau-ink-soft); margin-top: 12px; line-height: 1.5; }
 
 /* The provenance bar, origin chips and legend live in components.css — the
    report renders the same three, and had built its own set. */
-.concept-item { display: flex; gap: 10px; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--tau-line); align-items: baseline; }
+.concept-item { display: flex; gap: 10px; font-size: var(--tau-text-sm); padding: 6px 0; border-bottom: 1px solid var(--tau-line); align-items: baseline; }
 .concept-phrase { color: var(--tau-ink-soft); font-style: italic; }
 
 /* ---------- submit modal ---------- */
@@ -553,8 +553,8 @@ button:hover { border-color: var(--tau-forest); }
   max-width: 420px;
   gap: 14px;
 }
-.login-card h1 { font-size: 20px; }
-.login-sub { font-size: 14px; color: var(--tau-ink-soft); margin-top: -8px; }
+.login-card h1 { font-size: var(--tau-text-xl); }
+.login-sub { font-size: var(--tau-text-md); color: var(--tau-ink-soft); margin-top: -8px; }
 
 @media (max-width: 760px) {
   .login-shell { flex-direction: column; overflow-y: auto; }
@@ -565,8 +565,8 @@ button:hover { border-color: var(--tau-forest); }
   }
   .login-hero-logo { height: 44px; }
   .login-hero-title { font-size: 26px; }
-  .login-hero-tagline { font-size: 14px; max-width: none; }
-  .login-hero-sub { font-size: 13px; max-width: none; }
+  .login-hero-tagline { font-size: var(--tau-text-md); max-width: none; }
+  .login-hero-sub { font-size: var(--tau-text-sm); max-width: none; }
   .login-panel { flex: 1 1 auto; max-width: none; }
 }
 
@@ -576,7 +576,7 @@ button:hover { border-color: var(--tau-forest); }
   gap: 10px;
   justify-content: flex-start;
   padding: 11px 14px;
-  font-size: 14px;
+  font-size: var(--tau-text-md);
   text-align: left;
 }
 .google-btn:disabled { opacity: var(--tau-disabled); cursor: not-allowed; }
@@ -602,7 +602,7 @@ button:hover { border-color: var(--tau-forest); }
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 12px;
+  font-size: var(--tau-text-sm);
   color: var(--tau-ink-soft);
 }
 .login-divider::before,
@@ -617,7 +617,7 @@ button:hover { border-color: var(--tau-forest); }
    forms are the same component on the same sheet, so it is a class rather
    than the second page redefining chrome it does not own. */
 .auth-form { display: flex; flex-direction: column; gap: 6px; }
-.auth-form label { font-size: 13px; color: var(--tau-ink-soft); margin-top: 6px; }
+.auth-form label { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); margin-top: 6px; }
 .auth-form input {
   font: inherit;
   border: 1px solid var(--tau-line);
@@ -637,7 +637,7 @@ button:hover { border-color: var(--tau-forest); }
 }
 
 .auth-identity { min-height: 1.2em; }
-.auth-rule { font-size: 13px; color: var(--tau-ink-soft); margin: 0 0 2px; }
+.auth-rule { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); margin: 0 0 2px; }
 
 /* A recovery route, not a second way in: quieter than the submit it sits
    under, and it reads as the destination ("Reset your password") rather than
@@ -646,7 +646,7 @@ button:hover { border-color: var(--tau-forest); }
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid var(--tau-line);
-  font-size: 13px;
+  font-size: var(--tau-text-sm);
   display: flex;
   justify-content: space-between;
   gap: 10px;
@@ -667,7 +667,7 @@ button:hover { border-color: var(--tau-forest); }
   border: 1px solid var(--tau-line);
   border-radius: 8px;
   padding: 10px 12px;
-  font-size: 13px;
+  font-size: var(--tau-text-sm);
   color: var(--tau-ink-soft);
   margin-bottom: 12px;
 }
@@ -678,7 +678,7 @@ button:hover { border-color: var(--tau-forest); }
   color: var(--tau-attention);
   border-radius: 8px;
   padding: 8px 12px;
-  font-size: 13px;
+  font-size: var(--tau-text-sm);
   margin-top: 10px;
 }
 .login-submit {
@@ -692,7 +692,7 @@ button:hover { border-color: var(--tau-forest); }
 .login-submit:hover { background: var(--tau-forest-lift); border-color: var(--tau-forest-lift); }
 .login-submit:disabled { opacity: var(--tau-disabled); cursor: default; }
 
-.test-accounts { font-size: 13px; color: var(--tau-ink-soft); border-top: 1px solid var(--tau-line); padding-top: 12px; }
+.test-accounts { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); border-top: 1px solid var(--tau-line); padding-top: 12px; }
 .test-accounts summary { cursor: pointer; }
 .test-hint { margin: 10px 0 8px; }
 .test-hint code { background: var(--tau-surface-2); padding: 1px 6px; border-radius: 5px; }
@@ -700,11 +700,11 @@ button:hover { border-color: var(--tau-forest); }
 .test-accounts li { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .test-account {
   padding: 3px 8px;
-  font-size: 12px;
+  font-size: var(--tau-text-sm);
   border-radius: 6px;
   color: var(--tau-forest);
 }
-.test-note { font-size: 11px; }
+.test-note { font-size: var(--tau-text-sm); }
 
 /* ---------- dashboard shell ---------- */
 
@@ -782,11 +782,11 @@ button:hover { border-color: var(--tau-forest); }
 .rail-progress .rail-empty { padding: 0; line-height: 1.55; }
 
 .meters { display: flex; flex-direction: column; gap: 18px; }
-.meter-name { font-size: 12px; color: var(--tau-ink-soft); margin-bottom: 5px; display: block; }
+.meter-name { font-size: var(--tau-text-label-md); color: var(--tau-ink-soft); margin-bottom: 5px; display: block; }
 /* Same slot the old ▲/▼ delta line and the bar underneath it used to fill —
    a sentence carries more than either did on its own, so it replaces both
    rather than sitting alongside them. */
-.meter-guidance { font-size: 12.5px; color: var(--tau-ink-soft); line-height: 1.5; }
+.meter-guidance { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.5; }
 
 /* ---------- hero ---------- */
 
@@ -838,10 +838,10 @@ button:hover { border-color: var(--tau-forest); }
 .chunk { margin-bottom: 38px; }
 .chunk-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
 .chunk-head h2 { font-size: 17px; letter-spacing: -0.01em; }
-.chunk-count { font-size: 12px; color: var(--tau-ink-soft); }
-.chunk-note { font-size: 13px; color: var(--tau-ink-soft); margin-bottom: 14px; }
+.chunk-count { font-size: var(--tau-text-label-md); color: var(--tau-ink-soft); }
+.chunk-note { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); margin-bottom: 14px; }
 .chunk-head + #currentList { margin-top: 14px; }
-.home-empty { color: var(--tau-ink-soft); font-size: 14px; }
+.home-empty { color: var(--tau-ink-soft); font-size: var(--tau-text-md); }
 
 /* ---------- current assignment card ---------- */
 
@@ -859,9 +859,9 @@ button:hover { border-color: var(--tau-forest); }
 .acard-due-soon { color: var(--tau-caution); }
 .acard-due-late { color: var(--tau-attention); }
 .acard-class { font-size: var(--tau-text-label-sm); font-weight: 700; color: var(--tau-ink-soft); }
-.acard-sep { color: var(--tau-line-strong); font-size: 11px; }
+.acard-sep { color: var(--tau-line-strong); font-size: var(--tau-text-label-sm); }
 .acard-title-row { display: flex; align-items: center; justify-content: space-between; gap: var(--tau-s3); margin-top: 5px; }
-.acard-title { font-size: 20px; letter-spacing: -0.015em; }
+.acard-title { font-size: var(--tau-text-xl); letter-spacing: -0.015em; }
 .acard-rubric-btn { flex-shrink: 0; }
 
 /* ---------- draft rows (home card) ---------- */
@@ -876,7 +876,7 @@ button:hover { border-color: var(--tau-forest); }
 }
 .draft-row {
   display: flex; flex-direction: column; gap: 10px; padding: 13px 15px;
-  font-size: 13px;
+  font-size: var(--tau-text-sm);
   border: 1px solid var(--tau-line);
   border-radius: var(--tau-r-md);
 }
@@ -928,7 +928,7 @@ button:hover { border-color: var(--tau-forest); }
 .draft-tile {
   display: flex; align-items: center; gap: 12px;
   width: 100%; min-height: var(--tau-target);
-  padding: 10px 14px; font: inherit; font-size: 13px; text-align: left;
+  padding: 10px 14px; font: inherit; font-size: var(--tau-text-sm); text-align: left;
   color: var(--tau-ink); background: var(--tau-surface);
   border: 1px solid var(--tau-line); border-radius: var(--tau-r-md);
   transition: border-color var(--tau-dur-short) var(--tau-ease-standard),
@@ -955,7 +955,7 @@ button.draft-tile:hover {
    on the same vertical line down the ledger. */
 .draft-upcoming {
   display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
-  padding: 3px 15px; font-size: 13px; color: var(--tau-ink-faint);
+  padding: 3px 15px; font-size: var(--tau-text-sm); color: var(--tau-ink-faint);
 }
 .draft-upcoming-num { font-weight: 600; }
 
@@ -966,7 +966,7 @@ button.draft-tile:hover {
    note" on the past-assignment chips. */
 .draft-row-note-flag {
   display: inline-flex; align-items: center; gap: 4px;
-  font-size: 12px; font-weight: 600; color: var(--tau-auditor);
+  font-size: var(--tau-text-label-md); font-weight: 600; color: var(--tau-auditor);
 }
 .draft-row-note-flag .tau-icon { width: 13px; height: 13px; }
 
@@ -980,9 +980,9 @@ button.draft-tile:hover {
   box-shadow: 0 3px 8px -3px color-mix(in oklab, var(--tau-forest) 45%, transparent);
   transition: background var(--tau-dur-short) var(--tau-ease-standard), border-color var(--tau-dur-short) var(--tau-ease-standard), transform var(--tau-dur-short) var(--tau-ease-standard);
 }
-.acard-btn { font-size: 14px; padding: 11px 20px; }
-.draft-row-btn { font-size: 13px; padding: 9px 16px; }
-.draft-row-action-detail { color: var(--tau-ink-soft); font-size: 13px; }
+.acard-btn { font-size: var(--tau-text-md); padding: 11px 20px; }
+.draft-row-btn { font-size: var(--tau-text-sm); padding: 9px 16px; }
+.draft-row-action-detail { color: var(--tau-ink-soft); font-size: var(--tau-text-sm); }
 .acard-btn:hover, .draft-row-btn:hover { background: var(--tau-forest-lift); border-color: var(--tau-forest-lift); }
 .acard-btn:active, .draft-row-btn:active { transform: scale(0.97); }
 
@@ -997,10 +997,10 @@ button.draft-tile:hover {
    so this composes onto .card exactly rather than keeping a third value. */
 .pcard { margin-bottom: 10px; }
 .pcard-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-.pcard-head h3 { font-size: 15px; flex: 1; min-width: 200px; }
+.pcard-head h3 { font-size: var(--tau-text-lg); flex: 1; min-width: 200px; }
 .pcard-outcome { display: flex; align-items: baseline; gap: 9px; }
-.pcard-band { font-size: 13px; font-weight: 600; padding-left: 8px; border-left-width: 3px; border-left-style: solid; }
-.pcard-meta { font-size: 12px; color: var(--tau-ink-soft); margin: 3px 0 11px; }
+.pcard-band { font-size: var(--tau-text-sm); font-weight: 600; padding-left: 8px; border-left-width: 3px; border-left-style: solid; }
+.pcard-meta { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); margin: 3px 0 11px; }
 
 /* ---------- draft chips ---------- */
 
@@ -1008,16 +1008,16 @@ button.draft-tile:hover {
 .draft-chip {
   display: flex; align-items: baseline; gap: 7px;
   padding: 6px 11px; border-radius: 9px;
-  border: 1px solid var(--tau-line); background: var(--tau-surface); font-size: 13px;
+  border: 1px solid var(--tau-line); background: var(--tau-surface); font-size: var(--tau-text-sm);
 }
-.draft-chip .chip-cycle { color: var(--tau-ink-soft); font-size: 12px; }
+.draft-chip .chip-cycle { color: var(--tau-ink-soft); font-size: var(--tau-text-label-md); }
 .draft-chip .chip-samr { font-weight: 600; }
 .draft-chip .chip-note { color: var(--tau-auditor); display: inline-flex; }
 .draft-chip .chip-note .tau-icon { width: 13px; height: 13px; }
 button.draft-chip { cursor: pointer; transition: border-color var(--tau-dur-short) var(--tau-ease-standard); }
 button.draft-chip:hover { border-color: var(--tau-forest); }
 .draft-chip-pending { color: var(--tau-ink-soft); }
-.draft-chip-pending .chip-status { font-size: 12px; }
+.draft-chip-pending .chip-status { font-size: var(--tau-text-label-md); }
 
 /* The .level-* colour mapping itself lives in components.css, next to
    .band-1..4 (same ramp, applied as a border accent) — this is just the

@@ -104,7 +104,13 @@
 
   --tau-ink:       #16191C;
   --tau-ink-soft:  #545B63;
-  --tau-ink-faint: #767D85;
+  /* Darkened from #767D85 on 2026-08-24. The old value cleared 4.5:1 on NO
+     light ground it was used on — 4.16 on white, 3.81 on --tau-surface-2,
+     3.63 on --tau-surface-3 — and it carries small text on all three (roster
+     headers, eyebrows, group labels). 5.29 / 4.83 / 4.61 now. It still lands
+     at 4.19 on --tau-shell, so THE RULE IS: ink-faint never carries text on
+     the shell; the rail's own hint text already uses --tau-ink-soft there. */
+  --tau-ink-faint: #686C71;
 
   /* Group-label colour for .eyebrow only. Faint reads as a grouping label on
      a dark ground (dark theme keeps it) but washes out on white — light
@@ -437,7 +443,11 @@
 
     --tau-ink:       #E9EBEC;
     --tau-ink-soft:  #A2A9AE;
-    --tau-ink-faint: #858C92;
+    /* Lightened from #858C92 for the same reason as light's: 4.86 on
+       --tau-surface and 3.85 on --tau-surface-3. 5.39 / 4.27 now — it is not
+       taken further because the next step that clears surface-3 collapses the
+       gap to --tau-ink-soft and the ramp stops reading as two steps. */
+    --tau-ink-faint: #8D949A;
     --tau-ink-label: var(--tau-ink-faint);
 
     --tau-line:        #2D3134;
@@ -492,7 +502,7 @@
   color-scheme: dark;
   --tau-forest: #6FBF95; --tau-forest-lift: #8CD1AC; --tau-sage: #4F9973; --tau-on-forest: #12211A;
   --tau-bg: #16181A; --tau-surface: #1C1F21; --tau-surface-2: #232729; --tau-surface-3: #2D3134; --tau-shell: #16181A;
-  --tau-ink: #E9EBEC; --tau-ink-soft: #A2A9AE; --tau-ink-faint: #858C92; --tau-ink-label: var(--tau-ink-faint);
+  --tau-ink: #E9EBEC; --tau-ink-soft: #A2A9AE; --tau-ink-faint: #8D949A; --tau-ink-label: var(--tau-ink-faint);
   --tau-line: #2D3134; --tau-line-strong: #3E4448;
   --tau-band-1-bg: oklch(0.26 0.030 280); --tau-band-1-fg: oklch(0.82 0.070 280);
   --tau-band-2-bg: oklch(0.26 0.034 205); --tau-band-2-fg: oklch(0.85 0.075 205);
@@ -528,7 +538,7 @@
   color-scheme: light;
   --tau-forest: #1F4D3A; --tau-forest-lift: #2A6349; --tau-sage: #3D7A5A; --tau-on-forest: #FFFFFF;
   --tau-bg: oklch(0.992 0.006 162); --tau-surface: #FFFFFF; --tau-surface-2: oklch(0.968 0.008 162); --tau-surface-3: oklch(0.952 0.010 162); --tau-shell: oklch(0.920 0.014 162);
-  --tau-ink: #16191C; --tau-ink-soft: #545B63; --tau-ink-faint: #767D85; --tau-ink-label: var(--tau-ink-soft);
+  --tau-ink: #16191C; --tau-ink-soft: #545B63; --tau-ink-faint: #686C71; --tau-ink-label: var(--tau-ink-soft);
   --tau-line: oklch(0.895 0.008 162); --tau-line-strong: oklch(0.815 0.010 162);
   --tau-band-1-bg: oklch(0.951 0.018 280); --tau-band-1-fg: oklch(0.42 0.058 280);
   --tau-band-2-bg: oklch(0.953 0.022 205); --tau-band-2-fg: oklch(0.38 0.058 205);

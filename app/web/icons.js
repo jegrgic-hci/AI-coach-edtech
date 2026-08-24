@@ -24,6 +24,9 @@ const ICONS = {
     '<path d="M8.5 5 15 12l-6.5 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
   close:
     '<path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+  search:
+    '<circle cx="11" cy="11" r="6.25" fill="none" stroke="currentColor" stroke-width="1.6"/>'
+    + '<path d="m15.6 15.6 4.4 4.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
   description:
     '<path d="M6.5 3.5h7l4 4v12.5a1 1 0 0 1-1 1h-10a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>'
     + '<path d="M9 12.5h6M9 16h6M9 9h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',

@@ -246,6 +246,35 @@ not licence to improvise — say so and ask, don't invent.**
   an actual tier-worthy fact, that instance takes the matching tier colour instead — tool-info
   never sits underneath a red or amber finding pretending to be neutral.
 - **Colour is never the only channel** — pair with shape, weight, dash, or text.
+- **Every app masthead is the same object: wordmark, then `<h1>` page name, then controls — and its
+  h1 is `--tau-text-lg` / 700 / −0.2px on every surface.** Added 2026-08-24. `dashboard.html` had
+  been the lone dissenter at 22px / 600 / −0.4px. The h1 names the page and is deliberately
+  subordinate to the Tau wordmark beside it in a 64px bar; a larger step out-weighs the brand mark.
+  It is `header h1` on dashboard/levels/signals/dimensions and `.app-header h1` on teacher/admin —
+  **two selectors for one component, which is real debt and the next thing to collapse here.**
+- **`--tau-text-xs` (11.5px) is for labels, chips, counts and dates. A SENTENCE takes
+  `--tau-text-sm` (13px) or larger, never xs.** Added 2026-08-24. The two label roles
+  (`--tau-text-label-sm/md`) were carved out on 2026-08-22 for the naming job, which left xs with no
+  stated job at all — and `dashboard.html` had drifted into using it for `.dim-note`, `.flag-line`,
+  `.form-error`, `.teach-note` and nine other blocks of running prose against a 14.5px body. Same
+  rule as the ramp's other end: **a field you type into is never a label size** either. The
+  accessibility floor is separate and lower — WCAG sets no minimum size, so this is a legibility
+  rule, and citing "it passes AA" is not an answer to it. The migration that applied this (2026-08-24,
+  ~160 sites across `dashboard.html`, `teacher.html`, `components.css`, `style.css`, `report.css`)
+  snapped a literal to a rung when it sat **within 1px** of one and left it alone beyond that, so a
+  surviving literal marks a real gap rather than a missed site. **The ramp has no 17px rung** — it
+  jumps `--tau-text-lg` 15.5 → `--tau-text-xl` 19 — and four headings sit there (`.chunk-head h2`,
+  `.confirm h4`, `.stat-row-count b`, `.report-jump-score-n`). That is an open gap, not licence to
+  round either way.
+- **`--tau-ink-faint` never carries text on `--tau-shell`.** Added 2026-08-24 with the token's
+  darkening (light `#767D85` → `#686C71`, dark `#858C92` → `#8D949A`). It now clears 4.5:1 on
+  surface, surface-2 and surface-3 in both themes, but lands at 4.19 on the shell; taking it further
+  collapses the gap to `--tau-ink-soft` and the muted ramp stops reading as two steps. Muted text on
+  the shell — the rail — is `--tau-ink-soft`.
+- **The four-step ordinal ramp (`--tau-scale-N`) is a FILL and never a text colour.** Added
+  2026-08-24. It is validated in the ordinal mode ("light end clearing 2:1", `tokens.css`), which is
+  a fill threshold; `--tau-scale-4` as text measured 2.13:1 on white. `--tau-scale-N-ink` exists for
+  the text that sits *on* it. To colour one label at a time, that is `--tau-band-N-fg`'s job.
 - **A chart's finding is never behind a tooltip.** Only the *decoder* (what a mark means in general,
   no cohort numbers) may move there, on a focusable 44px control answering to hover/focus/click — and
   a caveat may move only if the visual already prevents the misreading it guards. See *Chart

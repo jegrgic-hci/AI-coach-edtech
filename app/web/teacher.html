@@ -52,34 +52,34 @@
    flagged branch (teacher.js) still gets real chip chrome. */
 .cycle-label { font-size: var(--tau-text-xs); font-weight: 600; color: var(--tau-forest); }
 .cycle-label-pending { color: var(--tau-ink-soft); font-weight: 400; }
-.active-note { font-size: 12px; color: var(--tau-positive); }
+.active-note { font-size: var(--tau-text-sm); color: var(--tau-positive); }
 
 /* student detail */
 .traj-strip { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
 /* Chrome comes from components.css's .card now — this keeps only the flex
    sizing three cards need to sit side by side. */
 .traj-card { flex: 1; min-width: 150px; }
-.traj-card .lvl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tau-ink-soft); }
+.traj-card .lvl { font-size: var(--tau-text-label-sm); text-transform: uppercase; letter-spacing: 0.05em; color: var(--tau-ink-soft); }
 .traj-card .samr { font-weight: 700; margin: 4px 0; }
 /* Not .dim-grid — that is the four-dimension quadrant grid in components.css.
    This is the one-line triage summary, which is a different object at a
    different density. */
-.traj-card .dim-line { font-size: 12px; color: var(--tau-ink-soft); }
-.traj-card a { font-size: 12px; }
+.traj-card .dim-line { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+.traj-card a { font-size: var(--tau-text-sm); }
 
 /* Shaped closer to a callout than a card (no background/full border/radius —
    just a ruled left edge over running text), so it stays its own pattern
    rather than being forced onto .card or .quote. */
 .moment { border-left: 3px solid var(--tau-forest); padding: 6px 14px; margin-bottom: 10px; }
-.moment .m-kind { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--tau-forest); }
+.moment .m-kind { font-size: var(--tau-text-label-sm); text-transform: uppercase; letter-spacing: 0.05em; color: var(--tau-forest); }
 .moment .m-quote { font-style: italic; margin: 3px 0; }
-.moment .m-why { font-size: 12px; color: var(--tau-ink-soft); }
+.moment .m-why { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
 .moment.warn { border-color: var(--tau-caution); } .moment.warn .m-kind { color: var(--tau-caution); }
 
 /* .transcript/.transcript summary/.t-event deleted 2026-08-21 with the
    transcript this view used to render — report.html is the one place a
    conversation is read now. */
-.note-saved { font-size: 12px; color: var(--tau-positive); margin-left: 8px; }
+.note-saved { font-size: var(--tau-text-sm); color: var(--tau-positive); margin-left: 8px; }
 /* Layout tweak only — text/colour/weight come from components.css's
    .eyebrow now (was its own near-identical uppercase micro-label). */
 .eyebrow { margin: 14px 0 8px; }

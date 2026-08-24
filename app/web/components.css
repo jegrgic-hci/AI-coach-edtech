@@ -200,7 +200,7 @@
   padding: 7px 12px;
   border-radius: var(--tau-r-pill);
   background: var(--tau-surface-2);
-  font-size: 12.5px; font-weight: 600; color: var(--tau-disclosure-fg);
+  font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-disclosure-fg);
   transition: background var(--tau-dur-short) var(--tau-ease-standard), border-radius var(--tau-dur-short) var(--tau-ease-standard);
 }
 .acard-disclosure-toggle::-webkit-details-marker { display: none; }
@@ -236,7 +236,7 @@ details[open] > .acard-disclosure-toggle {
   gap: 7px;
   padding: var(--tau-s1) 11px;
   border-radius: var(--tau-r-pill);
-  font-size: 12.5px;
+  font-size: var(--tau-text-sm);
   font-weight: 600;
   box-shadow: inset 0 0 0 1px color-mix(in oklab, currentColor 16%, transparent);
 }
@@ -442,7 +442,7 @@ details[open] > .acard-disclosure-toggle {
    you register the speaker before reading the bubble, which leaves attribution
    resting entirely on which side the bubble is on. */
 .turn-speaker {
-  font-size: 10.5px;
+  font-size: var(--tau-text-label-sm);
   letter-spacing: var(--tau-track-caps);
   text-transform: uppercase;
   color: var(--tau-ink-soft);
@@ -574,7 +574,7 @@ details[open] > .acard-disclosure-toggle {
   display: flex;
   flex-wrap: wrap;
   gap: var(--tau-s2) var(--tau-s5);
-  font-size: 12.5px;
+  font-size: var(--tau-text-sm);
   color: var(--tau-ink-soft);
 }
 .legend-item { display: inline-flex; align-items: center; gap: var(--tau-s2); }
@@ -673,10 +673,10 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    to also serve) was retired 2026-08-03 in favor of linking to this one. */
 .new-assignment-form { display: flex; flex-direction: column; gap: 10px; }
 .form-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.form-row label { font-size: 13px; color: var(--tau-ink-soft); }
+.form-row label { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
 .draft-slot-rows { display: flex; flex-direction: column; gap: 6px; }
 .draft-slot-row { display: flex; align-items: center; gap: 8px; }
-.draft-slot-label { font-size: 13px; color: var(--tau-ink-soft); width: 52px; flex-shrink: 0; }
+.draft-slot-label { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); width: 52px; flex-shrink: 0; }
 
 /* The template picker governs every field under it, so it sits above the
    first group rather than inside one, with a rule underneath separating "where
@@ -864,7 +864,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 .tray-close:hover { background: var(--tau-hover-surface); color: var(--tau-ink); }
 .tray-body { flex: 1; overflow-y: auto; padding: var(--tau-s5); display: flex; flex-direction: column; gap: var(--tau-s5); }
 .tray-section-label {
-  font-size: 10px;
+  font-size: var(--tau-text-label-sm);
   font-weight: 700;
   color: var(--tau-ink-soft);
   letter-spacing: 0.8px;
@@ -934,7 +934,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    dashboard.html's own <header> took. Two parts:
 
    HEIGHT. 52px was sized to the wordmark. 64px is what lets the controls in
-   the bar (the account chip, report.html's Pattern Guide) be 40px
+   the bar (the account chip, the local toggle) be 40px
    --tau-h-control objects without crowding the row, which §3 requires of them.
 
    NO DIVIDER AT REST. The bar states "there is content above" by taking a
@@ -1025,7 +1025,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
   background: none;
   padding: 5px 12px;
   border-radius: var(--tau-r-pill);
-  font-size: 12px;
+  font-size: var(--tau-text-sm);
   font-weight: 600;
   color: var(--tau-ink-soft);
   cursor: pointer;
@@ -1048,9 +1048,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    which is exactly why this rendered as a bare native button there before
    it lived here. */
 /* The slot the account menu mounts into. .account-name and .account-signout
-   went with the flat name-plus-button strip this replaced — the only thing
-   still borrowing .account-signout was report.html's Pattern Guide button,
-   which is a button and now says so (.btn.btn-quiet.btn-sm). */
+   went with the flat name-plus-button strip this replaced. */
 .account-chip { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
 /* ---------- 13. rail ---------- */
@@ -1182,7 +1180,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    (Open under All assignments, Worth a chat under All students). Indented
    and a step down in size so it doesn't visually tie with what it filters. */
 .rail-item-nested { padding-left: var(--tau-s6); min-height: 38px; }
-.rail-item-nested .rail-item-name { font-size: 12px; }
+.rail-item-nested .rail-item-name { font-size: var(--tau-text-sm); }
 
 /* Identity block — who you are, at the top of a rail that has one. */
 .rail-identity { display: flex; align-items: center; gap: var(--tau-s3); min-width: 0; }
@@ -1231,7 +1229,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 .menu-trigger.menu-trigger-primary { background: var(--tau-forest); border-color: var(--tau-forest); color: var(--tau-on-forest); }
 .menu-trigger.menu-trigger-primary:hover, .menu-trigger.menu-trigger-primary[aria-expanded="true"] { background: var(--tau-forest-lift); border-color: var(--tau-forest-lift); }
 .menu-trigger.menu-trigger-primary .menu-chevron { color: var(--tau-on-forest); opacity: 0.85; }
-.menu-chevron { color: var(--tau-ink-faint); transition: transform var(--tau-dur-short) var(--tau-ease-standard); font-size: 10px; }
+.menu-chevron { color: var(--tau-ink-faint); transition: transform var(--tau-dur-short) var(--tau-ease-standard); font-size: var(--tau-text-label-sm); }
 .menu-trigger[aria-expanded="true"] .menu-chevron { transform: rotate(180deg); }
 
 /* The account trigger. A pill rather than the squared .menu-trigger so the
@@ -1362,7 +1360,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
   color: var(--tau-ink);
 }
 .menu-item.theme-toggle:hover { border-color: transparent; }
-.menu-item .theme-toggle-icon { margin-left: auto; font-size: 14px; line-height: 1; }
+.menu-item .theme-toggle-icon { margin-left: auto; font-size: var(--tau-text-md); line-height: 1; }
 
 /* A named destination that doesn't exist yet. Rendered rather than omitted so
    the gap is a stated limitation instead of a thing the reader assumes is
@@ -1401,14 +1399,14 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    card, and both read louder than the ribbons underneath them. */
 
 .card-tabs { display: flex; gap: var(--tau-s5); border-bottom: 1px solid var(--tau-line); margin-bottom: var(--tau-s4); }
-.card-tab { background: none; border: none; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; color: var(--tau-ink-soft); padding: 0 0 9px; margin-bottom: -1px; border-bottom: 2px solid transparent; transition: color var(--tau-dur-short) var(--tau-ease-standard); }
+.card-tab { background: none; border: none; cursor: pointer; font: inherit; font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink-soft); padding: 0 0 9px; margin-bottom: -1px; border-bottom: 2px solid transparent; transition: color var(--tau-dur-short) var(--tau-ease-standard); }
 .card-tab:hover { color: var(--tau-ink); }
 .card-tab.active { color: var(--tau-forest); border-bottom-color: var(--tau-forest); }
 /* Count badge on a tab label — Class overview's Patterns tab, so a teacher
    knows there's something inside before clicking in. Omitted entirely at
    zero (renderClassAggregateCard), matching the app's existing
    omit-inert-zero idiom for .stat-tile rather than showing a dead "0". */
-.card-tab .tab-count { display: inline-flex; font-size: 10.5px; font-weight: 700; background: var(--tau-surface-2); color: var(--tau-ink-soft); border-radius: var(--tau-r-pill); padding: 1px 7px; margin-left: 5px; }
+.card-tab .tab-count { display: inline-flex; font-size: var(--tau-text-label-sm); font-weight: 700; background: var(--tau-surface-2); color: var(--tau-ink-soft); border-radius: var(--tau-r-pill); padding: 1px 7px; margin-left: 5px; }
 .card-tab.active .tab-count { background: var(--tau-positive-bg); color: var(--tau-positive); }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
@@ -1422,18 +1420,18 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 
 .no-signal { color: var(--tau-ink-faint); font-size: var(--tau-text-sm); }
 .agg-block-lbl { font-size: var(--tau-text-label-md); font-weight: 700; color: var(--tau-ink-soft); margin: 0 0 var(--tau-s2); }
-.agg-sample-note { font-size: 11px; color: var(--tau-ink-faint); margin: 0 0 var(--tau-s2); }
-.pattern-body { font-size: 13px; color: var(--tau-ink-soft); margin: 0 0 var(--tau-s3); line-height: 1.55; }
+.agg-sample-note { font-size: var(--tau-text-sm); color: var(--tau-ink-faint); margin: 0 0 var(--tau-s2); }
+.pattern-body { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); margin: 0 0 var(--tau-s3); line-height: 1.55; }
 .pattern-body b { color: var(--tau-ink); }
 .pattern-try {
   background: var(--tau-tool-info-bg); border-left: 3px solid var(--tau-tool-info);
   border-radius: 0 var(--tau-r-sm) var(--tau-r-sm) 0; padding: 11px 13px;
-  font-size: 12.5px; color: var(--tau-ink-soft); line-height: 1.5; margin: 0 0 var(--tau-s3);
+  font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.5; margin: 0 0 var(--tau-s3);
 }
 .pattern-try b { color: var(--tau-tool-info); }
 .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--tau-s3); margin-bottom: var(--tau-s2); }
 .section-head .eyebrow { margin-bottom: 0; }
-.section-summary { font-size: 12px; color: var(--tau-ink-soft); }
+.section-summary { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
 
 /* --- .comp — the level composition of a room.
    The cohort form of report-lab.html's .ladder: same four rungs, same
@@ -1748,7 +1746,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    which is what "the seam" was standing in for. */
 .dbar-key {
   display: flex; align-items: center; flex-wrap: wrap; gap: 7px 13px;
-  font-size: 10.5px; color: var(--tau-ink-soft);
+  font-size: var(--tau-text-label-sm); color: var(--tau-ink-soft);
 }
 .dbar-key-item { display: inline-flex; align-items: center; gap: 5px; }
 .dbar-key-item i {
@@ -1788,7 +1786,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
 .dbar-tip {
   position: fixed; z-index: 60; pointer-events: none; opacity: 0;
   background: var(--tau-ink); color: var(--tau-surface);
-  font-size: 11.5px; line-height: 1.45; padding: 6px 9px;
+  font-size: var(--tau-text-xs); line-height: 1.45; padding: 6px 9px;
   border-radius: var(--tau-r-sm); box-shadow: var(--tau-shadow);
   max-width: 230px;
   transition: opacity var(--tau-dur-short) var(--tau-ease-standard);
@@ -1811,7 +1809,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
   position: relative; appearance: none; background: none; padding: 0;
   border: 1px solid var(--tau-line-strong); border-radius: 50%;
   width: 15px; height: 15px; flex: 0 0 auto; cursor: pointer;
-  font-size: 10px; font-weight: 700; line-height: 1; color: var(--tau-ink-faint);
+  font-size: var(--tau-text-label-sm); font-weight: 700; line-height: 1; color: var(--tau-ink-faint);
   display: inline-flex; align-items: center; justify-content: center;
   transition: color var(--tau-dur-short) var(--tau-ease-standard),
               border-color var(--tau-dur-short) var(--tau-ease-standard);
@@ -1845,7 +1843,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
 .viz-lede {
   border-left: 3px solid var(--tau-line-strong);
   padding: 1px 0 1px 13px; margin: 0 0 var(--tau-s4);
-  font-size: 13px; line-height: 1.55; color: var(--tau-ink);
+  font-size: var(--tau-text-sm); line-height: 1.55; color: var(--tau-ink);
 }
 .viz-lede b { font-weight: 700; }
 
@@ -1909,7 +1907,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
    panel already states in a full clause. */
 .dist-row.is-floor .dist-row-name { font-weight: 800; }
 .dist-row-go {
-  font-size: 10px; color: var(--tau-ink-faint); text-align: right; line-height: 1;
+  font-size: var(--tau-text-label-sm); color: var(--tau-ink-faint); text-align: right; line-height: 1;
   transition: transform var(--tau-dur-short) var(--tau-ease-standard);
 }
 .dist-row[open] .dist-row-go { transform: rotate(180deg); }
@@ -1917,7 +1915,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
    least newsworthy line in the block and the one without which the rest
    doesn't parse, so it leads at low contrast rather than competing. */
 .dist-what {
-  font-size: 11.5px; color: var(--tau-ink-faint); line-height: 1.5;
+  font-size: var(--tau-text-sm); color: var(--tau-ink-faint); line-height: 1.5;
   margin: 0 0 7px; max-width: 62ch;
 }
 /* Indented to the plot, so an open row's reading sits under the bar it
@@ -2007,7 +2005,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
 /* The count keeps display weight — triage is the top of this page's
    hierarchy — while the unit stays body-sized beside it, so the pair reads
    as one phrase rather than as a number with a caption under it. */
-.stat-row-count { font-size: 12.5px; color: var(--tau-ink-soft); font-variant-numeric: tabular-nums; }
+.stat-row-count { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); font-variant-numeric: tabular-nums; }
 /* Right-aligned in a fixed box so the three numerals form a column. Without
    it the shared unit word right-aligns and the digits go ragged behind it,
    which is the one comparison this list exists to support. */
@@ -2025,6 +2023,11 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
    never the only channel.
    Vocabulary is the student report's, verbatim (report-render.js): the same
    detectors must not acquire two names across two surfaces. */
+/* Callers pass --tau-band-N-fg, never --tau-scale-N. The ordinal ramp is
+   validated as a FILL ("light end clearing 2:1", tokens.css) — --tau-scale-4
+   as text measured 2.13:1 on white and 2.43:1 on the dark surface, which is
+   what it read as here until 2026-08-24. --tau-band-N-fg is the identify-one-
+   band token and this is one label at a time, not four plotted together. */
 .pattern-group-label {
   font-family: var(--tau-font-mono); font-size: var(--tau-text-label-md);
   font-weight: 700; margin-bottom: var(--tau-s3);
@@ -2045,7 +2048,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
   padding: var(--tau-s4) var(--tau-s5);
 }
 .viz-card-foot {
-  font-size: 11.5px; color: var(--tau-ink-faint); line-height: 1.5;
+  font-size: var(--tau-text-sm); color: var(--tau-ink-faint); line-height: 1.5;
   margin: var(--tau-s4) 0 0;
 }
 .viz-card-foot b { color: var(--tau-ink-soft); }
@@ -2103,7 +2106,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
              fill: var(--tau-ink-faint); }
 /* A count is measured, so the numerals stay ink and the words carry which
    one matters — the same rule the .dbar segments follow. */
-.flow-n { font-size: 11px; font-weight: 700; fill: var(--tau-ink);
+.flow-n { font-size: var(--tau-text-label-sm); font-weight: 700; fill: var(--tau-ink);
           font-variant-numeric: tabular-nums; }
 .flow-key { margin-top: var(--tau-s3); }
 .dist-row-detail .flow-key { margin-bottom: var(--tau-s3); }
@@ -2175,7 +2178,7 @@ min-height: 24px;
 .trace-agency { border-bottom: 1px solid var(--tau-line); padding-bottom: var(--tau-s3); }
 .trace-head { padding-bottom: 2px; }
 
-.trace-row-name { font-size: 12.5px; font-weight: 600; color: var(--tau-ink); min-width: 0; }
+.trace-row-name { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); min-width: 0; }
 .trace-row.is-focus .trace-row-name { font-weight: 800; }
 
 .trace-cells { display: flex; gap: var(--tau-s3); min-width: 0; }
