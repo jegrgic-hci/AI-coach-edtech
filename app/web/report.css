@@ -705,7 +705,7 @@
 
        Four blocks, in the order the page uses them:
          1. .dim-card      one reading, one card (the four readings)
-         2. .level-summary the agency level, stated in the hero
+         2. .level-block   the four levels, and the reading of this one
          3. .turnplot      the conversation on the time axis
          4. .provstrip     the draft on the authorship axis, and the
                            exchange components both of the above quote into
@@ -936,40 +936,69 @@
     .lab-note p:last-child { margin-bottom: 0; }
     .lab-placeholder { color: var(--tau-ink-faint); font-size: var(--tau-text-sm); }
 
-    /* --- .level-summary — the agency level, stated.
-       Takes its colour from one custom property pair set on the element by
-       renderReportHero, so a different level recolours the panel and nothing
-       per-level is hardcoded here:
+    /* --- .level-block — the four on the left, the reading on the right.
+       Two columns. The left holds the four level names in their fixed order,
+       strongest at the top, with a highlight band on the one that was read;
+       the right is the reading itself — definition, this session's
+       description, and the exception — in one panel taking the band's fill.
+
+       THE CARD'S HEIGHT STOPS MOVING. Nothing expands and no row grows, so
+       the block is the same shape on every report whatever the level, and a
+       student comparing draft 1 to draft 3 sees one object with the band in
+       a different place. That is also what retires the objection recorded
+       when the first vertical scale hung an explanation under the current
+       rung: one row taller than the other three "threw the whole axis out of
+       rhythm". The rows are equal here because the explanation left them.
+
+       NO RAIL AND NO DOTS — see the note in renderReportHero for why that is
+       the whole difference between this and the ladder removed 2026-08-24.
+
+       Colour comes from one custom property pair set on the element by
+       renderReportHero, so a different level recolours the band and the panel
+       together and nothing per-level is hardcoded here:
          --level-bg / --level-fg : the band's pair from the existing ramp
-       (.hero-level and its .ladder-rung rules went with the horizontal
-       variant-C ladder on 2026-08-24; --level-x, the marked rung's centre,
-       went with the notch that used it.) */
+       (.hero-level, its .ladder-rung rules and --level-x all went with the
+       variant-C ladder and its notch on 2026-08-24.) */
+    .level-block {
+      display: grid;
+      grid-template-columns: minmax(0, 13rem) minmax(0, 1fr);
+      gap: var(--tau-s5);
+      align-items: stretch;
+    }
+    /* 15rem left the band much wider than the longest name inside it. */
+    @media (max-width: 760px) { .level-block { grid-template-columns: 1fr; } }
 
-    /* The band fill is now the ONLY thing carrying the classification visually —
-       the scale that used to carry it came out 2026-08-24. It stays a fill and
-       not a text colour, per designsystem.md, and the level's name beside it is
-       still bolded rather than coloured: saying it twice in colour makes the
-       card read as a verdict.
+    .level-names { display: flex; flex-direction: column; gap: var(--tau-s1); }
+    .level-name {
+      padding: var(--tau-s3) var(--tau-s4);
+      border-radius: var(--tau-r-md);
+      font-size: var(--tau-text-lg);
+      font-weight: 500;
+      line-height: var(--tau-leading-snug);
+      color: var(--tau-ink-faint);
+    }
+    /* The band ramp's own bg/fg pairing, which is how it is designed to be
+       used. Never a positive/caution pair: semantic colour never touches a
+       student's own score, because a level is a position on a path and not a
+       verdict. */
+    .level-name.is-here { background: var(--level-bg); color: var(--level-fg); font-weight: 650; }
 
-       The notch that used to sit in the gap above this panel went with the
-       scale — it was a pointer at the marked rung, and there is no rung to
-       point at. Nothing replaced it: with the ladder gone the panel is no
-       longer a paragraph ABOUT some other object, it is the statement itself. */
-    .level-summary {
+    /* One panel holds the general claim, the particular one and the
+       counterexample. The exception is INSIDE it deliberately — left on the
+       white below a tinted panel it read as an afterthought, and its slot is
+       fixed precisely so it cannot be quietly dropped when a session goes
+       well. It is what makes the hero feedback rather than praise. */
+    .level-statement {
       background: var(--level-bg);
       border-radius: var(--tau-r-md);
       padding: var(--tau-s6) var(--tau-s7);
       display: flex;
       flex-direction: column;
-      gap: var(--tau-s4);
+      gap: var(--tau-s5);
+      min-width: 0;
     }
 
-    /* The headline runs the panel's width; the two supporting paragraphs sit
-       side by side beneath it. Stacked in one column they left the panel's
-       right half empty and made the counterexample look like an indented
-       afterthought — as a second column it reads as the other half of the
-       same statement, which is what it is. */
-    /* The level said in a sentence, and now the hero's display line. It was set
+    /* The level said in a sentence, and the hero's display line. It was set
        one step DOWN from .hero-shape while shape existed, on the reasoning that
        a line every student at this level shares should not pull the eye ahead
        of the one about their own chat. Shape was deleted 2026-08-22 — it had
@@ -978,32 +1007,44 @@
        described in .level-body beneath it, and a single statement of the level
        should carry the size.
 
-       The level name is bolded rather than coloured — the band colour is
-       already carrying the classification on the scale, and saying it twice in
-       colour makes the card read as a verdict.
+       The level's NAME is no longer part of this sentence. It was set here as a
+       bolded lead-in ("Transformative. You led...") while the panel was the only
+       place the level appeared; the left column names it now, and repeating it
+       would be the card saying it twice.
+
+       60ch, not the 46ch it carried while the panel was the whole hero: this is
+       a headline over the two columns below it, so it should break past their
+       gutter rather than well short of it.
 
        `pretty` not `balance`: balance splits a headline that runs just over one
        line into two half-width lines, which is a ragged break by another route. */
-    .level-summary .hero-level-def {
+    .level-def {
+      margin: 0;
+      max-width: 60ch;
       font-size: var(--tau-text-2xl);
       line-height: 1.3;
       color: var(--tau-ink);
       text-wrap: pretty;
-      max-width: 46ch;
-      margin-bottom: var(--tau-s3);
     }
-    .level-summary .hero-level-def b { font-weight: 650; }
-    .level-summary-body {
+
+    /* The description and the counterexample side by side. Stacked in one
+       column they left the panel's right half empty and made the counterexample
+       look like an indented afterthought — as a second column it reads as the
+       other half of the same statement, which is what it is. It is also what
+       gives the panel's width a job instead of a field of empty tint. */
+    .level-statement-body {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: var(--tau-s5) var(--tau-s7);
       align-items: start;
     }
-    .level-summary .level-body {
+    .level-statement .level-body {
+      max-width: 62ch;
       font-size: var(--tau-text-lg);
       line-height: var(--tau-leading-snug);
       color: var(--tau-ink-soft);
     }
+
     /* --- Setting a passage apart WITHOUT a left bar.
        The vertical rule was doing two jobs badly: it says "this is quoted or
        subordinate" without saying which, and stacked with the panel's own
@@ -1021,6 +1062,13 @@
     }
     .aside .eyebrow { color: var(--level-fg, var(--tau-ink-soft)); }
     .aside p { font-size: var(--tau-text-md); color: var(--tau-ink-soft); margin: 0; }
+    /* The hero's exception keeps the LABEL half of that device and drops the
+       rule. The hairline was drawn to separate the exception from a description
+       it sat beneath on white; inside the band panel, where the two are
+       side-by-side columns, it is furniture doing a job the panel's own edge
+       already does. The dimension cards below still sit on white and keep it. */
+    .level-statement .aside { max-width: 62ch; }
+    .level-statement .aside::before { display: none; }
 
     /* .dim-quad-callout ships with the same left bar. Overridden here so the
        page reads as one decision rather than two — the quad's callout is the
@@ -1036,7 +1084,7 @@
     }
     .dim-quad-callout .dim-evidence { color: var(--tau-ink-faint); }
     @media (max-width: 880px) {
-      .level-summary-body { grid-template-columns: 1fr; }
+      .level-statement-body { grid-template-columns: 1fr; }
     }
 
     /* The assignment names the report, so it is set as a title rather than as

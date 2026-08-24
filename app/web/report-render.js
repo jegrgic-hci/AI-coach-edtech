@@ -126,10 +126,23 @@ function renderReportHero(reading, submission) {
   // the 2026-08-21 rename are stored under the retired name and are never
   // rewritten. Without this the hero threw on `level` and rendered nothing.
   const level = levelName(reading.level);
-  // Still the band index — it colours the panel. The four-rung scale it also
-  // drove came out 2026-08-24; the level is now stated in words and in the
-  // panel's band fill, and nowhere as a position among four.
+  // Colours the marked name and the panel beside it.
   const idx = LEVEL_ORDER.indexOf(level) + 1;
+
+  // Strongest at the top, which is the direction every reading in the product
+  // runs (designsystem.md: "Strongest reading at the top"). LEVEL_ORDER is
+  // stored ascending, so display reverses it.
+  //
+  // NO RAIL AND NO DOTS. That is what separates this from the ladder removed
+  // on 2026-08-24: a rail with a marker on it is an axis, and a position on an
+  // axis reads as a number whether or not one is printed — the failure mode
+  // that retired the SAMR vocabulary on 2026-08-21 and then got rebuilt in
+  // geometry. A highlighted name beside a panel is a label, not a coordinate.
+  // Colour is not the only channel carrying it: the marked name also takes a
+  // fill, extra weight, and ownership of the statement beside it.
+  const names = LEVEL_ORDER.slice().reverse().map((name) =>
+    `<span class="level-name${name === level ? ' is-here' : ''}">${esc(name)}</span>`
+  ).join('');
 
   // The departure sentence only appears when the level lands somewhere the four
   // bands would not predict — when it doesn't depart, it says nothing extra.
@@ -145,18 +158,21 @@ function renderReportHero(reading, submission) {
            not measure how much of the leading was yours; it says where your
            thinking came into the work. -->
       <span class="eyebrow">Where your thinking came in</span>
-      <div class="level-summary" style="--level-bg: var(--tau-band-${idx}-bg); --level-fg: var(--tau-band-${idx}-fg)">
-        ${LEVEL_DEF[level] ? `<p class="hero-level-def"><b>${esc(level)}.</b> ${esc(LEVEL_DEF[level])}</p>` : ''}
-        <div class="level-summary-body">
-          <div>
-            <p class="level-body">${esc(reading.body)}</p>
-            ${departure}
+      <div class="level-block" style="--level-bg: var(--tau-band-${idx}-bg); --level-fg: var(--tau-band-${idx}-fg)">
+        <div class="level-names">${names}</div>
+        <div class="level-statement">
+          ${LEVEL_DEF[level] ? `<p class="level-def">${esc(LEVEL_DEF[level])}</p>` : ''}
+          <div class="level-statement-body">
+            <div>
+              <p class="level-body">${esc(reading.body)}</p>
+              ${departure}
+            </div>
+            ${reading.exception ? `
+              <div class="aside">
+                <span class="eyebrow">The exception</span>
+                <p>${esc(reading.exception)}</p>
+              </div>` : ''}
           </div>
-          ${reading.exception ? `
-            <div class="aside">
-              <span class="eyebrow">The exception</span>
-              <p>${esc(reading.exception)}</p>
-            </div>` : ''}
         </div>
       </div>
       <!-- Teachers are told this twice (viz.js's flow foot, levels.html); until
