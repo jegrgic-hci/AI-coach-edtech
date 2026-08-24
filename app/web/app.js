@@ -637,10 +637,10 @@ function currentCard(a) {
   // every time a student has it open. A button, not a disclosure: there's
   // nothing to preview, it's either open in the tray or it isn't.
   const rubricBtn = el('button', 'btn btn-quiet btn-sm acard-rubric-btn');
-  rubricBtn.innerHTML = `${iconSVG('checklist')} Prompt & rubric`;
+  rubricBtn.innerHTML = `${iconSVG('checklist')} Assignment prompt`;
   rubricBtn.type = 'button';
   rubricBtn.onclick = () => openTray({
-    title: 'Assignment prompt & rubric',
+    title: 'Assignment prompt',
     subtitle: a.title,
     body: assignmentBriefBody(a),
   });

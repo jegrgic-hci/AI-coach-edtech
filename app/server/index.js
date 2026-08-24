@@ -110,10 +110,13 @@ async function teacherScope(user) {
   const students = allStudents.filter((u) => enrolled.has(u.id));
   // An assignment given only to archived classes goes away with them. One with
   // no classIds at all predates classes entirely and stays visible — same
-  // fallback the dashboard payload applies below.
+  // fallback the dashboard payload applies below. An assignment archived on its
+  // own goes for the same reason a class does: it is finished work, still fully
+  // readable, that has stopped earning a place in the rail and the rollups.
   const assignments = allAssignments
+    .filter((a) => !a.archived)
     .filter((a) => !a.classIds || !a.classIds.length || a.classIds.some((id) => active.has(id)));
-  return { classes, allClasses, classIds, students, assignments };
+  return { classes, allClasses, classIds, students, assignments, allAssignments };
 }
 
 // Being a teacher is not a key to every student — only to your own.
@@ -1809,7 +1812,7 @@ async function handleApi(req, res, user, route) {
 
   // ---------- teacher routes ----------
 
-  if (seg1 === 'teacher' || (req.method === 'POST' && seg1 === 'assignments' && (!seg2 || seg3 === 'note' || seg3 === 'edit' || seg3 === 'delete')) || (req.method === 'POST' && seg1 === 'submissions' && (seg3 === 'note' || seg3 === 'followed-up')) || (req.method === 'POST' && seg1 === 'classes')) {
+  if (seg1 === 'teacher' || (req.method === 'POST' && seg1 === 'assignments' && (!seg2 || seg3 === 'note' || seg3 === 'edit' || seg3 === 'delete' || seg3 === 'archive')) || (req.method === 'POST' && seg1 === 'submissions' && (seg3 === 'note' || seg3 === 'followed-up')) || (req.method === 'POST' && seg1 === 'classes') || (req.method === 'POST' && seg1 === 'templates')) {
     if (user.role !== 'teacher') return json(res, 403, { error: 'teacher only' });
   }
 
@@ -1955,6 +1958,70 @@ async function handleApi(req, res, user, route) {
     return json(res, 200, await col('classes').get(classDoc.id));
   }
 
+  // POST /api/templates — save the content of an assignment being created so
+  // the next one like it starts filled in. Written from the create form's own
+  // values, not from the saved assignment: the template is the wording the
+  // teacher just wrote, and reading it back off the record would make this
+  // depend on that assignment continuing to exist.
+  //
+  // Takes no classIds and no dates even if the caller sends them — see
+  // store.js on why those two must never travel.
+  if (req.method === 'POST' && seg1 === 'templates' && !seg2) {
+    const body = await readBody(req);
+    const title = String(body.title || '').trim();
+    if (!title) return json(res, 400, { error: 'a template needs the assignment title it was saved from' });
+    const template = await col('assignmentTemplates').add({
+      teacherId: user.id,
+      // Defaults to the assignment's own title — a teacher who saves "Rhetorical
+      // analysis — Gettysburg" and never renames it still gets a list they can
+      // read, and the name is theirs to change at the point of saving.
+      name: String(body.name || title).trim().slice(0, 120),
+      title: title.slice(0, 200),
+      description: String(body.description || '').trim().slice(0, 4000),
+      purpose: String(body.purpose || '').trim().slice(0, 4000),
+      requirements: String(body.requirements || '').trim().slice(0, 4000),
+      teacherNote: String(body.teacherNote || '').trim().slice(0, 2000),
+      draftBudget: Math.max(1, Math.min(10, parseInt(body.draftBudget, 10) || 3)),
+      createdAt: now(),
+    });
+    return json(res, 200, template);
+  }
+
+  // POST /api/templates/:id/delete — a template is a convenience with nothing
+  // hanging off it, so unlike an assignment this deletes outright rather than
+  // archiving. Assignments already created from it are untouched: applying a
+  // template copies its values into the form and keeps no reference back.
+  if (req.method === 'POST' && seg1 === 'templates' && seg3 === 'delete') {
+    const template = await col('assignmentTemplates').get(seg2);
+    if (!template) return json(res, 404, { error: 'template not found' });
+    if (template.teacherId !== user.id) return json(res, 403, { error: 'not your template' });
+    await col('assignmentTemplates').delete(template.id);
+    return json(res, 200, { ok: true });
+  }
+
+  // POST /api/assignments/:id/archive — file a finished assignment away, or
+  // bring it back with archived: false. This is the answer for work that HAS
+  // been submitted to, which is exactly what /delete below refuses.
+  //
+  // Teacher-side only, deliberately: it clears the assignment from the rail,
+  // every rollup and every browse list (teacherScope filters it, the same way
+  // it filters an archived class), and changes nothing a student sees. The
+  // student's list is built from class membership, not from this flag, so
+  // their own reports stay reachable from the card they submitted through.
+  //
+  // A separate route rather than a field on /edit: that route re-validates the
+  // whole creation form, so filing something away would mean re-sending a
+  // title, three prose fields and a due date per draft to change one boolean.
+  if (req.method === 'POST' && seg1 === 'assignments' && seg3 === 'archive') {
+    const assignment = await col('assignments').get(seg2);
+    if (!assignment) return json(res, 404, { error: 'assignment not found' });
+    if (assignment.teacherId !== user.id) return json(res, 403, { error: 'not your assignment' });
+    const body = await readBody(req);
+    const archived = body.archived !== false;
+    await col('assignments').update(assignment.id, { archived });
+    return json(res, 200, await col('assignments').get(assignment.id));
+  }
+
   // POST /api/assignments/:id/delete — only while the assignment is still
   // untouched. Once a student has opened a session or submitted a draft there
   // are sessions, conversations, turns, submissions and analyses hanging off
@@ -2068,7 +2135,7 @@ async function handleApi(req, res, user, route) {
   // (dashboard.html) in the exact shape its mock generator produced:
   // { assignments, students, classes, submissions }
   if (req.method === 'GET' && seg1 === 'teacher' && seg2 === 'dashboard') {
-    const { students, classes, allClasses, classIds: allClassIds, assignments: ownAssignments } = await teacherScope(user);
+    const { students, classes, allClasses, classIds: allClassIds, assignments: ownAssignments, allAssignments } = await teacherScope(user);
     // An assignment seeded/created before classes existed (or omitted at
     // creation) has no classIds — treat it as visible to every class rather
     // than to none, so it doesn't silently vanish from the dashboard. "Every
@@ -2247,6 +2314,26 @@ async function handleApi(req, res, user, route) {
       archivedClasses: allClasses
         .filter((c) => c.archived)
         .map((c) => ({ id: c.id, name: c.name, studentIds: c.studentIds || [] })),
+      // Same separation, same reason: an archived assignment must not reach
+      // `assignments` or it walks back into every count on the page. Carries
+      // only what the restore list shows — a name, when it was due, and which
+      // of this teacher's live classes it was given to.
+      archivedAssignments: allAssignments
+        .filter((a) => a.archived)
+        .map((a) => ({
+          id: a.id,
+          name: a.title,
+          due: a.dueDate || null,
+          classNames: (a.classIds || [])
+            .map((id) => classes.find((c) => c.id === id))
+            .filter(Boolean)
+            .map((c) => c.name),
+        })),
+      // Saved starting points for the create form. Newest first — a teacher
+      // reaches for the one they wrote most recently far more often than the
+      // one from last year, and the list is short enough not to need search.
+      templates: (await col('assignmentTemplates').list({ teacherId: user.id }))
+        .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))),
       submissions,
     });
   }

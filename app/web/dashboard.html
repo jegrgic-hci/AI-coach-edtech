@@ -1515,6 +1515,12 @@ let ASSIGNMENTS = [], STUDENTS = [], CLASSES = [], SUBMISSIONS = {};
 // roster/rollup the server built from it) — they exist here only so the
 // sidebar can offer the way back out of archiving.
 let ARCHIVED_CLASSES = [];
+// Same contract for assignments filed away one at a time: absent from
+// ASSIGNMENTS, present here only so the rail can offer the way back.
+let ARCHIVED_ASSIGNMENTS = [];
+// Saved starting points for the create form, newest first. Not assignments:
+// they carry wording and a draft budget, never classes or dates.
+let TEMPLATES = [];
 // What this teacher's own account is permitted to do, as opposed to what it
 // owns. Only grants that change which controls render belong here.
 let VIEWER = {};
@@ -1528,6 +1534,8 @@ async function loadDashboardData() {
   STUDENTS    = data.students;
   CLASSES     = data.classes;
   ARCHIVED_CLASSES = data.archivedClasses || [];
+  ARCHIVED_ASSIGNMENTS = data.archivedAssignments || [];
+  TEMPLATES   = data.templates || [];
   VIEWER      = data.viewer || {};
   SUBMISSIONS = {};
   for (const [key, subs] of Object.entries(data.submissions)) {
@@ -2166,6 +2174,10 @@ function renderSidebar() {
         <div class="rail-item rail-item-nested ${screen === 'assignments' && browseAssignFilter === 'open' ? 'active' : ''}" onclick="gotoAssignments('open')">
           <span class="rail-item-text"><span class="rail-item-name">Open</span></span><span class="rail-item-meta">${openCount}</span>
         </div>
+        ${ARCHIVED_ASSIGNMENTS.length ? `
+        <div class="rail-item rail-item-nested" onclick="openArchivedAssignments()">
+          <span class="rail-item-text"><span class="rail-item-name">Archived</span></span><span class="rail-item-meta">${ARCHIVED_ASSIGNMENTS.length}</span>
+        </div>` : ''}
       </div>
 
       <div class="rail-group">
@@ -4890,6 +4902,9 @@ function assignmentActionRow(a) {
       items: [
         { icon: 'edit', title: 'Edit assignment', onClick: `openEditAssignmentModal('${a.id}')` },
         { icon: 'copy', title: 'Duplicate assignment', desc: 'Opens a copy to change before you create it', onClick: `duplicateAssignment('${a.id}')` },
+        // Above Delete, and worded so the pair reads as one decision: archive is
+        // what finished work takes, delete is only ever for work nobody touched.
+        { icon: 'archive', title: 'Archive assignment', desc: 'Keeps its records, clears it from your lists', onClick: `openArchiveAssignment('${a.id}')` },
         { icon: 'trash', title: 'Delete assignment', desc: 'Only while nothing has been submitted', danger: true, onClick: `openDeleteAssignment('${a.id}')` },
       ],
     }],
@@ -5132,6 +5147,61 @@ function duplicateAssignment(aid) {
   titleField.value = `Copy of ${a.name}`;
   titleField.focus();
   titleField.select();
+}
+
+// Archive is what a finished assignment takes; delete only ever applies to one
+// nobody touched. The subtitle says what stays, in the same terms the class
+// version does — and says the student's side is unchanged, because "archive"
+// otherwise reads as withdrawing the work from them.
+function openArchiveAssignment(aid) {
+  const a = ASSIGNMENTS.find(x => x.id === aid);
+  if (!a) return;
+  const drafts = studentsFor(a).reduce((n, s) => n + getSubs(s.id, a.id).length, 0);
+  openObjModal({
+    title: `Archive ${a.name}?`,
+    subtitle: `It leaves your sidebar, your assignment lists and every rollup. Nothing is deleted — its ${drafts} submitted draft${drafts !== 1 ? 's' : ''}, reports and transcripts all stay, students see no change, and you can restore it from Archived under Assignments.`,
+    confirmLabel: 'Archive assignment',
+    onConfirm: async () => {
+      await api(`/api/assignments/${aid}/archive`, { method: 'POST', body: { archived: true } });
+      if (screen === 'assignment' && activeAssignment === aid) { screen = 'assignments'; activeAssignment = null; }
+      await loadDashboardData();
+      render();
+    },
+  });
+}
+
+function openArchivedAssignments() {
+  const rows = ARCHIVED_ASSIGNMENTS.length
+    ? ARCHIVED_ASSIGNMENTS.map(a => {
+        const due = a.due ? new Date(a.due).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+        const sub = [a.classNames.join(', '), due ? `due ${due}` : ''].filter(Boolean).join(' · ');
+        return `<div class="modal-choice">
+          <span>${esc(a.name)}</span>
+          <span class="modal-choice-sub">${esc(sub)}</span>
+          <button type="button" class="btn btn-quiet btn-sm" onclick="restoreAssignment('${a.id}')">Restore</button>
+        </div>`;
+      }).join('')
+    : '<div style="font-size:var(--tau-text-sm);color:var(--tau-ink-soft)">Nothing archived.</div>';
+  openObjModal({
+    title: 'Archived assignments',
+    subtitle: 'Restoring one puts it back in your lists with its drafts, reports and notes intact.',
+    bodyHtml: `<div class="modal-choices">${rows}</div>`,
+    confirmLabel: 'Done',
+    onConfirm: async () => {},
+  });
+}
+
+async function restoreAssignment(aid) {
+  try {
+    await api(`/api/assignments/${aid}/archive`, { method: 'POST', body: { archived: false } });
+  } catch (err) {
+    objModalError(err.message || 'Could not restore this assignment.');
+    return;
+  }
+  await loadDashboardData();
+  render();
+  if (ARCHIVED_ASSIGNMENTS.length) openArchivedAssignments();
+  else closeObjModal();
 }
 
 function openDeleteAssignment(aid) {

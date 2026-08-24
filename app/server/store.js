@@ -76,9 +76,26 @@
 //                 draftDueDates[i] is when draft i+1 is due, ascending, length
 //                 draftBudget; draftDueDates[draftBudget-1] === dueDate (the
 //                 final draft's due date is the assignment's due date).
+//                 archived: true files a finished assignment away — it leaves
+//                 every teacher-side list and rollup (teacherScope filters it,
+//                 same as an archived class) and nothing else changes: the
+//                 student's list is built from class membership, so their view
+//                 and their reports are untouched. Reversible.
 //                 classIds is which class(es) this assignment was given to —
 //                 usually one, but a teacher can give the same assignment to
 //                 more than one section of the same course.
+//   assignmentTemplates
+//                 { id, teacherId, name, title, description, purpose,
+//                   requirements, teacherNote, draftBudget, createdAt }
+//                 A saved starting point for the create form, written when a
+//                 teacher ticks "save as a template" on an assignment they are
+//                 creating. Deliberately holds no classIds and no dates: both
+//                 are facts about one term, and pre-filling them would pre-fill
+//                 the two fields most likely to be wrong the next time.
+//                 draftBudget travels because how many drafts a task takes is
+//                 part of the task, not part of its schedule.
+//                 Scoped to the teacher who saved it — nothing in this store
+//                 models a school that a department library could belong to.
 //   sessions      one per revision cycle:
 //                 { id, assignmentId, studentId, cycleIndex,
 //                   status: 'active'|'submitted', startedAt, submittedAt }
