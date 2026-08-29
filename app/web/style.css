@@ -100,7 +100,13 @@ button:hover { border-color: var(--tau-forest); }
   border-radius: var(--tau-r-pill); padding: 10px 18px; min-height: var(--tau-h-control);
   box-shadow: 0 3px 8px -3px color-mix(in oklab, var(--tau-forest) 45%, transparent);
 }
-.submit-btn:hover { background: var(--tau-forest-lift); border-color: var(--tau-forest-lift); }
+.submit-btn:hover:not(:disabled) { background: var(--tau-forest-lift); border-color: var(--tau-forest-lift); }
+/* This button ships disabled and, since the reflection became required, stays
+   that way for most of the dialog's life. It carried no disabled state at all
+   — full forest, full shadow, sitting beside a line naming what's still
+   missing. Same treatment `.btn:disabled` already defines (components.css),
+   plus dropping the lift: a shadow says "pressable". */
+.submit-btn:disabled { opacity: var(--tau-disabled); box-shadow: none; cursor: not-allowed; }
 
 /* ---------- chat ---------- */
 
@@ -209,12 +215,22 @@ button:hover { border-color: var(--tau-forest); }
    chrome; no colour is invented for it, the leaf ships sage.
    The orb's expanding ring is gone with it: a radial halo traces the edge of a
    circle, and around a leaf silhouette it would read as a square glow. Scale
-   and opacity alone carry the breath. */
+   and opacity alone carry the breath.
+
+   A background-image rather than an <img>: the mark renders inside its own
+   document, so no CSS of ours reaches the fill, and --tau-forest resolves to
+   #1F4D3A on light but #6FBF95 on dark for a reason — the light value is
+   1.85:1 on the dark surface and vanishes. The colour therefore has to be
+   chosen by picking a file, which only a background-image lets us do. */
 .thinking-leaf {
   width: 24px; height: 24px; flex-shrink: 0;
-  transform-origin: 8% 82%; /* the base spur — the leaf pivots from its stem, not its box */
+  background: url('assets/leaf-forest.svg') center / contain no-repeat;
+  transform-origin: 5% 80%; /* the base spur — the leaf pivots from its stem, not its box */
   animation: tau-breathe 2.1s ease-in-out infinite;
 }
+/* theme.js always stamps an explicit light or dark, so this needs no
+   prefers-color-scheme companion — an unstamped root cannot happen. */
+:root[data-theme="dark"] .thinking-leaf { background-image: url('assets/leaf-light.svg'); }
 @keyframes tau-breathe {
   0%, 100% { transform: scale(1); opacity: 0.62; }
   50% { transform: scale(1.1); opacity: 1; }
@@ -499,6 +515,36 @@ button:hover { border-color: var(--tau-forest); }
 .upload-switch { margin-top: 2px; }
 #draftUpload, #draftPaste { display: flex; flex-direction: column; gap: 10px; }
 
+/* ---------- submit-modal reflection ---------- */
+/* Separated from the draft above it by a rule, not a heading weight: the two
+   are different acts inside one submission, and the draft is the primary
+   object of the dialog. */
+.reflect-block { display: flex; flex-direction: column; gap: 14px; }
+.reflect-block:not(:empty) { border-top: 1px solid var(--tau-line); padding-top: 16px; }
+.reflect-field { display: flex; flex-direction: column; gap: 6px; }
+.reflect-field > label { font-size: var(--tau-text-md); font-weight: 600; color: var(--tau-ink); }
+.reflect-hint { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+.reflect-field textarea {
+  font: inherit;
+  border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-md);
+  padding: 10px 14px;
+  resize: vertical;
+}
+.reflect-prior { font-size: var(--tau-text-sm); }
+.reflect-prior > summary { cursor: pointer; color: var(--tau-ink-soft); }
+.reflect-prior-body {
+  display: flex; flex-direction: column; gap: 8px;
+  margin-top: 8px; padding: 12px 14px;
+  background: var(--tau-surface-2);
+  border-radius: var(--tau-r-md);
+  color: var(--tau-ink-soft);
+}
+.reflect-prior-body .reflect-prior-label { display: block; color: var(--tau-ink); font-weight: 600; }
+/* Names what is still missing rather than leaving a dead button unexplained.
+   Not attention-coloured: nothing has gone wrong yet. */
+.reflect-blocked { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); text-align: right; }
+
 /* ---------- login ---------- */
 
 .login-body { overflow: hidden; background: var(--tau-surface-2); }
@@ -694,6 +740,53 @@ button:hover { border-color: var(--tau-forest); }
 }
 .login-submit:hover { background: var(--tau-forest-lift); border-color: var(--tau-forest-lift); }
 .login-submit:disabled { opacity: var(--tau-disabled); cursor: default; }
+
+/* ---------- agreement.html ----------
+   The gate a signed-in account passes through when it owes an acceptance. Not
+   built on .login-shell: that surface is a two-column sign-in with a marketing
+   hero, and this person is already signed in and reading a document. One
+   column, and the document gets the width.
+
+   Ground is --tau-shell rather than login-body's --tau-surface-2, because
+   --tau-surface (the card fill) is DARKER than --tau-surface-2 in the dark ramp
+   — a card on it reads as recessed in one theme and raised in the other. On the
+   shell the card is lighter in both, which is the elevation rule
+   (designsystem.md Hard Constraints, "Raised means LIGHTER THAN ITS OWN
+   GROUND"). --tau-ink-faint fails on the shell, but every faint line on this
+   page sits inside the card, on --tau-surface, where it holds. */
+.agreement-body { background: var(--tau-shell); }
+.agreement-shell {
+  display: flex;
+  justify-content: center;
+  padding: var(--tau-s7) var(--tau-s5);
+}
+.agreement-card {
+  width: 100%;
+  /* Same measure as .doc-dialog, which is where this document is read on the
+     other path — one document should not reflow to a different line length
+     depending on which surface served it. */
+  max-width: min(46rem, 100%);
+  gap: 14px;
+}
+.agreement-card h1 { font-size: var(--tau-text-xl); }
+.agreement-mark { height: 40px; width: auto; align-self: flex-start; }
+
+/* Capped and scrolled rather than left to run the length of the page: the tick
+   box and the button have to stay reachable without scrolling past a document
+   that is longer than a viewport by construction — same reason the dialog
+   scrolls its body instead of growing. */
+.agreement-doc {
+  max-height: min(28rem, 52vh);
+  overflow-y: auto;
+  padding: var(--tau-s4) var(--tau-s5);
+  border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-md);
+  /* No fill of its own. --tau-surface-2 sits below the card fill in light and
+     above it in dark, so a filled scroll box would read as recessed in one
+     theme and raised in the other; the border alone says "this scrolls"
+     without asserting an elevation it does not have. */
+}
+.agreement-doc:focus-visible { outline: var(--tau-focus-ring); outline-offset: var(--tau-focus-gap); }
 
 .test-accounts { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); border-top: 1px solid var(--tau-line); padding-top: 12px; }
 .test-accounts summary { cursor: pointer; }

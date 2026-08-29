@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pilot Agreement — Tau Thinking</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+</head>
+<body class="agreement-body">
+
+<button class="theme-toggle theme-toggle-floating" type="button" aria-pressed="false" aria-label="Switch to dark theme"><span class="theme-toggle-icon" aria-hidden="true">&#9790;</span></button>
+
+<div class="agreement-shell">
+  <main class="card card-lg agreement-card">
+    <img class="agreement-mark" src="assets/logo-mark.png" alt="Tau" width="391" height="192">
+
+    <!-- The document's own name, from the server. Not "Before you continue" or
+         "Please review": the heading names the thing on the page
+         (product-design-review, label check / Morville's labeling rule). -->
+    <h1 id="docTitle">&nbsp;</h1>
+    <p class="login-sub" id="docLead">&nbsp;</p>
+
+    <!-- Rendered inline, not behind a dialog as on set-password.html. There
+         the page's job is choosing a password and the document is a reference;
+         here the document IS the page, so putting it behind a click would be
+         hiding the only content there is. -->
+    <div class="doc-prose agreement-doc" id="docBody" tabindex="0"><p>Loading…</p></div>
+
+    <p class="doc-dialog-version" id="docVersion"></p>
+
+    <form id="agreeForm" class="auth-form">
+      <div class="field-check terms-check">
+        <input type="checkbox" id="agreeCheck">
+        <label for="agreeCheck">I have read and agree to this agreement
+          <span class="field-help" id="agreeBlurb"></span>
+        </label>
+      </div>
+
+      <p class="login-error hidden" id="formError" role="alert"></p>
+      <button type="submit" class="login-submit" id="submitBtn" disabled>Agree and continue</button>
+    </form>
+
+    <!-- The way out. A required agreement with no alternative but acceptance
+         is a dark pattern; the alternative here is genuinely leaving, and it
+         is quieter than the submit it sits under (style.css .auth-alt). -->
+    <div class="auth-alt">
+      <span>Not ready to agree?</span>
+      <button type="button" class="auth-link" id="signOutBtn">Sign out</button>
+    </div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script src="agreement.js"></script>
+</body>
+</html>

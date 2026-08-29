@@ -226,7 +226,10 @@
       <div class="menu-panel" hidden>
         <div class="menu-account-head">
           <div class="mn">${esc(me.displayName)}</div>
-          <div class="mr">${esc(me.email || '')}</div>
+          <!-- A code-roster student has no address by design; their username is
+               the identifier they sign in with, and this chip is where they
+               look it up once the printed slip is gone. -->
+          <div class="mr">${esc(me.email || me.username || '')}</div>
         </div>
         ${dests.length || extras.length ? '<div class="menu-divider"></div>' : ''}
         ${dests.map((d) => `<a href="${d.href}" class="menu-item"${d.newTab ? ' target="_blank" rel="noopener"' : ''}>

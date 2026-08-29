@@ -208,9 +208,21 @@
       <div class="modal-title" id="teacherModalTitle">Add a teacher</div>
       <p class="modal-sub" id="teacherModalSub">They sign in and build their own workspace from there — their classes, their students, their assignments.</p>
     </div>
-    <div class="field">
-      <label for="teacherName">Name</label>
-      <input id="teacherName" type="text" autocomplete="off" placeholder="Ms. Karim">
+    <!-- Two fields, not one. The last name is not decoration here: it becomes
+         this teacher's handle, and every one of their access-code students
+         signs in as <label>@<lastname>.tau. Guessing the surname out of a
+         single "Name" box gets "J." from "Karim J." and "Brien" from
+         "O'Brien" — see codes.js's slug(), which exists to cope with a
+         guess this form no longer has to make. -->
+    <div class="field-row">
+      <div class="field">
+        <label for="teacherFirstName">First name</label>
+        <input id="teacherFirstName" type="text" autocomplete="off" placeholder="Maya">
+      </div>
+      <div class="field">
+        <label for="teacherLastName">Last name</label>
+        <input id="teacherLastName" type="text" autocomplete="off" placeholder="Karim">
+      </div>
     </div>
     <div class="field">
       <label for="teacherEmail">Email</label>
@@ -233,6 +245,19 @@
       <input id="teacherImprovementEligible" type="checkbox">
       <label for="teacherImprovementEligible">Measurement improvement contributor
         <span class="field-help">Can mark their own classes as contributing work to improving the measurement. Nothing is contributed until they mark a class.</span>
+      </label>
+    </div>
+    <!-- One arrangement, not two settings that happen to be ticked together:
+         anonymity and contribution are the same bargain, which is why this is
+         named for what the teacher IS rather than for either half of what it
+         switches on. Same tier rule and the same reason for staying visible as
+         the grants above — it decides both what identifying information about
+         a child this teacher can enter, and whether their classes' work leaves
+         the product at all. -->
+    <div class="field-check hidden" id="codeRosterField">
+      <input id="teacherCodeRoster" type="checkbox">
+      <label for="teacherCodeRoster">Pilot user
+        <span class="field-help">Anonymous students, and their work used to improve the measurement. This teacher adds students as labels — "Student 04" — and hands out access codes themselves; no student name or email address is entered. Every class they create is contributed from the day it is created. They accept the Pilot Agreement at sign-in and can withdraw a class at any time. Existing student accounts are unaffected.</span>
       </label>
     </div>
     <p class="form-error hidden" id="teacherError"></p>

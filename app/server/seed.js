@@ -11,6 +11,7 @@
 
 const { col } = require('./store');
 const { setPassword, DEV_PASSWORD } = require('./auth');
+const { termsFor } = require('./terms');
 const { enrich, scoreTAU, detectPatterns, ANALYSIS_VERSION } = require('./analysis');
 const {
   STUDENTS, CLASSES, ASSIGNMENTS, ELECTIVE_ASSIGNMENT,
@@ -44,6 +45,19 @@ async function upsertUser({ email, displayName, role, schoolAdmin = false }) {
     user = await col('users').update(user.id, { role, schoolAdmin });
   }
   if (!user.passwordHash) user = await setPassword(user, DEV_PASSWORD);
+  // Re-applied every seed, like the role above. A seeded account never passes
+  // through the set-up form where acceptance is recorded, so without this the
+  // sign-in gate sends every demo login to /agreement.html before it reaches
+  // the surface the fixture exists to show. Stamped, not exempted: the gate
+  // stays the same one production runs, and bumping a version still re-asks
+  // here on the next seed.
+  const terms = termsFor(role);
+  if (terms && user.termsVersion !== terms.version) {
+    user = await col('users').update(user.id, {
+      termsVersion: terms.version,
+      termsAcceptedAt: ts(60),
+    });
+  }
   return user;
 }
 

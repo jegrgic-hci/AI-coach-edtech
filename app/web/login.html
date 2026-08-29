@@ -45,10 +45,15 @@
       <div class="login-divider" id="demoDivider" hidden><span>or use a test account</span></div>
 
       <form id="loginForm" class="auth-form" novalidate>
-        <label for="email">Email</label>
-        <input id="email" name="email" type="email" autocomplete="username" required>
+        <!-- "or username" is not a second field: a student on an access-code
+             roster signs in with an address-shaped username and their access
+             code, through this same form and the same server path. Naming both
+             here is what stops that student reading the label as "you need an
+             email address" and concluding they are in the wrong place. -->
+        <label for="email">Email or username</label>
+        <input id="email" name="email" type="text" autocomplete="username" required>
 
-        <label for="password">Password</label>
+        <label for="password">Password or access code</label>
         <input id="password" name="password" type="password" autocomplete="current-password" required>
 
         <p class="login-error hidden" id="loginError" role="alert"></p>
@@ -63,6 +68,16 @@
            mid-task, and the way back to signing in has to stay one click. -->
       <form id="resetForm" class="auth-form hidden" novalidate>
         <p class="auth-rule">We will email you a link to choose a new password.</p>
+
+        <!-- Stated up front rather than left to be discovered. A student who
+             signs in with an access code has no address to send anything to,
+             so this form can only ever silently do nothing for them — and the
+             lookup must stay email-only, because answering differently for a
+             username would turn this box into a way to test whether a given
+             student exists. Their teacher issues a new code; that is the whole
+             recovery path, by design. -->
+        <p class="auth-rule">Signing in with a username and access code? Ask your teacher for a new
+          code — they can issue one, and this form cannot.</p>
 
         <label for="resetEmail">Email</label>
         <input id="resetEmail" name="resetEmail" type="email" autocomplete="username" required>

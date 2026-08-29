@@ -2,8 +2,13 @@
 
 **Template draft. Not legal advice, and not ready to sign.** Placeholders are marked `[LIKE THIS]`.
 Have counsel licensed in the governing-law jurisdiction review before this is offered to any school.
-See *Drafting notes* at the end for the four places where the draft states something the product does
-not yet do.
+See *Drafting notes* at the end for every place where the draft states something the product does not
+yet do.
+
+**Schedules A–D were checked against the running code on 2026-08-30**, not against the design docs.
+That pass corrected four false statements in Schedule C and split Schedule A's identity row in two.
+Anything still overstated is marked with a `[bracket]` in place rather than left to be discovered —
+**a bracket in a schedule means "not true yet", and none of them should reach a school unresolved.**
 
 ---
 
@@ -311,9 +316,21 @@ Education Law § 2-d, California Education Code § 49073.1 and the SOPIPA provis
 Professions Code §§ 22584–22585, Illinois SOPPA]`. The Parties will negotiate in good faith any
 amendment or state-specific rider needed to satisfy a change in those laws.
 
-**10.2 Data location.** Student Data will be stored and processed in `[the United States]`. The
-Provider will not transfer Student Data outside `[the United States]` without the School's prior
-written consent. *(See Drafting note 2.)*
+**10.2 Data location.** Student Data will be **stored at rest** in `[the United States]`, and the
+Provider will not move storage of Student Data outside `[the United States]` without the School's
+prior written consent.
+
+**10.2.1 Model processing is an exception, and is disclosed rather than warranted.** The AI
+processing described in Section 3.4 is performed by the Subprocessor named in Schedule B through a
+multi-region endpoint that the Provider cannot presently pin to a single geography. The content sent
+to it — conversation turns, essay text, and assignment text — **may therefore be processed on that
+Subprocessor's infrastructure outside `[the United States]`.** Section 3.4 governs what the
+Subprocessor may do with that content wherever it is processed: it may not use it to train or improve
+any model, and may not retain it other than transiently for abuse monitoring for the period stated
+there. The Provider will pin this processing to a `[United States]` region when the Subprocessor
+offers one for the models the Service uses, and will notify the School when it does.
+*(See Drafting note 2 — and note that Section 3.4's retention period is itself unverified; see
+`legal.md`'s open question on Vertex terms.)*
 
 **10.3 Insurance.** The Provider will maintain cyber liability insurance of not less than
 `[$ AMOUNT]` per occurrence for the term and for `[2]` years afterwards. *(See Drafting note 3.)*
@@ -359,8 +376,9 @@ Name: `[ ]`  Title: `[ ]`  Signature: `[ ]`  Date: `[ ]`
 
 | Category | Fields | Source |
 |---|---|---|
-| Account identity | Name, school email address, role, class membership, account status | Supplied by the School |
-| Authentication | Scrypt password hash and salt, session tokens, single-use invite and password-reset tokens with expiry, failed-login timestamps and originating IP | Created by the Service |
+| Account identity — named roster | Name, school email address, role, class membership, account status | Supplied by the School |
+| Account identity — anonymous roster | A teacher-chosen label and a derived username (`austen@karim.tau`), role, class membership, account status. **No name and no email address.** Which label corresponds to which child is held only by the teacher, outside the Service | Supplied by the School |
+| Authentication | Scrypt password hash and salt (or access-code hash, stored identically), session tokens, single-use invite and password-reset tokens with expiry, failed-login timestamps and originating IP | Created by the Service |
 | Assignment context | Assignment title, prompt, and instructions; class and teacher association | Authored by the teacher |
 | Conversation content | Every student and AI turn in a coaching session, with timestamps | Authored by the student in the Service |
 | Submitted work | Draft and final essay text, submission and draft timestamps | Authored by the student |
@@ -379,7 +397,7 @@ identifier, biometric data, health data, disciplinary records, free-and-reduced-
 | Subprocessor | Function | Data received | Location |
 |---|---|---|---|
 | Google Cloud Platform (Google LLC) — Cloud Run, Cloud Firestore | Application hosting and primary data store | All categories in Schedule A | `[us-central1, United States]` |
-| Google Cloud Platform — Vertex AI (Gemini models) | Generates the AI side of the student conversation and the analysis | Conversation turns, essay text, assignment text | `[CONFIRM — see Drafting note 2]` |
+| Google Cloud Platform — Vertex AI (Gemini models) | Generates the AI side of the student conversation and the analysis | Conversation turns, essay text, assignment text | **Global endpoint — may process outside the United States.** Transient processing only; no storage at rest. See § 10.2.1 and Drafting note 2 |
 | SMTP2GO | Delivery of transactional email (invitations, password resets) | Recipient name and email address, message body | `[CONFIRM]` |
 
 ---
@@ -393,18 +411,32 @@ identifier, biometric data, health data, disciplinary records, free-and-reduced-
    authorisation on each request.
 3. **Authorisation model.** A teacher can reach only the classes, assignments, students, and
    submissions within their own scope; a student can reach only their own work.
-4. **Credentials.** Passwords are stored as scrypt hashes with a per-user random salt and a work
-   factor above the platform default. No administrator can view a user's password. Account setup and
-   password reset use single-use, expiring tokens delivered by email.
-5. **Sessions.** Session cookies are HttpOnly, SameSite-restricted, and Secure in production, with a
-   fixed maximum age and server-side revocation.
-6. **Rate limiting.** Repeated failed logins are counted per account and per source address and
-   throttled.
+4. **Credentials.** Passwords are stored as scrypt hashes with a 16-byte per-user random salt. Hashes
+   written from 2026-08-05 use a work factor of N=2^16, above Node's default of 2^14; hashes written
+   before that date retain the default and are verified against their own stored parameters, so a
+   dormant account may still hold a legacy-cost hash until its password is next set. No administrator
+   can view a user's password. Account setup and password reset use single-use, expiring tokens
+   delivered by email. Where a student signs in with a teacher-issued access code, that code is
+   stored and verified through the same mechanism as a password and is not recoverable by anyone.
+5. **Sessions.** Session cookies are HttpOnly, SameSite=Lax, and Secure in production, with a fixed
+   seven-day maximum age and server-side revocation.
+6. **Rate limiting.** Repeated failed logins are counted **per account** and locked out for 15
+   minutes. They are deliberately **not** throttled per source address: a school reaches the Service
+   through a single NAT gateway, so an address-based lockout would let one student's fumbled
+   passwords lock out a whole class. Source addresses are recorded and a password-spray pattern
+   across distinct accounts from one address is logged for review.
 7. **Environment separation.** Production data for real schools is held in a dedicated cloud project,
    separate from the demonstration environment. Demonstration and seed data cannot be written to the
    production project. Production data is not copied into development or demonstration environments.
-8. **Least privilege.** Service accounts and personnel hold the minimum permissions required.
-9. **Logging.** Administrative actions and authentication events are logged with actor and timestamp.
+8. **Least privilege — service accounts.** The application runtime holds exactly two roles on the
+   production project (`aiplatform.user` and `datastore.user`) and nothing else. `[Personnel access
+   is being brought to the same standard — see Drafting note 5. Do not represent personnel least
+   privilege as achieved until it is.]`
+9. **Logging.** Administrative actions — account creation, permission grants, suspensions — are
+   recorded with actor, target, and timestamp. Failed sign-ins are recorded with the account, source
+   address, and timestamp. Invitation acceptances and password resets are recorded. `[A successful
+   sign-in currently updates a last-active timestamp on the account rather than writing an event
+   record, and datastore read access is not audit-logged — see Drafting note 5.]`
 10. `[Add once true: documented backup schedule and tested restore; annual penetration test; formal
     vulnerability management SLA; security awareness training; documented incident response plan.]`
 
@@ -450,17 +482,55 @@ identifier, biometric data, health data, disciplinary records, free-and-reduced-
    deliberately: if you intend to promise same-term deletion, the trend features have to be scoped to
    within a term.
 
-2. **Data location is not yet US-only in fact.** Firestore is provisioned in `us-central1`, but the
-   Vertex AI target defaults to the `global` endpoint (`app/server/school.js:72`), which Google may
-   route to regions outside the United States. Either pin the Vertex location to a US region before
-   signing anything containing Section 10.2, or narrow that section to storage and disclose model-call
-   routing honestly.
+2. **Data location is not US-only in fact, and pinning is not currently available.** Firestore is
+   provisioned in `us-central1`, but the Vertex AI target uses the `global` endpoint
+   (`app/server/school.js:72`), which Google may route outside the United States.
+
+   **Verified 2026-08-30 against `cta-pilot-dev`:** both `gemini-3.1-flash-lite` and
+   `gemini-3.5-flash` return 404 from `us-central1`, `us-east1/4/5`, `us-west1/4` and `us-south1`.
+   The models this Service runs are reachable through the **global endpoint only**, so "pin a US
+   region" is a model change, not a configuration change. Google's error text does not distinguish
+   *not offered in that region* from *this project lacks access* — **confirm which with Google**,
+   because the answer decides whether Section 10.2.1 is permanent or temporary.
+
+   Section 10.2 has accordingly been **narrowed to storage**, with model-call routing disclosed in
+   10.2.1 rather than warranted away. `legal/teacher-terms.md` § 5 says the same thing in the
+   teacher's words; if one changes, change both. `llm.js:143` already builds a regional host whenever
+   the location is not `global`, so pinning is a one-line change to `GCP_LOCATION` in
+   `cloudbuild.yaml`, `cloudbuild.staging.yaml` and `config.json` the day a US region works.
+
+   **A district may still refuse this.** Some state contracts and district templates require
+   in-state or in-country processing with no carve-out. That is a real deal risk and it is better met
+   with 10.2.1 on the table than discovered in a security questionnaire — it is a question about the
+   model vendor, not about us, and it is answerable.
 
 3. **Some promises are aspirational.** Section 6.5 (audit reports), Schedule C item 10 (backups,
    penetration testing, incident response plan), and Section 10.3 (cyber insurance) describe things
    that do not exist yet. Either stand them up or strike them — a school's counsel will ask for
    evidence.
 
+   Section 6.2 (access revoked within 24 hours) and Section 6.4 (incident costs) are **forward
+   commitments about future conduct**, not claims about current state, and are fine as drafted —
+   provided you can actually honour them.
+
 4. **Section 7.5 needs a real backup answer.** Firestore point-in-time recovery and any scheduled
    exports have their own retention windows; the `[35]` days in Section 7.5 and Schedule D must match
    what is actually configured, and there is currently no configured backup policy to match it to.
+
+5. **Personnel access and read auditing — the two Schedule C items still marked.** Verified
+   2026-08-30 on `tau-thinking-prod`:
+
+   - The only human IAM binding is `roles/owner`, which carries `datastore.entities.get`, `.list`
+     **and `.update`**. Every student transcript and essay is readable — and editable — from the
+     Firestore console. The deny-all `firestore.rules` does not apply to console or Admin SDK access
+     and does not claim to.
+   - `auditConfigs` on the project is empty, so Firestore **Data Access logs are off**. A read of
+     every record in production would leave no trace anywhere.
+
+   The service-account half of least privilege is genuinely done: the Cloud Run runtime holds two
+   roles and nothing else. **The personnel half is the open item**, and until it is closed Schedule C
+   item 8 must keep its bracket. The planned split is `roles/resourcemanager.projectIamAdmin` without
+   data-read roles — the grant power kept, the read power dropped — plus a read-only service account
+   for the measurement export, so raw prose is reachable only by a deliberate, logged act rather than
+   by default. Enabling Data Access audit logs is the prerequisite, because it is what makes every
+   sentence in items 8 and 9 verifiable rather than asserted.

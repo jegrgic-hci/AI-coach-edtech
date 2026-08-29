@@ -752,11 +752,13 @@ full context.
 | `provenance-mismatch` | Concept in essay attributed to student but AI introduced it first |
 | `shadow-session-pattern` | High passive acceptance, very low pushback — consistent with pre-polished inputs |
 | `score-spike` | TAU score jumped significantly between two submissions in a short window (≤10 min, +5 pts total or +3 on any single dimension) |
-| `reflection-score-mismatch` | Reflection claims pushback/prior knowledge the scores don't show |
-| `reflection-delta-mismatch` | Reflection claims improvement between drafts the scores don't show |
+| ~~`reflection-score-mismatch`~~ | **Deleted 2026-08-30** — see the bullet below |
+| ~~`reflection-delta-mismatch`~~ | **Deleted 2026-08-30** — see the bullet below |
 
-The last two weren't in the original spec — added once the reflection feature shipped and gave the
-tool a second source (the student's own words) to check scores against.
+The last two weren't in the original spec — added once the reflection feature shipped in
+`index.html` and gave the tool a second source (the student's own words) to check scores against.
+They came across with the dashboard port and never fired in `app/`, because nothing wrote
+`sub.reflection` until 2026-08-30.
 
 **Three of these seven need respec'ing for bands — 2026-08-12.** The first four read the transcript
 and the provenance map and are untouched by the scale change.
@@ -764,9 +766,20 @@ and the provenance map and are untouched by the scale change.
 - `score-spike` becomes an **implausible band jump** in a short window. The thing it was ever trying
   to catch is a discontinuity, not a magnitude, so it survives the unit change intact — but the
   threshold is a fresh judgement, not a conversion of `+5`.
-- Both reflection mismatches read **band 1–2** where they read `< 2.5`. Deliberately the bottom half
-  of the scale, matching where `tau-dimensions.md` put the resolution: two of the four bands describe
-  distinct failures, so "the scores don't show it" has a natural band boundary.
+- ~~Both reflection mismatches read **band 1–2** where they read `< 2.5`.~~ **⚠ SUPERSEDED
+  2026-08-30 — both signals are deleted from `dashboard.html`, and re-banding was the wrong fix.**
+  Reflection *capture* shipped that day (student submit modal → `submissions.reflection`), which
+  would have woken two detectors that had never once fired, both deciding the mismatch
+  arithmetically: `sub.cs < 2.5` on the retired 1–5 score and `legacyTotal(sub) <=
+  legacyTotal(prev)` on the retired 4–20 total. Swapping in a band threshold keeps the arithmetic
+  and only moves the number, and **the model has no arithmetic in it** — a dimension is *read*, and
+  the reading already carries the moments that support it and the one that doesn't
+  (`tau-dimensions.md`, *The output is evidence, not a number*).
+  **The right form is a presence question against that coded evidence**: the student says they
+  pushed back; the Calibrated Skepticism reading either holds such a moment or it doesn't. No
+  threshold, and checkable by a teacher against a quote. That belongs *in* the reading, so it lands
+  with `scoreTAU`'s signature change, not as a detector on this page. `FLAG_META`/`guides.js` copy
+  for both is kept for the rebuild.
 
 **And the evidence layer makes these flags checkable for the first time.** A `provenance-mismatch`
 can now cite the moment; a reflection mismatch can sit next to the counterexample it contradicts.

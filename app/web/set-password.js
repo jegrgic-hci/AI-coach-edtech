@@ -18,6 +18,10 @@ async function showIdentity() {
     $('identity').textContent = `for ${who.email}`;
     if (who.termsVersion) {
       termsVersion = who.termsVersion;
+      // Named before the box is shown, never after: the tick and the name of
+      // the thing being ticked have to appear together.
+      $('termsOpen').textContent = who.termsTitle;
+      $('termsBlurb').textContent = who.termsBlurb;
       $('termsField').classList.remove('hidden');
       // Only gate once the checkbox is actually on the page. Disabling the
       // button before this resolves would leave a reset — which never shows

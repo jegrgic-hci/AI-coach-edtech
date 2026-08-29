@@ -150,3 +150,33 @@ log for the same date. These are the parts that are knowingly provisional.
 6. **The class and assignment tiers have not been rebuilt.** Only Home moved to the flow form. The
    four-level presentation inventory from this session — what each tier can defensibly show — is
    still only in conversation, not in `teacher-dashboard-design.md`.
+
+---
+
+## Promises the Pilot Agreement makes that the code does not keep — logged 2026-08-30
+
+Both surfaced by checking the agreement's factual claims against the code rather than against the
+design docs. **The agreement is a statement to a customer, not a draft clause for counsel** — the
+same sentence carries a different weight there than in `legal/dpa-template.md`, which is why these
+are tracked as build items rather than drafting notes.
+
+1. **Teacher-facing export.** The agreement said *"You can export your class's work while your
+   account is open."* No such surface exists — `export-improvement.js` is a CLI script producing a
+   masked corpus for **our** measurement work, is not the teacher's own data, and is not reachable by
+   them. The sentence has been left in as an intention; **build the export or cut the sentence
+   before a real teacher accepts it.** Minimum viable version: the teacher's own classes as JSON —
+   rosters, transcripts, submissions, readings — mirroring DPA § 7.7's format promise. Unmasked,
+   since it is their own students' work going back to them.
+
+2. **Deletion on request is manual, by decision** (2026-08-30). The agreement promises deletion of a
+   student, a class, or everything within 30 days with confirmation. There is no account-, class- or
+   student-level deletion path: accounts are **suspended, never deleted**, deliberately — a teacher
+   owns classes, assignments and every submission against them, and deleting the account orphans all
+   of it. For the pilot this is fulfilled by hand in the Firestore console, and the promise is
+   keepable at pilot volume.
+
+   **Two dependencies to keep in view.** It collides with the IAM least-privilege change: dropping
+   `roles/owner` removes console access, so deletion would run through the break-glass grant — which
+   is workable, and is exactly the kind of deliberate, logged act that grant is for. And DPA § 7.6
+   promises a **certificate of destruction**, which no manual process produces; a school-signed
+   deployment needs the real path.

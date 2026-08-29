@@ -8,12 +8,13 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { col } = require('./store');
-const { authenticate, isSuspended, login, logout, sessionCookie, clearedCookie, tokenFrom, inspectCredentialToken, redeemCredentialToken, DEMO_MODE, DEV_PASSWORD } = require('./auth');
+const { authenticate, isSuspended, login, logout, setPassword, passwordFields, sessionCookie, clearedCookie, tokenFrom, inspectCredentialToken, redeemCredentialToken, DEMO_MODE, DEV_PASSWORD } = require('./auth');
 const { sendInvite, sendReset } = require('./invites');
-const { termsFor } = require('./terms');
+const { newAccessCode, normalizeCode, teacherSlug, labelSlug, buildUsername } = require('./codes');
+const { termsFor, needsToAccept } = require('./terms');
 const { dueISO, isClosed } = require('./due');
 const { volume: mailVolume, settings: mailSettings } = require('./mail');
-const { streamChat, modelFor, MAX_EVAL_TOKENS } = require('./llm');
+const { streamChat, complete, modelFor, MAX_EVAL_TOKENS } = require('./llm');
 const { chatMessages, auditorMessages } = require('./coach');
 const { runAnalysis, analysisIsStale } = require('./analysis');
 const { checkChatBudget, usageToday, HARD_INPUT_TOKENS_PER_DAY } = require('./budget');
@@ -150,6 +151,30 @@ function canAdminPeople(user) {
   return isPlatformAdmin(user) || (user.role === 'teacher' && user.schoolAdmin === true);
 }
 
+// Whether this teacher's classes may contribute work to the measurement.
+//
+// Two grants reach the same answer, for two different situations. A named
+// roster contributes because an agreement was signed and `improvementEligible`
+// records that; a **Pilot user** contributes because contributing is what the
+// pilot is, and `codeRoster` is that whole arrangement in one flag —
+// anonymous students, and their work used to check the measurement. The Pilot
+// Agreement they accepted says so in its own words (terms.js).
+//
+// Derived rather than stored as a third field: the two flags already carry the
+// truth, and a denormalised copy of "either of these" is a thing that can
+// disagree with them. Nothing migrates.
+function canContributeImprovement(user) {
+  return user.improvementEligible === true || user.codeRoster === true;
+}
+
+// The stamp a class carries once its work may be exported. The date is the
+// whole point — export-improvement.js reads only work submitted at or after
+// it, never backwards — so this exists as one function rather than as three
+// object literals that could drift on the field that matters most.
+function improvementStamp(user) {
+  return { grantedAt: now(), grantedBy: user.id, grantedByName: user.displayName };
+}
+
 // Every account action, written down. "Who granted this person access, and
 // when" is the first question asked in an access review or an incident, and
 // before this it was unanswerable — the accounts simply existed.
@@ -174,6 +199,119 @@ async function recordAdminEvent(actor, action, target, detail = null) {
     // an account — that trades a record for an outage.
     console.error('[admin] could not record adminEvent:', err.message);
   }
+}
+
+// The teacher half of every one of their students' sign-in strings. Minted
+// once and stored, never derived at sign-in: it is built from a display name,
+// and a teacher who changes theirs must not invalidate thirty logins.
+//
+// Uniqueness is across the whole store, not per school — two "Ms. Karim"s in
+// one district would otherwise mint the same handle and their students would
+// collide on a username. Existing teachers get one the first time a roster
+// needs it, which is why this is get-or-create rather than part of account
+// creation alone.
+async function teacherHandle(user) {
+  if (user.handle) return user.handle;
+  // lastName when the account has one — the Add teacher form asks for it
+  // precisely so this is a known fact rather than a parse. displayName is the
+  // fallback for accounts created before that form split the name.
+  const base = teacherSlug(user.lastName || user.displayName);
+  const taken = new Set((await col('users').list((u) => !!u.handle)).map((u) => u.handle));
+  let handle = base;
+  for (let n = 2; taken.has(handle); n++) handle = `${base}-${n}`;
+  await col('users').update(user.id, { handle });
+  user.handle = handle;
+  return handle;
+}
+
+// A student's own half, unique within the teacher who owns them — two children
+// labelled "Jane Austen" on different classes of the same teacher would
+// otherwise be one login. Checked against usernames rather than labels, since
+// "Jane Austen" and "jane austen" slug identically.
+function uniqueUsername(label, handle, taken) {
+  const base = buildUsername(label, handle);
+  if (!taken.has(base)) return base;
+  const [name, domain] = base.split('@');
+  for (let n = 2; ; n++) {
+    const candidate = `${name}${n}@${domain}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+}
+
+// Labels for the roster form to show — the Generate button. Creates nothing.
+// "Student 01" is unambiguous and completely inert; a teacher who has to hold
+// thirty of them in their head all term has asked for something they can tell
+// apart, and a theme gets that without a single fact about a child entering
+// the product. The theme is the only thing that travels, and it is not student
+// data — which is what makes this safe to send to a model at all.
+async function proposeRosterLabels(res, user, body) {
+  const count = Math.floor(Number(body.count));
+  if (!Number.isFinite(count) || count < 1 || count > 60) {
+    return json(res, 400, { error: 'choose between 1 and 60 students' });
+  }
+  const theme = String(body.theme || '').trim().slice(0, 60);
+  if (!theme) return json(res, 400, { error: 'a naming theme is required' });
+
+  // Labels already in use across this teacher's roster, passed to the model as
+  // names to avoid, so a second batch on the same theme continues the set
+  // instead of colliding with the first.
+  // Compared as slugs, not as display names: two labels that differ only in
+  // case or spacing are the same username, and the username is what has to be
+  // unique. Same reduction the save path applies.
+  const taken = new Set((await teacherScope(user)).students.map((s) => labelSlug(s.displayName)));
+
+  let labels;
+  try {
+    const raw = await complete({
+      messages: [{
+        role: 'user',
+        content: `Give exactly ${count} distinct ONE-WORD names on the theme "${theme}", to label student accounts in a school tool.
+
+Rules:
+- Exactly one word each, no spaces, no punctuation, under 20 characters. Where the theme has people in it, use the surname alone: "Austen", not "Jane Austen".
+- Each word must be recognisable on its own as a member of the theme.
+- Suitable for a school: no living public figures, nothing violent, sexual, political or otherwise contentious.
+- Never output an email address.
+- All ${count} must be different from each other, and different from these already in use: ${[...taken].join(', ') || 'none'}.
+- If the theme cannot produce ${count} suitable distinct words, fill the remainder with further words from the nearest sensible category.
+
+Return JSON: {"labels": ["...", "..."]}`,
+      }],
+      maxTokens: 1200,
+      temperature: 1,
+      json: true,
+      meta: { purpose: 'roster-labels' },
+    });
+    labels = JSON.parse(raw).labels;
+    if (!Array.isArray(labels)) throw new Error('not a list');
+  } catch (err) {
+    console.error('[roster] themed labels failed:', err.message);
+    return json(res, 502, { error: 'Could not generate names for that theme. Try another, or generate without one.' });
+  }
+
+  // The model's output is a suggestion, never a roster. Anything unusable is
+  // dropped and the shortfall made up with numbered labels, so Generate always
+  // returns exactly the count asked for and the teacher edits from there.
+  // A label is one word here because it IS the username's local part — the
+  // form shows it against a fixed "@handle.tau" — so a model that answers
+  // "Jane Austen" is reduced to its last word rather than rejected.
+  const seen = new Set();
+  const clean = [];
+  for (const label of labels) {
+    const value = labelSlug(label);
+    if (!value || seen.has(value) || taken.has(value)) continue;
+    seen.add(value);
+    clean.push(value);
+    if (clean.length === count) break;
+  }
+  const highest = [...taken].reduce((max, name) => {
+    const m = /^student(\d+)$/.exec(name);
+    return m ? Math.max(max, parseInt(m[1], 10)) : max;
+  }, 0);
+  for (let i = 0; clean.length < count; i++) {
+    clean.push(`student${String(highest + i + 1).padStart(2, '0')}`);
+  }
+  return json(res, 200, { labels: clean });
 }
 
 async function canReadSubmission(user, submission) {
@@ -412,6 +550,37 @@ async function assignmentFor(session) {
   return await col('assignments').get(session.assignmentId);
 }
 
+// ---------- submission reflection ----------
+
+// Which set of prompts a draft gets is decided here, never by the client: the
+// first draft of an assignment accounts for the session from scratch, every
+// later one is relative to the draft before it. Per-assignment, not per-student
+// — "what's changed" only means something inside one revision cycle.
+function reflectionTypeFor(cycleIndex) {
+  return cycleIndex === 0 ? 'full' : 'delta';
+}
+
+const REFLECTION_FIELDS = { full: ['connect', 'extend', 'challenge'], delta: ['delta'] };
+
+// Mandatory, with no length floor. A one-word answer is a poor reflection and
+// still a real one; a character minimum would only teach padding, and the
+// deadline is the wrong place to block a student on prose.
+function readReflection(raw, type) {
+  const reflection = {};
+  for (const field of REFLECTION_FIELDS[type]) {
+    const value = String((raw && raw[field]) || '').trim();
+    if (!value) return null;
+    reflection[field] = value;
+  }
+  return reflection;
+}
+
+function lastSubmissionReflection(submissions) {
+  const last = [...submissions].sort((a, b) => a.cycleIndex - b.cycleIndex).pop();
+  if (!last || !last.reflection) return null;
+  return { type: last.reflectionType, reflection: last.reflection, submittedAt: last.submittedAt };
+}
+
 // What a student is told by any of the three write gates below (new
 // conversation, message, submit). Deliberately dateless: the server would have
 // to format a date in its own timezone, which on Cloud Run is UTC and on a
@@ -593,23 +762,35 @@ async function handleAuth(req, res, route) {
       return true;
     }
     // termsVersion is null for anyone this account type has no document for
-    // (today: everyone who is not a student), which is what tells the page to
-    // render no checkbox rather than an empty one.
+    // (today: a platform admin), and for a reset, which is what tells the page
+    // to render no checkbox rather than an empty one. termsTitle rides along
+    // because the checkbox names the document — a teacher agrees to a "Pilot
+    // Agreement", a student to "Terms of Use", and the page must not hardcode
+    // one of them.
     const terms = found.purpose === 'invite' ? termsFor(found.user.role) : null;
     json(res, 200, {
       email: found.user.email,
       displayName: found.user.displayName,
       purpose: found.purpose,
       termsVersion: terms ? terms.version : null,
+      termsTitle: terms ? terms.title : null,
+      termsBlurb: terms ? terms.blurb : null,
     });
     return true;
   }
 
-  // The terms themselves. Gated on the token rather than served openly so the
-  // document a person is shown is the one for *their* account type, decided
-  // here — not from a role the page could ask for.
+  // The terms themselves, for someone who is not signed in yet. Gated on the
+  // token rather than served openly so the document a person is shown is the
+  // one for *their* account type, decided here — not from a role the page
+  // could ask for.
+  //
+  // With no `t` this falls through to the authenticated route in handleApi,
+  // which answers the same question from the session instead. Same document,
+  // same rule about who decides; the only difference is which proof of
+  // identity is available at the moment of asking.
   if (req.method === 'GET' && route === '/api/terms') {
     const t = new URL(req.url, 'http://x').searchParams.get('t');
+    if (!t) return false;
     const found = await inspectCredentialToken(t);
     if (!found.ok) {
       json(res, 400, { error: 'That link is no longer valid.' });
@@ -650,7 +831,7 @@ async function handleAuth(req, res, route) {
   if (req.method === 'POST' && route === '/api/auth/request-reset') {
     const body = await readBody(req);
     const email = String(body.email || '').trim().toLowerCase();
-    const user = email ? (await col('users').list((u) => u.email.toLowerCase() === email))[0] : null;
+    const user = email ? (await col('users').list((u) => u.email && u.email.toLowerCase() === email))[0] : null;
 
     if (user && !isSuspended(user)) {
       // Throttled on the address rather than the requester: the cost being
@@ -986,12 +1167,58 @@ async function handleApi(req, res, user, route) {
     return json(res, 200, {
       id: user.id,
       email: user.email,
+      // What this account signs in AS. For a code-roster student it is the only
+      // identifier they have, and the account chip is where they look it up
+      // after they have lost the slip it was printed on.
+      username: user.username || null,
       displayName: user.displayName,
       role: user.role,
       // Drives the Administration link in the shared account chip. Sent for
       // every role so the chip needs no second request to decide.
       canAdmin: canAdminPeople(user),
     });
+  }
+
+  // GET /api/terms — the document for the signed-in account's own role. The
+  // token-gated twin in handleAuth serves someone redeeming an invite, who has
+  // no session yet; this serves everyone else, including the person the
+  // sign-in gate has just sent to /agreement.html because their acceptance is
+  // missing or out of date.
+  if (req.method === 'GET' && seg1 === 'terms' && !seg2) {
+    const terms = termsFor(user.role);
+    if (!terms) return json(res, 404, { error: 'No terms document for this account type.' });
+    return json(res, 200, {
+      ...terms,
+      // What they accepted before, so the page can say "this is a new version"
+      // rather than presenting a re-ask as a first ask.
+      acceptedVersion: user.termsVersion || null,
+    });
+  }
+
+  // POST /api/terms/accept — records an acceptance for an existing account.
+  //
+  // Separate from the invite path on purpose: there, acceptance and the
+  // password are written together or not at all, because an account that
+  // exists but agreed to nothing is the state that path exists to make
+  // unreachable. Here the account already exists and is already signed in, so
+  // the only thing at stake is the acceptance itself.
+  //
+  // The version is sent by the client and must match what the server would
+  // serve. That is not ceremony: it is what makes the stored value a record of
+  // *which wording* was on screen, rather than a record that a box was ticked
+  // on a page that may have been open since before the last edit.
+  if (req.method === 'POST' && seg1 === 'terms' && seg2 === 'accept') {
+    const body = await readBody(req);
+    const terms = termsFor(user.role);
+    if (!terms) return json(res, 404, { error: 'No terms document for this account type.' });
+    if (body.version !== terms.version) {
+      return json(res, 409, { error: 'This agreement has been updated. Reload the page to read the current version.' });
+    }
+    await col('users').update(user.id, {
+      termsVersion: terms.version,
+      termsAcceptedAt: new Date().toISOString(),
+    });
+    return json(res, 200, { ok: true, next: homePageFor(user) });
   }
 
   // GET /api/student/home — everything the student home view needs in one call
@@ -1241,6 +1468,9 @@ async function handleApi(req, res, user, route) {
       session: session || null,
       conversations,
       draftsUsed: submissions.length,
+      // The student's own previous reflection, so a "what's changed" prompt has
+      // something to be relative to. Only ever this student's own writing.
+      lastReflection: lastSubmissionReflection(submissions),
       hasActivity,
       closed,
       closedAt: closed ? dueISO(assignment.dueDate) : null,
@@ -1391,6 +1621,9 @@ async function handleApi(req, res, user, route) {
     const body = await readBody(req);
     const essayText = String(body.essayText || '').trim();
     if (!essayText) return json(res, 400, { error: 'essay draft required' });
+    const reflectionType = reflectionTypeFor(session.cycleIndex);
+    const reflection = readReflection(body.reflection, reflectionType);
+    if (!reflection) return json(res, 400, { error: 'reflection required' });
 
     for (const c of await col('conversations').list((c) => c.sessionId === session.id)) {
       await col('conversations').update(c.id, { locked: true });
@@ -1402,6 +1635,12 @@ async function handleApi(req, res, user, route) {
       studentId: user.id,
       cycleIndex: session.cycleIndex,
       essayText,
+      // Self-report, and stored as such. It is never an input to how a
+      // dimension is read — the reading is coded from the transcript, and the
+      // student's account of it is something the finished evidence gets held
+      // against, not something that shapes it.
+      reflectionType,
+      reflection,
       submittedAt: now(),
       analysisId: null,
     });
@@ -1602,6 +1841,11 @@ async function handleApi(req, res, user, route) {
       return {
         id: t.id,
         displayName: t.displayName,
+        // Sent as null rather than derived when absent, so the edit form can
+        // tell "this account predates the split name" from "this teacher has
+        // no first name" and show its own guess for an administrator to fix.
+        firstName: t.firstName ?? null,
+        lastName: t.lastName ?? null,
         email: t.email,
         status: t.status === 'suspended' ? 'suspended' : 'active',
         // Never signed in: derived from the absence of a password rather than
@@ -1611,6 +1855,7 @@ async function handleApi(req, res, user, route) {
         lastSend: sendSummary(t.id),
         schoolAdmin: t.schoolAdmin === true,
         improvementEligible: t.improvementEligible === true,
+        codeRoster: t.codeRoster === true,
         // How many of this teacher's classes have actually been marked. The
         // grant alone says nothing arrived — the teacher still has to tick the
         // class — and without this the two are indistinguishable from here.
@@ -1632,8 +1877,14 @@ async function handleApi(req, res, user, route) {
         id: s.id,
         displayName: s.displayName,
         email: s.email,
-        status: s.status === 'suspended' ? 'suspended' : 'active',
-        neverSignedIn: !s.passwordSetAt,
+        identity: s.identity === 'code' ? 'code' : 'email',
+        username: s.username || null,
+        // A code account never sets a password, so the email path's "invited
+        // but never signed in" test reads true for one forever. It holds a
+        // credential from the moment it is created, and the only thing that
+        // would mean here is "has not used it yet" — which lastActiveAt
+        // already says, without offering an invite that cannot be sent.
+        neverSignedIn: s.identity === 'code' ? false : !s.passwordSetAt,
         lastSend: sendSummary(s.id),
         classCount: allClasses.filter((c) => (c.studentIds || []).includes(s.id)).length,
         lastActiveAt: lastActive[s.id] || null,
@@ -1687,14 +1938,23 @@ async function handleApi(req, res, user, route) {
   if (req.method === 'POST' && seg1 === 'admin' && seg2 === 'teachers' && !seg3) {
     const body = await readBody(req);
     const email = String(body.email || '').trim().toLowerCase();
-    const displayName = String(body.displayName || '').trim();
-    if (!displayName) return json(res, 400, { error: 'name is required' });
+    const firstName = String(body.firstName || '').trim();
+    const lastName = String(body.lastName || '').trim();
+    const displayName = `${firstName} ${lastName}`;
+    if (!firstName) return json(res, 400, { error: 'first name is required' });
+    if (!lastName) return json(res, 400, { error: 'last name is required' });
     if (!email || !email.includes('@')) return json(res, 400, { error: 'a valid email is required' });
-    if ((await col('users').list((u) => u.email.toLowerCase() === email))[0]) {
+    if ((await col('users').list((u) => u.email && u.email.toLowerCase() === email))[0]) {
       return json(res, 400, { error: 'an account with that email already exists' });
     }
     const teacher = await col('users').add({
       email,
+      firstName,
+      lastName,
+      // Still the field every surface reads. The two parts are kept alongside
+      // it rather than instead of it, because the surname has a second job —
+      // it becomes this teacher's handle in their students' usernames — and
+      // recovering it from a display name is a guess (see codes.js's slug()).
       displayName,
       role: 'teacher',
       // Only a platform admin can hand out the administration grant. A school
@@ -1706,6 +1966,17 @@ async function handleApi(req, res, user, route) {
       // that holds the agreement. It authorises nothing on its own — it makes
       // the per-class consent control appear. See the class edit route.
       improvementEligible: isPlatformAdmin(user) && body.improvementEligible === true,
+      // Whether this teacher's roster is built from access codes instead of
+      // student email addresses — the answer for a class of minors, where no
+      // student name or address may enter the product. Same tier rule as the
+      // two grants above.
+      //
+      // It governs what this teacher's roster form CREATES, not how anyone
+      // signs in: that is a property of each student account, since a student
+      // can sit in two teachers' classes and must not change credential type
+      // by being added to a second one. So this flag on its own moves nothing
+      // — it is read at the point a student account is provisioned.
+      codeRoster: isPlatformAdmin(user) && body.codeRoster === true,
       // Stays 'active'. "Invited but not signed in yet" is derived from the
       // absence of passwordSetAt, not from a third status value — a new status
       // would have to be understood by isSuspended(), the two status toggles,
@@ -1718,6 +1989,7 @@ async function handleApi(req, res, user, route) {
     const grants = ['teacher'];
     if (teacher.schoolAdmin) grants.push('school administrator');
     if (teacher.improvementEligible) grants.push('measurement improvement contributor');
+    if (teacher.codeRoster) grants.push('Pilot user');
     await recordAdminEvent(user, 'create', teacher, grants.join(' + '));
     if (!sent.accepted) await recordAdminEvent(user, 'invite-failed', teacher, sent.failureReason);
     return json(res, 200, {
@@ -1737,19 +2009,27 @@ async function handleApi(req, res, user, route) {
 
     if (action === 'edit') {
       const body = await readBody(req);
-      const displayName = String(body.displayName || '').trim();
+      const firstName = String(body.firstName || '').trim();
+      const lastName = String(body.lastName || '').trim();
+      const displayName = `${firstName} ${lastName}`;
       const email = String(body.email || '').trim().toLowerCase();
-      if (!displayName) return json(res, 400, { error: 'name is required' });
+      if (!firstName) return json(res, 400, { error: 'first name is required' });
+      if (!lastName) return json(res, 400, { error: 'last name is required' });
       if (!email || !email.includes('@')) return json(res, 400, { error: 'a valid email is required' });
-      const clash = (await col('users').list((u) => u.email.toLowerCase() === email && u.id !== teacher.id))[0];
+      const clash = (await col('users').list((u) => u.email && u.email.toLowerCase() === email && u.id !== teacher.id))[0];
       if (clash) return json(res, 400, { error: 'another account already uses that email' });
-      const patch = { displayName, email };
+      // `handle` is deliberately NOT recomputed from a changed surname. It is
+      // minted once and lives in every one of this teacher's students'
+      // usernames; rebuilding it here would silently invalidate a class's
+      // sign-ins on a spelling correction.
+      const patch = { firstName, lastName, displayName, email };
       // Same rule as creation: the grant is only editable by the tier above it,
       // and a school administrator editing a teacher must not be able to
       // silently promote them (or themselves) by replaying this field.
       if (isPlatformAdmin(user)) {
         patch.schoolAdmin = body.schoolAdmin === true;
         patch.improvementEligible = body.improvementEligible === true;
+        patch.codeRoster = body.codeRoster === true;
       }
       await col('users').update(teacher.id, patch);
       // Both grants are named in the audit line rather than folded into a
@@ -1763,6 +2043,27 @@ async function handleApi(req, res, user, route) {
         }
         if (patch.improvementEligible !== (teacher.improvementEligible === true)) {
           grantChanges.push(patch.improvementEligible ? 'granted measurement improvement contributor' : 'revoked measurement improvement contributor');
+        }
+        // Turning this off does not convert the students already provisioned
+        // under it — their accounts carry their own credential type — so the
+        // line records a change to what the roster form will create next.
+        if (patch.codeRoster !== (teacher.codeRoster === true)) {
+          grantChanges.push(patch.codeRoster ? 'granted Pilot user' : 'revoked Pilot user');
+          // Classes that already exist when the grant arrives get stamped now,
+          // not backdated to their creation. Backdating would export sessions
+          // run before anyone agreed to anything, which is the one thing the
+          // date on this stamp exists to prevent. Their earlier work stays out,
+          // and that is the correct answer rather than a shortfall.
+          //
+          // Only unstamped ones: a class the teacher had already marked keeps
+          // its own earlier date, and one they had deliberately withdrawn is
+          // not silently re-enrolled by an unrelated grant edit.
+          if (patch.codeRoster) {
+            const stamp = improvementStamp(user);
+            for (const c of await col('classes').list({ teacherId: teacher.id })) {
+              if (!c.improvement) await col('classes').update(c.id, { improvement: stamp });
+            }
+          }
         }
       }
       await recordAdminEvent(user, 'edit', { ...teacher, displayName }, grantChanges.join('; ') || null);
@@ -1813,6 +2114,14 @@ async function handleApi(req, res, user, route) {
     const student = await col('users').get(parts[4]);
     const action = parts[5];
     if (!student || student.role !== 'student') return json(res, 404, { error: 'student not found' });
+
+    // Both mail actions below assume an address. A code-roster student has
+    // none, and recovery for them runs through their teacher reissuing a code
+    // — which is also the only person who can hand it over. Suspending still
+    // works, so the account can still be shut off from here.
+    if (student.identity === 'code' && action !== 'status') {
+      return json(res, 400, { error: 'this student signs in with an access code — their teacher reissues it' });
+    }
 
     if (action === 'status') {
       const body = await readBody(req);
@@ -2001,6 +2310,18 @@ async function handleApi(req, res, user, route) {
       name,
       studentIds: [],
       createdAt: now(),
+      // A Pilot user's classes are stamped here, at creation, and not by a
+      // later decision in the dashboard. The stamp only reaches forward — work
+      // submitted before `grantedAt` is never exported — so a class stamped
+      // halfway through a term loses its own first sessions permanently, and
+      // that loss is silent. Stamping at creation is the only moment that
+      // cannot be too late.
+      //
+      // This is not consent being assumed on the teacher's behalf: it is what
+      // they accepted in the Pilot Agreement, which says the work is used to
+      // check how accurately the tool reads it. A teacher running named
+      // accounts is a different case and still marks each class themselves.
+      ...(user.codeRoster === true ? { improvement: improvementStamp(user) } : {}),
     });
     return json(res, 200, classDoc);
   }
@@ -2030,12 +2351,14 @@ async function handleApi(req, res, user, route) {
     // improvementEligible grant on the teacher; revoking never does, so consent
     // can always be withdrawn even after the eligibility is taken away.
     if (typeof body.improvement === 'boolean') {
-      if (body.improvement && user.improvementEligible !== true) {
+      if (body.improvement && !canContributeImprovement(user)) {
         return json(res, 403, { error: 'this account is not set up to contribute class work to measurement improvement' });
       }
-      patch.improvement = body.improvement
-        ? { grantedAt: now(), grantedBy: user.id, grantedByName: user.displayName }
-        : null;
+      // Re-granting mints a NEW date rather than restoring the old one. The
+      // gap is real: work submitted while the class was withdrawn was
+      // submitted under a withdrawal, and reaching back over it would export
+      // exactly the window someone said no to.
+      patch.improvement = body.improvement ? improvementStamp(user) : null;
     }
     if (!Object.keys(patch).length) return json(res, 400, { error: 'nothing to change' });
     await col('classes').update(classDoc.id, patch);
@@ -2148,11 +2471,171 @@ async function handleApi(req, res, user, route) {
   //   { studentId, remove: true } → remove from this class's roster only —
   //     the account itself isn't deleted, since the student may belong to
   //     another class.
+  //   { count } → provision N code-roster accounts at once. Teachers holding
+  //     the codeRoster grant only; see that block for why it takes a number
+  //     rather than a list.
+  //   { studentId, reissue: true } → mint a fresh access code for one of them.
   if (req.method === 'POST' && seg1 === 'classes' && seg3 === 'students') {
     const classDoc = await col('classes').get(seg2);
     if (!classDoc) return json(res, 404, { error: 'class not found' });
     if (classDoc.teacherId !== user.id) return json(res, 403, { error: 'not your class' });
     const body = await readBody(req);
+
+    // Code-roster accounts, created by count. There is nothing per-student to
+    // type — that is the whole point, since anything a teacher could type here
+    // is a fact about a child — so the form asks how many and the labels are
+    // generated. Numbering runs across this teacher's whole roster rather than
+    // per class, because their dashboard lists all their students together and
+    // two different children called "Student 04" there is unreadable.
+    //
+    // Plaintext codes are returned exactly once, here. They are not stored and
+    // cannot be read back; a lost one is reissued below.
+    if (body.labels !== undefined || body.count !== undefined || body.propose) {
+      if (user.codeRoster !== true) {
+        return json(res, 403, { error: 'this account adds students by email, not by access code' });
+      }
+
+      // `propose: true` asks what the labels WOULD be and creates nothing —
+      // it is the Generate button, where the create paths below are Save. It
+      // shares this branch because it shares the count validation, and it is
+      // checked first: a proposal that fell through to the create path would
+      // silently make thirty accounts out of a preview.
+      if (body.propose) return proposeRosterLabels(res, user, body);
+
+      // Two shapes. `labels` is what the form sends — the teacher generated the
+      // list, saw it, and may have edited it before saving. `count` is the same
+      // request without that review step, and produces exactly the labels the
+      // form would have generated.
+      // Matched on the slug so it counts "student01" and an older "Student 01"
+      // as the same series, rather than restarting the numbering at 01 and
+      // colliding with accounts made before labels became single words.
+      const mine = (await teacherScope(user)).students;
+      const highest = mine.reduce((max, s) => {
+        const m = /^student(\d+)$/.exec(labelSlug(s.displayName));
+        return m ? Math.max(max, parseInt(m[1], 10)) : max;
+      }, 0);
+
+      let labels;
+      if (body.labels !== undefined) {
+        if (!Array.isArray(body.labels)) return json(res, 400, { error: 'labels must be a list' });
+        labels = body.labels.map((l) => String(l || '').trim());
+      } else {
+        const count = Math.floor(Number(body.count));
+        if (!Number.isFinite(count) || count < 1 || count > 60) {
+          return json(res, 400, { error: 'choose between 1 and 60 students' });
+        }
+        labels = Array.from({ length: count }, (_, i) => `student${String(highest + i + 1).padStart(2, '0')}`);
+      }
+
+      if (!labels.length || labels.length > 60) return json(res, 400, { error: 'choose between 1 and 60 students' });
+      if (labels.some((l) => !l)) return json(res, 400, { error: 'every student needs a label' });
+      if (labels.some((l) => l.length > 40)) return json(res, 400, { error: 'keep each label under 40 characters' });
+      // The one thing a label may not be. Whether it is a real name cannot be
+      // checked — that is the teacher's judgement, and the form says so — but
+      // an address is unambiguous, and an address in this field is the exact
+      // failure an anonymous roster exists to prevent.
+      if (labels.some((l) => l.includes('@'))) return json(res, 400, { error: 'a label cannot contain an email address' });
+      if (new Set(labels.map((l) => l.toLowerCase())).size !== labels.length) {
+        return json(res, 400, { error: 'two students have the same label' });
+      }
+
+      const handle = await teacherHandle(user);
+      const takenUsernames = new Set(
+        (await col('users').list((u) => !!u.username)).map((u) => u.username)
+      );
+
+      const created = [];
+      for (const label of labels) {
+        const code = newAccessCode();
+        const username = uniqueUsername(label, handle, takenUsernames);
+        takenUsernames.add(username);
+        const student = await col('users').add({
+          // Explicitly null rather than absent, so "this account has no
+          // address" is a stated fact in the document and not something a
+          // reader has to infer from a missing key.
+          email: null,
+          displayName: label,
+          // Stored, never recomputed from displayName: renaming a label — or
+          // the teacher renaming themselves — must not change how anyone signs
+          // in. This is the account's identity; displayName is what a teacher
+          // reads on a roster.
+          username,
+          role: 'student',
+          // The credential type lives on the account, not on the teacher: a
+          // student can end up on a second teacher's class and must not change
+          // how they sign in by being added to it.
+          identity: 'code',
+          // Deliberately never asked to accept the student Terms, and this
+          // records that it was a decision rather than a path nobody built.
+          // These accounts exist because the students are minors: a child
+          // cannot give the consent that acceptance represents, and asking
+          // would mean identifying them — which is the one thing this whole
+          // roster type exists to avoid. The agreement covering their use is
+          // the school's, held with the teacher who created them.
+          //
+          // NOT the same as an account that simply has not accepted yet:
+          // termsVersion stays null, and this field is what tells the two
+          // apart later — it is also what keeps needsToAccept() from sending
+          // these accounts to an agreement page forever. The teacher it points
+          // at has accepted the Pilot Agreement by a stored version, so the
+          // chain now ends in a document rather than in a person.
+          termsCoveredBy: user.id,
+          termsVersion: null,
+          // The code IS the password — same hash, same verifier, same throttle
+          // as any other account. Written in this same document rather than by
+          // a following setPassword() call: at 60 students that second write
+          // per account was half the wall time of the whole request.
+          ...passwordFields(normalizeCode(code)),
+          status: 'active',
+          createdAt: now(),
+        });
+        // The only place the code exists in the clear. Returned once, never
+        // stored, never readable back.
+        created.push({ id: student.id, displayName: student.displayName, username, code });
+      }
+
+      await col('classes').update(classDoc.id, {
+        studentIds: [...(classDoc.studentIds || []), ...created.map((s) => s.id)],
+      });
+      // One audit line for the batch, not thirty: the feed shows the last 20
+      // events, and a single roster add would otherwise flush every other
+      // account change out of it.
+      await recordAdminEvent(user, 'create', { displayName: `${labels.length} student${labels.length === 1 ? '' : 's'}`, role: 'student' }, `access codes — ${classDoc.name}`);
+      return json(res, 200, { class: await col('classes').get(classDoc.id), created });
+    }
+
+    // teacher who has to hold thirty of them in their head all term has asked
+    // for something they can tell apart, and a theme is a way to get that
+    // without a single fact about a child entering the product.
+    //
+    // The theme is the only thing that travels. It is not student data and
+    // cannot become student data — which is why this can be an LLM call at all.
+
+    // A code cannot be looked up, so "they lost their slip" has no answer
+    // except a new one. Minting it invalidates the old code by replacing the
+    // only hash that verifies it.
+    if (body.reissue) {
+      const student = await col('users').get(String(body.studentId || ''));
+      if (!student || student.role !== 'student' || !(classDoc.studentIds || []).includes(student.id)) {
+        return json(res, 404, { error: 'student not found on this class' });
+      }
+      if (student.identity !== 'code') {
+        return json(res, 400, { error: 'this student signs in with an email address — send them a reset link instead' });
+      }
+      // The username is untouched — a reissue replaces the secret, not the
+      // student's identity, so anything already written next to their name on
+      // the teacher's own paper list stays correct.
+      const code = newAccessCode();
+      await setPassword(student, normalizeCode(code));
+      // Every live session dies with the old code, for the same reason a
+      // password reset ends them: the reason to reissue may be that somebody
+      // else has been using it.
+      for (const s of await col('authSessions').list({ userId: student.id })) {
+        await col('authSessions').delete(s.id);
+      }
+      await recordAdminEvent(user, 'reissue-code', student);
+      return json(res, 200, { id: student.id, displayName: student.displayName, username: student.username, code });
+    }
 
     if (body.remove) {
       const studentIds = (classDoc.studentIds || []).filter((id) => id !== body.studentId);
@@ -2160,11 +2643,18 @@ async function handleApi(req, res, user, route) {
       return json(res, 200, await col('classes').get(classDoc.id));
     }
 
+    // The codeRoster grant does NOT close this path. It was written to when
+    // the anonymous roster was the teacher's only form, and the toggle in Add
+    // students changed that on purpose: the same teacher can hold a senior
+    // class rostered by email and a junior one rostered by code, and refusing
+    // here would make the second impossible to serve without a second account.
+    // What keeps a child's name out of the product is the teacher choosing the
+    // anonymous form for that class, not the server being unable to store one.
     const email = String(body.email || '').trim().toLowerCase();
     const displayName = String(body.displayName || '').trim();
     if (!email || !email.includes('@')) return json(res, 400, { error: 'a valid email is required' });
 
-    let student = (await col('users').list((u) => u.email.toLowerCase() === email))[0];
+    let student = (await col('users').list((u) => u.email && u.email.toLowerCase() === email))[0];
     if (student && student.role !== 'student') {
       return json(res, 400, { error: 'that email belongs to a non-student account' });
     }
@@ -2352,6 +2842,12 @@ async function handleApi(req, res, user, route) {
         // hasNote boolean so the dashboard can both display it and
         // prefill the edit form without a second round trip.
         teacherNote: sub.teacherNote || null,
+        // The student's own account of the session, in their words. Read by
+        // the reflection arc and the per-submission disclosure, both of which
+        // shipped with the dashboard port and had nothing to render until
+        // capture was built. Self-report, never evidence: the surfaces that
+        // draw it deliberately put no reading beside it.
+        ...(sub.reflection ? { reflectionType: sub.reflectionType, reflection: sub.reflection } : {}),
         // When this teacher marked the draft's flags as followed up — null
         // for every unflagged draft and every flagged one still open. Rides
         // on the submission rather than arriving as a separate id list
@@ -2380,6 +2876,11 @@ async function handleApi(req, res, user, route) {
         id: s.id,
         name: s.displayName,
         email: s.email,
+        // How this student signs in, so the roster can show a reissue action
+        // instead of an address it does not have. A doc written before code
+        // rosters existed has no field and is an email account.
+        identity: s.identity === 'code' ? 'code' : 'email',
+        username: s.username || null,
         initials: s.displayName.split(' ').map((p) => p[0]).join(''),
       })),
       classes: classes.map((c) => ({
@@ -2390,7 +2891,22 @@ async function handleApi(req, res, user, route) {
       // all. The server refuses the field regardless (see /api/classes/:id/
       // edit) — this stops the menu from implying a teacher can do something
       // no agreement covers.
-      viewer: { improvementEligible: user.improvementEligible === true },
+      viewer: {
+        // Derived, not the raw field: a Pilot user reaches this through
+        // codeRoster and must see the same control. Sent under the old name so
+        // the dashboard keeps asking the question it was already asking —
+        // "may this account contribute?" — rather than learning which of two
+        // grants answered it.
+        improvementEligible: canContributeImprovement(user),
+        codeRoster: user.codeRoster === true,
+        // The fixed half of every username this teacher's students get, so the
+        // roster form can show it beside the editable half instead of only
+        // revealing it after the accounts exist. Minted here for a codeRoster
+        // teacher who has not made one yet — a write on a read, but it happens
+        // once ever and the alternative is a form that cannot show what it is
+        // about to create.
+        handle: user.codeRoster === true ? await teacherHandle(user) : null,
+      },
       // Sent separately from `classes`, never merged into it: everything on
       // this page derives rosters and rollups from that list, and an archived
       // class appearing there would put a finished term back into every count.
@@ -2702,6 +3218,31 @@ async function redirectedToOwnPage(req, res, route) {
     // req.url, not route: a deep link like /report.html?id=… has to survive the
     // round trip. login.js already validates `next` against open redirects.
     res.writeHead(302, { Location: `/login.html?next=${encodeURIComponent(req.url)}` });
+    res.end();
+    return true;
+  }
+
+  // An outstanding agreement outranks role and destination both. This is the
+  // promise auth.js makes when it declines to re-ask on a password reset — "a
+  // version bump is re-asked at sign-in" — and until now nothing kept it:
+  // TERMS_VERSION was exported and read by no one, so a bumped version simply
+  // left everybody on the old wording with no record that they were.
+  //
+  // It sits before the role check because a teacher who has not agreed must
+  // not reach the dashboard by any route, including the one they would be
+  // redirected to. A full page rather than a dismissible banner: it is a
+  // required decision, and required decisions are not backgrounded
+  // (product-design-review, required-vs-hidden).
+  if (route !== '/agreement.html' && needsToAccept(user)) {
+    res.writeHead(302, { Location: '/agreement.html' });
+    res.end();
+    return true;
+  }
+  // And the reverse, so the page cannot be reached once there is nothing to
+  // agree to — an accepted agreement re-presented as a gate reads as a failed
+  // save.
+  if (route === '/agreement.html' && !needsToAccept(user)) {
+    res.writeHead(302, { Location: homePageFor(user) });
     res.end();
     return true;
   }

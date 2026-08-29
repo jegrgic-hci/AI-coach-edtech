@@ -7,8 +7,9 @@ deletion model, and the line between service refinement and research.
 
 **Not in this file.** Security implementation detail lives in `app/README.md` and `app/gcp-setup.md`.
 What the dimensions measure stays in `tau-dimensions.md`. The instruments themselves are
-`legal/dpa-template.md` (institutional) and `legal/student-terms.md` (student-facing) — this file is
-the reasoning, those are the documents.
+`legal/dpa-template.md` (institutional), `legal/teacher-terms.md` (the pilot teacher's agreement) and
+`legal/student-terms.md` (student-facing) — this file is the reasoning, those are the documents. How
+the two in-product ones are versioned, served and enforced is `pilotuser.md`'s *Consent* section.
 
 **Status (2026-08-21): nothing here is signed, reviewed, or built.** A first pass worked through with
 Claude, written down so the decisions are visible and an attorney can be briefed cheaply. **Not legal
@@ -51,6 +52,16 @@ constraint, not a legal one.
 **A student can accept terms; a student cannot accept a DPA.** The DPA binds us and the *institution*
 about institutional obligations. A student is not a party to it. Even an adult student accepting terms
 of use leaves the institutional agreement still needed.
+
+**Nor can a teacher, and the same reasoning applies to them.** A class teacher is not an authorised
+signatory for their school, so a click-through of the DPA would be theatre — and under NY 2-d,
+theatre that reads as us knowing an agreement was needed and settling for a pretend one. What a
+teacher *can* agree to is `legal/teacher-terms.md`: what the tool does, what it stores, where it is
+kept, and what we ask of them. **That document is short only because the pilot runs on the anonymous
+roster** — no student name or email in the product — and it says so; on named accounts it is the
+wrong instrument. It also tells the teacher to come back to us if their school wants something
+signed, which is how the DPA reaches the person who can actually sign it. Built and enforced
+2026-08-29; see `pilotuser.md`.
 
 **Consent to research cannot ride inside terms of use.** § 99.30 requires consent to specify which
 records, for what purpose, and to whom — signed and dated, electronic signature permitted under
@@ -131,6 +142,13 @@ user record and gates the roster path at [`index.js:1870`](app/server/index.js#L
 accepts `email` and `displayName`, K-12 refuses both. **Version the attestation text** so we can prove
 which wording someone agreed to.
 
+**The storing half of that now exists** (2026-08-29). A teacher accepting `legal/teacher-terms.md`
+writes `termsVersion` and `termsAcceptedAt` against their account, and the sign-in gate re-asks on a
+version bump — so "prove which wording someone agreed to" is answerable. The **selecting** half is
+still not built: there is no declared postsecondary/K-12 choice. What decides today is a teacher
+holding `codeRoster` picking the anonymous form for a batch, which is a data decision rather than a
+declared regime with an accountable person behind it.
+
 ---
 
 ## Path 1 — Postsecondary (the pilot, and the current priority)
@@ -204,9 +222,20 @@ we were about to sell to.
 
 ## Open questions
 
-- **Vertex region.** [`school.js:72`](app/server/school.js#L72) defaults to the `global` endpoint,
-  which Google may route outside the US. Pin a US region, or narrow the data-location clause and
-  disclose routing honestly. **Blocks DPA § 10.2.**
+- **Vertex region — pinning is not currently available, so the disclosure branch was taken.**
+  Verified 2026-08-30 against `cta-pilot-dev`: both `gemini-3.1-flash-lite` and `gemini-3.5-flash`
+  return 404 from `us-central1`, `us-east1/4/5`, `us-west1/4` and `us-south1`. The models this app
+  runs are reachable through the **global endpoint only**, so "pin a US region" is a model change,
+  not a config change. The error text does not distinguish "not offered in that region" from "this
+  project lacks access" — **worth one question to Google**, because the answer decides whether this
+  is permanent.
+
+  `legal/teacher-terms.md` § 5 now **separates storage from processing**: storage is US
+  (Firestore `us-central1`), and model calls are disclosed as possibly running outside it.
+  `llm.js:143` already builds a regional host whenever the location is not `global`, so pinning is a
+  one-line config change (`GCP_LOCATION` in `cloudbuild.yaml`, `cloudbuild.staging.yaml`,
+  `config.json`) the day a US region works. **DPA § 10.2 must be narrowed the same way before it is
+  offered to any school** — it still claims US-only without qualification.
 - **Vertex terms for our tier** — retention window and training prohibition, verified rather than
   assumed. If inputs can be retained or trained on, every promise in both documents is hollow.
   **Blocks DPA § 3.4 and student-terms § 4.**
@@ -231,6 +260,8 @@ documents they are reviewing rather than investigating.
 
 - `legal/dpa-template.md` — schedules built from the real collections, subprocessors, and security
   controls, with *Drafting notes* marking where it overstates what we do
+- `legal/teacher-terms.md` — the pilot teacher's agreement, and the one already in front of real
+  people, so review it first
 - `legal/student-terms.md` — the postsecondary student-facing version
 - This file — the regime rule, the three motions, and the refinement/research line
 - A plain-English brief: what the tool does, what data it touches, what we want to be allowed to do
@@ -252,6 +283,14 @@ output, not by label. Restructured DPA § 3 accordingly: new § 3.2 permits serv
 affirmatively, § 3.3 narrows the prohibitions to model training, marketing, and generalisable
 research, and new § 3.6 carries the research machinery. **The earlier draft's § 3.2(e) prohibited
 exactly what we intend to do** and would have blocked it. Produced `legal/student-terms.md`.
+
+**2026-08-29 — the pilot teacher's agreement, and why it is not the DPA.** The pilot needed something
+in front of a teacher who wants to try the tool with a class. Settled that the DPA is the wrong
+instrument for that person and the right one for their school: a class teacher cannot execute it, so
+the teacher document explains how the tool works and what it stores, and *routes* to the DPA rather
+than replacing it. Produced `legal/teacher-terms.md`, rendered in `app/server/terms.js`, enforced by
+a sign-in gate. The anonymous roster is what keeps it short — noted in the document itself, because
+the day someone runs a pilot on named accounts it stops being true.
 
 **2026-08-21 — the regime rule.** Rejected inferring adulthood from whether a student was added by
 email: email tracks institution type rather than age, an assumption is not a defence, and an inference

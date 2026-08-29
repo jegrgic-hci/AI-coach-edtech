@@ -60,6 +60,7 @@ const state = {
   session: null,
   conversations: [],
   submissions: [],
+  lastReflection: null,
   hasActivity: false,
   closed: false,
   conv: null,
@@ -781,6 +782,7 @@ async function openAssignment(id) {
   state.session = data.session;
   state.conversations = data.conversations;
   state.hasActivity = data.hasActivity;
+  state.lastReflection = data.lastReflection || null;
   state.conv = null;
   state.turns = [];
   state.submissions = [];
@@ -1127,12 +1129,9 @@ function renderTurn(t) {
 // token lands and the placeholder is swapped for the real bubble.
 function thinkingIndicator(role) {
   const wrap = el('div', 'thinking');
-  // The brand leaf, loaded from the one file that holds the shape rather than
-  // inlined here, so it cannot drift from the mark used everywhere else.
-  const leaf = el('img', 'thinking-leaf');
-  leaf.src = 'assets/leaf.svg';
-  leaf.alt = '';
-  wrap.append(leaf);
+  // The brand leaf. Which colour variant it wears is a theme question, so the
+  // file is chosen in CSS (see .thinking-leaf) rather than named here.
+  wrap.append(el('span', 'thinking-leaf'));
   // "Thinking" is vague; naming what's actually happening makes the wait
   // legible instead of just decorative.
   wrap.append(el('span', null, role === 'auditor' ? 'Auditor is reading…' : 'Reading your last message…'));
@@ -1390,9 +1389,107 @@ function resetDraftUpload() {
   updateSubmitEnabled();
 }
 
+// The student's account of how they used the AI, collected at the submission
+// marker because that is the moment the session is over and still fresh.
+//
+// It is self-report and is stored as self-report: it never feeds how a
+// dimension is read. The reading is coded from the transcript; this is what
+// that finished evidence gets held against.
+//
+// Labels name the content, not the routine behind it — a student answering
+// "Connect" has to translate before they can write, and the pillar name is
+// vocabulary they were never taught. The questions live underneath as hints.
+const REFLECT_FULL = [
+  { key: 'connect', label: 'What you already knew',
+    hint: 'Your knowledge of this topic before the conversation started, and how it shaped what you asked.' },
+  { key: 'extend', label: 'What the conversation opened up',
+    hint: "Ideas or directions you reached with the AI that you wouldn't have reached on your own." },
+  { key: 'challenge', label: 'Where you pushed back',
+    hint: 'Moments where you questioned, disagreed with, or corrected something the AI said.' },
+];
+
+const REFLECT_DELTA = [
+  { key: 'delta', label: 'What changed since your last draft',
+    hint: 'In how you used the AI, or in your own thinking about the topic.' },
+];
+
+function reflectFields() {
+  return state.session && state.session.cycleIndex > 0 ? REFLECT_DELTA : REFLECT_FULL;
+}
+
+// The previous draft's answers, shown only on a later draft. Genuinely
+// optional — "what changed" is answerable without it, just harder — so this is
+// the one part of the block that may sit behind a disclosure.
+function priorReflectionEl() {
+  const prior = state.lastReflection;
+  if (!prior || !prior.reflection) return null;
+  const labels = prior.type === 'delta' ? REFLECT_DELTA : REFLECT_FULL;
+  const body = el('div', 'reflect-prior-body');
+  for (const f of labels) {
+    const value = prior.reflection[f.key];
+    if (!value) continue;
+    const section = el('div');
+    section.append(el('span', 'reflect-prior-label', f.label), document.createTextNode(value));
+    body.append(section);
+  }
+  if (!body.children.length) return null;
+  const details = el('details', 'reflect-prior');
+  details.append(el('summary', null, 'What you wrote last time'), body);
+  return details;
+}
+
+// Carries typed answers across a re-render, so cancelling the dialog to check
+// something in the transcript doesn't cost the student what they'd written.
+function renderReflectBlock() {
+  const block = $('reflectBlock');
+  const kept = block.children.length ? reflectionValues() : {};
+  block.innerHTML = '';
+  if (!state.session) return;
+  for (const f of reflectFields()) {
+    const field = el('div', 'reflect-field');
+    const id = `reflect_${f.key}`;
+    const label = el('label', null, f.label);
+    label.htmlFor = id;
+    const hint = el('p', 'reflect-hint', f.hint);
+    hint.id = `${id}_hint`;
+    const box = el('textarea');
+    box.id = id;
+    box.rows = 3;
+    box.required = true;
+    if (kept[f.key]) box.value = kept[f.key];
+    box.setAttribute('aria-describedby', hint.id);
+    box.oninput = updateSubmitEnabled;
+    field.append(label, hint, box);
+    block.append(field);
+  }
+  const prior = priorReflectionEl();
+  if (prior) block.append(prior);
+}
+
+function reflectionValues() {
+  const values = {};
+  for (const f of reflectFields()) {
+    values[f.key] = ($(`reflect_${f.key}`)?.value || '').trim();
+  }
+  return values;
+}
+
+// Mandatory with no length floor, so the only question is whether each box has
+// something in it. A short answer is a real one; a character minimum would
+// teach padding and would block a student at a deadline over prose.
 function updateSubmitEnabled() {
-  const active = $('draftPaste').classList.contains('hidden') ? uploadedText : $('essayText').value.trim();
-  $('btnConfirmSubmit').disabled = !active;
+  const draft = $('draftPaste').classList.contains('hidden') ? uploadedText : $('essayText').value.trim();
+  const values = reflectionValues();
+  const missing = reflectFields().filter((f) => !values[f.key]).length;
+  const blocked = $('submitBlocked');
+  // A disabled button with no reason is the thing to avoid — name what is
+  // still outstanding, and say nothing once nothing is.
+  const notes = [];
+  if (!draft) notes.push('your draft');
+  if (missing) notes.push(`${missing} question${missing === 1 ? '' : 's'}`);
+  blocked.textContent = notes.length ? `Still to add: ${notes.join(' and ')}.` : '';
+  blocked.classList.toggle('hidden', !notes.length);
+  $('btnConfirmSubmit').disabled = Boolean(notes.length);
 }
 
 function showUploadError(msg) {
@@ -1482,6 +1579,7 @@ $('btnSubmit').onclick = () => {
   warning.append(el('li', null,
     `All ${convCount} of this draft's session${convCount === 1 ? '' : 's'} lock and go to your teacher with your draft.`));
   warning.append(el('li', null, `This uses draft ${used + 1} of ${budget}.`));
+  renderReflectBlock();
   resetDraftUpload();
   $('submitModal').classList.remove('hidden');
 };
@@ -1491,10 +1589,12 @@ $('btnCancelSubmit').onclick = () => $('submitModal').classList.add('hidden');
 $('btnConfirmSubmit').onclick = async () => {
   const essayText = $('draftPaste').classList.contains('hidden') ? uploadedText : $('essayText').value.trim();
   if (!essayText) return;
+  const reflection = reflectionValues();
+  if (reflectFields().some((f) => !reflection[f.key])) return;
   $('btnConfirmSubmit').disabled = true;
   try {
     logUse('workspace', 'submit');
-    const { submission } = await api(`/api/sessions/${state.session.id}/submit`, { method: 'POST', body: { essayText } });
+    const { submission } = await api(`/api/sessions/${state.session.id}/submit`, { method: 'POST', body: { essayText, reflection } });
     $('submitModal').classList.add('hidden');
     // Straight to the draft report — full disclosure at the submission marker
     await showReport(submission.id);

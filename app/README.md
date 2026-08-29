@@ -315,6 +315,7 @@ With thinking off, 3.5 Flash loses the advantage that justified its 6× price �
   detail, assignment-edit, assignment-note and submission-note routes had no ownership check at all.
   Invisible with one seeded teacher; a cross-teacher leak of rosters, scores, and integrity flags the
   moment an admin can create a second one. All now scoped to the teacher's own classes/assignments.
+- **Agreements** (`server/terms.js`, `web/agreement.html`): two versioned documents, keyed by role — a student's Terms of Use and a teacher's **Pilot Agreement**. Accepted on the set-up form when redeeming an invite, or on `agreement.html` for an account that already exists; `needsToAccept()` gates every page until it is done, so an account can never reach a surface without a stored `termsVersion`. Prose lives in `legal/` and the rendering in `terms.js` — change both. Why the teacher document is not the DPA: `pilotuser.md` *Consent* and `legal.md`
 - **Login + student account view** (`web/login.html`, `web/api.js`): every `/api/*` route requires a session; a 401 lands on the login page from any surface. The student home (`web/index.html`) shows current work, past assignments with per-draft score chips linking to their reports, and a teacher-note badge. The rail's dimension guidance uses the same fixed names (Prompting Quality, Selective Use, Calibrated Skepticism, Original Contribution) as the report page, per designsystem.md's Hard Constraints. The Google SSO button is present but disabled — Phase A fills it in
 
 ## Not yet

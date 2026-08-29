@@ -100,6 +100,10 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
   background: var(--tau-positive-bg); color: var(--tau-positive); font-size: var(--tau-text-xs); font-weight: 700;
   animation: tau-reveal var(--tau-dur-medium) var(--tau-ease-decelerate);
 }
+/* Same trap as .inline-new-class below: the `display: flex` above outranks the
+   UA stylesheet's `[hidden]`, so #add-students-confirm was drawing an empty
+   green bar in the Add students modal whenever it had nothing to confirm. */
+.menu-confirm[hidden] { display: none; }
 
 .roadmap-next-hint {
   margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--tau-line);
@@ -163,6 +167,47 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
 .roster-chip-bad { background: var(--tau-attention-bg); color: var(--tau-attention); }
 .roster-chip-muted { background: var(--tau-surface-2); color: var(--tau-ink-faint); }
 
+/* Access-code handover sheet. Shown once, immediately after the accounts are
+   created — the codes are hashed server-side and there is no route that reads
+   one back, so this is the handover itself and not a receipt for it. The code
+   is set in the largest monospace on the page and tracked out, because it is
+   read off a screen and written onto a slip by hand. Scrolls at 30 rows rather
+   than pushing the print and copy buttons below the fold, which is where the
+   codes are actually saved from. */
+.code-sheet {
+  border: 1px solid var(--tau-line); border-radius: var(--tau-r-sm);
+  max-height: 46vh; overflow-y: auto;
+}
+/* Three columns, because there are three facts: who the label stands for, what
+   they type in Email, and what they type in Password. A row is one student's
+   slip. user-select: all on each credential so a click takes the whole value
+   and never half of it. */
+.code-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  align-items: baseline; gap: 10px;
+  padding: 7px 11px; border-bottom: 1px solid var(--tau-line);
+}
+.code-row:last-child { border-bottom: none; }
+.code-name { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); }
+.code-user, .code-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--tau-text-xs); color: var(--tau-ink-soft);
+  user-select: all; word-break: break-all;
+}
+/* The secret is the one a teacher is copying onto a slip under time pressure,
+   so it takes the emphasis the username does not need. */
+.code-value {
+  font-size: var(--tau-text-sm); letter-spacing: 0.04em; color: var(--tau-ink);
+  white-space: nowrap; text-align: right;
+}
+.code-head {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  gap: 10px; padding: 6px 11px; border-bottom: 1px solid var(--tau-line);
+  font-size: var(--tau-text-label-sm); font-weight: 700; color: var(--tau-ink-soft);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.code-head span:last-child { text-align: right; }
+
 /* Classes checklist — New Assignment modal. The real fix: the client never
    sent classIds before this, so the server (index.js) silently defaulted
    every assignment to every class the teacher has. This makes that choice
@@ -180,6 +225,150 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
 .class-check input {
   width: 16px; height: 16px; min-height: 0; accent-color: var(--tau-forest); flex-shrink: 0;
   border: none; background: none; padding: 0; border-radius: 0;
+}
+/* The name-a-new-class row inside the Class field, and the Named/Anonymous tab
+   bar. Both carry a `display` of their own, which beats the UA stylesheet's
+   `[hidden] { display: none }` — so without these two lines neither element
+   ever hides and the class step shows its "either" and its "or" at once. Same
+   fix .roster-preview[hidden] and .menu-item[hidden] already needed; see the
+   note at components.css's .menu-item[hidden]. */
+.inline-new-class { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.inline-new-class[hidden] { display: none; }
+.card-tabs[hidden] { display: none; }
+
+/* The generated-labels form — what Generate fills in and Save commits. Rows
+   are numbered on the left so a teacher writing their own paper list can count
+   down it, and the number is position in this batch, not the label's own digits,
+   which they are free to change. Scrolls at ~10 rows so Save stays reachable
+   without a hunt down a class of thirty. */
+.draft-labels {
+  border: 1px solid var(--tau-line); border-radius: var(--tau-r-md);
+  max-height: 42vh; overflow-y: auto;
+}
+.draft-label-row {
+  display: flex; align-items: center; gap: 10px; padding: 5px 10px;
+  border-bottom: 1px solid var(--tau-line);
+}
+.draft-label-row:last-child { border-bottom: none; }
+.draft-label-n {
+  flex-shrink: 0; width: 1.6em; text-align: right;
+  font-size: var(--tau-text-xs); color: var(--tau-ink-soft);
+}
+.draft-label-row input { min-height: 34px; font-size: var(--tau-text-sm); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+/* The fixed half of the username, in the same monospace so the two halves read
+   as one string. Grey and outside the input because it is not this form's to
+   change — it belongs to the teacher's own account. */
+/* ── Manage roster modal ───────────────────────────────────────────────────
+   One spacing rhythm for the whole surface, off --tau-s*, replacing the
+   per-element inline margins this modal accumulated while it was being built.
+   Spacing is the channel that does the grouping, so ad-hoc steps are what
+   flattened three named zones into one continuous column.
+
+   Zones are separated by --tau-s5 and the things inside a zone by --tau-s3:
+   one step apart is enough to read as "same group", two as "next group". */
+/* Waiting on real work — creating N accounts, or asking for N themed names.
+   A plain ring, not the breathing leaf: style.css reserves that for the one
+   moment the product is visibly an AI reasoning in real time, and borrowing it
+   for a save would spend the distinction it exists to make. Sits where the
+   form was, so the modal is never showing a dead button. */
+.roster-busy {
+  display: flex; align-items: center; gap: var(--tau-s3);
+  padding: var(--tau-s5) var(--tau-s3);
+  color: var(--tau-ink-soft); font-size: var(--tau-text-sm);
+}
+.roster-busy-spin {
+  width: 18px; height: 18px; flex-shrink: 0;
+  border: 2px solid var(--tau-line-strong); border-top-color: var(--tau-forest);
+  border-radius: 50%; animation: roster-spin 0.9s linear infinite;
+}
+@keyframes roster-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .roster-busy-spin { animation-duration: 3s; } }
+
+/* The toggle heads the add view; the form it chooses starts a step below it. */
+.roster-seg { margin-bottom: var(--tau-s4); }
+.roster-zone > * + * { margin-top: var(--tau-s3); }
+.roster-zone .roster-preview + .btn,
+.roster-zone > .draft-labels,
+.roster-zone > #roster-addstudent-draft:not([hidden]),
+.roster-zone > #roster-addstudent-generated:not([hidden]) { margin-top: var(--tau-s5); }
+.roster-field { padding: 0; }
+
+/* The roster list itself: rows one step apart, the group they form two steps
+   from whatever names it. */
+.roster-list { display: flex; flex-direction: column; gap: var(--tau-s2); }
+.roster-row {
+  display: flex; align-items: center; gap: var(--tau-s3);
+  padding: var(--tau-s2) var(--tau-s3);
+}
+.roster-row-id { flex: 1; min-width: 0; }
+.roster-row-name { font-size: var(--tau-text-sm); font-weight: 600; }
+.roster-row-sub { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
+
+/* A named zone. The eyebrow is the system's micro-label (designsystem.md,
+   "Every card/table section gets an eyebrow") — this modal previously used
+   .ah-title and .agg-block-lbl for the same job, which is three vocabularies
+   for one thing on one surface. */
+/* The information panel that heads the roster view: what is recoverable, what
+   is not, and the controls for both. Recessed rather than raised — inside a
+   white modal --tau-surface-2 reads as a tray the content sits in, which is
+   what this is (Hard Constraints: "raised means lighter than its own ground",
+   so a step DOWN the ramp here is deliberately not a card).
+   No blue: forest is the only accent this system grants, and the one blue in
+   the palette (--tau-band-3-*) encodes a dimension band. See the note to the
+   product owner — this is the compliant stand-in, not a refusal. */
+.roster-info {
+  background: var(--tau-surface-2);
+  border-radius: var(--tau-r-md);
+  padding: var(--tau-s3) var(--tau-s4) var(--tau-s4);
+  margin-bottom: var(--tau-s5);
+}
+.roster-info .roster-section-note:last-of-type { margin-bottom: var(--tau-s3); }
+.roster-section { margin-top: var(--tau-s5); }
+/* .eyebrow is a span in components.css; in this modal it always heads a block,
+   so it is given the line and the step to the group it names. */
+.roster-info > .eyebrow,
+.roster-section > .eyebrow,
+#roster-modal-list > .eyebrow,
+#roster-addstudent-draft > .eyebrow,
+#hdr-addstudent-draft > .eyebrow { display: block; margin-bottom: var(--tau-s2); }
+.roster-section-note { margin: 0 0 var(--tau-s3); font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.5; }
+.roster-actions { display: flex; gap: var(--tau-s2); flex-wrap: wrap; }
+
+/* A just-issued access code, tucked under the student it belongs to. Sage as a
+   FILL only, never as text — designsystem.md's brand rule: sage fails contrast
+   as a foreground and must only ever ride a background. --tau-positive-bg is
+   that fill and already carries the "this just happened, and it worked"
+   meaning .menu-confirm uses it for.
+
+   Notched into the row above with a flat top edge and a small inset, so it
+   reads as belonging to that row rather than as the next item in the list. */
+/* Sat -2px into the row above, which pulled it over that row's own 1px bottom
+   border and erased it — the row lost its lower line the moment a code
+   appeared. It now sits below the row with its own gap and its own full
+   radius; the indent alone carries "this belongs to the row above". */
+.new-code-box {
+  display: flex; align-items: baseline; gap: var(--tau-s2); flex-wrap: wrap;
+  margin: var(--tau-s1) 0 0 var(--tau-s7); padding: var(--tau-s2) var(--tau-s3);
+  background: var(--tau-positive-bg);
+  border-radius: var(--tau-r-sm);
+  animation: tau-reveal var(--tau-dur-medium) var(--tau-ease-decelerate);
+}
+.new-code-lbl {
+  font-size: var(--tau-text-label-sm); font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--tau-ink-soft);
+}
+.new-code-val {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--tau-text-md); letter-spacing: 0.05em; font-weight: 600;
+  color: var(--tau-ink); user-select: all;
+}
+.new-code-note { margin-left: auto; font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
+
+/* A username on the roster is a value to be read off and typed, not prose. */
+.roster-username { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; user-select: all; }
+.draft-label-domain {
+  flex-shrink: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--tau-text-sm); color: var(--tau-ink-faint);
 }
 .class-check-count { margin-left: auto; font-weight: 400; font-size: var(--tau-text-xs); color: var(--tau-ink-faint); }
 .assign-scope-note { margin: var(--tau-s2) 0 0; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.5; }
@@ -1370,13 +1559,46 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
       <button class="tray-close" id="roster-modal-close-btn" onclick="closeRosterModal()"></button>
     </div>
     <div class="tray-body">
-      <div id="roster-modal-list"></div>
-      <div class="agg-block-lbl" style="margin-top:var(--tau-s5)">Add students</div>
-      <label class="menu-field" style="padding:0">Students <span class="menu-field-optional">one per line — paste a whole roster, or just one</span>
-        <textarea id="roster-addstudent-roster-input" rows="3" placeholder="Jordan Lee, jordan@school.edu" oninput="renderRosterPreview('roster')"></textarea>
-      </label>
-      <div class="roster-preview" id="roster-addstudent-preview" hidden></div>
-      <button type="button" class="btn btn-primary btn-sm" id="roster-addstudent-submit" disabled onclick="submitRosterAdd('roster')" style="margin-top:var(--tau-s3)">Add students</button>
+      <!-- Two views of one class, not one long scroll: reading who is on a
+           roster and putting someone new on it are different errands, and the
+           list is long enough that the form under it was never seen. Same
+           .card-tabs component the class card uses. -->
+      <div class="card-tabs" id="roster-view-tabs">
+        <button type="button" class="card-tab active" data-view="view" onclick="setRosterModalView('view')">View roster</button>
+        <button type="button" class="card-tab" data-view="add" onclick="setRosterModalView('add')">Add students</button>
+      </div>
+
+      <div class="tab-panel active" id="roster-panel-view">
+        <div id="roster-modal-list"></div>
+      </div>
+
+      <div class="tab-panel" id="roster-panel-add">
+        <!-- .seg, not .card-tabs: this sits under the modal's own tab bar, and
+             two underlined tab rows stacked gave no way to tell which level a
+             click belonged to. A filled toggle cannot be read as a tab. -->
+        <div class="seg roster-seg" id="roster-addstudent-tabs" role="radiogroup" aria-label="Kind of student account" hidden>
+          <button type="button" class="seg-btn" role="radio" aria-checked="false" data-mode="named" onclick="setRosterMode('roster','named')">Named students</button>
+          <button type="button" class="seg-btn" role="radio" aria-checked="false" data-mode="roster" onclick="setRosterMode('roster','roster')">Anonymous roster</button>
+        </div>
+        <div class="tab-panel active roster-zone" id="roster-addstudent-panel-named">
+          <label class="menu-field roster-field" id="roster-addstudent-paste-field">Students <span class="menu-field-optional">one per line — paste a whole roster, or just one</span>
+            <textarea id="roster-addstudent-roster-input" rows="3" placeholder="Jordan Lee, jordan@school.edu" oninput="renderRosterPreview('roster')"></textarea>
+          </label>
+          <div class="roster-preview" id="roster-addstudent-preview" hidden></div>
+          <button type="button" class="btn btn-primary btn-sm" id="roster-addstudent-submit" disabled onclick="submitRosterAdd('roster')">Add students</button>
+        </div>
+        <div class="tab-panel roster-zone" id="roster-addstudent-panel-roster">
+          <label class="menu-field roster-field">Number of students
+            <input type="number" id="roster-addstudent-count-input" min="1" max="60" oninput="refreshGenerateButton('roster')">
+          </label>
+          <label class="menu-field roster-field">Naming theme <span class="menu-field-optional">optional</span>
+            <input type="text" id="roster-addstudent-theme-input" maxlength="60" placeholder="Authors, planets, birds…">
+          </label>
+          <button type="button" class="btn btn-primary btn-sm" id="roster-addstudent-generate" disabled onclick="generateRosterDraft('roster')">Generate</button>
+          <div id="roster-addstudent-draft" hidden></div>
+          <div id="roster-addstudent-generated" hidden></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1490,12 +1712,29 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
     <div class="tray-body">
       <div id="add-students-view-success" hidden></div>
       <div id="add-students-view-form">
-      <label class="menu-field" style="padding:0;margin-bottom:16px">Students <span class="menu-field-optional">one per line — "Name, email" or just an email</span>
-        <textarea id="hdr-addstudent-roster-input" rows="7" placeholder="Jordan Lee, jordan@school.edu" oninput="renderRosterPreview('hdr')" style="font-size:var(--tau-text-md)"></textarea>
-      </label>
-      <label class="menu-field" id="hdr-addstudent-class-field" style="padding:0">Class
+      <!-- Which kind of account this creates. .card-tabs is the system's tab
+           component (components.css) — the modal is switching between two
+           views of one task, which is what it is for. Rendered only for a
+           teacher holding the codeRoster grant: for everyone else there is one
+           way to add a student, and a tab bar with one tab is noise. The
+           consequence of each choice is carried by the modal's own subtitle,
+           which swaps with the tab. -->
+      <!-- First: which kind of account this creates. It is the decision the
+           rest of the form hangs off — the class and the count mean different
+           things under each — so it leads, and it does not wait on a class
+           being picked. .card-tabs is the system's tab component
+           (components.css): the modal is switching between two views of one
+           task, which is what it is for. Rendered only for a teacher holding
+           the codeRoster grant; for everyone else a tab bar with one tab is
+           noise. Each choice's consequence is carried by the modal subtitle,
+           which swaps with the tab. -->
+      <div class="seg" id="hdr-addstudent-tabs" role="radiogroup" aria-label="Kind of student account" hidden>
+        <button type="button" class="seg-btn" role="radio" aria-checked="false" data-mode="named" onclick="setRosterMode('hdr','named')">Named students</button>
+        <button type="button" class="seg-btn" role="radio" aria-checked="false" data-mode="roster" onclick="setRosterMode('hdr','roster')">Anonymous roster</button>
+      </div>
+      <label class="menu-field" id="hdr-addstudent-class-field" style="padding:0;margin-bottom:16px">Class
         <select id="hdr-addstudent-class-select" onchange="handleAddStudentsClassSelect()" style="min-height:42px;font-size:var(--tau-text-md)"></select>
-        <span class="inline-new-class" id="hdr-addstudent-newclass-row" hidden style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
+        <span class="inline-new-class" id="hdr-addstudent-newclass-row" hidden>
           <label class="micro-label" for="hdr-addstudent-newclass-input" style="margin-bottom:0">New class name</label>
           <span style="display:flex;gap:8px">
             <input type="text" id="hdr-addstudent-newclass-input" placeholder="e.g. AP Literature" style="flex:1;min-height:34px;font-size:var(--tau-text-sm)">
@@ -1503,8 +1742,43 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
           </span>
         </span>
       </label>
-      <div class="roster-preview" id="hdr-addstudent-preview" hidden style="margin-top:12px"></div>
-      <button type="button" class="btn btn-primary" id="hdr-addstudent-submit" disabled onclick="submitRosterAdd('hdr')" style="margin-top:16px">Add students</button>
+      <!-- Everything past the class. Gated as one block rather than field by
+           field: until there is a class to add to, none of it has a subject,
+           and a form whose first control makes the rest of itself appear reads
+           as one decision instead of a screen that grew. Wrapped because
+           .tab-panel.active sets display and would outrank [hidden] on the
+           panels themselves. -->
+      <div id="hdr-addstudent-body" hidden>
+      <div class="tab-panel active" id="hdr-addstudent-panel-named">
+        <label class="menu-field" id="hdr-addstudent-paste-field" style="padding:0">Students <span class="menu-field-optional">one per line — "Name, email" or just an email</span>
+          <textarea id="hdr-addstudent-roster-input" rows="7" placeholder="Jordan Lee, jordan@school.edu" oninput="renderRosterPreview('hdr')" style="font-size:var(--tau-text-md)"></textarea>
+        </label>
+        <div class="roster-preview" id="hdr-addstudent-preview" hidden style="margin-top:12px"></div>
+        <button type="button" class="btn btn-primary" id="hdr-addstudent-submit" disabled onclick="submitRosterAdd('hdr')" style="margin-top:16px">Add students</button>
+      </div>
+
+      <!-- Anonymous roster: a number, then the labels it would create, then
+           save. Generate does not touch the server — it fills a form the
+           teacher can still change, so the labels can be made to match their
+           own paper list before thirty accounts exist under names that don't.
+           The codes arrive only on save, because a code that has been shown
+           and not saved is a code nobody holds. -->
+      <div class="tab-panel" id="hdr-addstudent-panel-roster">
+        <label class="menu-field" style="padding:0">Number of students
+          <input type="number" id="hdr-addstudent-count-input" min="1" max="60" oninput="refreshGenerateButton('hdr')" style="min-height:42px;font-size:var(--tau-text-md)">
+        </label>
+        <!-- Optional, and genuinely so: without it the labels are Student 01,
+             02 … which work. A theme is for a teacher who has to tell thirty of
+             them apart all term. The theme is the only thing sent — it is not
+             student data and cannot become student data. -->
+        <label class="menu-field" style="padding:0;margin-top:16px">Naming theme <span class="menu-field-optional">optional</span>
+          <input type="text" id="hdr-addstudent-theme-input" maxlength="60" placeholder="Authors, planets, birds…" style="min-height:42px;font-size:var(--tau-text-md)">
+        </label>
+        <button type="button" class="btn btn-primary" id="hdr-addstudent-generate" disabled onclick="generateRosterDraft('hdr')" style="margin-top:16px">Generate</button>
+        <div id="hdr-addstudent-draft" hidden style="margin-top:18px"></div>
+        <div id="hdr-addstudent-generated" hidden style="margin-top:18px"></div>
+      </div>
+      </div>
       <div class="menu-confirm" id="add-students-confirm" hidden style="margin-top:12px"></div>
       <div class="roadmap-next-hint">Next, once a roster's in place: assign work from the "+ Add" menu — it goes to everyone on this class automatically, no roster to hand-pick per assignment.</div>
       </div>
@@ -2046,29 +2320,22 @@ function _computeStudentSignal(studentId, assignmentId) {
     }
     if (avgOC < 2.5) signals.push({ tier: 'attention', reason: 'Most ideas appear AI-initiated' });
 
-    const PUSHBACK_KW    = ['disagreed', 'pushed back', 'challenged', 'wrong', "didn't think", 'questioned', 'asked it to reconsider'];
-    const IMPROVEMENT_KW = ['more skeptical', 'pushed back more', 'more critical', 'less reliant', 'questioned more', 'challenged more'];
-    let sawScoreMismatch = false, sawDeltaMismatch = false;
-    for (const a of assignments) {
-      const subs = getSubs(studentId, a.id);
-      for (let i = 0; i < subs.length; i++) {
-        const sub = subs[i];
-        if (!sawScoreMismatch && sub.reflectionType === 'full' && sub.reflection) {
-          const challenge = (sub.reflection.challenge || '').toLowerCase();
-          if (sub.cs < 2.5 && PUSHBACK_KW.some(kw => challenge.includes(kw))) {
-            signals.push({ tier: 'attention', reason: 'Reflection claims pushback the scores don\'t show', learnMoreKey: 'reflection-score-mismatch' });
-            sawScoreMismatch = true;
-          }
-        }
-        if (!sawDeltaMismatch && i > 0 && sub.reflectionType === 'delta' && sub.reflection) {
-          const delta = (sub.reflection.delta || '').toLowerCase();
-          if (legacyTotal(sub) <= legacyTotal(subs[i - 1]) && IMPROVEMENT_KW.some(kw => delta.includes(kw))) {
-            signals.push({ tier: 'attention', reason: 'Student described improvement but scores didn\'t change', learnMoreKey: 'reflection-delta-mismatch' });
-            sawDeltaMismatch = true;
-          }
-        }
-      }
-    }
+    // GONE 2026-08-30, with reflection capture: the two reflection-mismatch
+    // signals (`reflection-score-mismatch`, `reflection-delta-mismatch`).
+    //
+    // Both had never fired — nothing wrote `sub.reflection` until now — and
+    // both decided the mismatch arithmetically: `sub.cs < 2.5` against the
+    // retired 1-5 dimension score, and `legacyTotal(sub) <= legacyTotal(prev)`
+    // against the retired 4-20 total. Building capture is what would have
+    // switched them on, so they are removed rather than woken.
+    //
+    // The question they asked is the right one and is not lost: a student's
+    // claim to have pushed back is checkable against the Calibrated Skepticism
+    // reading, which already carries the moments that support it and the one
+    // that doesn't. That is a presence question against coded evidence, not a
+    // threshold, and it belongs in the reading — so it lands with scoreTAU's
+    // signature change (tau-dimensions.md, "What this requires of the code"),
+    // not in a detector on this page. Copy for both is kept in guides.js.
   }
 
   // Distinguishes a student who was never worth a chat from one whose every
@@ -4546,8 +4813,12 @@ function reflectionArc(subs) {
       ? (sub.reflection?.connect || '')
       : (sub.reflection?.delta || '');
     const words = text.trim().split(/\s+/).slice(0, 5).join(' ');
-    const excerpt = words + (text.trim().split(/\s+/).length > 5 ? '…' : '');
-    const badge = isFull ? 'CEC' : 'Δ';
+    // Student free text — escaped, same as the full section below.
+    const excerpt = esc(words + (text.trim().split(/\s+/).length > 5 ? '…' : ''));
+    // WAS "CEC"/"Δ" — two abbreviations for a routine and a delta, neither of
+    // which names what the entry holds. The draft number does, and it carries
+    // the same distinction, since only the first draft gets the full prompts.
+    const badge = `Draft ${sub.cycleIndex + 1}`;
     const badgeCls = 'chip-neutral';
     return `<div class="arc-entry" onclick="this.closest('.sub-history').children[${subs.length - 1 - i}].scrollIntoView({behavior:'smooth',block:'nearest'})">
       <span class="arc-badge ${badgeCls}">${badge}</span>
@@ -4565,14 +4836,21 @@ function renderReflectionSection(sub, prevSub) {
   const isFull = sub.reflectionType === 'full';
   let badgeLabel, scoreDelta = '', fullContent;
 
+  // Every reflection value below is student-authored free text and is escaped
+  // on the way in. It was safe to interpolate raw only while nothing wrote the
+  // field; capture shipped 2026-08-30 and this is now live student input.
+  //
+  // Labels match the ones the student answered under, word for word. The
+  // Project Zero pillar names they replace were a routine the reader had to
+  // translate, and a teacher comparing the two surfaces should not have to.
   if (isFull) {
-    badgeLabel = 'Connect · Extend · Challenge';
+    badgeLabel = 'Reflection';
     fullContent = `
-      <div class="reflect-section"><span class="reflect-label eyebrow">Connect</span>${sub.reflection.connect || ''}</div>
-      <div class="reflect-section"><span class="reflect-label eyebrow">Extend</span>${sub.reflection.extend || ''}</div>
-      <div class="reflect-section"><span class="reflect-label eyebrow">Challenge</span>${sub.reflection.challenge || ''}</div>`;
+      <div class="reflect-section"><span class="reflect-label eyebrow">Already knew</span>${esc(sub.reflection.connect)}</div>
+      <div class="reflect-section"><span class="reflect-label eyebrow">Opened up</span>${esc(sub.reflection.extend)}</div>
+      <div class="reflect-section"><span class="reflect-label eyebrow">Pushed back</span>${esc(sub.reflection.challenge)}</div>`;
   } else {
-    badgeLabel = 'What shifted?';
+    badgeLabel = 'What changed';
     // WAS A BARE TOTAL DELTA in a chip-positive pill (`+5`), which broke two rules
     // at once: the number is a total, and semantic colour "never touches a student's
     // own score" (designsystem.md Hard Constraints) — a level is a position on a
@@ -4584,12 +4862,12 @@ function renderReflectionSection(sub, prevSub) {
       scoreDelta = `<span class="score-delta chip-grey">${
         move > 0 ? 'Up a level' : move < 0 ? 'Back a level' : 'Same level'}</span>`;
     }
-    fullContent = `<div class="reflect-section">${sub.reflection.delta || ''}</div>`;
+    fullContent = `<div class="reflect-section">${esc(sub.reflection.delta)}</div>`;
   }
 
   const excerptSrc = isFull ? (sub.reflection.challenge || sub.reflection.connect || '') : (sub.reflection.delta || '');
   const excerptWords = excerptSrc.trim().split(/\s+/).slice(0, 10).join(' ');
-  const excerpt = excerptWords + (excerptSrc.trim().split(/\s+/).length > 10 ? '…' : '');
+  const excerpt = esc(excerptWords + (excerptSrc.trim().split(/\s+/).length > 10 ? '…' : ''));
   const badgeCls = 'chip-neutral';
 
   return `<details class="reflection-details">
@@ -5021,7 +5299,8 @@ function newClassIsDirty() {
   return !!(val('newclass-name-input') || val('newclass-roster-input') || val('newclass-assign-title'));
 }
 function addStudentsIsDirty() {
-  return !!val('hdr-addstudent-roster-input');
+  return !!(val('hdr-addstudent-roster-input') || val('hdr-addstudent-count-input')
+    || val('hdr-addstudent-newclass-input') || ROSTER_DRAFT.hdr);
 }
 
 function openModalEntries() {
@@ -5038,6 +5317,20 @@ function topModal() {
 
 function requestModalClose(entry) {
   if (!entry) return;
+  // An access-code handover is not an unsaved form — the accounts exist, and
+  // what closing loses is the only copy of their codes. Same guard, and it
+  // must not say "you haven't created this roster yet", which is false and
+  // would read as safe to dismiss.
+  if (entry.id === 'add-students-modal-overlay' && PENDING_CODES) {
+    openObjModal({
+      title: 'Close without saving the codes?',
+      subtitle: 'The accounts are created, but these codes are shown once and cannot be looked up again. Print or copy them first — otherwise each one has to be reissued.',
+      confirmLabel: 'Close anyway',
+      danger: true,
+      onConfirm: async () => { PENDING_CODES = null; entry.close(); },
+    });
+    return;
+  }
   if (entry.dirty && entry.dirty()) {
     openObjModal({
       title: 'Discard what you\'ve typed?',
@@ -5152,6 +5445,13 @@ function classActionRow(cls) {
         label: 'Manage',
         items: [
           { icon: 'edit', title: 'Rename class', onClick: `openRenameClass('${cls.id}')` },
+          // Same modal as "Manage roster", named for the errand instead of the
+          // object. A teacher whose class has lost its sign-ins is not looking
+          // for roster management, and "where do I find their code" is the
+          // most predictable support question this feature has.
+          codeStudentsOn(cls).length
+            ? { icon: 'personAdd', title: 'Usernames & access codes', desc: 'Look up a username, or issue a new code', onClick: `openRosterModal('${cls.id}')` }
+            : null,
           // Absent entirely unless the account has been granted the measurement-improvement
           // eligibility — a teacher with no agreement in place should never
           // see a control that implies they can give this consent. The server
@@ -5323,6 +5623,29 @@ function openImprovementClass(cid) {
       confirmLabel: 'Stop contributing',
       onConfirm: async () => {
         await api(`/api/classes/${cid}/edit`, { method: 'POST', body: { improvement: false } });
+        await loadDashboardData();
+        render();
+      },
+    });
+    return;
+  }
+
+  // A Pilot user is not asked to attest, because they already did — the Pilot
+  // Agreement they accepted at sign-in says their classes' work is used to
+  // check how accurately the tool reads it, and their classes are stamped at
+  // creation for that reason. Asking a second time would imply the first one
+  // was not the agreement, and an attestation nobody can decline is not an
+  // attestation. This path is reachable only after a withdrawal.
+  //
+  // The forward-only warning is the honest part: re-granting mints a new date,
+  // so the withdrawn window stays out permanently.
+  if (VIEWER.codeRoster) {
+    openObjModal({
+      title: `Resume contributing ${cls.name}’s work`,
+      subtitle: 'Covered by the Pilot Agreement you accepted, which is why this class was contributing when it was created. Work submitted while it was withdrawn stays out — resuming starts from today, and does not reach back over the gap.',
+      confirmLabel: 'Resume contributing',
+      onConfirm: async () => {
+        await api(`/api/classes/${cid}/edit`, { method: 'POST', body: { improvement: true } });
         await loadDashboardData();
         render();
       },
@@ -6188,25 +6511,100 @@ let activeRosterClassId = null;
 
 function rosterModalListHtml(cls) {
   const students = (cls.studentIds || []).map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
-  if (!students.length) return `<p class="agg-sample-note">No students on this class yet — add the first one below.</p>`;
-  return `<div style="display:flex;flex-direction:column;gap:6px">
-    ${students.map(s => `<div class="list-row-boxed" style="display:flex;align-items:center;gap:10px;padding:9px 12px">
+  if (!students.length) return `<p class="agg-sample-note">No students on this class yet — add the first one from the Add students tab.</p>`;
+  // The group gets a name, per the eyebrow rule: a reader lands on rows they
+  // are meant to scan, and an unlabelled stack makes them infer what they are
+  // looking at from the contents.
+  return `<span class="eyebrow">${students.length} ${students.length === 1 ? 'student' : 'students'}</span>
+    <div class="roster-list">
+    ${students.map(s => `<div>
+    <div class="list-row-boxed roster-row">
       <div class="avatar avatar-sm">${s.initials}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:500;font-size:var(--tau-text-sm)">${esc(s.name)}</div>
-        <div style="font-size:var(--tau-text-xs);color:var(--tau-ink-soft)">${esc(s.email || '')}</div>
+      <div class="roster-row-id">
+        <div class="roster-row-name">${esc(s.name)}</div>
+        <div class="roster-row-sub ${s.identity === 'code' ? 'roster-username' : ''}">${s.identity === 'code' ? esc(s.username || 'Signs in by access code') : esc(s.email || '')}</div>
       </div>
+      ${s.identity === 'code' ? `<button type="button" class="btn btn-quiet btn-sm" onclick="reissueStudentCode('${s.id}')">New code</button>` : ''}
       <button type="button" class="btn btn-quiet btn-sm" onclick="removeStudentFromClass('${s.id}')">Remove</button>
+    </div>
+    ${newCodeBoxHtml(s.id)}
     </div>`).join('')}
   </div>`;
+}
+
+// What a teacher can and cannot get back, said plainly and up front, because
+// the natural expectation is that a system which issued a code can show it
+// again. It cannot: the code is stored hashed exactly like a password, so the
+// only honest answer to "what was their code" is a new one. Usernames are a
+// different matter and are always here to be looked up.
+function rosterCodeActionsHtml(cls) {
+  const codeStudents = codeStudentsOn(cls);
+  if (!codeStudents.length) return '';
+  // Leads the view rather than trailing it. What a teacher can and cannot
+  // recover governs how they read every row underneath — finding it after the
+  // list is finding it after the question has already been asked. The actions
+  // live inside the panel with the sentence that explains them, so the
+  // explanation and the thing it explains are one object, not two.
+  return `<div class="roster-info">
+    <span class="eyebrow">Sign-in details</span>
+    <p class="roster-section-note">Usernames are listed below and can be looked up any time.
+      <strong>Access codes cannot</strong> — they are stored the way a password is, so a lost one is replaced, not recovered.</p>
+    <div class="roster-actions">
+      <button type="button" class="btn btn-quiet btn-sm" onclick="printUsernames()">Print usernames</button>
+      <button type="button" class="btn btn-quiet btn-sm" onclick="reissueAllCodes()">New codes for all ${codeStudents.length}</button>
+      ${PENDING_CODES ? `<button type="button" class="btn btn-primary btn-sm" onclick="printCodes()">Print the ${PENDING_CODES.created.length} new codes</button>
+        <button type="button" class="btn btn-quiet btn-sm" onclick="copyCodes(this)">Copy</button>` : ''}
+    </div>
+  </div>`;
+}
+
+// A code just issued, shown directly under the student it belongs to. Keyed by
+// student id and rendered inside their row rather than collected into a list
+// elsewhere: a code and the child it is for have to be read together, and a
+// separate panel makes the teacher hold a name in their head while their eye
+// travels. Cleared when the modal closes — it is the one moment the code
+// exists in the clear.
+let NEW_CODES = {};
+
+function newCodeBoxHtml(studentId) {
+  const code = NEW_CODES[studentId];
+  if (!code) return '';
+  return `<div class="new-code-box">
+    <span class="new-code-lbl">New access code</span>
+    <span class="new-code-val">${esc(code)}</span>
+    <span class="new-code-note">Shown once</span>
+  </div>`;
+}
+
+function codeStudentsOn(cls) {
+  return (cls.studentIds || [])
+    .map(sid => STUDENTS.find(s => s.id === sid))
+    .filter(s => s && s.identity === 'code');
+}
+
+// Which of the modal's two views is showing. The subtitle moves with it —
+// a header line about removing students is wrong advice while the person is
+// adding them.
+let rosterModalView = 'view';
+
+function setRosterModalView(next) {
+  rosterModalView = next;
+  document.querySelectorAll('#roster-view-tabs .card-tab').forEach((t) => {
+    t.classList.toggle('active', t.dataset.view === next);
+  });
+  document.getElementById('roster-panel-view').classList.toggle('active', next === 'view');
+  document.getElementById('roster-panel-add').classList.toggle('active', next === 'add');
+  refreshRosterModal();
 }
 
 function refreshRosterModal() {
   const cls = CLASSES.find(c => c.id === activeRosterClassId);
   if (!cls) return;
   document.getElementById('roster-modal-title').textContent = cls.name;
-  document.getElementById('roster-modal-subtitle').textContent = 'Removing a student here only takes them off this class, not their account.';
-  document.getElementById('roster-modal-list').innerHTML = rosterModalListHtml(cls);
+  document.getElementById('roster-modal-subtitle').textContent = rosterModalView === 'add'
+    ? 'New accounts join this class only. Anyone already on another class stays there too.'
+    : 'Removing a student here only takes them off this class, not their account.';
+  document.getElementById('roster-modal-list').innerHTML = rosterCodeActionsHtml(cls) + rosterModalListHtml(cls);
 }
 
 // Class View's own "Manage roster" button — the only entry point left.
@@ -6216,7 +6614,18 @@ function openRosterModal(cid) {
   document.getElementById('roster-addstudent-preview').hidden = true;
   document.getElementById('roster-addstudent-preview').innerHTML = '';
   document.getElementById('roster-addstudent-submit').disabled = true;
-  refreshRosterModal();
+  document.getElementById('roster-addstudent-count-input').value = '';
+  document.getElementById('roster-addstudent-theme-input').value = '';
+  PENDING_CODES = null;
+  NEW_CODES = {};
+  ROSTER_DRAFT.roster = null;
+  renderRosterDraft('roster');
+  renderGeneratedList('roster');
+  ROSTER_MODE.roster = codeRosterAllowed() ? 'roster' : 'named';
+  applyRosterMode('roster');
+  // Opens on the roster itself. "Who is on this class" is the question the
+  // door is named for; adding is the errand you come back for.
+  setRosterModalView('view');
   document.getElementById('roster-modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -6327,6 +6736,438 @@ function renderRosterPreview(scope) {
     submit.disabled = !validCount || !rosterScopeClassId(scope);
     submit.textContent = validCount ? `Add ${validCount} student${validCount !== 1 ? 's' : ''}` : 'Add students';
   }
+}
+
+// ── Access-code roster — the same two mount points, a different component ───
+// A teacher whose students are minors adds accounts by COUNT, not by list:
+// there is no name and no address to type, so the form asks how many and the
+// server generates "Student 04" labels and one access code each. The teacher
+// keeps the mapping from label to child on paper, off the product.
+//
+// Which component a mount point shows is the teacher's own codeRoster grant,
+// not a toggle — a teacher does not choose per class whether their students
+// are children. The server refuses the wrong shape either way.
+const CODE_SCOPES = {
+  hdr:    { count: 'hdr-addstudent-count-input',    theme: 'hdr-addstudent-theme-input',    generate: 'hdr-addstudent-generate',    draft: 'hdr-addstudent-draft',    generated: 'hdr-addstudent-generated' },
+  roster: { count: 'roster-addstudent-count-input', theme: 'roster-addstudent-theme-input', generate: 'roster-addstudent-generate', draft: 'roster-addstudent-draft', generated: 'roster-addstudent-generated' },
+};
+
+// Whether this teacher may build an anonymous roster at all. The grant is what
+// puts the choice on screen; which of the two they are making right now is
+// ROSTER_MODE below. A teacher can hold both — a senior class by email and a
+// junior one by code is the ordinary case, not an exception — so the grant
+// adds the second form rather than replacing the first.
+function codeRosterAllowed() {
+  return VIEWER.codeRoster === true;
+}
+
+// Per mount point, because the two doors can be open in different states: the
+// header's form and a class's own roster are separate tasks. Defaults to the
+// anonymous roster for a teacher who holds the grant — they were given it for
+// a reason, and the default that leaks a child's name is the wrong one to make
+// them opt out of.
+const ROSTER_MODE = { hdr: 'named', roster: 'named' };
+
+function codeRosterMode(scope) {
+  return ROSTER_MODE[scope] === 'roster';
+}
+
+function setRosterMode(scope, mode) {
+  ROSTER_MODE[scope] = mode;
+  applyRosterMode(scope);
+  refreshRosterScope(scope);
+}
+
+// Drives the tab bar and its two panels. .card-tabs/.tab-panel is the system's
+// own tab component — the modal is switching between two views of one task,
+// which is exactly what its comment in components.css describes.
+function applyRosterMode(scope) {
+  const mode = ROSTER_MODE[scope];
+  const tabs = document.getElementById(`${scope}-addstudent-tabs`);
+  tabs.hidden = !codeRosterAllowed();
+  // aria-checked carries the selected state, and .seg styles off that attribute
+  // rather than a class — one source of truth for what is chosen, so the
+  // control cannot look selected to the eye and unselected to a screen reader.
+  tabs.querySelectorAll('.seg-btn').forEach((t) => {
+    t.setAttribute('aria-checked', String(t.dataset.mode === mode));
+  });
+  for (const m of ['named', 'roster']) {
+    document.getElementById(`${scope}-addstudent-panel-${m}`).classList.toggle('active', m === mode);
+  }
+  if (scope === 'hdr') {
+    document.querySelector('#add-students-modal-overlay .tray-subtitle').textContent = mode === 'roster'
+      ? 'Accounts are labelled in sequence and each gets an access code you hand out. No names, no email addresses.'
+      : 'Paste a whole roster or just one — existing accounts are reused, nothing duplicates.';
+  }
+}
+
+// Whichever panel is live for this scope.
+function refreshRosterScope(scope) {
+  return codeRosterMode(scope) ? refreshGenerateButton(scope) : renderRosterPreview(scope);
+}
+
+// Mirrors the server's own numbering (see POST /api/classes/:id/students):
+// across this teacher's whole roster, not per class, because the dashboard
+// lists all their students together.
+// Mirrors the server's own numbering. Matched loosely enough to count an older
+// "Student 01" alongside a new "student01" as the same series, so the count
+// does not restart and collide.
+function nextStudentNumber() {
+  return STUDENTS.reduce((max, s) => {
+    const m = /^student\s*(\d+)$/.exec((s.name || '').toLowerCase());
+    return m ? Math.max(max, parseInt(m[1], 10)) : max;
+  }, 0) + 1;
+}
+
+function studentLabel(n) {
+  return `student${String(n).padStart(2, '0')}`;
+}
+
+function rosterCount(scope) {
+  const count = parseInt(document.getElementById(CODE_SCOPES[scope].count).value, 10);
+  return Number.isFinite(count) && count >= 1 && count <= 60 ? count : null;
+}
+
+function refreshGenerateButton(scope) {
+  const count = rosterCount(scope);
+  const btn = document.getElementById(CODE_SCOPES[scope].generate);
+  btn.disabled = !count || !rosterScopeClassId(scope);
+  btn.textContent = count ? `Generate ${count} label${count !== 1 ? 's' : ''}` : 'Generate';
+}
+
+// Generate is deliberately local — it creates nothing. It fills a form the
+// teacher can still change, because a label that doesn't match their own paper
+// list is only fixable before thirty accounts exist under it, and because a
+// code shown for an account nobody saved is a code nobody holds. The accounts
+// and their codes come into existence on Save.
+let ROSTER_DRAFT = { hdr: null, roster: null };
+
+// Without a theme this stays local — numbered labels need no round trip, and
+// the offline case still gets a roster. With one, the server generates them
+// (see the propose branch of POST /api/classes/:id/students); a failure there
+// falls back to the numbered labels rather than leaving the teacher with
+// nothing, and says so.
+async function generateRosterDraft(scope) {
+  const count = rosterCount(scope);
+  if (!count) return;
+  const ids = CODE_SCOPES[scope];
+  const theme = document.getElementById(ids.theme).value.trim();
+  const numbered = () => {
+    const from = nextStudentNumber();
+    return Array.from({ length: count }, (_, i) => studentLabel(from + i));
+  };
+  if (!VIEWER.handle) { alert('This account has no username handle yet — reload the page and try again.'); return; }
+
+  if (!theme) {
+    ROSTER_DRAFT[scope] = numbered();
+    renderRosterDraft(scope);
+    return;
+  }
+
+  const classId = rosterScopeClassId(scope);
+  if (!classId) return;
+  const btn = document.getElementById(ids.generate);
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  // Same busy state as Save: a themed generate is a model call, so it waits
+  // long enough that a disabled button on its own reads as nothing happening.
+  const draftBox = document.getElementById(ids.draft);
+  draftBox.hidden = false;
+  draftBox.innerHTML = `<div class="roster-busy">
+    <span class="roster-busy-spin" aria-hidden="true"></span>
+    <span>Finding ${count} name${count !== 1 ? 's' : ''} on “${esc(theme)}”…</span>
+  </div>`;
+  try {
+    const res = await api(`/api/classes/${classId}/students`, { method: 'POST', body: { propose: true, theme, count } });
+    ROSTER_DRAFT[scope] = res.labels;
+  } catch (err) {
+    ROSTER_DRAFT[scope] = numbered();
+    alert(`${err.message || 'Could not generate names for that theme.'}\n\nNumbered labels have been generated instead — edit them below, or try a different theme.`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+  renderRosterDraft(scope);
+}
+
+function renderRosterDraft(scope) {
+  const box = document.getElementById(CODE_SCOPES[scope].draft);
+  const draft = ROSTER_DRAFT[scope];
+  if (!draft) {
+    box.hidden = true;
+    box.innerHTML = '';
+    return;
+  }
+  box.hidden = false;
+  // One word each, because the word IS the username — the fixed half is shown
+  // beside it in grey rather than left to be discovered after the accounts
+  // exist. Uneditable: the handle belongs to the teacher's account, not to
+  // this form, and it is the same on every row.
+  const domain = VIEWER.handle ? `@${VIEWER.handle}.tau` : '';
+  box.innerHTML = `<span class="eyebrow">Usernames to create</span>
+    <p class="roster-section-note">Edit any of these if your own list uses different labels. Never use a student's own name — these stand in for one.</p>
+    <div class="draft-labels">
+      ${draft.map((label, i) => `<label class="draft-label-row">
+        <span class="draft-label-n">${i + 1}</span>
+        <input type="text" maxlength="32" value="${esc(label)}" oninput="updateDraftLabel('${scope}',${i},this.value)">
+        <span class="draft-label-domain">${esc(domain)}</span>
+      </label>`).join('')}
+    </div>
+    <div class="roster-actions" style="margin-top:var(--tau-s3)">
+      <button type="button" class="btn btn-primary btn-sm" id="${scope}-addstudent-save" onclick="saveRosterDraft('${scope}')">Save ${draft.length} student${draft.length !== 1 ? 's' : ''}</button>
+      <button type="button" class="btn btn-quiet btn-sm" onclick="discardRosterDraft('${scope}')">Discard</button>
+    </div>`;
+}
+
+// Sanitised as typed, not on save: the field is showing what the username will
+// literally be, so a space or an apostrophe that will not survive into one has
+// no business appearing here and then quietly vanishing later.
+function updateDraftLabel(scope, index, value) {
+  const clean = value.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 32);
+  if (clean !== value) {
+    const input = document.querySelectorAll(`#${CODE_SCOPES[scope].draft} .draft-label-row input`)[index];
+    if (input) input.value = clean;
+  }
+  if (ROSTER_DRAFT[scope]) ROSTER_DRAFT[scope][index] = clean;
+}
+
+function discardRosterDraft(scope) {
+  ROSTER_DRAFT[scope] = null;
+  renderRosterDraft(scope);
+}
+
+// Codes exist in the clear for exactly one render. They are hashed server-side
+// and there is no route that reads one back, so this screen has to be treated
+// as the handover itself — hence print and copy, and a close that asks.
+let PENDING_CODES = null;
+
+async function saveRosterDraft(scope) {
+  const classId = rosterScopeClassId(scope);
+  const labels = ROSTER_DRAFT[scope];
+  if (!classId || !labels) return;
+  const ids = CODE_SCOPES[scope];
+
+  // Creating thirty accounts is genuinely slow — each one hashes its access
+  // code at the same scrypt cost as any password (auth.js, ~100ms deliberately)
+  // — so the wait is real work, not latency to hide. Say what is happening and
+  // how many, in place of the form, rather than leaving a dead button.
+  const draftBox = document.getElementById(ids.draft);
+  draftBox.innerHTML = `<div class="roster-busy">
+    <span class="roster-busy-spin" aria-hidden="true"></span>
+    <span>Creating ${labels.length} account${labels.length !== 1 ? 's' : ''} and their access codes…</span>
+  </div>`;
+
+  let result;
+  try {
+    result = await api(`/api/classes/${classId}/students`, { method: 'POST', body: { labels } });
+  } catch (err) {
+    // The draft survives the failure — it is the teacher's work, and a form
+    // that empties itself on a server error makes them do it all again.
+    renderRosterDraft(scope);
+    alert(err.message || 'Could not add these students.');
+    return;
+  }
+
+  ROSTER_DRAFT[scope] = null;
+  renderRosterDraft(scope);
+  document.getElementById(ids.count).value = '';
+  refreshGenerateButton(scope);
+
+  // Codes first, dashboard second. Everything needed to show them is already
+  // in this response; making the teacher wait on a second round trip and a
+  // full re-render before seeing what they just created adds a wait to a wait.
+  const cls = CLASSES.find(c => c.id === classId);
+  const before = PENDING_CODES ? PENDING_CODES.created : [];
+  // Accumulated, not replaced: a class that arrives in two halves gets one
+  // sheet covering both, so Print and Copy still hand over everything made
+  // while this form has been open rather than only the last batch.
+  PENDING_CODES = { className: cls ? cls.name : 'this class', created: [...before, ...result.created] };
+  renderGeneratedList(scope);
+
+  await loadDashboardData();
+  renderContent();
+  if (scope === 'roster') refreshRosterModal();
+}
+
+// The generated student list, in the form and under the button that made it.
+function renderGeneratedList(scope) {
+  const box = document.getElementById(CODE_SCOPES[scope].generated);
+  if (!PENDING_CODES || !PENDING_CODES.created.length) {
+    box.hidden = true;
+    box.innerHTML = '';
+    return;
+  }
+  box.hidden = false;
+  box.innerHTML = codesSheetHtml(PENDING_CODES.created) +
+    (scope === 'hdr'
+      ? `<button type="button" class="btn btn-quiet btn-sm" style="margin-top:16px" onclick="finishCodeHandover()">I have saved these codes</button>`
+      : '');
+}
+
+// Monospace and wide-tracked: these are read off a screen and copied onto a
+// slip by hand, and the alphabet already excludes the pairs that get misread
+// (see codes.js). The warning leads rather than trails — by the time it is
+// read at the bottom the list may already be gone.
+function codesSheetHtml(created) {
+  return `<div class="menu-confirm">✓ ${created.length} account${created.length !== 1 ? 's' : ''} created. <strong>The access codes are shown once</strong> — print or copy them now. The username stays on the roster; if a code is lost, use "New code" there.</div>
+    <div class="code-sheet">
+      <div class="code-head"><span>Student</span><span>Username</span><span>Access code</span></div>
+      ${created.map(s => `<div class="code-row">
+        <span class="code-name">${esc(s.displayName)}</span>
+        <span class="code-user">${esc(s.username)}</span>
+        <span class="code-value">${esc(s.code)}</span>
+      </div>`).join('')}
+    </div>
+    <div class="roster-actions" style="margin-top:var(--tau-s3)">
+      <button type="button" class="btn btn-primary btn-sm" onclick="printCodes()">Print</button>
+      <button type="button" class="btn btn-quiet btn-sm" onclick="copyCodes(this)">Copy</button>
+    </div>`;
+}
+
+function codesAsText() {
+  if (!PENDING_CODES) return '';
+  return ['Student\tUsername\tAccess code']
+    .concat(PENDING_CODES.created.map(s => `${s.displayName}\t${s.username}\t${s.code}`))
+    .join('\n');
+}
+
+async function copyCodes(btn) {
+  try {
+    await navigator.clipboard.writeText(codesAsText());
+    btn.textContent = 'Copied';
+  } catch (err) {
+    btn.textContent = 'Could not copy — select and copy the list above';
+  }
+}
+
+// A separate window rather than window.print(): printing this page would print
+// the dashboard behind the modal. One slip per student, cut-up-able, because
+// handing a child a whole class's codes is the one thing this must not do.
+function printCodes() {
+  if (!PENDING_CODES) return;
+  const { className, created } = PENDING_CODES;
+  const when = new Date().toLocaleDateString();
+  const slips = created.map(s => `<div class="slip">
+      <div class="slip-head">Tau Thinking — ${esc(className)}</div>
+      <div class="slip-name">${esc(s.displayName)}</div>
+      <div class="slip-field"><span class="slip-lbl">Username</span><span class="slip-user">${esc(s.username)}</span></div>
+      <div class="slip-field"><span class="slip-lbl">Access code</span><span class="slip-code">${esc(s.code)}</span></div>
+      <div class="slip-foot">Sign in at ${esc(location.origin)}. Keep your access code private.</div>
+    </div>`).join('');
+  const win = window.open('', '_blank');
+  if (!win) { alert('Allow pop-ups for this site to print the codes, or use Copy instead.'); return; }
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Access codes — ${esc(className)}</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: #1e2b26; margin: 16mm; }
+      h1 { font-size: 14pt; margin: 0 0 2mm; }
+      .meta { font-size: 9pt; color: #5b6b65; margin: 0 0 8mm; }
+      .sheet { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+      .slip { border: 1px dashed #9aa8a2; border-radius: 2mm; padding: 5mm; break-inside: avoid; }
+      .slip-head { font-size: 8pt; color: #5b6b65; }
+      .slip-name { font-size: 12pt; font-weight: 600; margin: 2mm 0 2mm; }
+      .slip-field { margin-bottom: 1.5mm; }
+      .slip-lbl { display: block; font-size: 7pt; text-transform: uppercase; letter-spacing: 0.06em; color: #5b6b65; }
+      .slip-user { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9.5pt; word-break: break-all; }
+      .slip-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14pt; letter-spacing: 0.08em; }
+      .slip-foot { font-size: 7.5pt; color: #5b6b65; margin-top: 2mm; }
+    </style></head><body>
+    <h1>Access codes — ${esc(className)}</h1>
+    <p class="meta">${created.length} student${created.length !== 1 ? 's' : ''} · generated ${esc(when)} · cut apart and hand out. This sheet is the only copy.</p>
+    <div class="sheet">${slips}</div>
+    </body></html>`);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+function finishCodeHandover() {
+  PENDING_CODES = null;
+  closeAddStudentsModal();
+}
+
+// A reminder sheet, not a credential sheet — usernames only, no codes, because
+// these are the half that CAN be reprinted and the half a class forgets. Safe
+// to pin up next to the computers, which the code sheet never is.
+function printUsernames() {
+  const cls = CLASSES.find(c => c.id === activeRosterClassId);
+  if (!cls) return;
+  const students = codeStudentsOn(cls);
+  if (!students.length) return;
+  const rows = students.map(s => `<tr><td>${esc(s.name)}</td><td class="u">${esc(s.username || '')}</td></tr>`).join('');
+  const win = window.open('', '_blank');
+  if (!win) { alert('Allow pop-ups for this site to print the list.'); return; }
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Usernames — ${esc(cls.name)}</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: #1e2b26; margin: 16mm; }
+      h1 { font-size: 14pt; margin: 0 0 2mm; }
+      .meta { font-size: 9pt; color: #5b6b65; margin: 0 0 6mm; }
+      table { border-collapse: collapse; width: 100%; font-size: 11pt; }
+      td { padding: 2mm 3mm; border-bottom: 1px solid #dfe4e1; }
+      .u { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    </style></head><body>
+    <h1>Usernames — ${esc(cls.name)}</h1>
+    <p class="meta">${students.length} student${students.length !== 1 ? 's' : ''} · sign in at ${esc(location.origin)}.
+      Access codes are not on this sheet and cannot be reprinted — issue a new one if a student has lost theirs.</p>
+    <table>${rows}</table>
+    </body></html>`);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+// The answer to "the class has lost their codes" rather than "this child has".
+// Sequential for the same reason the roster add is: each call writes the same
+// student's account and the store has no batch.
+async function reissueAllCodes() {
+  const cls = CLASSES.find(c => c.id === activeRosterClassId);
+  if (!cls) return;
+  const students = codeStudentsOn(cls);
+  if (!students.length) return;
+  if (!confirm(`Give all ${students.length} students on ${cls.name} a new access code? Every current code stops working immediately, and anyone signed in now is signed out. Their usernames do not change.`)) return;
+
+  const created = [];
+  for (const s of students) {
+    try {
+      created.push(await api(`/api/classes/${activeRosterClassId}/students`, { method: 'POST', body: { studentId: s.id, reissue: true } }));
+    } catch (err) {
+      console.error(`Could not reissue for ${s.name}: ${err.message}`);
+    }
+  }
+  if (!created.length) { alert('No codes could be reissued.'); return; }
+  if (created.length < students.length) {
+    alert(`${created.length} of ${students.length} codes were reissued. The rest still have their old codes — try again for those.`);
+  }
+  // Both: each code under its own student, so the mapping is never in doubt,
+  // AND the printable sheet, because thirty codes are handed out on paper
+  // rather than read off a screen one at a time.
+  // Each code lands under its own student, so the mapping is never in doubt.
+  // PENDING_CODES is set alongside it purely so Print and Copy have something
+  // to work from — thirty codes get handed out on paper, not read off a screen
+  // one row at a time. The printable sheet lives in the add panel, so it is
+  // offered here as a button rather than rendered into a hidden tab.
+  for (const s of created) NEW_CODES[s.id] = s.code;
+  PENDING_CODES = { className: cls.name, created };
+  refreshRosterModal();
+}
+
+// "They lost their slip" has no other answer: the stored hash is the only
+// record of a code, so recovery is replacement.
+async function reissueStudentCode(studentId) {
+  if (!activeRosterClassId) return;
+  const student = STUDENTS.find(s => s.id === studentId);
+  if (!confirm(`Give ${student ? student.name : 'this student'} a new access code? Their old one stops working immediately, and they are signed out if they are using it now.`)) return;
+  let result;
+  try {
+    result = await api(`/api/classes/${activeRosterClassId}/students`, { method: 'POST', body: { studentId, reissue: true } });
+  } catch (err) {
+    alert(err.message || 'Could not reissue this code.');
+    return;
+  }
+  // Lands in the student's own row, not in a sheet: one code for one child is
+  // a fact about that row, and nothing else on the roster changed.
+  NEW_CODES[studentId] = result.code;
+  refreshRosterModal();
 }
 
 // Sequential, not Promise.all — each call reads-modifies-writes the same
@@ -6500,6 +7341,12 @@ function openNewClassModal() {
   logUse('dashboard', 'add-class');
   document.getElementById('hdrNewClassForm').reset();
   resetNewClassAttachPanels();
+  // The inline roster paste has no code-roster twin, and does not need one:
+  // adding students by count needs the class to exist first so the labels
+  // continue from the right number. A code-roster teacher makes the class,
+  // then adds students from the roster it lands on. Hiding an optional panel,
+  // not a required field.
+  document.getElementById('newclass-att-students').hidden = codeRosterAllowed();
   document.getElementById('new-class-view-form').hidden = false;
   document.getElementById('new-class-view-success').hidden = true;
   document.getElementById('new-class-modal-overlay').classList.add('open');
@@ -6520,12 +7367,22 @@ function closeNewClassModal(e) {
 function openAddStudentsModal(classId) {
   logUse('dashboard', 'add-students');
   resetModalView('add-students');
-  populateHeaderClassSelect(classId);
   document.getElementById('hdr-addstudent-roster-input').value = '';
   document.getElementById('hdr-addstudent-preview').hidden = true;
   document.getElementById('hdr-addstudent-preview').innerHTML = '';
   document.getElementById('add-students-confirm').hidden = true;
-  renderRosterPreview('hdr');
+  document.getElementById('hdr-addstudent-count-input').value = '';
+  document.getElementById('hdr-addstudent-theme-input').value = '';
+  document.getElementById('hdr-addstudent-newclass-input').value = '';
+  PENDING_CODES = null;
+  ROSTER_DRAFT.hdr = null;
+  renderRosterDraft('hdr');
+  renderGeneratedList('hdr');
+  ROSTER_MODE.hdr = codeRosterAllowed() ? 'roster' : 'named';
+  applyRosterMode('hdr');
+  // Last: it settles which of the class field and the students step is showing,
+  // and it refreshes the live panel, so the mode above has to be set first.
+  populateHeaderClassSelect(classId);
   document.getElementById('add-students-modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -6536,29 +7393,28 @@ function closeAddStudentsModal(e) {
   document.body.style.overflow = '';
 }
 
+// "Add new class" is the first option and the default, not a "+ New class…"
+// afterthought at the bottom: the door most often reached with no class to
+// point at is this one, and a "Choose a class…" placeholder that is never a
+// valid answer is a third state the form has to explain. Picking it opens the
+// name field; picking a real class closes it and moves on to the students.
 function populateHeaderClassSelect(preselect) {
   const sel = document.getElementById('hdr-addstudent-class-select');
   const prev = preselect || sel.value;
-  sel.innerHTML = '<option value="">Choose a class…</option>'
-    + CLASSES.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('')
-    + '<option value="__new__">+ New class…</option>';
-  document.getElementById('hdr-addstudent-newclass-row').hidden = true;
-  if (CLASSES.some(c => c.id === prev)) sel.value = prev;
+  sel.innerHTML = '<option value="__new__">Add new class</option>'
+    + CLASSES.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  sel.value = CLASSES.some(c => c.id === prev) ? prev : '__new__';
+  handleAddStudentsClassSelect();
 }
 
-// "+ New class…" is the select's own last option, same instinct as the New
-// Assignment checklist's own "+ New class" row — starting a class you don't
-// have is a variant of picking one, not a detour to a different modal.
 function handleAddStudentsClassSelect() {
   const sel = document.getElementById('hdr-addstudent-class-select');
-  const row = document.getElementById('hdr-addstudent-newclass-row');
-  if (sel.value === '__new__') {
-    row.hidden = false;
-    document.getElementById('hdr-addstudent-newclass-input').focus();
-  } else {
-    row.hidden = true;
-  }
-  renderRosterPreview('hdr');
+  const creating = sel.value === '__new__';
+  document.getElementById('hdr-addstudent-newclass-row').hidden = !creating;
+  // The name field and everything below it are alternatives, never both: while
+  // a class is being named there is nothing yet to add students to.
+  document.getElementById('hdr-addstudent-body').hidden = creating;
+  if (!creating) refreshRosterScope('hdr');
 }
 
 async function commitAddStudentsNewClass() {
@@ -6574,11 +7430,10 @@ async function commitAddStudentsNewClass() {
   }
   await loadDashboardData();
   renderSidebar();
-  populateHeaderClassSelect();
-  document.getElementById('hdr-addstudent-class-select').value = created.id;
-  document.getElementById('hdr-addstudent-newclass-row').hidden = true;
   input.value = '';
-  renderRosterPreview('hdr');
+  // Selects the class just made, which closes the name field and opens the
+  // students step against it — the whole reason this door was opened.
+  populateHeaderClassSelect(created.id);
 }
 
 // Set once a class is created, so the success panel's two shortcuts know

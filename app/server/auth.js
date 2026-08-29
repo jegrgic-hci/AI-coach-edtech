@@ -11,6 +11,7 @@
 const crypto = require('crypto');
 const { col } = require('./store');
 const { termsFor } = require('./terms');
+const { normalizeCode } = require('./codes');
 
 const COOKIE = 'cta_session';
 const SESSION_DAYS = 7;
@@ -60,14 +61,22 @@ function hashPassword(password, salt, params = SCRYPT) {
   return crypto.scryptSync(password, salt, KEYLEN, params).toString('hex');
 }
 
-async function setPassword(user, password) {
+// The stored form of a password, without writing it. Split out so a caller
+// creating an account can put the credential in the SAME document write as the
+// account itself: roster creation makes up to 60 in one request, and an
+// add-then-update pair doubled the round trips for every one of them.
+function passwordFields(password) {
   const passwordSalt = crypto.randomBytes(16).toString('hex');
-  return col('users').update(user.id, {
+  return {
     passwordSalt,
     passwordHash: hashPassword(password, passwordSalt),
     passwordParams: SCRYPT,
     passwordSetAt: new Date().toISOString(),
-  });
+  };
+}
+
+async function setPassword(user, password) {
+  return col('users').update(user.id, passwordFields(password));
 }
 
 function verifyPassword(user, password) {
@@ -155,18 +164,36 @@ async function login(email, password, clientIp = null) {
 
   if (await recentFailures(normalized) >= MAX_FAILURES) return { lockedOut: true };
 
-  const user = (await col('users').list((u) => u.email.toLowerCase() === normalized))[0];
+  // Matched on email OR username. A code-roster student has no email at all —
+  // the `u.email &&` guard is load-bearing, not tidying, since without it every
+  // sign-in in the store throws on the first such doc the scan reaches — and
+  // signs in with an address-shaped username instead ("jane.austen@ms-karim.tau",
+  // see codes.js). Their access code is their password and is verified below by
+  // exactly the same code path as anyone else's.
+  const user = (await col('users').list((u) => (
+    (u.email && u.email.toLowerCase() === normalized)
+    || (u.username && u.username.toLowerCase() === normalized)
+  )))[0];
+
+  // An access code is stored normalised — uppercase, no separators — and
+  // compared that way, so the hyphen printed on the slip is presentation only
+  // and a child who types "dvsmbjx27z" gets in exactly as one who types
+  // "DVSMB-JX27Z" does. Only for identity: 'code'; a chosen password is
+  // case-sensitive and must stay byte-exact.
+  const submitted = user?.identity === 'code'
+    ? (normalizeCode(password) || String(password || ''))
+    : String(password || '');
 
   // Suspended accounts burn the same work and fail the same way as a wrong
   // password — the form must not distinguish "suspended" from "wrong
   // password" any more than it distinguishes "no such account".
-  if (!user || isSuspended(user) || !verifyPassword(user, String(password || ''))) {
+  if (!user || isSuspended(user) || !verifyPassword(user, submitted)) {
     if (!user) burnEqualWork();
     await recordFailure(normalized, clientIp);
     return null;
   }
 
-  if (needsRehash(user)) await setPassword(user, String(password));
+  if (needsRehash(user)) await setPassword(user, submitted);
 
   const token = crypto.randomBytes(32).toString('hex');
   await col('authSessions').add({
@@ -375,6 +402,7 @@ module.exports = {
   login,
   logout,
   setPassword,
+  passwordFields,
   newTempPassword,
   sessionCookie,
   clearedCookie,

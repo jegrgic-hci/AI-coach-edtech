@@ -17,6 +17,18 @@ This repo holds **two things**. Most current work is in the second.
 
 **For any work on behavioural patterns, `detectTrends`/`TREND_META`, the per-student "Worth a chat" signals, or the thresholds behind either — read `patterns.md`.** It owns what counts as a pattern (versus a score or a flag), the six detectors, and the level-signal/pattern split that decides which of them is cohort-relative. **The current pattern layer is a naming layer, not a detection layer** — three of its four cards are dimension thresholds with prose names, so do not treat a pattern card as evidence of the behaviour it describes without reading that file first.
 
+**For any work touching student identity, sign-in, rosters, or personal information in student work
+— read `pilotuser.md`.** It owns the `codeRoster` grant, the two `identity` types (`'email'` and
+`'code'`), the `username`/`handle` scheme, access codes as passwords, and the masking contract of the
+measurement-improvement export. **Two rules there are load-bearing and easy to break by accident:** a
+student's `username` and a teacher's `handle` are minted once and **never recomputed**, so changing
+the slug rules after accounts exist is a migration and not an edit; and any scan of `users` on email
+must guard `u.email &&`, because a code-roster account has no address and an unguarded
+`u.email.toLowerCase()` throws on the first one it reaches — breaking sign-in for *every* account in
+the store. It also owns the position on personal information: the tool never **collects** any, cannot
+prevent a child **typing** some, and detects **self-identification rather than names** (`pii.js`) —
+name detection is the wrong question, not a harder version of the right one.
+
 **The whole teacher dashboard was rebuilt on bands and flows across 2026-08-16/17 — start at
 `teacher-dashboard-design.md`'s *Where the surfaces stand*, which is authoritative and lists what is
 still open.** Large parts of that file describe deleted surfaces and are marked **⚠ SUPERSEDED**.

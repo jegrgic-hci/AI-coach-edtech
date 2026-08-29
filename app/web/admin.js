@@ -276,7 +276,7 @@ function renderStatus() {
 function matchesFilter(person) {
   if (!filter) return true;
   const q = filter.toLowerCase();
-  return person.displayName.toLowerCase().includes(q) || person.email.toLowerCase().includes(q);
+  return person.displayName.toLowerCase().includes(q) || (person.email || '').toLowerCase().includes(q);
 }
 
 // One search box, shared by both rosters. Not a component in components.css,
@@ -297,12 +297,17 @@ function renderStudents() {
       <div class="teacher-id">
         <div class="teacher-name">${esc(s.displayName)}
           ${suspended ? '<span class="chip chip-grey">Suspended</span>' : ''}</div>
-        <div class="teacher-email">${esc(s.email)} · ${esc(relativeDate(s.lastActiveAt))}</div>
+        <div class="teacher-email">${s.identity === 'code' ? esc(s.username || 'Signs in by access code') : esc(s.email)} · ${esc(relativeDate(s.lastActiveAt))}</div>
         ${accountState(s)}
       </div>
       <div class="teacher-counts">${plural(s.classCount, 'class', 'classes')}</div>
       <div class="teacher-actions">
-        <button class="btn btn-quiet btn-sm" data-smail="${s.id}">${s.neverSignedIn ? 'Resend invite' : 'Send reset link'}</button>
+        ${s.identity === 'code'
+          // No mail action: there is no address to send to, and the recovery
+          // is a teacher reissuing the code in person. Saying so beats a
+          // button that can only fail — the server refuses it either way.
+          ? '<span class="section-note" style="margin:0">Their teacher reissues the code</span>'
+          : `<button class="btn btn-quiet btn-sm" data-smail="${s.id}">${s.neverSignedIn ? 'Resend invite' : 'Send reset link'}</button>`}
         <button class="btn btn-quiet btn-sm" data-sstatus="${s.id}" data-to="${suspended ? 'active' : 'suspended'}">${suspended ? 'Reactivate' : 'Suspend'}</button>
       </div>
     </div>`;
@@ -356,8 +361,16 @@ function renderAdminEvents() {
 // count because the grant on its own contributes nothing — only a class the
 // teacher has marked does, and the gap between the two is what an admin
 // checking on a pilot actually needs to see.
+// Either grant reaches contribution, so either one earns the line — a Pilot
+// user with no separate improvementEligible flag is contributing all the same,
+// and a blank here would read as "nothing is being collected".
+//
+// Deliberately NOT read off a derived field sent by the server: the form's
+// "Measurement improvement contributor" checkbox is populated from the raw
+// `improvementEligible`, and merging the two upstream would tick that box for
+// every Pilot user and persist the second grant on the next save.
 function improvementLine(t) {
-  if (!t.improvementEligible) return '';
+  if (!t.improvementEligible && !t.codeRoster) return '';
   if (!t.improvementClassCount) return '<br>No class contributing work';
   return `<br>${t.improvementClassCount} of ${plural(t.classCount, 'class', 'classes')} contributing`;
 }
@@ -377,6 +390,7 @@ function renderTeachers() {
       <div class="teacher-counts">
         ${plural(t.classCount, 'class', 'classes')} · ${plural(t.studentCount, 'student', 'students')}<br>
         ${plural(t.assignmentCount, 'assignment', 'assignments')}
+        ${t.codeRoster ? '<br>Pilot user' : ''}
         ${improvementLine(t)}
       </div>
       <div class="teacher-actions">
@@ -729,7 +743,13 @@ function openTeacherModal(teacher) {
     ? 'Their classes, students, and assignments are untouched by this.'
     : 'They sign in and build their own workspace from there — their classes, their students, their assignments.';
   $('teacherSave').textContent = teacher ? 'Save changes' : 'Add teacher';
-  $('teacherName').value = teacher ? teacher.displayName : '';
+  // An account created before this form split the name has only displayName.
+  // Splitting it on the last space is a guess, but it is a guess shown in an
+  // editable field rather than one written silently into a handle — the
+  // administrator sees it and can correct it.
+  const parts = (teacher?.displayName || '').trim().split(/\s+/);
+  $('teacherFirstName').value = teacher ? (teacher.firstName ?? parts.slice(0, -1).join(' ')) : '';
+  $('teacherLastName').value = teacher ? (teacher.lastName ?? parts[parts.length - 1] ?? '') : '';
   $('teacherEmail').value = teacher ? teacher.email : '';
   $('teacherSchoolAdmin').checked = teacher ? teacher.schoolAdmin === true : false;
   // Only the tier above can hand out the grant, so a school administrator does
@@ -738,9 +758,11 @@ function openTeacherModal(teacher) {
   $('schoolAdminField').classList.toggle('hidden', !data.viewer?.platformAdmin);
   $('teacherImprovementEligible').checked = teacher ? teacher.improvementEligible === true : false;
   $('improvementEligibleField').classList.toggle('hidden', !data.viewer?.platformAdmin);
+  $('teacherCodeRoster').checked = teacher ? teacher.codeRoster === true : false;
+  $('codeRosterField').classList.toggle('hidden', !data.viewer?.platformAdmin);
   $('teacherError').classList.add('hidden');
   $('teacherModal').classList.remove('hidden');
-  $('teacherName').focus();
+  $('teacherFirstName').focus();
 }
 
 // One control for both messages, because which one is correct is a property
@@ -809,20 +831,22 @@ $('teacherCancel').onclick = () => $('teacherModal').classList.add('hidden');
 $('sendClose').onclick = () => $('sendModal').classList.add('hidden');
 
 $('teacherSave').onclick = async () => {
-  const displayName = $('teacherName').value.trim();
+  const firstName = $('teacherFirstName').value.trim();
+  const lastName = $('teacherLastName').value.trim();
   const email = $('teacherEmail').value.trim();
   const schoolAdmin = $('teacherSchoolAdmin').checked;
   const improvementEligible = $('teacherImprovementEligible').checked;
+  const codeRoster = $('teacherCodeRoster').checked;
   const err = $('teacherError');
   err.classList.add('hidden');
   $('teacherSave').disabled = true;
   try {
     if (editingId) {
-      await api(`/api/admin/teachers/${editingId}/edit`, { method: 'POST', body: { displayName, email, schoolAdmin, improvementEligible } });
+      await api(`/api/admin/teachers/${editingId}/edit`, { method: 'POST', body: { firstName, lastName, email, schoolAdmin, improvementEligible, codeRoster } });
       $('teacherModal').classList.add('hidden');
       await reload();
     } else {
-      const created = await api('/api/admin/teachers', { method: 'POST', body: { displayName, email, schoolAdmin, improvementEligible } });
+      const created = await api('/api/admin/teachers', { method: 'POST', body: { firstName, lastName, email, schoolAdmin, improvementEligible, codeRoster } });
       $('teacherModal').classList.add('hidden');
       await reload();
       showSendResult('Invite sent', created.displayName, email, created.invite);

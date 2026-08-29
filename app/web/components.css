@@ -627,6 +627,13 @@ details[open] > .acard-disclosure-toggle {
   min-height: var(--tau-target);
 }
 .field textarea { resize: vertical; }
+/* Two fields on one line — for a pair that is one fact split in two, like a
+   first and last name. Collapses to stacked below the narrow breakpoint,
+   because two inputs sharing a phone's width are two inputs nobody can read
+   the labels of. */
+.field-row { display: flex; gap: var(--tau-s3); }
+.field-row > .field { flex: 1; min-width: 0; }
+@media (max-width: 480px) { .field-row { flex-direction: column; } }
 /* Both channels. A 1px border hue change is not a focus indicator — the rule
    designsystem.md already states for the composer, applied here 2026-08-22
    (m3-lab §2). The outline:none this replaces was suppressing tokens.css's own
@@ -725,6 +732,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
   border-radius: var(--tau-r-dialog);
   box-shadow: var(--tau-shadow-lift);
   width: min(460px, 100%);
+  max-height: 88vh;
   padding: 22px;
   display: flex;
   flex-direction: column;
@@ -743,6 +751,18 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 }
 .confirm ul b { color: var(--tau-ink); font-weight: 600; }
 .confirm-acts { display: flex; gap: 9px; justify-content: flex-end; flex-wrap: wrap; }
+/* A confirm whose body outgrows the viewport scrolls its body — the title and
+   the actions stay put, so "what is this" and "how do I leave" never scroll
+   away. The alternative (collapsing content to fit) is not available to us:
+   the submit dialog's reflection is required, and required content does not go
+   behind a disclosure. Fix the container, not the field. */
+.confirm-scroll {
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 /* Widened variant for a confirm dialog whose content is more than a warning
    and two buttons — e.g. the submit-draft flow, which also holds an essay
    textarea. */
@@ -1417,6 +1437,49 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 .card-tab.active .tab-count { background: var(--tau-positive-bg); color: var(--tau-positive); }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
+
+/* --- .seg — THE TOGGLE. A fourth selector, and the justification for it is a
+   distinction the other three do not cover: .card-tabs switches between views
+   of content that already exists, .tau-nav-local switches destination, and
+   .trend-chip was a boxed card. This one sits INSIDE a form and chooses which
+   form you are filling in — a mode set before anything exists to have views
+   of. Added 2026-08-29 for Add students' Named/Anonymous choice, where a
+   second .card-tabs nested directly under the modal's own tab bar read as two
+   competing tab rows and left no way to tell which level a click belonged to.
+
+   Filled selected state rather than an underline, precisely so it cannot be
+   confused with the tabs it may sit beneath. Forest fill is one of forest's
+   four granted jobs (tokens.css §1, "primary fills").
+
+   Deliberately NOT built on a surface-ramp track with a lighter "thumb", which
+   is the conventional segmented control: --tau-surface-2 is DARKER than
+   --tau-surface in light and LIGHTER in dark, so that construction inverts its
+   own raised/recessed reading between themes (Hard Constraints: "raised means
+   lighter than its own ground, in both themes"). A border and a brand fill
+   make no elevation claim at all and need no per-theme override. */
+.seg {
+  display: inline-flex; padding: 3px; gap: 3px;
+  border: 1px solid var(--tau-line-strong);
+  border-radius: var(--tau-r-pill);
+}
+/* The author `display` above beats the UA stylesheet's `[hidden]`, same trap
+   .menu-item[hidden] and .roster-preview[hidden] already needed. Without this
+   the toggle is visible to a teacher who has no anonymous roster to choose. */
+.seg[hidden] { display: none; }
+.seg-btn {
+  font: inherit; font-size: var(--tau-text-sm); font-weight: 600;
+  padding: 6px 14px; border: none; border-radius: var(--tau-r-pill);
+  background: none; color: var(--tau-ink-soft); cursor: pointer;
+  transition: background var(--tau-dur-short) var(--tau-ease-standard),
+              color var(--tau-dur-short) var(--tau-ease-standard);
+}
+/* A state layer on a control with no fill of its own, so `transparent` really
+   is the ground it sits on (Hard Constraints, state-layer rule). */
+.seg-btn:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); color: var(--tau-ink); }
+.seg-btn[aria-checked="true"] {
+  background: var(--tau-forest); color: var(--tau-on-forest);
+}
+.seg-btn[aria-checked="true"]:hover { background: var(--tau-forest-lift); }
 
 /* --- THE ORGANISMS' OWN CHROME. Moved out of dashboard.html 2026-08-17, with
    the renderers, and for the same reason: viz.js emits every one of these
@@ -2273,23 +2336,31 @@ min-height: 24px;
 .doc-dialog-body {
   overflow-y: auto;
   padding: var(--tau-s5) var(--tau-s6);
-  font-size: var(--tau-text-md);
-  line-height: 1.6;
-  color: var(--tau-ink-soft);
 }
 /* Focusable so a keyboard user can scroll the document without tabbing to the
    close button first — the body is the content, and it is longer than a
    viewport by construction. */
 .doc-dialog-body:focus-visible { outline: 2px solid var(--tau-forest); outline-offset: -2px; }
-.doc-dialog-body h3 {
+
+/* The typography of a served legal document, split out from the dialog that
+   was its first container. agreement.html renders the same HTML from the same
+   endpoint on a page of its own, where the document IS the page rather than a
+   reference behind it — so the prose rules belong to the prose, and only the
+   scroll box and padding belong to the dialog. */
+.doc-prose {
+  font-size: var(--tau-text-md);
+  line-height: 1.6;
+  color: var(--tau-ink-soft);
+}
+.doc-prose h3 {
   margin: var(--tau-s6) 0 var(--tau-s2);
   font-size: var(--tau-text-lg); color: var(--tau-ink);
 }
-.doc-dialog-body h3:first-child { margin-top: 0; }
-.doc-dialog-body p, .doc-dialog-body ul { margin: 0 0 var(--tau-s3); }
-.doc-dialog-body ul { padding-left: var(--tau-s5); }
-.doc-dialog-body li { margin-bottom: var(--tau-s2); }
-.doc-dialog-body strong { color: var(--tau-ink); }
+.doc-prose h3:first-child { margin-top: 0; }
+.doc-prose p, .doc-prose ul { margin: 0 0 var(--tau-s3); }
+.doc-prose ul { padding-left: var(--tau-s5); }
+.doc-prose li { margin-bottom: var(--tau-s2); }
+.doc-prose strong { color: var(--tau-ink); }
 
 .doc-dialog-foot {
   display: flex; align-items: center; justify-content: space-between;

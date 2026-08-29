@@ -564,6 +564,47 @@ The correct rule set is `allow read, write: if false;`. Browsers never touch Fir
 
 ## Session Log
 
+- **2026-08-30 — Student reflection at submission: built in `app/`, where it had only ever
+  existed in `index.html`.**
+  The consumer side had shipped long ago and was starving: the dashboard's reflection arc, the
+  per-submission disclosure and two mismatch signals all read `sub.reflection`, and **nothing in
+  `app/server` had ever written it.** The capture itself existed, fully worked out, in the
+  single-file CTA (`index.html:1692-1803`) and was never ported.
+  - **Where.** In the submit modal, under the draft — same dialog, because it is the same act.
+    Required, so it is never behind a disclosure; the container gives way instead (`.confirm` gets
+    `max-height: 88vh`, a new `.confirm-scroll` body, heading and actions pinned).
+  - **Which prompts.** Decided **server-side** from `cycleIndex`, never by the client: first draft
+    of an assignment gets three questions, every later one gets "what changed" plus the previous
+    answers in a disclosure (`lastReflection` on the open payload). Per-assignment, since "what
+    changed" only means something inside one revision cycle.
+  - **Mandatory, no length floor.** Every box must have something in it; one word counts. A
+    character minimum teaches padding and blocks a student at a deadline over prose. The disabled
+    submit button now names what is still missing, and — separately — finally *looks* disabled:
+    `.submit-btn` carried no `:disabled` state at all, which never showed while it was disabled
+    only briefly.
+  - **Labels name the content, not the routine.** "What you already knew" / "What the conversation
+    opened up" / "Where you pushed back", replacing Project Zero's Connect · Extend · Challenge —
+    vocabulary a student was never taught and has to translate before writing. The teacher surface
+    was moved to the same words so the two sides read alike, and the arc's `CEC`/`Δ` badges became
+    draft numbers.
+  - **The boundary that matters.** Reflection is **self-report and never an input to a reading.**
+    The dimension is coded from the transcript; the student's account is what that finished
+    evidence gets held *against*. See `tau-dimensions.md`, *The scoring foundation*.
+  - **Two signals deleted, not ported.** `reflection-score-mismatch` and
+    `reflection-delta-mismatch` had never fired and both decided the mismatch arithmetically, on
+    the retired 1–5 score and the retired 4–20 total. Building capture is what would have woken
+    them. Re-banding the thresholds was considered and rejected — it keeps the arithmetic and only
+    moves the number, and **the model has no arithmetic in it.** The question survives in the right
+    form (a presence question against coded evidence) and lands with `scoreTAU`'s signature change.
+    Detail in `teacher-dashboard-design.md`.
+  - **Escaping.** The dashboard's reflection renderers interpolated these fields raw. That was
+    inert while the field was always empty; it is live student free text now, so every path is
+    `esc()`d.
+  - **Verified:** mandatory enforced (400 on missing *and* partial), no length floor (single
+    characters accepted), type fixed server-side, draft 2 receiving delta prompts and the prior
+    reflection, and the values reaching `/api/teacher/dashboard`. Both modal states screenshotted.
+    **Not done:** the demo seed writes no reflections, so the arc stays empty on the demo instance.
+
 - **2026-08-14 — Coaching removed: the chat is now a plain Gen AI chat.**
   The coach interfered too much with natural use. The three personas (full / questions-only /
   sounding-board) and their shared hard rules — never draft, never rewrite, stay on-task — meant

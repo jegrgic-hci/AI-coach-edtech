@@ -137,24 +137,34 @@
 <div class="scrim hidden" id="submitModal">
   <div class="confirm confirm-lg">
     <h4>Submit draft</h4>
-    <ul id="submitWarning"></ul>
 
-    <div id="draftUpload">
-      <p>Upload your draft (.docx or .txt):</p>
-      <label class="upload-drop" id="uploadDrop" for="draftFile">
-        <span id="uploadDropLabel">Drop your file here, or <span class="link-btn">browse</span></span>
-      </label>
-      <input type="file" id="draftFile" accept=".docx,.txt" class="visually-hidden">
-      <p class="upload-switch hidden" id="uploadRemoveRow"><button class="link-btn" id="btnRemoveFile" type="button">Remove file</button></p>
-      <p class="upload-error hidden" id="uploadError"></p>
-      <p class="upload-switch"><button class="link-btn" id="btnSwitchToPaste" type="button">Or paste text instead</button></p>
+    <!-- Everything the student fills in scrolls; the heading, the blocked
+         hint and the actions stay put. The reflection is required, so it is
+         never collapsed to buy height — the container gives way instead. -->
+    <div class="confirm-scroll">
+      <ul id="submitWarning"></ul>
+
+      <div id="draftUpload">
+        <p>Upload your draft (.docx or .txt):</p>
+        <label class="upload-drop" id="uploadDrop" for="draftFile">
+          <span id="uploadDropLabel">Drop your file here, or <span class="link-btn">browse</span></span>
+        </label>
+        <input type="file" id="draftFile" accept=".docx,.txt" class="visually-hidden">
+        <p class="upload-switch hidden" id="uploadRemoveRow"><button class="link-btn" id="btnRemoveFile" type="button">Remove file</button></p>
+        <p class="upload-error hidden" id="uploadError"></p>
+        <p class="upload-switch"><button class="link-btn" id="btnSwitchToPaste" type="button">Or paste text instead</button></p>
+      </div>
+
+      <div id="draftPaste" class="hidden">
+        <p>Paste your current essay draft from Google Docs:</p>
+        <textarea id="essayText" rows="12" placeholder="Paste your full draft here…"></textarea>
+        <p class="upload-switch"><button class="link-btn" id="btnSwitchToUpload" type="button">Or upload a file instead</button></p>
+      </div>
+
+      <div id="reflectBlock" class="reflect-block"></div>
     </div>
 
-    <div id="draftPaste" class="hidden">
-      <p>Paste your current essay draft from Google Docs:</p>
-      <textarea id="essayText" rows="12" placeholder="Paste your full draft here…"></textarea>
-      <p class="upload-switch"><button class="link-btn" id="btnSwitchToUpload" type="button">Or upload a file instead</button></p>
-    </div>
+    <p class="reflect-blocked hidden" id="submitBlocked"></p>
 
     <div class="confirm-acts">
       <button id="btnCancelSubmit">Cancel</button>
