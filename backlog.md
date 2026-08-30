@@ -180,3 +180,34 @@ are tracked as build items rather than drafting notes.
    is workable, and is exactly the kind of deliberate, logged act that grant is for. And DPA § 7.6
    promises a **certificate of destruction**, which no manual process produces; a school-signed
    deployment needs the real path.
+
+---
+
+## Deletion path — logged 2026-08-30
+
+**The Pilot Agreement §9 promises what the product cannot yet perform.** A teacher can ask us to
+delete a student, a class, or everything by writing to `privacy@tauthinking.com`, and we say we will
+do it within 30 days and confirm. There is no mechanism: `col().delete()` exists, an account- or
+class-level cascade does not.
+
+**Not a launch blocker, and this is why** — the promise is triggered by a request and carries a
+30-day window, which is longer than the build. Shipping without it is a promise we can keep on the
+timeline we wrote. **The dependency is the mailbox, not the code:** `privacy@tauthinking.com` routes
+through Cloudflare's catch-all to a personal Gmail, and if a request sits unread the 30 days runs
+anyway.
+
+**Shape when built.** A script, not an HTTP route — same argument `export-improvement.js` makes, that
+bulk destruction should not have a web surface, plus a dashboard button puts an unrecoverable action
+one misclick away. Dry run by default, `--write` to perform. Targets a student, a class, or a
+teacher's everything, cascading: sessions → conversations → turns, submissions → analyses, signal
+marks, auth sessions, credential tokens, telemetry rows.
+
+**One open decision: `adminEvents`.** They deliberately copy names in so the audit survives the
+account, and destroying them destroys the record that the account existed and was administered. For a
+pilot student the row names a label (`austen`), not a child, so keeping them leaks nothing §9 promises
+to remove — but that stops being true the moment a named roster exists.
+
+**What deletion can never reach, and the agreement now says so:** work already in the
+measurement-improvement corpus. `pseudonymiser()` builds its map in memory per run and never persists
+it, so there is no link from an exported row back to a class. That is the same property that makes
+the export safe to hold. Do not "fix" it by persisting the map.

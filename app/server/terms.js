@@ -32,7 +32,18 @@ const STUDENT_VERSION = '2026-08-21';
 // Verified the same day that neither model is served from any US region for
 // this project, so the honest disclosure is the fix rather than a config
 // change. Storage and processing are now stated separately.
-const TEACHER_VERSION = '2026-08-30b';
+//
+// 2026-08-30c: the commercial terms, filled in before this document goes in
+// front of a teacher outside the demo. Names the two provider entities, states
+// New York as governing law, fixes retention at 12 months after the pilot ends
+// (it said "the school year it runs in", which is not a period anyone can
+// count), and adds the contact block. The substantive change is the second
+// paragraph under deletion: work already in the measurement corpus cannot be
+// deleted, because the export keeps no link back to a class — the same
+// property that makes it safe to hold. Promising deletion without naming that
+// limit was a misrepresentation, and it is the one edit here that changes what
+// somebody is agreeing to.
+const TEACHER_VERSION = '2026-08-30c';
 
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@tauthinking.com';
 const PRIVACY_EMAIL = process.env.PRIVACY_EMAIL || 'privacy@tauthinking.com';
@@ -124,6 +135,9 @@ What we learn from your classroom shapes what this becomes.</p>
 the tool never asks for a student's name or email address, so there is nothing about them for us to
 lose. What follows sets out what that means in practice — what we store, what we do with it, and what
 we ask of you in return.</p>
+<p>Tau Thinking is provided by <strong>Everyday Expeditions LLC</strong> and <strong>Vrai Factors
+Studio LLC</strong> (together, "we", "us"). This agreement is between you and us, for running a pilot
+class with the tool. It is short on purpose.</p>
 
 <h3>What the tool does</h3>
 <p>Your students work through a writing task with an AI assistant, then submit a draft. The tool
@@ -235,10 +249,15 @@ see <em>How long we keep it</em> below.</p>
 </ul>
 
 <h3>How long we keep it, and deleting it</h3>
-<p>We keep the class's work for the duration of the pilot and the school year it runs in.
-<strong>You can ask us to delete a student, a class, or everything, at any time, by writing to
-${PRIVACY_EMAIL}</strong> — we will do it within 30 days and confirm when it is done. You can export
-your class's work while your account is open.</p>
+<p>We keep the class's work for <strong>12 months after the pilot ends</strong>, unless you ask us to
+delete it sooner. <strong>You can ask us to delete a student, a class, or everything, at any time, by
+writing to ${PRIVACY_EMAIL}</strong> — we will do it within 30 days and confirm when it is done. You
+can export your class's work while your account is open.</p>
+<p><strong>One thing deletion cannot reach.</strong> Work that has already been used to improve the
+measurement was copied with every name, identifier and link back to your class removed. We cannot
+find your students' work inside it in order to delete it — and that is the same reason it is safe for
+us to keep. It is not a copy of your class; it is text with no owner. Everything still held in the
+tool is deleted as described above.</p>
 
 <h3>Ending the pilot</h3>
 <p>You can stop at any time, and so can we. Deletion works as above.</p>
@@ -250,6 +269,11 @@ will always be available or error-free. It is provided "as is" to the extent the
 <h3>Changes</h3>
 <p>If we change this agreement in a way that materially affects you, we will show you the new
 version and ask you to agree to it before you carry on.</p>
+
+<h3>Contact</h3>
+<p>Questions about the tool: ${SUPPORT_EMAIL}<br>
+Questions about data: ${PRIVACY_EMAIL}</p>
+<p>Governed by the laws of the State of New York.</p>
 `;
 
 // Keyed by role, so "which document does this account get" is answered in one

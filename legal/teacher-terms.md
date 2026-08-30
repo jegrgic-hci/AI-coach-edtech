@@ -1,7 +1,11 @@
 # Tau Thinking — Pilot Agreement (teacher)
 
-**Draft for the pilot. Not legal advice, not reviewed by counsel.** Placeholders are marked
-`[LIKE THIS]`.
+**Not reviewed by counsel.** The commercial placeholders were filled 2026-08-30 (provider entities,
+governing law, retention, contact addresses) and the document is complete enough to put in front of a
+pilot teacher. **One thing is deliberately absent rather than unfinished:** there is no liability
+limitation. Section 11 carries an "as is" disclaimer and nothing more, because a cap drafted without
+an attorney is the clause most likely to be read closely and least likely to survive. See `legal.md`
+Path 2 item 4.
 
 **What this is and is not.** This is the agreement a *teacher* accepts to run a pilot class. It is
 not the Data Processing Agreement — a DPA binds the *institution* and is signed by whoever signs
@@ -29,7 +33,8 @@ the tool never asks for a student's name or email address, so there is nothing a
 lose. What follows sets out what that means in practice — what we store, what we do with it, and what
 we ask of you in return.
 
-Tau Thinking is provided by `[PROVIDER LEGAL ENTITY NAME]` ("we", "us"). This agreement is between
+Tau Thinking is provided by **Everyday Expeditions LLC** and **Vrai Factors Studio LLC** (together,
+"we", "us"). This agreement is between
 you and us, for running a pilot class with the tool. It is short on purpose. Please read it — it
 says what the tool does and what happens to your students' work.
 
@@ -150,8 +155,8 @@ Nobody else. Not another teacher, not another school.
 - Add students anonymously. Don't put a real full name in a label, in an assignment prompt, or in a
   note.
 - Hand each student their own access code, not the whole class list.
-- Keep your own password to yourself, and tell us at `[SUPPORT EMAIL]` if you think someone else has
-  used your account.
+- Keep your own password to yourself, and tell us at **support@tauthinking.com** if you think someone
+  else has used your account.
 - Check that running this pilot is consistent with your school's own rules on classroom software,
   and tell whoever is responsible for that at your school that you are running it. **If your school
   wants a signed agreement, ask us — we have one ready.**
@@ -160,9 +165,16 @@ Nobody else. Not another teacher, not another school.
 
 ## 9. How long we keep it, and deleting it
 
-We keep the class's work for `[RETENTION PERIOD]` after the pilot ends. **You can ask us to delete a
-student, a class, or everything, at any time, by writing to `[PRIVACY EMAIL]` — we will do it within
-30 days and confirm when it is done.** You can export your class's work while your account is open.
+We keep the class's work for **12 months after the pilot ends**, unless you ask us to delete it
+sooner. **You can ask us to delete a student, a class, or everything, at any time, by writing to
+privacy@tauthinking.com — we will do it within 30 days and confirm when it is done.** You can export
+your class's work while your account is open.
+
+**One thing deletion cannot reach.** Work that has already been used to improve the measurement
+(Section 6) was copied with every name, identifier and link back to your class removed. We cannot
+find your students' work inside it in order to delete it — and that is the same reason it is safe for
+us to keep. It is not a copy of your class; it is text with no owner. Everything still held in the
+tool is deleted as described above.
 
 ## 10. Ending the pilot
 
@@ -173,8 +185,6 @@ You can stop at any time, and so can we. Section 9 governs what happens to the w
 We try to keep the tool running and the work safe, but this is a pilot and we cannot promise it will
 always be available or error-free. It is provided "as is" to the extent the law allows.
 
-`[LIABILITY LIMITATION — for counsel.]`
-
 ## 12. Changes
 
 If we change this agreement in a way that materially affects you, we will show you the new version
@@ -182,7 +192,7 @@ and ask you to agree to it before you carry on.
 
 ## 13. Contact
 
-Questions about the tool: `[SUPPORT EMAIL]`
-Questions about data: `[PRIVACY EMAIL]`
+Questions about the tool: **support@tauthinking.com**
+Questions about data: **privacy@tauthinking.com**
 
-Governed by the laws of `[STATE]`.
+Governed by the laws of the State of **New York**.
