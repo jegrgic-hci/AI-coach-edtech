@@ -255,6 +255,66 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
   font-size: var(--tau-text-xs); color: var(--tau-ink-soft);
 }
 .draft-label-row input { min-height: 34px; font-size: var(--tau-text-sm); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+/* A row the teacher renamed, marked so a replace can be weighed against what
+   it would cost before the confirm is read. Sage is fill-only in this system,
+   so it marks with a dot rather than colouring the label's text. */
+.draft-label-row.edited .draft-label-n::after { content: "•"; color: var(--tau-sage); margin-left: 2px; }
+/* An empty row cannot become a username, so it is stopped where it is made
+   rather than at Save with a message about a row nobody can see. */
+.draft-label-row input.blank { border-color: var(--tau-attention); }
+/* Removing a row is the teacher's own destructive action, so it is attention,
+   not a grey glyph that has to be discovered — the same tier .btn-danger and
+   .field-invalid take, and for the same reason (designsystem.md, .btn-danger:
+   "a destructive confirm is an alert"). Held out to the right edge past a
+   divider so it reads as an action ON the row rather than the tail of the
+   username it sits beside. */
+.draft-remove {
+  flex-shrink: 0; margin-left: auto; padding-left: var(--tau-s3);
+  position: relative; width: 34px; height: 28px; border-radius: var(--tau-r-sm);
+  border: none; border-left: 1px solid var(--tau-line); background: none;
+  color: var(--tau-attention); font-size: var(--tau-text-md); line-height: 1; cursor: pointer;
+}
+.draft-remove:hover { color: var(--tau-attention); background: var(--tau-attention-bg); }
+/* The 28px box keeps the row dense; the touch target is the full 44px, the
+   .stu-chip idiom above — expand the target, not the box. */
+.draft-remove::after {
+  content: ""; position: absolute; left: 0; right: 0;
+  top: 50%; transform: translateY(-50%);
+  height: var(--tau-target); pointer-events: none;
+}
+/* The list before it has anything in it. Dashed, so the second half of the job
+   is known about while the first half is still being filled in — the shape of
+   the work is not a thing to discover after pressing Generate. */
+.draft-empty {
+  border: 1px dashed var(--tau-line-strong); border-radius: var(--tau-r-md);
+  padding: var(--tau-s6) var(--tau-s4); text-align: center;
+  font-size: var(--tau-text-sm); color: var(--tau-ink-soft);
+}
+.draft-foot { display: flex; align-items: center; gap: var(--tau-s4); flex-wrap: wrap; margin-top: var(--tau-s3); }
+.draft-save-bar {
+  display: flex; align-items: center; gap: var(--tau-s3); flex-wrap: wrap;
+  margin-top: var(--tau-s4); padding-top: var(--tau-s4); border-top: 1px solid var(--tau-line);
+}
+/* Two zones of one form, not two pages. The numeral is the order of the work;
+   the rule between them is the only thing separating them, because neither is
+   ever taken off screen while the other is being used. */
+.roster-step + .roster-step { margin-top: var(--tau-s6); padding-top: var(--tau-s5); border-top: 1px solid var(--tau-line); }
+.roster-step-head { display: flex; align-items: center; gap: var(--tau-s2); margin-bottom: var(--tau-s4); }
+.roster-step-n {
+  flex-shrink: 0; width: 20px; height: 20px; border-radius: var(--tau-r-pill);
+  display: grid; place-items: center; font-size: var(--tau-text-label-sm); font-weight: 700;
+  background: var(--tau-surface-3); color: var(--tau-ink-soft);
+}
+.roster-step.live .roster-step-n { background: var(--tau-forest); color: var(--tau-on-forest); }
+.roster-step-title { font-size: var(--tau-text-md); font-weight: 650; }
+/* One rhythm inside a zone — fields a step apart, the zone two steps from the
+   next, which is the rule the rest of this modal already follows. */
+.roster-step > .menu-field, .roster-step > #hdr-addstudent-classmount > .menu-field { margin-bottom: var(--tau-s4); }
+.roster-step-count { margin-left: auto; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+/* Why a disabled button is disabled, beside the button. Nothing on this form is
+   hidden to express a precondition. */
+.roster-actions-note { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); max-width: 46ch; line-height: 1.45; }
+.field-hint { display: block; margin-top: 5px; font-size: var(--tau-text-xs); color: var(--tau-ink-soft); line-height: 1.45; font-weight: 400; }
 /* The fixed half of the username, in the same monospace so the two halves read
    as one string. Grey and outside the input because it is not this form's to
    change — it belongs to the teacher's own account. */
@@ -285,11 +345,9 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
 @media (prefers-reduced-motion: reduce) { .roster-busy-spin { animation-duration: 3s; } }
 
 /* The toggle heads the add view; the form it chooses starts a step below it. */
-.roster-seg { margin-bottom: var(--tau-s4); }
 .roster-zone > * + * { margin-top: var(--tau-s3); }
 .roster-zone .roster-preview + .btn,
 .roster-zone > .draft-labels,
-.roster-zone > #roster-addstudent-draft:not([hidden]),
 .roster-zone > #roster-addstudent-generated:not([hidden]) { margin-top: var(--tau-s5); }
 .roster-field { padding: 0; }
 
@@ -1573,13 +1631,13 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
       </div>
 
       <div class="tab-panel" id="roster-panel-add">
-        <!-- .seg, not .card-tabs: this sits under the modal's own tab bar, and
-             two underlined tab rows stacked gave no way to tell which level a
-             click belonged to. A filled toggle cannot be read as a tab. -->
-        <div class="seg roster-seg" id="roster-addstudent-tabs" role="radiogroup" aria-label="Kind of student account" hidden>
-          <button type="button" class="seg-btn" role="radio" aria-checked="false" data-mode="named" onclick="setRosterMode('roster','named')">Named students</button>
-          <button type="button" class="seg-btn" role="radio" aria-checked="false" data-mode="roster" onclick="setRosterMode('roster','roster')">Anonymous roster</button>
-        </div>
+        <!-- The Named/Anonymous toggle that stood here is gone (2026-08-30).
+             It offered a choice a Pilot user does not have: their agreement
+             says no student PII, and the server refuses the named path for
+             them. Which panel shows is now decided by the account, not the
+             teacher — see applyRosterMode(). The .seg component stays in
+             components.css; only this instance of it was removed, rather than
+             left in the markup permanently hidden. -->
         <div class="tab-panel active roster-zone" id="roster-addstudent-panel-named">
           <label class="menu-field roster-field" id="roster-addstudent-paste-field">Students <span class="menu-field-optional">one per line — paste a whole roster, or just one</span>
             <textarea id="roster-addstudent-roster-input" rows="3" placeholder="Jordan Lee, jordan@school.edu" oninput="renderRosterPreview('roster')"></textarea>
@@ -1588,14 +1646,27 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
           <button type="button" class="btn btn-primary btn-sm" id="roster-addstudent-submit" disabled onclick="submitRosterAdd('roster')">Add students</button>
         </div>
         <div class="tab-panel roster-zone" id="roster-addstudent-panel-roster">
-          <label class="menu-field roster-field">Number of students
-            <input type="number" id="roster-addstudent-count-input" min="1" max="60" oninput="refreshGenerateButton('roster')">
-          </label>
-          <label class="menu-field roster-field">Naming theme <span class="menu-field-optional">optional</span>
-            <input type="text" id="roster-addstudent-theme-input" maxlength="60" placeholder="Authors, planets, birds…">
-          </label>
-          <button type="button" class="btn btn-primary btn-sm" id="roster-addstudent-generate" disabled onclick="generateRosterDraft('roster')">Generate</button>
-          <div id="roster-addstudent-draft" hidden></div>
+          <div class="roster-step">
+            <div class="roster-step-head"><span class="roster-step-n">1</span><span class="roster-step-title">How many students</span></div>
+            <label class="menu-field roster-field">Number of students
+              <input type="number" id="roster-addstudent-count-input" min="1" max="60" style="max-width:140px" oninput="refreshGenerateButton('roster')">
+            </label>
+            <label class="menu-field roster-field">Naming theme <span class="menu-field-optional">optional</span>
+              <input type="text" id="roster-addstudent-theme-input" maxlength="60" placeholder="Authors, planets, birds…">
+              <span class="field-hint">One word each, from this theme. Leave it empty for numbered usernames. Never a student's own name: these stand in for one.</span>
+            </label>
+            <div class="roster-actions">
+              <button type="button" class="btn btn-primary btn-sm" id="roster-addstudent-generate" disabled onclick="generateRosterDraft('roster')">Generate</button>
+              <span class="roster-actions-note" id="roster-addstudent-generate-note"></span>
+            </div>
+          </div>
+          <div class="roster-step">
+            <div class="roster-step-head">
+              <span class="roster-step-n">2</span><span class="roster-step-title">Usernames to create</span>
+              <span class="roster-step-count" id="roster-addstudent-draft-count"></span>
+            </div>
+            <div id="roster-addstudent-draft"></div>
+          </div>
           <div id="roster-addstudent-generated" hidden></div>
         </div>
       </div>
@@ -1712,26 +1783,11 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
     <div class="tray-body">
       <div id="add-students-view-success" hidden></div>
       <div id="add-students-view-form">
-      <!-- Which kind of account this creates. .card-tabs is the system's tab
-           component (components.css) — the modal is switching between two
-           views of one task, which is what it is for. Rendered only for a
-           teacher holding the codeRoster grant: for everyone else there is one
-           way to add a student, and a tab bar with one tab is noise. The
-           consequence of each choice is carried by the modal's own subtitle,
-           which swaps with the tab. -->
-      <!-- First: which kind of account this creates. It is the decision the
-           rest of the form hangs off — the class and the count mean different
-           things under each — so it leads, and it does not wait on a class
-           being picked. .card-tabs is the system's tab component
-           (components.css): the modal is switching between two views of one
-           task, which is what it is for. Rendered only for a teacher holding
-           the codeRoster grant; for everyone else a tab bar with one tab is
-           noise. Each choice's consequence is carried by the modal subtitle,
-           which swaps with the tab. -->
-      <div class="seg" id="hdr-addstudent-tabs" role="radiogroup" aria-label="Kind of student account" hidden>
-        <button type="button" class="seg-btn" role="radio" aria-checked="false" data-mode="named" onclick="setRosterMode('hdr','named')">Named students</button>
-        <button type="button" class="seg-btn" role="radio" aria-checked="false" data-mode="roster" onclick="setRosterMode('hdr','roster')">Anonymous roster</button>
-      </div>
+      <!-- No Named/Anonymous toggle (removed 2026-08-30). Which kind of
+           account this door creates is a property of the account, not a choice
+           the teacher makes per batch: a Pilot user's agreement says no student
+           PII, and the server refuses the named path for them. The modal's own
+           subtitle still says which form is showing and what it means. -->
       <label class="menu-field" id="hdr-addstudent-class-field" style="padding:0;margin-bottom:16px">Class
         <select id="hdr-addstudent-class-select" onchange="handleAddStudentsClassSelect()" style="min-height:42px;font-size:var(--tau-text-md)"></select>
         <span class="inline-new-class" id="hdr-addstudent-newclass-row" hidden>
@@ -1742,13 +1798,14 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
           </span>
         </span>
       </label>
-      <!-- Everything past the class. Gated as one block rather than field by
-           field: until there is a class to add to, none of it has a subject,
-           and a form whose first control makes the rest of itself appear reads
-           as one decision instead of a screen that grew. Wrapped because
+      <!-- Everything past the class. No longer gated (2026-08-30): it used to
+           hide while a new class was being named, which made the form's own
+           questions invisible until an unrelated one was answered. A
+           precondition belongs on the button that can't run yet, said out
+           loud, not on the fields it needs. The wrapper stays because
            .tab-panel.active sets display and would outrank [hidden] on the
            panels themselves. -->
-      <div id="hdr-addstudent-body" hidden>
+      <div id="hdr-addstudent-body">
       <div class="tab-panel active" id="hdr-addstudent-panel-named">
         <label class="menu-field" id="hdr-addstudent-paste-field" style="padding:0">Students <span class="menu-field-optional">one per line — "Name, email" or just an email</span>
           <textarea id="hdr-addstudent-roster-input" rows="7" placeholder="Jordan Lee, jordan@school.edu" oninput="renderRosterPreview('hdr')" style="font-size:var(--tau-text-md)"></textarea>
@@ -1763,20 +1820,43 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
            own paper list before thirty accounts exist under names that don't.
            The codes arrive only on save, because a code that has been shown
            and not saved is a code nobody holds. -->
+      <!-- Two numbered zones, both on screen at once. The numeral is the order
+           of the work, not a wizard step: nothing here replaces anything else,
+           so the fields stay live while the list is up and changing one cannot
+           take the list away. Replacing it is only ever the Generate button,
+           which says so and asks first. -->
       <div class="tab-panel" id="hdr-addstudent-panel-roster">
-        <label class="menu-field" style="padding:0">Number of students
-          <input type="number" id="hdr-addstudent-count-input" min="1" max="60" oninput="refreshGenerateButton('hdr')" style="min-height:42px;font-size:var(--tau-text-md)">
-        </label>
-        <!-- Optional, and genuinely so: without it the labels are Student 01,
-             02 … which work. A theme is for a teacher who has to tell thirty of
-             them apart all term. The theme is the only thing sent — it is not
-             student data and cannot become student data. -->
-        <label class="menu-field" style="padding:0;margin-top:16px">Naming theme <span class="menu-field-optional">optional</span>
-          <input type="text" id="hdr-addstudent-theme-input" maxlength="60" placeholder="Authors, planets, birds…" style="min-height:42px;font-size:var(--tau-text-md)">
-        </label>
-        <button type="button" class="btn btn-primary" id="hdr-addstudent-generate" disabled onclick="generateRosterDraft('hdr')" style="margin-top:16px">Generate</button>
-        <div id="hdr-addstudent-draft" hidden style="margin-top:18px"></div>
-        <div id="hdr-addstudent-generated" hidden style="margin-top:18px"></div>
+        <div class="roster-step">
+          <div class="roster-step-head"><span class="roster-step-n">1</span><span class="roster-step-title">Students and class</span></div>
+          <label class="menu-field roster-field">Number of students
+            <input type="number" id="hdr-addstudent-count-input" min="1" max="60" oninput="refreshGenerateButton('hdr')" style="min-height:42px;font-size:var(--tau-text-md);max-width:140px">
+          </label>
+          <!-- The Class field is MOVED here by applyRosterMode() rather than
+               duplicated: one select, one set of ids, one handler. It sits
+               above the theme for a pilot account because the count is what
+               the teacher came with and the class is what it lands on. -->
+          <div id="hdr-addstudent-classmount"></div>
+          <!-- Optional, and genuinely so: without it the labels are Student 01,
+               02 … which work. A theme is for a teacher who has to tell thirty of
+               them apart all term. The theme is the only thing sent — it is not
+               student data and cannot become student data. -->
+          <label class="menu-field roster-field">Naming theme <span class="menu-field-optional">optional</span>
+            <input type="text" id="hdr-addstudent-theme-input" maxlength="60" placeholder="Authors, planets, birds…" style="min-height:42px;font-size:var(--tau-text-md)">
+            <span class="field-hint">One word each, from this theme — easier to tell apart across a term than Student 01–24. Leave it empty for numbered usernames. Never a student's own name: these stand in for one.</span>
+          </label>
+          <div class="roster-actions">
+            <button type="button" class="btn btn-primary" id="hdr-addstudent-generate" disabled onclick="generateRosterDraft('hdr')">Generate</button>
+            <span class="roster-actions-note" id="hdr-addstudent-generate-note"></span>
+          </div>
+        </div>
+        <div class="roster-step">
+          <div class="roster-step-head">
+            <span class="roster-step-n">2</span><span class="roster-step-title">Usernames to create</span>
+            <span class="roster-step-count" id="hdr-addstudent-draft-count"></span>
+          </div>
+          <div id="hdr-addstudent-draft"></div>
+        </div>
+        <div id="hdr-addstudent-generated" hidden style="margin-top:var(--tau-s5)"></div>
       </div>
       </div>
       <div class="menu-confirm" id="add-students-confirm" hidden style="margin-top:12px"></div>
@@ -5300,7 +5380,7 @@ function newClassIsDirty() {
 }
 function addStudentsIsDirty() {
   return !!(val('hdr-addstudent-roster-input') || val('hdr-addstudent-count-input')
-    || val('hdr-addstudent-newclass-input') || ROSTER_DRAFT.hdr);
+    || val('hdr-addstudent-newclass-input') || (ROSTER_DRAFT.hdr && ROSTER_DRAFT.hdr.length));
 }
 
 function openModalEntries() {
@@ -6618,10 +6698,8 @@ function openRosterModal(cid) {
   document.getElementById('roster-addstudent-theme-input').value = '';
   PENDING_CODES = null;
   NEW_CODES = {};
-  ROSTER_DRAFT.roster = null;
-  renderRosterDraft('roster');
+  setRosterDraft('roster', null);
   renderGeneratedList('roster');
-  ROSTER_MODE.roster = codeRosterAllowed() ? 'roster' : 'named';
   applyRosterMode('roster');
   // Opens on the roster itself. "Who is on this class" is the question the
   // door is named for; adding is the errand you come back for.
@@ -6748,51 +6826,50 @@ function renderRosterPreview(scope) {
 // not a toggle — a teacher does not choose per class whether their students
 // are children. The server refuses the wrong shape either way.
 const CODE_SCOPES = {
-  hdr:    { count: 'hdr-addstudent-count-input',    theme: 'hdr-addstudent-theme-input',    generate: 'hdr-addstudent-generate',    draft: 'hdr-addstudent-draft',    generated: 'hdr-addstudent-generated' },
-  roster: { count: 'roster-addstudent-count-input', theme: 'roster-addstudent-theme-input', generate: 'roster-addstudent-generate', draft: 'roster-addstudent-draft', generated: 'roster-addstudent-generated' },
+  hdr:    { count: 'hdr-addstudent-count-input',    theme: 'hdr-addstudent-theme-input',    generate: 'hdr-addstudent-generate',    note: 'hdr-addstudent-generate-note',    draft: 'hdr-addstudent-draft',    draftCount: 'hdr-addstudent-draft-count',    generated: 'hdr-addstudent-generated' },
+  roster: { count: 'roster-addstudent-count-input', theme: 'roster-addstudent-theme-input', generate: 'roster-addstudent-generate', note: 'roster-addstudent-generate-note', draft: 'roster-addstudent-draft', draftCount: 'roster-addstudent-draft-count', generated: 'roster-addstudent-generated' },
 };
 
-// Whether this teacher may build an anonymous roster at all. The grant is what
-// puts the choice on screen; which of the two they are making right now is
-// ROSTER_MODE below. A teacher can hold both — a senior class by email and a
-// junior one by code is the ordinary case, not an exception — so the grant
-// adds the second form rather than replacing the first.
+// Whether this teacher is a Pilot user. It no longer puts a *choice* on screen
+// — it decides, on its own, which of the two forms they get. A pilot account's
+// agreement says no student PII, so the named form is not theirs to pick and
+// the server refuses it (POST /api/classes/:id/students).
 function codeRosterAllowed() {
   return VIEWER.codeRoster === true;
 }
 
-// Per mount point, because the two doors can be open in different states: the
-// header's form and a class's own roster are separate tasks. Defaults to the
-// anonymous roster for a teacher who holds the grant — they were given it for
-// a reason, and the default that leaks a child's name is the wrong one to make
-// them opt out of.
+// Per mount point because the two doors are separate tasks, but both are now
+// derived from the account rather than set by anyone — applyRosterMode() is
+// the only writer.
 const ROSTER_MODE = { hdr: 'named', roster: 'named' };
 
 function codeRosterMode(scope) {
   return ROSTER_MODE[scope] === 'roster';
 }
 
-function setRosterMode(scope, mode) {
-  ROSTER_MODE[scope] = mode;
-  applyRosterMode(scope);
-  refreshRosterScope(scope);
-}
-
-// Drives the tab bar and its two panels. .card-tabs/.tab-panel is the system's
+// Drives the two panels. .card-tabs/.tab-panel is the system's
 // own tab component — the modal is switching between two views of one task,
 // which is exactly what its comment in components.css describes.
 function applyRosterMode(scope) {
-  const mode = ROSTER_MODE[scope];
-  const tabs = document.getElementById(`${scope}-addstudent-tabs`);
-  tabs.hidden = !codeRosterAllowed();
-  // aria-checked carries the selected state, and .seg styles off that attribute
-  // rather than a class — one source of truth for what is chosen, so the
-  // control cannot look selected to the eye and unselected to a screen reader.
-  tabs.querySelectorAll('.seg-btn').forEach((t) => {
-    t.setAttribute('aria-checked', String(t.dataset.mode === mode));
-  });
+  // Not a choice any more. A Pilot user adds students anonymously and only
+  // anonymously — the server refuses the named path for them — so the mode
+  // follows the account rather than a control the teacher operates. Assigned
+  // here rather than trusted from the caller so no path can leave a pilot
+  // account showing the paste box.
+  const mode = ROSTER_MODE[scope] = codeRosterAllowed() ? 'roster' : 'named';
   for (const m of ['named', 'roster']) {
     document.getElementById(`${scope}-addstudent-panel-${m}`).classList.toggle('active', m === mode);
+  }
+  // One Class field, moved rather than duplicated. A pilot account reads
+  // count → class → theme (the count is what the teacher arrives with); the
+  // named form keeps the class at the top of the modal, above its paste box.
+  if (scope === 'hdr') {
+    const field = document.getElementById('hdr-addstudent-class-field');
+    const home = mode === 'roster'
+      ? document.getElementById('hdr-addstudent-classmount')
+      : document.getElementById('add-students-view-form');
+    if (field.parentElement !== home) home.insertBefore(field, home.firstChild);
+    field.classList.toggle('roster-field', mode === 'roster');
   }
   if (scope === 'hdr') {
     document.querySelector('#add-students-modal-overlay .tray-subtitle').textContent = mode === 'roster'
@@ -6828,11 +6905,39 @@ function rosterCount(scope) {
   return Number.isFinite(count) && count >= 1 && count <= 60 ? count : null;
 }
 
+// The button carries its own precondition in the note beside it — nothing on
+// this form is hidden to express one. Once a list exists the button is no
+// longer the primary action (Save is), and it names what running it again
+// would destroy rather than doing it quietly.
 function refreshGenerateButton(scope) {
   const count = rosterCount(scope);
+  const draft = ROSTER_DRAFT[scope];
+  const has = !!(draft && draft.length);
   const btn = document.getElementById(CODE_SCOPES[scope].generate);
+  const note = document.getElementById(CODE_SCOPES[scope].note);
+  const naming = scope === 'hdr' && document.getElementById('hdr-addstudent-class-select').value === '__new__';
+
   btn.disabled = !count || !rosterScopeClassId(scope);
-  btn.textContent = count ? `Generate ${count} label${count !== 1 ? 's' : ''}` : 'Generate';
+  btn.classList.toggle('btn-primary', !has);
+  btn.classList.toggle('btn-quiet', has);
+
+  if (!has) {
+    btn.textContent = count ? `Generate ${count} username${count !== 1 ? 's' : ''}` : 'Generate';
+    const missing = [];
+    if (!count) missing.push('a number of students (1–60)');
+    if (naming) missing.push('the new class named and added');
+    else if (!rosterScopeClassId(scope)) missing.push('a class');
+    note.textContent = missing.length
+      ? `Add ${missing.join(' and ')} to generate.`
+      : 'Generating creates nothing — you can rename or remove any username before saving.';
+    return;
+  }
+
+  btn.textContent = count ? `Replace with ${count} new name${count !== 1 ? 's' : ''}` : 'Replace the list';
+  const edited = draft.filter(r => r.label !== r.origin).length;
+  note.textContent = edited
+    ? `Replacing discards the list below, including ${edited} row${edited !== 1 ? 's' : ''} you renamed.`
+    : 'Replacing discards the list below. Students already saved are not affected.';
 }
 
 // Generate is deliberately local — it creates nothing. It fills a form the
@@ -6858,16 +6963,25 @@ async function generateRosterDraft(scope) {
   };
   if (!VIEWER.handle) { alert('This account has no username handle yet — reload the page and try again.'); return; }
 
+  // Generating a second time is the only thing that can take the list away, so
+  // it asks — and counts the rows the teacher renamed, since those are the work
+  // a replace actually costs.
+  const current = ROSTER_DRAFT[scope];
+  if (current && current.length) {
+    const edited = current.filter(r => r.label !== r.origin).length;
+    const ok = confirm(`Replace the ${current.length} username${current.length !== 1 ? 's' : ''} below with ${count} new one${count !== 1 ? 's' : ''}?`
+      + (edited ? `\n\n${edited} row${edited !== 1 ? 's' : ''} you renamed will be lost.` : ''));
+    if (!ok) return;
+  }
+
   if (!theme) {
-    ROSTER_DRAFT[scope] = numbered();
-    renderRosterDraft(scope);
+    setRosterDraft(scope, numbered());
     return;
   }
 
   const classId = rosterScopeClassId(scope);
   if (!classId) return;
   const btn = document.getElementById(ids.generate);
-  const label = btn.textContent;
   btn.disabled = true;
   btn.textContent = 'Generating…';
   // Same busy state as Save: a themed generate is a model call, so it waits
@@ -6880,61 +6994,137 @@ async function generateRosterDraft(scope) {
   </div>`;
   try {
     const res = await api(`/api/classes/${classId}/students`, { method: 'POST', body: { propose: true, theme, count } });
-    ROSTER_DRAFT[scope] = res.labels;
+    setRosterDraft(scope, res.labels);
   } catch (err) {
-    ROSTER_DRAFT[scope] = numbered();
+    setRosterDraft(scope, numbered());
     alert(`${err.message || 'Could not generate names for that theme.'}\n\nNumbered labels have been generated instead — edit them below, or try a different theme.`);
   } finally {
+    // Not the label captured before the call — by now a list exists, and the
+    // button's job has changed from Generate to Replace.
     btn.disabled = false;
-    btn.textContent = label;
+    refreshGenerateButton(scope);
   }
+}
+
+// A row remembers what Generate gave it, so a rename can be told from an
+// untouched row — which is what lets a replace say what it would cost instead
+// of finding out afterwards.
+function setRosterDraft(scope, labels) {
+  ROSTER_DRAFT[scope] = labels === null ? null : labels.map(label => ({ label, origin: label }));
   renderRosterDraft(scope);
+  refreshGenerateButton(scope);
 }
 
 function renderRosterDraft(scope) {
-  const box = document.getElementById(CODE_SCOPES[scope].draft);
+  const ids = CODE_SCOPES[scope];
+  const box = document.getElementById(ids.draft);
   const draft = ROSTER_DRAFT[scope];
-  if (!draft) {
-    box.hidden = true;
-    box.innerHTML = '';
+  const has = !!(draft && draft.length);
+  const countEl = document.getElementById(ids.draftCount);
+  if (countEl) countEl.textContent = has ? `${draft.length} row${draft.length !== 1 ? 's' : ''}` : '';
+  const steps = box.closest('.tab-panel').querySelectorAll('.roster-step');
+  if (steps.length === 2) {
+    steps[0].classList.toggle('live', !has);
+    steps[1].classList.toggle('live', has);
+  }
+
+  // The zone is never taken off screen — before there is a list it says what
+  // will appear in it, so the second half of the job is known about while the
+  // first half is still being filled in.
+  if (!has) {
+    box.innerHTML = `<div class="draft-empty">Generated usernames appear here. You can rename or remove any of them before saving.</div>`;
     return;
   }
-  box.hidden = false;
+
   // One word each, because the word IS the username — the fixed half is shown
   // beside it in grey rather than left to be discovered after the accounts
   // exist. Uneditable: the handle belongs to the teacher's account, not to
   // this form, and it is the same on every row.
   const domain = VIEWER.handle ? `@${VIEWER.handle}.tau` : '';
-  box.innerHTML = `<span class="eyebrow">Usernames to create</span>
-    <p class="roster-section-note">Edit any of these if your own list uses different labels. Never use a student's own name — these stand in for one.</p>
+  box.innerHTML = `<p class="roster-section-note">Edit any of these if your own list uses different labels, or remove a row you don't need. Never use a student's own name — these stand in for one.</p>
     <div class="draft-labels">
-      ${draft.map((label, i) => `<label class="draft-label-row">
+      ${draft.map((row, i) => `<div class="draft-label-row${row.label !== row.origin ? ' edited' : ''}">
         <span class="draft-label-n">${i + 1}</span>
-        <input type="text" maxlength="32" value="${esc(label)}" oninput="updateDraftLabel('${scope}',${i},this.value)">
+        <input type="text" maxlength="32" value="${esc(row.label)}" aria-label="Username ${i + 1}"
+               class="${row.label ? '' : 'blank'}" oninput="updateDraftLabel('${scope}',${i},this)">
         <span class="draft-label-domain">${esc(domain)}</span>
-      </label>`).join('')}
+        <button type="button" class="draft-remove" aria-label="Remove row ${i + 1}" title="Remove this row" onclick="removeDraftRow('${scope}',${i})">✕</button>
+      </div>`).join('')}
     </div>
-    <div class="roster-actions" style="margin-top:var(--tau-s3)">
-      <button type="button" class="btn btn-primary btn-sm" id="${scope}-addstudent-save" onclick="saveRosterDraft('${scope}')">Save ${draft.length} student${draft.length !== 1 ? 's' : ''}</button>
-      <button type="button" class="btn btn-quiet btn-sm" onclick="discardRosterDraft('${scope}')">Discard</button>
+    <div class="draft-foot">
+      <button type="button" class="link-btn" onclick="addDraftRow('${scope}')">Add a row</button>
+      <button type="button" class="link-btn" onclick="clearRosterDraft('${scope}')">Clear the list</button>
+    </div>
+    <div class="draft-save-bar">
+      <button type="button" class="btn btn-primary btn-sm" id="${scope}-addstudent-save" onclick="saveRosterDraft('${scope}')">Save</button>
+      <span class="roster-actions-note" id="${scope}-addstudent-save-note"></span>
     </div>`;
+  refreshRosterSave(scope);
+}
+
+// Save reads the LIST, not the number field — once a list exists it is what
+// gets created, so the count above is only ever an instruction to Generate.
+function refreshRosterSave(scope) {
+  const draft = ROSTER_DRAFT[scope] || [];
+  const btn = document.getElementById(`${scope}-addstudent-save`);
+  if (!btn) return;
+  const note = document.getElementById(`${scope}-addstudent-save-note`);
+  const blanks = draft.filter(r => !r.label).length;
+  const filled = draft.filter(r => r.label).map(r => r.label);
+  const dupes = filled.length - new Set(filled).size;
+  const cls = CLASSES.find(c => c.id === rosterScopeClassId(scope));
+
+  btn.disabled = !draft.length || blanks > 0 || dupes > 0;
+  if (blanks) btn.textContent = `Fill in ${blanks} empty row${blanks !== 1 ? 's' : ''}`;
+  else if (dupes) btn.textContent = `${dupes} name${dupes !== 1 ? 's are' : ' is'} used twice`;
+  else btn.textContent = `Save ${draft.length} student${draft.length !== 1 ? 's' : ''}`;
+  note.textContent = blanks ? 'A username cannot be blank — fill it in, or remove the row.'
+    : dupes ? 'Every username has to be different. Rename the repeated ones.'
+    : cls ? `Creates ${draft.length} account${draft.length !== 1 ? 's' : ''} on ${cls.name}, each with one access code.`
+    : '';
 }
 
 // Sanitised as typed, not on save: the field is showing what the username will
 // literally be, so a space or an apostrophe that will not survive into one has
-// no business appearing here and then quietly vanishing later.
-function updateDraftLabel(scope, index, value) {
-  const clean = value.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 32);
-  if (clean !== value) {
-    const input = document.querySelectorAll(`#${CODE_SCOPES[scope].draft} .draft-label-row input`)[index];
-    if (input) input.value = clean;
-  }
-  if (ROSTER_DRAFT[scope]) ROSTER_DRAFT[scope][index] = clean;
+// no business appearing here and then quietly vanishing later. Patched in place
+// rather than re-rendered, because a re-render mid-word takes the caret with it.
+function updateDraftLabel(scope, index, input) {
+  const clean = input.value.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 32);
+  if (clean !== input.value) input.value = clean;
+  const row = ROSTER_DRAFT[scope] && ROSTER_DRAFT[scope][index];
+  if (!row) return;
+  row.label = clean;
+  input.classList.toggle('blank', !clean);
+  input.closest('.draft-label-row').classList.toggle('edited', clean !== row.origin);
+  refreshRosterSave(scope);
+  refreshGenerateButton(scope);
 }
 
-function discardRosterDraft(scope) {
-  ROSTER_DRAFT[scope] = null;
+function removeDraftRow(scope, index) {
+  const draft = ROSTER_DRAFT[scope];
+  if (!draft) return;
+  draft.splice(index, 1);
   renderRosterDraft(scope);
+  refreshGenerateButton(scope);
+}
+
+// The two ways to change the list that don't go back through Generate — one
+// more row, or none at all.
+function addDraftRow(scope) {
+  const draft = ROSTER_DRAFT[scope] || (ROSTER_DRAFT[scope] = []);
+  const label = studentLabel(nextStudentNumber() + draft.length);
+  draft.push({ label, origin: label });
+  renderRosterDraft(scope);
+  refreshGenerateButton(scope);
+  const inputs = document.querySelectorAll(`#${CODE_SCOPES[scope].draft} .draft-label-row input`);
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+
+function clearRosterDraft(scope) {
+  const draft = ROSTER_DRAFT[scope] || [];
+  if (draft.length && !confirm(`Clear all ${draft.length} username${draft.length !== 1 ? 's' : ''} from the list? Nothing has been created yet.`)) return;
+  setRosterDraft(scope, null);
+  refreshGenerateButton(scope);
 }
 
 // Codes exist in the clear for exactly one render. They are hashed server-side
@@ -6944,8 +7134,10 @@ let PENDING_CODES = null;
 
 async function saveRosterDraft(scope) {
   const classId = rosterScopeClassId(scope);
-  const labels = ROSTER_DRAFT[scope];
-  if (!classId || !labels) return;
+  const draft = ROSTER_DRAFT[scope];
+  if (!classId || !draft || !draft.length) return;
+  const labels = draft.map(r => r.label);
+  if (labels.some(l => !l) || new Set(labels).size !== labels.length) return;
   const ids = CODE_SCOPES[scope];
 
   // Creating thirty accounts is genuinely slow — each one hashes its access
@@ -6969,10 +7161,8 @@ async function saveRosterDraft(scope) {
     return;
   }
 
-  ROSTER_DRAFT[scope] = null;
-  renderRosterDraft(scope);
   document.getElementById(ids.count).value = '';
-  refreshGenerateButton(scope);
+  setRosterDraft(scope, null);
 
   // Codes first, dashboard second. Everything needed to show them is already
   // in this response; making the teacher wait on a second round trip and a
@@ -7375,10 +7565,8 @@ function openAddStudentsModal(classId) {
   document.getElementById('hdr-addstudent-theme-input').value = '';
   document.getElementById('hdr-addstudent-newclass-input').value = '';
   PENDING_CODES = null;
-  ROSTER_DRAFT.hdr = null;
-  renderRosterDraft('hdr');
+  setRosterDraft('hdr', null);
   renderGeneratedList('hdr');
-  ROSTER_MODE.hdr = codeRosterAllowed() ? 'roster' : 'named';
   applyRosterMode('hdr');
   // Last: it settles which of the class field and the students step is showing,
   // and it refreshes the live panel, so the mode above has to be set first.
@@ -7411,10 +7599,11 @@ function handleAddStudentsClassSelect() {
   const sel = document.getElementById('hdr-addstudent-class-select');
   const creating = sel.value === '__new__';
   document.getElementById('hdr-addstudent-newclass-row').hidden = !creating;
-  // The name field and everything below it are alternatives, never both: while
-  // a class is being named there is nothing yet to add students to.
-  document.getElementById('hdr-addstudent-body').hidden = creating;
-  if (!creating) refreshRosterScope('hdr');
+  // The rest of the form no longer hides while a class is being named (was:
+  // hdr-addstudent-body[hidden] = creating). Naming a class is a precondition,
+  // not a reason to conceal what the form asks for — the submit and Generate
+  // buttons stay disabled and say why instead.
+  refreshRosterScope('hdr');
 }
 
 async function commitAddStudentsNewClass() {

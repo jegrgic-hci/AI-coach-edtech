@@ -2152,6 +2152,36 @@ see `app/README.md`'s file map if you need to work on that surface instead.
 `designsystem.md` uses for the rest of `app/`. Retroactive entries below reconstruct what's
 already landed; write new ones going forward rather than editing history in place.*
 
+**2026-08-30 — the anonymous Add-students form is flat, and Edit no longer eats the list**
+
+Two faults, one root. **The form hid what it asks for:** everything past the class picker sat inside
+`#hdr-addstudent-body`, `hidden` while a class was being named — and since the select defaults to
+"Add new class", a teacher arriving from the header menu saw a name field and nothing else. That is
+the standing required-vs-hidden failure: a precondition expressed by concealing the fields that
+depend on it. **And the draft was destructible by accident:** a first pass at this modal put the
+count/class/theme on step 1 and the generated usernames on step 2, so Edit meant "go back", and going
+back meant the list was gone.
+
+The fix is one flat form with two numbered zones that are **both always on screen**. The numeral is
+the order of the work, not a page you navigate between; nothing here replaces anything else, so
+changing the count, class or theme while a list is up leaves the list exactly as it is. **The only
+thing that can take the list away is Generate**, which now says so: once a list exists it demotes
+from primary to `btn-quiet`, renames itself "Replace with N new names", and its note counts the rows
+the teacher renamed — `{label, origin}` per row is what makes that countable, and it drives the
+`.edited` dot on the row number too. It confirms before replacing.
+
+**Once a list exists, the list is what gets saved, not the count field** — Save is the primary action
+from that moment, relabels as rows are removed, and blocks on a blank row or a name used twice with
+the reason beside it. Rows remove inline; *Add a row* and *Clear the list* are the two ways to change
+the list without going back through Generate. Zone 2 renders a dashed placeholder before it has
+anything in it, so the second half of the job is visible while the first half is being filled in.
+
+The class field is **moved** into the pilot panel by `applyRosterMode()`, not duplicated — one
+select, one set of ids, one handler — so a pilot account reads count → class → theme (the count is
+what the teacher arrives with) while the named form keeps the class at the top of the modal. Verified
+headlessly in jsdom against both grants and both mount points; the modal's *Discard* button is gone,
+replaced by the two list controls.
+
 **2026-08-23 — the dashboard and the report disagreed about the same draft, and the shim was why**
 
 A tester reported "different report results between student and teacher." It was not a data bug and
