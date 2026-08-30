@@ -685,6 +685,16 @@ button:hover { border-color: var(--tau-forest); }
   border-color: var(--tau-forest);
 }
 
+/* A group for toggling, never a box: display:contents keeps the labels and
+   fields as direct children of .auth-form's flex column, so a shown group is
+   indistinguishable from fields written inline. .hidden's display:none wins
+   over this, which is what makes the toggle work at all. */
+.setup-roster { display: contents; }
+.setup-roster .field-help { margin-top: 2px; }
+/* The handle is a machine string sitting in a sentence of prose — the shift to
+   mono is what stops it being read as part of the sentence. */
+#handlePreview { font-family: var(--tau-font-mono); color: var(--tau-ink); }
+
 .auth-identity { min-height: 1.2em; }
 .auth-rule { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); margin: 0 0 2px; }
 

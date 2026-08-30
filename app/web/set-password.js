@@ -3,10 +3,15 @@ const $ = (id) => document.getElementById(id);
 const token = new URLSearchParams(location.search).get('t') || '';
 
 // Null until the account is known, and null forever for an account type with
-// no terms document (a reset, or a teacher). Sent back on submit so the server
+// no terms document (a reset, or a platform admin). Sent back on submit so the server
 // records *which wording* was agreed to rather than merely that a box was
 // ticked — see server/terms.js.
 let termsVersion = null;
+
+// Null unless this is a Pilot user setting their account up, which is the only
+// case that asks for a name and a handle. The server decides — the page never
+// infers it from a role it could be told.
+let rosterTld = null;
 
 // The server has already refused to serve this page for a bad token, so this
 // call is not the access check — it names the account, so someone holding a
@@ -16,6 +21,18 @@ async function showIdentity() {
   try {
     const who = await api(`/api/auth/invite?t=${encodeURIComponent(token)}`);
     $('identity').textContent = `for ${who.email}`;
+    if (who.roster) {
+      rosterTld = who.roster.tld;
+      // Prefilled, not blank: the suggestion is what would have been minted
+      // silently before this form existed, so leaving both untouched gives the
+      // old behaviour rather than an empty required field.
+      $('displayName').value = who.roster.displayName || '';
+      $('handle').value = who.roster.handle || '';
+      showHandlePreview();
+      $('rosterFields').classList.remove('hidden');
+      $('pageTitle').textContent = 'Set up your account';
+      $('submitBtn').textContent = 'Create account and sign in';
+    }
     if (who.termsVersion) {
       termsVersion = who.termsVersion;
       // Named before the box is shown, never after: the tick and the name of
@@ -33,6 +50,33 @@ async function showIdentity() {
     $('identity').textContent = '';
   }
 }
+
+// ---------- roster identity ----------
+
+// What the handle box will actually become — lowercased, with everything the
+// username scheme cannot carry removed. Shown live rather than enforced as the
+// person types, because rewriting an input under a cursor loses their place;
+// the field is normalised on blur instead, so what they see is what is stored.
+function cleanHandle(value) {
+  return String(value).toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '')
+    .slice(0, 20)
+    // Trimmed at both ends because the server's pattern requires the string to
+    // start and end alphanumeric — without this the preview would show a value
+    // as if it were fine and the submit would come back rejected.
+    .replace(/^-+|-+$/g, '');
+}
+
+function showHandlePreview() {
+  const handle = cleanHandle($('handle').value) || '…';
+  $('handlePreview').textContent = `austen@${handle}.${rosterTld}`;
+}
+
+$('handle').addEventListener('input', showHandlePreview);
+$('handle').addEventListener('blur', () => {
+  $('handle').value = cleanHandle($('handle').value);
+  showHandlePreview();
+});
 
 // ---------- terms dialog ----------
 
@@ -103,15 +147,25 @@ $('setPasswordForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const err = $('formError');
   const submit = $('submitBtn');
+  const submitLabel = submit.textContent;
   err.classList.add('hidden');
 
-  // Checked here as well as on the server because the two fields matching is
-  // the one rule the person can fix without a round trip.
-  if ($('password').value !== $('confirm').value) {
-    err.textContent = 'Those two passwords are different.';
+  const fail = (message, field) => {
+    err.textContent = message;
     err.classList.remove('hidden');
-    $('confirm').focus();
-    return;
+    field.focus();
+  };
+
+  // Checked here as well as on the server because emptying a field you were
+  // handed a value in is a mistake the person can fix without a round trip.
+  if (rosterTld) {
+    $('handle').value = cleanHandle($('handle').value);
+    if (!$('displayName').value.trim()) return fail('Enter the name your students should see.', $('displayName'));
+    if (!$('handle').value) return fail('Enter a roster handle — lowercase letters and numbers.', $('handle'));
+  }
+
+  if ($('password').value !== $('confirm').value) {
+    return fail('Those two passwords are different.', $('confirm'));
   }
 
   submit.disabled = true;
@@ -125,6 +179,12 @@ $('setPasswordForm').addEventListener('submit', async (e) => {
         // Null when this account has no terms; the server requires a match
         // only where it issued one, so the two stay in step by construction.
         acceptedTermsVersion: termsVersion,
+        // Sent only where the form asked for them. The server decides again
+        // from the token whether this account may set them, so an account that
+        // was never offered the fields cannot acquire a handle by replaying
+        // this body.
+        displayName: rosterTld ? $('displayName').value : undefined,
+        handle: rosterTld ? $('handle').value : undefined,
       },
     });
     location.href = '/';
@@ -132,9 +192,14 @@ $('setPasswordForm').addEventListener('submit', async (e) => {
     err.textContent = ex.message;
     err.classList.remove('hidden');
     submit.disabled = false;
-    submit.textContent = 'Set password and sign in';
+    submit.textContent = submitLabel;
   }
 });
 
-showIdentity();
-$('password').focus();
+// Focus follows the shape of the form, so it waits for the shape to settle: a
+// Pilot user starts at their name, everyone else at the password, and neither
+// gets a field pushed down the page under a cursor already in it.
+showIdentity().finally(() => {
+  const first = rosterTld ? $('displayName') : $('password');
+  if (!document.activeElement || document.activeElement === document.body) first.focus();
+});

@@ -134,5 +134,5 @@ function buildUsername(label, handle) {
 
 module.exports = {
   newAccessCode, normalizeCode, ALPHABET, LENGTH,
-  teacherSlug, labelSlug, buildUsername,
+  teacherSlug, labelSlug, buildUsername, USERNAME_TLD,
 };

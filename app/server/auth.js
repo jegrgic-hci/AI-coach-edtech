@@ -10,7 +10,7 @@
 
 const crypto = require('crypto');
 const { col } = require('./store');
-const { termsFor } = require('./terms');
+const { termsFor, needsToAccept } = require('./terms');
 const { normalizeCode } = require('./codes');
 
 const COOKIE = 'cta_session';
@@ -363,10 +363,16 @@ async function redeemCredentialToken(raw, password, clientIp = null, acceptedTer
   // never agreed to anything is the state this is meant to make unreachable.
   // A reset is not re-asked — the person agreed when they set the account up,
   // and a version bump is re-asked at sign-in, not by expiring their password.
+  // `needsToAccept` is what makes the two invite paths one rule rather than
+  // two. A student agrees on this form and arrives here owing an acceptance,
+  // so the version is required. A teacher has already agreed on the agreement
+  // page that now precedes this form, so the debt is settled and there is no
+  // version to send — and demanding one would make the earlier acceptance
+  // unusable. Either way an account cannot come into existence unaccepted.
   const terms = termsFor(found.user.role);
-  const mustAccept = found.purpose === 'invite' && terms;
+  const mustAccept = found.purpose === 'invite' && !!terms && needsToAccept(found.user);
   if (mustAccept && acceptedTermsVersion !== terms.version) {
-    return { ok: false, reason: 'terms', message: 'Please agree to the Terms of Use to finish setting up your account.' };
+    return { ok: false, reason: 'terms', message: `Please agree to the ${terms.title} to finish setting up your account.` };
   }
 
   await setPassword(found.user, String(password));

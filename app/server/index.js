@@ -10,7 +10,7 @@ const crypto = require('crypto');
 const { col } = require('./store');
 const { authenticate, isSuspended, login, logout, setPassword, passwordFields, sessionCookie, clearedCookie, tokenFrom, inspectCredentialToken, redeemCredentialToken, DEMO_MODE, DEV_PASSWORD } = require('./auth');
 const { sendInvite, sendReset } = require('./invites');
-const { newAccessCode, normalizeCode, teacherSlug, labelSlug, buildUsername } = require('./codes');
+const { newAccessCode, normalizeCode, teacherSlug, labelSlug, buildUsername, USERNAME_TLD } = require('./codes');
 const { termsFor, needsToAccept } = require('./terms');
 const { dueISO, isClosed } = require('./due');
 const { volume: mailVolume, settings: mailSettings } = require('./mail');
@@ -212,16 +212,58 @@ async function recordAdminEvent(actor, action, target, detail = null) {
 // creation alone.
 async function teacherHandle(user) {
   if (user.handle) return user.handle;
-  // lastName when the account has one — the Add teacher form asks for it
-  // precisely so this is a known fact rather than a parse. displayName is the
-  // fallback for accounts created before that form split the name.
-  const base = teacherSlug(user.lastName || user.displayName);
-  const taken = new Set((await col('users').list((u) => !!u.handle)).map((u) => u.handle));
-  let handle = base;
-  for (let n = 2; taken.has(handle); n++) handle = `${base}-${n}`;
+  const handle = await freeHandle(suggestedHandleBase(user));
   await col('users').update(user.id, { handle });
   user.handle = handle;
   return handle;
+}
+
+// lastName when the account has one — the Add teacher form asks for it
+// precisely so this is a known fact rather than a parse. displayName is the
+// fallback for accounts created before that form split the name.
+function suggestedHandleBase(user) {
+  return teacherSlug(user.lastName || user.displayName);
+}
+
+// The first unused handle at or after `base`. Split out because set-up now
+// *offers* one before minting it: the form has to show a handle that is
+// actually free, and the same walk has to settle the collision either way.
+async function freeHandle(base) {
+  const taken = new Set((await col('users').list((u) => !!u.handle)).map((u) => u.handle));
+  let handle = base;
+  for (let n = 2; taken.has(handle); n++) handle = `${base}-${n}`;
+  return handle;
+}
+
+// Lowercase letters, digits and interior hyphens — the hyphen because the
+// collision walk above mints them, so a handle the product produced itself has
+// to be one a teacher may also type.
+const HANDLE_RE = /^[a-z0-9](?:[a-z0-9-]{0,18}[a-z0-9])?$/;
+
+// A Pilot user redeeming an invite chooses both halves of their own identity
+// on the way in. Only them, and only on an invite: the handle is written into
+// every student username at roster time and is never recomputed, so account
+// set-up is the one moment the question can be asked instead of derived. An
+// account that somehow already holds a handle is past that moment.
+function needsRosterSetup(user, purpose) {
+  return purpose === 'invite' && user.role === 'teacher'
+    && user.codeRoster === true && !user.handle;
+}
+
+// Validated before the token is spent — see the set-password route.
+async function rosterSetupPatch(user, body) {
+  const displayName = String(body.displayName || '').trim().replace(/\s+/g, ' ');
+  if (!displayName) return { error: 'Enter the name your students should see.' };
+  if (displayName.length > 60) return { error: 'That name is too long — 60 characters at most.' };
+
+  const handle = String(body.handle || '').trim().toLowerCase();
+  if (!HANDLE_RE.test(handle)) {
+    return { error: 'A roster handle is lowercase letters and numbers, up to 20 characters, with no spaces.' };
+  }
+  if ((await col('users').list((u) => u.handle === handle && u.id !== user.id))[0]) {
+    return { error: `“${handle}” is already taken. Try another.` };
+  }
+  return { patch: { displayName, handle } };
 }
 
 // A student's own half, unique within the teacher who owns them — two children
@@ -767,7 +809,23 @@ async function handleAuth(req, res, route) {
     // because the checkbox names the document — a teacher agrees to a "Pilot
     // Agreement", a student to "Terms of Use", and the page must not hardcode
     // one of them.
-    const terms = found.purpose === 'invite' ? termsFor(found.user.role) : null;
+    // Null once the account owes nothing, which now includes a teacher who
+    // accepted on the agreement page a moment ago — same meaning this field
+    // always had ("does this form need a checkbox"), one more way to be
+    // settled. A student still agrees on the form itself and still gets one.
+    const terms = found.purpose === 'invite' && needsToAccept(found.user)
+      ? termsFor(found.user.role)
+      : null;
+    // Both halves come with a suggestion rather than a blank box: the account
+    // already knows a name, and a handle nobody has taken is a better starting
+    // point than an empty field on a value that cannot be changed afterwards.
+    const roster = needsRosterSetup(found.user, found.purpose)
+      ? {
+        displayName: found.user.displayName,
+        handle: await freeHandle(suggestedHandleBase(found.user)),
+        tld: USERNAME_TLD,
+      }
+      : null;
     json(res, 200, {
       email: found.user.email,
       displayName: found.user.displayName,
@@ -775,6 +833,7 @@ async function handleAuth(req, res, route) {
       termsVersion: terms ? terms.version : null,
       termsTitle: terms ? terms.title : null,
       termsBlurb: terms ? terms.blurb : null,
+      roster,
     });
     return true;
   }
@@ -805,8 +864,62 @@ async function handleAuth(req, res, route) {
     return true;
   }
 
+  // Records an acceptance for someone who has no session yet, proved by the
+  // invite token instead. The twin at /api/terms/accept does the same thing
+  // from a session, and both enforce the same rule: the submitted version has
+  // to be the one the server would serve, so what is stored is a record of
+  // which wording was on screen rather than that a box was ticked on a page
+  // open since before the last edit.
+  //
+  // Invites only. A reset token proves the same thing about identity, but a
+  // reset is not an acceptance moment — it must not be able to record one.
+  //
+  // The account this writes to has no password yet, and that is the point of
+  // running the agreement first: someone who reads it and leaves has declined
+  // before being asked to fill anything in. What stays behind is an accurate
+  // record that they agreed, on an account that never activated.
+  if (req.method === 'POST' && route === '/api/auth/terms-accept') {
+    const body = await readBody(req);
+    const found = await inspectCredentialToken(body.token);
+    if (!found.ok || found.purpose !== 'invite') {
+      json(res, 400, { error: 'That link is no longer valid.' });
+      return true;
+    }
+    const terms = termsFor(found.user.role);
+    if (!terms) {
+      json(res, 404, { error: 'No terms document for this account type.' });
+      return true;
+    }
+    if (body.version !== terms.version) {
+      json(res, 409, { error: 'This agreement has been updated. Reload the page and read it again.' });
+      return true;
+    }
+    await col('users').update(found.user.id, {
+      termsVersion: terms.version,
+      termsAcceptedAt: new Date().toISOString(),
+    });
+    json(res, 200, { ok: true, next: `/set-password.html?t=${encodeURIComponent(body.token)}` });
+    return true;
+  }
+
   if (req.method === 'POST' && route === '/api/auth/set-password') {
     const body = await readBody(req);
+
+    // Checked before the redeem, never after: redeeming spends the link and
+    // signs the person in, so a handle rejected as taken at that point would
+    // leave them inside the product with no way back to the only form that
+    // asks the question.
+    const pending = await inspectCredentialToken(body.token);
+    let rosterPatch = null;
+    if (pending.ok && needsRosterSetup(pending.user, pending.purpose)) {
+      const roster = await rosterSetupPatch(pending.user, body);
+      if (roster.error) {
+        json(res, 400, { error: roster.error });
+        return true;
+      }
+      rosterPatch = roster.patch;
+    }
+
     const result = await redeemCredentialToken(body.token, body.password, clientIp(req), body.acceptedTermsVersion || null);
 
     if (!result.ok && (result.reason === 'password' || result.reason === 'terms')) {
@@ -816,6 +929,14 @@ async function handleAuth(req, res, route) {
     if (!result.ok) {
       json(res, 400, { error: 'That link has expired or has already been used. Ask for a new one from the sign-in page.' });
       return true;
+    }
+
+    if (rosterPatch) {
+      await col('users').update(result.user.id, rosterPatch);
+      // update() does not mutate the document it was given, and the audit line
+      // and the response below both read the name — which is now the chosen
+      // one, not the one an administrator typed.
+      Object.assign(result.user, rosterPatch);
     }
 
     await recordAdminEvent(result.user, result.purpose === 'invite' ? 'invite-accepted' : 'reset-completed', result.user);
@@ -3190,21 +3311,56 @@ function cacheControl(route) {
 // public — gating those would leave the login page unable to render itself.
 const PUBLIC_PAGES = new Set(['/login.html', '/set-password.html']);
 
-// The set-password page is public, but only with a live token — so the token
-// is resolved here, before the page is served, for the same reason sign-in is:
-// state that changes what you see must settle before first paint, not after.
-// A spent or expired link therefore lands on the sign-in page with the reason
-// and the way to get a new one, rather than rendering a form that fails only
-// once it has been filled in.
+// Pages served without a session, on the strength of a credential token alone.
+// /agreement.html is on both lists: with a `t` it is the first step of setting
+// an account up, and without one it is the signed-in record of what was
+// agreed, gated the ordinary way.
+const TOKEN_PAGES = new Set(['/set-password.html', '/agreement.html']);
+
+// A teacher reads and accepts the agreement BEFORE the set-up form, not as a
+// tick box on it. Two reasons, and the second is the one that decided it:
+//   - it is the only thing in the sequence that is a decision rather than a
+//     form field, and a person who is going to decline should reach that point
+//     before choosing a name, a handle and a password, not after
+//   - behind a dialog on a five-field form the document is a reference; on its
+//     own page it is the job (the same reasoning agreement.html was built on)
+// Invites only. A reset is deliberately not re-asked — see redeemCredentialToken.
+function needsAgreementFirst(user, purpose) {
+  return purpose === 'invite' && user.role === 'teacher' && needsToAccept(user);
+}
+
+// Both token pages are resolved here, before anything is served, for the same
+// reason sign-in is: state that changes what you see must settle before first
+// paint, not after. A spent or expired link lands on the sign-in page with the
+// reason and the way to get a new one, rather than rendering a form that fails
+// only once it has been filled in — and the two steps of set-up order
+// themselves server-side, so the order holds with JS off and for a link
+// bookmarked or mailed before this existed.
 async function redirectedForBadToken(req, res, route) {
-  if (route !== '/set-password.html') return false;
+  if (!TOKEN_PAGES.has(route)) return false;
   const t = new URL(req.url, 'http://x').searchParams.get('t');
+  if (route === '/agreement.html' && !t) return false;
+
   const found = await inspectCredentialToken(t);
-  if (found.ok) return false;
-  const reason = found.reason === 'expired' ? 'expired' : 'invalid';
-  res.writeHead(302, { Location: `/login.html?link=${reason}` });
-  res.end();
-  return true;
+  if (!found.ok) {
+    const reason = found.reason === 'expired' ? 'expired' : 'invalid';
+    res.writeHead(302, { Location: `/login.html?link=${reason}` });
+    res.end();
+    return true;
+  }
+
+  const next = needsAgreementFirst(found.user, found.purpose) ? '/agreement.html' : '/set-password.html';
+  if (route !== next) {
+    // The reverse leg matters as much as the forward one: once the agreement
+    // is accepted this page has nothing left to ask, and a Back button landing
+    // on a document to agree to again reads as if the acceptance did not take.
+    // The signed-in record at /agreement.html with no token is untouched — that
+    // is the copy they keep, and it stays reachable forever.
+    res.writeHead(302, { Location: `${next}?t=${encodeURIComponent(t)}` });
+    res.end();
+    return true;
+  }
+  return false;
 }
 
 // Where an account starts. The login form used to be the only thing that knew
@@ -3247,6 +3403,12 @@ const PAGE_ACCESS = {
 async function redirectedToOwnPage(req, res, route) {
   const isPage = route === '/' || route.endsWith('.html');
   if (!isPage || PUBLIC_PAGES.has(route)) return false;
+
+  // Already vouched for by redirectedForBadToken, which ran first and refused
+  // anything but a live token. Without this the first step of set-up would
+  // bounce to the sign-in page — the person has no session yet, which is the
+  // whole reason they are holding a link.
+  if (route === '/agreement.html' && new URL(req.url, 'http://x').searchParams.get('t')) return false;
 
   const user = await authenticate(req);
   if (!user) {

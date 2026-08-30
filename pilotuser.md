@@ -116,6 +116,22 @@ without complaint and can reuse the login form unchanged — while being a TLD t
 mail to it bounces immediately instead of vanishing. A parent who tries to write to their child's
 "address" finds out at once.
 
+**The teacher chooses their half at set-up** (2026-08-30). `set-password.html` asks a Pilot user
+redeeming an invite for two things alongside their password: the `displayName` their students see,
+and their `handle` — prefilled with the slug that would otherwise have been minted silently, and with
+the resulting `austen@‹handle›.tau` shown live under the field. **Account set-up is the only moment
+the question can be asked**: the handle is written into every student username the first time a
+roster is saved and is never recomputed, so a form offering it later would be offering a change it
+cannot make. `needsRosterSetup()` gates it on invite + teacher + `codeRoster` + no existing handle,
+and the server re-derives that from the token on submit, so a body replayed against a named
+teacher's invite sets nothing. Everyone else — a named teacher, a reset — sees the page unchanged.
+`freeHandle()` is shared by the suggestion and the mint, so a suggested handle is one that is
+actually free; taken-ness is still re-checked on submit. `firstName`/`lastName` are **not** touched:
+they are the administrator's record of who the account belongs to and the seed for the suggestion.
+Validation is `/^[a-z0-9](?:[a-z0-9-]{0,18}[a-z0-9])?$/` — hyphens allowed because the collision walk
+mints them. `teacherHandle()` survives as the fallback for a teacher granted `codeRoster` after
+set-up.
+
 **Neither half is ever recomputed.** The teacher's half is a `handle` minted once onto their account
 and checked unique across the whole store; the student's half is a `username` stored on theirs. A
 teacher who becomes "Mrs. Karim-Lee" in March does not invalidate thirty sign-ins, and renaming a
@@ -200,6 +216,39 @@ school" from "has not accepted yet".
 independently of the student Terms of Use — and a teacher accepts it before they can reach any page.
 `termsCoveredBy` therefore now points at a person who holds a stored `termsVersion`, so the chain
 ends in a version of a document rather than in a name.
+
+### The agreement comes first
+
+**A teacher reads and accepts the Pilot Agreement before the set-up form, not as a tick box on it**
+(2026-08-30). The invite link resolves server-side to `/agreement.html?t=…`; only once the
+acceptance is stored does `/set-password.html?t=…` serve, and the agreement page then bounces
+forward so Back cannot present a decision that has already been made. `needsAgreementFirst()` owns
+the condition — invite, teacher, `needsToAccept` — and both legs are 302s in `redirectedForBadToken`,
+so the order holds with JS off and for links mailed before this existed.
+
+Two reasons, and the second decided it. The agreement is the only thing in the sequence that is a
+*decision* rather than a form field, so a person who is going to decline should reach it before
+choosing a name, a handle and a password — not after. And behind a dialog on a five-field form the
+document is a reference; on its own page it is the job. That second argument is the one
+`agreement.html` was already built on; what changed is noticing it applies to the invite path too,
+and that the set-up form had just grown three fields, which is what made the tick box the smallest
+thing on a page where it was the most important.
+
+`POST /api/auth/terms-accept` is the token-proved twin of `/api/terms/accept`, invite-only — a reset
+proves the same thing about identity but is not an acceptance moment. `agreement.html` renders as a
+gate on the token path because `/api/terms?t=` returns no `acceptedVersion`, so `outstanding` is true
+by construction; its decline route reads **Leave set-up** and goes to sign-in, because there is no
+session to sign out of yet.
+
+**This deliberately creates an account that has accepted but has no password**, reversing the atomic
+write in `redeemCredentialToken`. It is the honest record: they did read it and agree, then left. The
+guarantee that mattered is untouched — `mustAccept` is now `needsToAccept(user)`, so an account still
+cannot come into existence unaccepted, the debt is simply settled a step earlier. And the atomicity
+was always a second lock on a door the `needsToAccept` gate already holds shut: every teacher
+predating the agreement, and everyone after any version bump, sits in that state already.
+
+**Students are unchanged.** Their Terms of Use is still a checkbox on `set-password.html`, they are
+not redirected, and `mustAccept` still requires the version in their submit.
 
 **The Pilot Agreement is deliberately not the DPA.** A DPA binds the *institution* and is signed by
 whoever signs agreements at the school; a teacher clicking a checkbox cannot execute one, and a
@@ -396,7 +445,8 @@ was built is a teacher-acceptable agreement that *routes* to the DPA rather than
 role-keyed pair with independent versions, plus `needsToAccept()`. Two surfaces, and only one of them
 is new:
 
-- **The invite path needed no new screen.** `set-password.html` already had the checkbox, the
+- **⚠ Superseded for teachers 2026-08-30 — see *The agreement comes first* below.** The invite path
+  needed no new screen. `set-password.html` already had the checkbox, the
   document dialog and the version footer, hidden purely on `termsVersion === null` — so returning a
   teacher document from `termsFor()` lit the whole path up. The only markup change was emptying the
   hardcoded "Terms of Use" and its blurb so both come from the server: which document an account
