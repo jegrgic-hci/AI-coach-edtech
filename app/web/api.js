@@ -187,6 +187,23 @@
         desc: 'Your classes, assignments, and students',
       });
     }
+    // The agreement this account accepted, kept reachable so a person can read
+    // back what they agreed to and print a copy. Gated on there being a stored
+    // acceptance rather than on role: a code-roster student is covered by their
+    // teacher and never accepted anything, and offering them a copy would
+    // misrepresent whose agreement it is.
+    //
+    // Labelled with the document's own name, which differs by role — a teacher
+    // holds a Pilot Agreement, a student Terms of Use — so the label names the
+    // thing rather than posing "Legal" or "Your agreement".
+    if (me.termsVersion && !here('/agreement.html')) {
+      out.push({
+        href: '/agreement.html',
+        icon: '§',
+        label: me.role === 'teacher' ? 'Pilot Agreement' : 'Terms of Use',
+        desc: 'Read it again, or print a copy',
+      });
+    }
     // A preview of someone else's experience, not a role this person holds —
     // which is why it stays a menu item rather than becoming a third option in
     // any role switcher.

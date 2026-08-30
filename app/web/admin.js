@@ -391,6 +391,13 @@ function renderTeachers() {
         ${plural(t.classCount, 'class', 'classes')} · ${plural(t.studentCount, 'student', 'students')}<br>
         ${plural(t.assignmentCount, 'assignment', 'assignments')}
         ${t.codeRoster ? '<br>Pilot user' : ''}
+        ${t.namedStudentCount
+          // A chip, and it earns one on both halves of the salience test
+          // (designsystem.md): actionable — a pilot account holding identified
+          // students is a mismatch with their agreement that somebody has to
+          // resolve — and rare, since it should be zero on every row.
+          ? `<br><span class="chip chip-attention">${t.namedStudentCount} named student${t.namedStudentCount === 1 ? '' : 's'}</span>`
+          : ''}
         ${improvementLine(t)}
       </div>
       <div class="teacher-actions">

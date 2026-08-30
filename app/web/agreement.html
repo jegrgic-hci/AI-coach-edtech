@@ -32,9 +32,14 @@
          hiding the only content there is. -->
     <div class="doc-prose agreement-doc" id="docBody" tabindex="0"><p>Loading…</p></div>
 
+    <!-- Version and acceptance sit together, and both print. On paper this
+         line is the whole point: it is what makes the printout a record of an
+         agreement rather than a copy of some wording. -->
     <p class="doc-dialog-version" id="docVersion"></p>
+    <p class="agreement-record hidden" id="docRecord"></p>
 
-    <form id="agreeForm" class="auth-form">
+    <!-- Shown only while an acceptance is outstanding. -->
+    <form id="agreeForm" class="auth-form hidden">
       <div class="field-check terms-check">
         <input type="checkbox" id="agreeCheck">
         <label for="agreeCheck">I have read and agree to this agreement
@@ -44,14 +49,29 @@
 
       <p class="login-error hidden" id="formError" role="alert"></p>
       <button type="submit" class="login-submit" id="submitBtn" disabled>Agree and continue</button>
+      <!-- Answers the question a person asks themselves as they accept
+           something they may want to keep: "will I be able to see this
+           again?" Placed under the button rather than in the document,
+           because it describes where the page lives and not what was agreed
+           to — so it carries no version. -->
+      <p class="agreement-findagain"><strong>You can read this again whenever you like.</strong> It
+        stays in your account menu, and you can print a copy or save it as a PDF for your records.</p>
     </form>
 
-    <!-- The way out. A required agreement with no alternative but acceptance
-         is a dark pattern; the alternative here is genuinely leaving, and it
-         is quieter than the submit it sits under (style.css .auth-alt). -->
-    <div class="auth-alt">
+    <!-- The way out while an agreement is outstanding. A required agreement
+         with no alternative but acceptance is a dark pattern; the alternative
+         here is genuinely leaving, and it is quieter than the submit it sits
+         under (style.css .auth-alt). -->
+    <div class="auth-alt hidden" id="declineRow">
       <span>Not ready to agree?</span>
       <button type="button" class="auth-link" id="signOutBtn">Sign out</button>
+    </div>
+
+    <!-- Shown once there is nothing outstanding: the same document, as a
+         record to keep rather than a decision to make. -->
+    <div class="agreement-actions hidden" id="recordActions">
+      <button type="button" class="login-submit" id="printBtn">Print or save as PDF</button>
+      <a class="auth-link" id="backLink" href="/">Back to your dashboard</a>
     </div>
   </main>
 </div>

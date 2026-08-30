@@ -788,6 +788,63 @@ button:hover { border-color: var(--tau-forest); }
 }
 .agreement-doc:focus-visible { outline: var(--tau-focus-ring); outline-offset: var(--tau-focus-gap); }
 
+/* Who accepted, and when. Sits with the version rather than with the buttons,
+   because on paper the three of them together are the record. */
+.agreement-record { margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink); font-weight: 600; }
+.agreement-actions {
+  display: flex; align-items: center; gap: var(--tau-s5);
+  flex-wrap: wrap; margin-top: var(--tau-s3);
+}
+.agreement-actions .login-submit { margin-top: 0; width: auto; padding-left: var(--tau-s5); padding-right: var(--tau-s5); }
+
+/* Sits under the submit rather than beside the tick box: it is reassurance
+   about what happens after the decision, not a term of it.
+
+   A box rather than a line, so it is not read as more fine print — but
+   DELIBERATELY NOT BLUE. --tau-tool-info is teacher-role surfaces only, never
+   on a page a student sees (designsystem.md Hard Constraints), and both
+   surfaces carrying this note are pages a student sees: a student accepts
+   Terms of Use on set-password.html and opens them here. style.css's
+   .composer-notice-quiet hit the same wall.
+
+   The resolution is the one designsystem.md names for exactly this case
+   (~line 504): take the recommendation's structure — the 3px left rule, same
+   offset and measure — without its hue. Shape carries the emphasis, so no
+   token has to be borrowed out of its role. The fill matches .auth-notice,
+   which is already the notice treatment on this page family. */
+.agreement-findagain {
+  margin: var(--tau-s4) 0 0;
+  background: var(--tau-surface-2);
+  border-left: 3px solid var(--tau-line-strong);
+  border-radius: 0 var(--tau-r-sm) var(--tau-r-sm) 0;
+  padding: 11px 13px;
+  font-size: var(--tau-text-sm);
+  line-height: 1.5;
+  color: var(--tau-ink-soft);
+}
+.agreement-findagain strong { color: var(--tau-ink); }
+
+/* The printed agreement is the document and its record line — nothing else.
+   The two rules that matter most are the scroll box and the theme: .agreement-doc
+   caps at 28rem with overflow-y:auto on screen, which prints exactly one
+   screenful and silently loses the rest of the document; and the shell ground
+   would otherwise lay ink over every page. */
+@media print {
+  .agreement-body { background: #fff; }
+  .agreement-shell { padding: 0; }
+  .agreement-card {
+    max-width: none; border: 0; box-shadow: none; padding: 0; gap: var(--tau-s4);
+  }
+  .agreement-doc {
+    max-height: none; overflow: visible; border: 0; padding: 0;
+  }
+  .agreement-doc h3 { break-after: avoid; }
+  .agreement-doc li, .agreement-doc p { break-inside: avoid; }
+  .agreement-record { border-top: 1px solid #999; padding-top: var(--tau-s3); }
+  /* Controls, and the way back to a screen that does not exist on paper. */
+  .theme-toggle-floating, .agreement-actions, .auth-form, .auth-alt { display: none !important; }
+}
+
 .test-accounts { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); border-top: 1px solid var(--tau-line); padding-top: 12px; }
 .test-accounts summary { cursor: pointer; }
 .test-hint { margin: 10px 0 8px; }

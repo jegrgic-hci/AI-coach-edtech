@@ -23,6 +23,7 @@ async function showIdentity() {
       $('termsOpen').textContent = who.termsTitle;
       $('termsBlurb').textContent = who.termsBlurb;
       $('termsField').classList.remove('hidden');
+      $('termsFindAgain').classList.remove('hidden');
       // Only gate once the checkbox is actually on the page. Disabling the
       // button before this resolves would leave a reset — which never shows
       // the box — unsubmittable if the call failed.

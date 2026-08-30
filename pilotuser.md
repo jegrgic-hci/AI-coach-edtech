@@ -51,15 +51,36 @@ creation — see *Consent*. `improvementEligible` survives as its own checkbox f
 a teacher running **named** accounts whose school signed an agreement. Two situations, two controls,
 one derived answer.
 
-**It governs creation, not sign-in.** A teacher holding it gets a second option in Add students; it
+**It governs creation, not sign-in.** It decides what this teacher's Add students form creates and
 changes nothing about anyone who already exists. This matters because a student can end up on two
 teachers' classes and must not change how they sign in by being added to the second one — so the
 truth about an account lives on the account.
 
-The grant **adds** the anonymous form rather than replacing the named one. A teacher can run a senior
-class by email and a junior class by code; the toggle in Add students chooses per batch. What keeps a
-child's name out of the product is the teacher picking the anonymous form for that class, not the
-server being unable to store one.
+**The grant REPLACES the named form rather than adding to it** (2026-08-30, reversing the opposite
+decision made while this was still a roster *mode*). A Pilot user adds students anonymously and only
+anonymously:
+
+- `POST /api/classes/:id/students` returns **403** on the email path for them — both branches, so
+  adding an *existing* named student is refused as well as creating a new one. An identified child on
+  a roster covered by this agreement is the same exposure either way.
+- The Named/Anonymous toggle is gone from both Add students doors. Which form shows is derived from
+  the account by `applyRosterMode()`, which is the only writer of that state.
+
+The reasoning that previously kept the named path open — that one teacher might run a senior class by
+email and a junior one by code — was reasoning about a *mode*. This is an arrangement with an
+agreement under it, and a product that lets a teacher enter a child's name and address in two clicks
+contradicts a document their school signed. The refusal is the enforcement of that agreement.
+
+**The cost, since the two flags are fused:** a Pilot user genuinely teaching a senior class cannot add
+named students at all. Their outs are for a platform admin to untick Pilot user — which also revokes
+improvement contribution — or to hold the named arrangement instead via `improvementEligible`. This
+is acceptable while every teacher on the system is a pilot teacher. **If that stops being true, the
+fix is to separate the two grants again, not to reopen this hole.**
+
+**Existing exposure is reported, not assumed away.** The admin teacher row shows a
+`namedStudentCount` chip for any Pilot user whose classes still hold `identity: 'email'` students —
+accounts predating the grant or predating this refusal. It should be zero; a non-zero count is the
+one thing about this arrangement an administrator could not otherwise see.
 
 ---
 
@@ -306,6 +327,20 @@ The dashboard does not ask a Pilot user to attest when resuming — they already
 attestation nobody can decline is not an attestation, and asking twice implies the first one was not
 the agreement. It tells them the gap stays out instead.
 
+**`agreement.html` is a gate and a record, chosen by whether the stored version matches the served
+one** (2026-08-30). Outstanding → the tick box and *Agree and continue*, with Sign out as the honest
+alternative. Current → the same document with *Accepted by ‹name› on ‹date›*, a print action, and the
+way back. **The reverse redirect was removed to allow this**: the page used to bounce anyone who had
+already accepted, which kept an accepted agreement from being re-presented as a gate but also made it
+unreachable — and a person cannot keep a record of something they can never open again. Rendering a
+record rather than a gate solves the original concern without taking the document away.
+
+Reached from the account chip, labelled with the document's own name, and **gated on a stored
+`termsVersion` rather than on role** — a code-roster student never accepted anything, and offering
+them a copy would misrepresent whose agreement it is. The print rules matter more than they look:
+`.agreement-doc` caps at 28rem with `overflow-y:auto` on screen, which prints exactly one screenful
+and silently loses the rest.
+
 **The agreement had to say all of this, and now does** (`TEACHER_VERSION` 2026-08-30). The previous
 wording said the work is used without saying it is *every class from creation* — a teacher could
 reasonably have expected the opt-in step the product had until 2026-08-30 — and it never mentioned
@@ -384,3 +419,12 @@ withdrawn window stays excluded. Audit lines read *granted Pilot user* / *revoke
 **Seeded accounts are stamped, not exempted** (`seed.js`, `upsertUser`). A fixture never passes
 through the set-up form, so without the stamp every demo login hit the gate before reaching the
 surface it exists to demonstrate. The gate itself stays the one production runs.
+
+**2026-08-30 — the named path closed.** A Pilot user could still add students by name and email,
+which contradicted the agreement they had just accepted. `POST /api/classes/:id/students` now returns
+403 on the email path for them (both creating a new account and adding an existing one), the
+Named/Anonymous toggle was removed from both Add students doors, and `applyRosterMode()` became the
+sole writer of that state so no path can leave a pilot account showing a paste box. The admin teacher
+row gained a `namedStudentCount` chip so pre-existing exposure is visible rather than assumed away —
+it reads 8 on the demo store, all of them seeded fixtures that predate the grant. See *The grant* for
+why this reverses the earlier decision and what it costs.

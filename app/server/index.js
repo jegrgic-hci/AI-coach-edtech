@@ -1176,6 +1176,11 @@ async function handleApi(req, res, user, route) {
       // Drives the Administration link in the shared account chip. Sent for
       // every role so the chip needs no second request to decide.
       canAdmin: canAdminPeople(user),
+      // Whether this account has an agreement of its own on file. Null for a
+      // code-roster student, who is covered by their teacher and was never
+      // asked — offering them a copy of a document they did not sign would
+      // misrepresent whose agreement it is.
+      termsVersion: user.termsVersion || null,
     });
   }
 
@@ -1192,6 +1197,12 @@ async function handleApi(req, res, user, route) {
       // What they accepted before, so the page can say "this is a new version"
       // rather than presenting a re-ask as a first ask.
       acceptedVersion: user.termsVersion || null,
+      // Who accepted, and when. Only meaningful once there is an acceptance,
+      // and it is what turns a printed copy into a record of an agreement
+      // rather than a copy of some wording — a teacher filing this needs to be
+      // able to show what they agreed to and when, without asking us.
+      acceptedAt: user.termsAcceptedAt || null,
+      acceptedBy: user.termsVersion ? user.displayName : null,
     });
   }
 
@@ -1862,6 +1873,20 @@ async function handleApi(req, res, user, route) {
         improvementClassCount: classes.filter((c) => c.improvement).length,
         classCount: classes.length,
         studentCount: new Set(classes.flatMap((c) => c.studentIds || [])).size,
+        // Named students sitting on a Pilot user's classes. Should be zero:
+        // their agreement says no student PII and the roster route refuses the
+        // named path. A non-zero count is work that predates the grant or
+        // predates that refusal, and it is the one thing about this
+        // arrangement an administrator cannot otherwise see — so it is
+        // reported rather than assumed away. Counted only for pilot accounts,
+        // where it means something.
+        namedStudentCount: t.codeRoster === true
+          ? [...new Set(classes.flatMap((c) => c.studentIds || []))]
+              .filter((id) => {
+                const s = allStudents.find((u) => u.id === id);
+                return s && s.identity !== 'code';
+              }).length
+          : 0,
         assignmentCount: allAssignments.filter((a) => a.teacherId === t.id).length,
         lastActiveAt: lastActive[t.id] || null,
       };
@@ -2643,13 +2668,23 @@ async function handleApi(req, res, user, route) {
       return json(res, 200, await col('classes').get(classDoc.id));
     }
 
-    // The codeRoster grant does NOT close this path. It was written to when
-    // the anonymous roster was the teacher's only form, and the toggle in Add
-    // students changed that on purpose: the same teacher can hold a senior
-    // class rostered by email and a junior one rostered by code, and refusing
-    // here would make the second impossible to serve without a second account.
-    // What keeps a child's name out of the product is the teacher choosing the
-    // anonymous form for that class, not the server being unable to store one.
+    // Closed for a Pilot user (2026-08-30, reversing the opposite decision made
+    // while this grant was still a roster *mode*). It is an arrangement now,
+    // and the agreement under it says we do not collect student PII — so a
+    // product that lets the teacher enter a child's name and address in two
+    // clicks contradicts a document their school signed. The refusal is the
+    // enforcement of that agreement, not a convenience.
+    //
+    // Both branches below are closed, not just account creation: adding an
+    // EXISTING named student to a pilot teacher's class puts an identified
+    // child on a roster covered by that agreement just as surely as making a
+    // new one does.
+    if (user.codeRoster === true) {
+      return json(res, 403, {
+        error: 'This account is a pilot account: students are added anonymously, with access codes. To add named students, ask an administrator to change the arrangement on your account.',
+      });
+    }
+
     const email = String(body.email || '').trim().toLowerCase();
     const displayName = String(body.displayName || '').trim();
     if (!email || !email.includes('@')) return json(res, 400, { error: 'a valid email is required' });
@@ -3238,14 +3273,12 @@ async function redirectedToOwnPage(req, res, route) {
     res.end();
     return true;
   }
-  // And the reverse, so the page cannot be reached once there is nothing to
-  // agree to — an accepted agreement re-presented as a gate reads as a failed
-  // save.
-  if (route === '/agreement.html' && !needsToAccept(user)) {
-    res.writeHead(302, { Location: homePageFor(user) });
-    res.end();
-    return true;
-  }
+  // Deliberately no reverse redirect. The page used to bounce anyone who had
+  // already accepted, so that an accepted agreement was never re-presented as
+  // a gate — but that also made it unreachable, and a person cannot keep a
+  // record of something they can never open again. The page renders a record
+  // instead of a gate when there is nothing outstanding, which solves the
+  // original concern without taking the document away.
 
   // '/' is not a page of its own — it means "wherever this account starts".
   if (route !== '/') {

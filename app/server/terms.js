@@ -117,6 +117,14 @@ effect and give you the chance to stop using the tool.</p>
 // institutional obligations a named roster would carry. If a pilot is ever run
 // on named accounts, this is the wrong document.
 const TEACHER_TERMS = `
+<p><strong>Thank you for taking part in this pilot.</strong> Running an early tool with a real class
+costs you preparation time and a measure of your students' trust, and neither is easily replaced.
+What we learn from your classroom shapes what this becomes.</p>
+<p>Protecting your students is the constraint we built around rather than a promise added afterwards:
+the tool never asks for a student's name or email address, so there is nothing about them for us to
+lose. What follows sets out what that means in practice — what we store, what we do with it, and what
+we ask of you in return.</p>
+
 <h3>What the tool does</h3>
 <p>Your students work through a writing task with an AI assistant, then submit a draft. The tool
 produces a reading of <em>how the student worked</em> — the moves they made in the conversation,
