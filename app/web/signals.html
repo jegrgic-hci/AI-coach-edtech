@@ -12,9 +12,9 @@
 <script src="theme.js"></script>
 <script src="guides.js"></script>
 <style>
-/* Page chrome is levels.html's, kept in step deliberately: the two explainers
-   are a pair a teacher moves between, and two different reading layouts for
-   the same kind of material reads as two different products. */
+/* Page chrome is levels.html's, kept in step deliberately — the three
+   explainers are a set a teacher moves between, and three reading layouts for
+   the same kind of material reads as three different products. */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   background: var(--tau-bg);
@@ -90,10 +90,70 @@ hr.rule { border: 0; border-top: 1px solid var(--tau-line); }
 }
 .note strong { color: var(--tau-ink); }
 
-/* .flag-card and .tray-section-* come from components.css unchanged — this is
-   the same markup the modal rendered, so the guide did not need new styles,
-   only room to be read in. */
+/* ── The signals ──────────────────────────────────────────────────────────
+   The article and its .panels grid are levels.html's and dimensions.html's,
+   kept in step with the same hand-sync the page chrome above uses. This page
+   used to render the dashboard modal's .flag-card markup, whose rules live in
+   dashboard.html and so matched nothing here.
+
+   NO COLOUR RAIL, unlike levels.html: that ramp is for an ordered scale and
+   these seven are neither ordered nor ranked. No amber either — a signal is a
+   question, and the page says so twice already; tinting the cards would argue
+   the opposite before a word is read. */
 .signal-list { display: flex; flex-direction: column; gap: var(--tau-s4); }
+
+.signal {
+  background: var(--tau-surface);
+  border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-md);
+  padding: var(--tau-s5) 22px 22px;
+}
+.signal-name {
+  display: block;
+  font-family: var(--tau-font-serif);
+  font-size: 26px; font-weight: 600; letter-spacing: -0.3px; line-height: 1.15;
+  margin-bottom: 6px;
+}
+/* The slot .dim-name occupies on the dimensions page, holding the same kind of
+   thing: what sort of reading this is, not how it scored. */
+.signal-kind {
+  display: block;
+  font-size: var(--tau-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tau-track-label);
+  color: var(--tau-ink-label);
+  margin-bottom: var(--tau-s3);
+}
+.signal-says {
+  font-family: var(--tau-font-serif);
+  font-size: 17px;
+  line-height: 1.5;
+  max-width: 34rem;
+  margin-bottom: var(--tau-s5);
+}
+
+.panels {
+  display: grid;
+  gap: var(--tau-s4);
+  border-top: 1px solid var(--tau-line);
+  padding-top: var(--tau-s4);
+}
+.panel-label {
+  font-size: var(--tau-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tau-track-label);
+  color: var(--tau-ink-label);
+  margin-bottom: 4px;
+}
+.panel p { margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+.panel p + p { margin-top: 7px; }
+.panel ol {
+  margin: 0; padding-left: 18px;
+  font-size: var(--tau-text-sm); color: var(--tau-ink-soft);
+  display: flex; flex-direction: column; gap: 5px;
+}
 
 ul.plain {
   margin: 0;
@@ -113,9 +173,16 @@ footer {
 }
 footer p { max-width: 40rem; }
 
+/* Same two breakpoints as the other two guides, and the same job: the panels
+   pair up once there is room, and the wide one always spans. */
+@media (min-width: 46rem) {
+  .panels { grid-template-columns: 1fr 1fr; }
+  .panels .panel-wide { grid-column: 1 / -1; }
+}
 @media (max-width: 640px) {
   .doc { padding: var(--tau-s5) var(--tau-s4) 64px; }
   .doc-title { font-size: 28px; }
+  .signal { padding: var(--tau-s4) 16px 18px; }
 }
 </style>
 </head>

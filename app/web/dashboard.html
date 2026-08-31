@@ -1428,22 +1428,12 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .field-invalid input, .field-invalid textarea, .field-invalid select, input.field-invalid, textarea.field-invalid, select.field-invalid {
   border-color: var(--tau-attention);
 }
-.flag-card {
-  padding: var(--tau-s4) 0;
-  border-bottom: 1px solid var(--tau-line);
-}
-.flag-card:last-child { border-bottom: none; }
-.flag-card-header { display: flex; align-items: center; gap: var(--tau-s3); margin-bottom: var(--tau-s2); }
-.flag-card-title { font-size: var(--tau-text-sm); font-weight: 700; }
-.flag-card-desc { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
-.flag-card .tray-section-label { margin: var(--tau-s3) 0 4px; }
-.flag-card-steps { margin: 0; padding-left: var(--tau-s5); display: flex; flex-direction: column; gap: 3px; }
-.flag-card-steps li { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.5; }
-.flag-type-label {
-  font-size: var(--tau-text-label-sm); font-weight: 700;
-  padding: 2px 7px; border-radius: var(--tau-r-pill);
-  flex-shrink: 0;
-}
+/* .flag-card / .flag-type-label were deleted here 2026-09-01, with the markup
+   that was their last caller. The flag modal that owned them is gone, and the
+   only thing still emitting them was signals.html — a page these rules could
+   never reach, since they were never in components.css. That mismatch is what
+   left the signals guide unstyled; it now renders the same article the other
+   two guides do. m3-lab.html keeps its own copy of .flag-type-label. */
 
 /* ── Reflection arc ──
    Same background/border/radius/shadow values as components.css's .card —

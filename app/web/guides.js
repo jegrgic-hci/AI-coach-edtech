@@ -98,31 +98,49 @@ const FLAG_TYPES = {
 };
 
 
-// One card per signal, in FLAG_META order. Same markup the modal used, so the
-// .flag-card / .tray-section-* rules in components.css carry over unchanged.
+const FLAG_TYPE_LABELS = {
+  integrity: 'Integrity',
+  reflection: 'Reflection',
+  score: 'Score analysis',
+};
+
+// One card per signal, in FLAG_META order.
+//
+// THE SAME ARTICLE THE OTHER TWO GUIDES USE — serif name, a micro-label naming
+// what kind of thing it is, the one-line summary, then a .panels grid. It used
+// to emit the dashboard modal's .flag-card markup, and those rules live in
+// dashboard.html's own <style>, so on this page they matched nothing: the list
+// rendered as unstyled stacked text while the level and dimension guides drew
+// proper cards. Three guides a teacher moves between cannot each look like a
+// different product.
+//
+// The kind is a plain label rather than a chip for the same reason: neither of
+// the other two puts a chip in this slot, and a chip on a reference page reads
+// as a status the reader is meant to act on.
 function flagGuideCardsHTML() {
   return Object.entries(FLAG_META).map(([key, f]) => {
-    const type = FLAG_TYPES[key] || 'integrity';
-    const typeLabel = type === 'integrity'
-      ? '<span class="flag-type-label chip-neutral">Integrity</span>'
-      : type === 'reflection'
-        ? '<span class="flag-type-label chip-neutral">Reflection</span>'
-        : '<span class="flag-type-label chip-neutral">Score analysis</span>';
+    const kind = FLAG_TYPE_LABELS[FLAG_TYPES[key] || 'integrity'];
     const steps = f.steps?.length
-      ? `<div class="tray-section-label">What to do</div>
-         <ol class="flag-card-steps">${f.steps.map(s => `<li>${s}</li>`).join('')}</ol>`
+      ? `<div class="panel panel-wide">
+           <p class="panel-label">What to do</p>
+           <ol>${f.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+         </div>`
       : '';
-    return `<div class="flag-card">
-      <div class="flag-card-header">
-        <span class="flag-card-title">${f.short}</span>
-        ${typeLabel}
+    return `<article class="signal">
+      <span class="signal-name">${f.short}</span>
+      <span class="signal-kind">${kind}</span>
+      <p class="signal-says">${f.desc}</p>
+      <div class="panels">
+        <div class="panel">
+          <p class="panel-label">What the tool detects</p>
+          <p>${f.what}</p>
+        </div>
+        <div class="panel">
+          <p class="panel-label">Why it matters</p>
+          <p>${f.why}</p>
+        </div>
+        ${steps}
       </div>
-      <div class="flag-card-desc">${f.desc}</div>
-      <div class="tray-section-label">What the tool detects</div>
-      <div class="tray-section-body">${f.what}</div>
-      <div class="tray-section-label">Why it matters</div>
-      <div class="tray-section-body">${f.why}</div>
-      ${steps}
-    </div>`;
+    </article>`;
   }).join('');
 }
