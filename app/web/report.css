@@ -158,6 +158,24 @@
       line-height: var(--tau-leading-snug);
     }
 
+    /* The worked example's provenance notice. Takes the auditor tint, which is
+       already this page's colour for "the tool talking about itself" rather
+       than for anything measured — the one thing this must never be mistaken
+       for is a reading. */
+    .sample-notice {
+      background: var(--tau-auditor-bg);
+      border-color: transparent;
+      margin-bottom: var(--tau-s5);
+    }
+    .sample-notice-head {
+      font-size: var(--tau-text-xs); font-weight: 700; color: var(--tau-auditor);
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .sample-notice p {
+      margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink);
+      line-height: var(--tau-leading-body);
+    }
+
     /* ── Turn label ────────────────────────────────────── */
     .label-badge {
       font-size: var(--tau-text-label-sm); font-weight: 700; padding: 2px 8px; border-radius: var(--tau-r-pill);

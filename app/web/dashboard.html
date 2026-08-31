@@ -1279,38 +1279,65 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    layer is an overlay of the row's own ink, so one rule now works on the band,
    on the white pane and on the shell. Two rules became one. */
 
-/* "New here" — the two explainers, shown only until the first reading lands.
-   Rows, not cards, and forest + trailing → because they navigate: the same
-   rule .class-row below states, applied to the only other navigating thing on
-   this screen. Quiet by construction — this block sits above real triage on
-   the day it appears, and must never out-shout it. */
-.new-here-links {
-  display: flex; flex-direction: column; gap: var(--tau-s2);
-  margin-top: var(--tau-s3);
+/* A new teacher's Home: two rows of three cards — Set-up, then Learn the tool.
+   White cards, because they are the content on the one day there is none and
+   only content is raised off the shell. NEUTRAL THROUGHOUT: no accent, no band
+   colour, and the done check is ink rather than green. Colour on this page
+   means a measurement, and a green tick beside "Add students" would be the
+   page reporting a reading it does not have. The button is the only saturated
+   thing on the row, which is also the only thing being asked for. */
+.setup-section + .setup-section { margin-top: var(--tau-s6); }
+.setup-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--tau-s4); align-items: stretch; }
+/* Four across for the guides, which carry one sentence each against the set-up
+   cards' two and a button. Both rows step down through two columns rather than
+   straight to one: at the middle width three cards force the roster card's two
+   sentences into a column too narrow to read, but two still hold a line worth
+   reading. */
+.learn-row { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 1150px) { .setup-row, .learn-row { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 780px)  { .setup-row, .learn-row { grid-template-columns: 1fr; } }
+.setup-head { display: flex; align-items: center; gap: var(--tau-s2); }
+/* Same numeral the roster modal's steps use, and for the same job — the order
+   is the only thing saying step 2 comes after step 1 now that neither is
+   disabled. Never the forest fill .roster-step.live takes: that marks the step
+   you are inside, and nobody is inside these. */
+.setup-n {
+  flex-shrink: 0; width: 20px; height: 20px; border-radius: var(--tau-r-pill);
+  display: grid; place-items: center; font-size: var(--tau-text-label-sm); font-weight: 700;
+  background: var(--tau-surface-3); color: var(--tau-ink-soft);
 }
-.new-here-link {
-  display: block;
-  padding: var(--tau-s3) var(--tau-s3) var(--tau-s3) 0;
-  border-top: 1px solid var(--tau-line);
-  text-decoration: none;
-}
-.new-here-link .nh-name {
-  display: block;
+.setup-title { font-size: var(--tau-text-md); font-weight: 700; }
+.setup-desc { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.6; }
+/* The card is a flex column, so a button left to itself spans the full width
+   and stops reading as one action among the words above it. margin-top:auto
+   pins it to the bottom, which is what keeps three buttons on one line when
+   the three descriptions are different lengths. */
+.setup-btn { align-self: flex-start; margin-top: auto; }
+.setup-card .setup-desc { margin-bottom: var(--tau-s3); }
+/* A finished step is quieter than the one being asked for, but not disabled:
+   it is a statement of fact, and the fact is still worth reading. */
+.setup-done .setup-n { color: var(--tau-ink); }
+.setup-done .setup-title { font-weight: 650; }
+/* The whole card navigates, so the title carries the interactive colour and
+   the ↗ that says the guide opens beside the work rather than instead of it. */
+.learn-card { text-decoration: none; }
+.learn-card .setup-title { color: var(--tau-forest); }
+.learn-card .setup-title::after { content: ' ↗'; }
+.learn-card:hover .setup-title { text-decoration: underline; }
+.setup-lede {
   font-size: var(--tau-text-sm);
-  font-weight: 650;
-  color: var(--tau-forest);
-}
-/* ↗, not →: these three open in a new tab, and the arrow that means "along
-   this page" would be promising the wrong thing. */
-.new-here-link .nh-name::after { content: ' ↗'; }
-.new-here-link .nh-desc {
-  display: block;
-  font-size: var(--tau-text-sm);
-  line-height: 1.55;
   color: var(--tau-ink-soft);
-  margin-top: 2px;
+  margin-bottom: var(--tau-s4);
+  max-width: 62ch;
 }
-.new-here-link:hover .nh-name { text-decoration: underline; }
+/* Faint on the shell takes --tau-ink-soft: --tau-ink-faint is a white-ground
+   value and fails at 2.79:1 here. */
+.setup-foot {
+  max-width: 520px;
+  font-size: var(--tau-text-sm);
+  color: var(--tau-ink-soft);
+  margin-top: var(--tau-s4);
+}
 
 /* Classes at a glance: rows, not cards.
    Every other card on Home expands in place; these navigate. Same chrome for
@@ -2856,18 +2883,121 @@ function renderFirstRun() {
       <div class="content-title">Welcome</div>
       <div class="content-meta">${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
     </div>
-    <div class="card-lg" style="max-width:520px">
-      <div style="font-size:var(--tau-text-lg);font-weight:700;margin-bottom:6px">Start with a class</div>
-      <div style="font-size:var(--tau-text-sm);color:var(--tau-ink-soft);line-height:1.6;margin-bottom:var(--tau-s5)">
-        Add your students to it, then assign work — an assignment goes to everyone on the class
-        automatically, so there's no roster to hand-pick each time.
-      </div>
-      <button class="btn btn-primary" onclick="openNewClassModal()">Create your first class</button>
-      <div style="font-size:var(--tau-text-sm);color:var(--tau-ink-faint);margin-top:var(--tau-s4)">
-        Everything here also lives in <strong>+ Add</strong>, top of the sidebar, once you're running.
-      </div>
+    <div class="setup-section">
+      <div class="section-head"><div class="eyebrow">Set-up</div></div>
+      <div class="setup-lede">Three things and you're running.</div>
+      <div class="setup-row">${setupCards().join('')}</div>
     </div>
-    ${newHereBlock()}`;
+    ${newHereBlock()}
+    <div class="setup-foot">
+      Everything here also lives in <strong>+ Add</strong>, top of the sidebar, once you're running.
+    </div>`;
+}
+
+// One card per thing that does not exist yet, gone the moment it does.
+//
+// ALL THREE SHOW ON DAY ONE, numbered, even though only the first can be
+// acted on: a class is a genuine prerequisite (students attach to one, an
+// assignment scopes to classIds), but the complaint this whole surface answers
+// is "yet another tool to learn", and a page that reveals one step at a time
+// never tells a teacher how small the job is. Seeing all three is the answer
+// to that question; being able to press all three is not.
+//
+// A step not yet reachable carries NO BUTTON rather than a disabled one. A
+// dead control is a question the page can't answer — the numeral and the order
+// already say "this one comes after" without offering something that then
+// refuses. Steps 2 and 3 keep their numbers once step 1 is done, so a card's
+// identity doesn't change under a teacher who has half-finished.
+//
+// Archived counts are checked alongside the live ones — a teacher who filed
+// their only assignment away has done this before and is not being onboarded.
+//
+// THREE CARDS, ALWAYS ALL THREE, until the last one is done and the row goes
+// with it. A finished step keeps its card and states WHAT NOW EXISTS instead
+// of how to make it — "English 10", not "a class is the group you teach". A
+// card that repeated its own instructions after the fact would be the one
+// thing on this page a teacher has to work out is already handled.
+function setupCards() {
+  const s = setupState();
+  const only = CLASSES.length === 1 ? CLASSES[0].id : null;
+
+  // Pilot and named teachers add students through different forms —
+  // applyRosterMode() picks one off the account, and the server refuses the
+  // named path for a Pilot user — so the promise above the button differs too.
+  // One description for both would offer anonymity to a teacher whose students
+  // have email addresses.
+  const studentsDesc = codeRosterAllowed()
+    ? `How many students, not who they are — no names, no email addresses. Each gets a username and
+       an access code you hand out, shown once.`
+    : `Paste your roster, one per line — name and school email. Students already on another of your
+       classes are reused.`;
+
+  return [
+    setupCard(1, 'Add a class',
+      s.classes
+        ? classSummary()
+        : `The group you teach. Students join it and assignments go to it, so this one comes first.`,
+      s.classes ? null : 'Create a class', 'openNewClassModal()'),
+
+    setupCard(2, 'Add students',
+      s.students ? studentSummary() : studentsDesc,
+      // Not yet reachable without a class, and offered the moment there is one.
+      s.students || !s.classes ? null : 'Add students',
+      `openAddStudentsModal(${only ? `'${only}'` : ''})`),
+
+    setupCard(3, 'Create an assignment',
+      s.assignments
+        ? assignmentSummary()
+        : `The work they'll do with the AI. It goes to everyone on the class automatically, and their
+           sessions appear here as they submit.`,
+      s.assignments || !s.classes ? null : 'Create an assignment',
+      `openNewAssignmentModal(${only ? `['${only}']` : ''})`),
+  ];
+}
+
+// The three questions the set-up row answers, in one place because renderHome
+// asks them too — Home is the guide until all three are true, and there is
+// nothing for a dashboard to show before then anyway: no roster means no
+// submissions, and no assignment means no submissions either.
+function setupState() {
+  return {
+    classes: CLASSES.length > 0,
+    students: CLASSES.some(c => (c.studentIds || []).length > 0),
+    assignments: ASSIGNMENTS.length > 0 || ARCHIVED_ASSIGNMENTS.length > 0,
+  };
+}
+function setupComplete() {
+  const s = setupState();
+  return s.classes && s.students && s.assignments;
+}
+
+const classSummary = () => CLASSES.length === 1
+  ? esc(CLASSES[0].name)
+  : `${CLASSES.length} classes — ${esc(CLASSES.map(c => c.name).join(', '))}`;
+const studentSummary = () => `${STUDENTS.length} student${STUDENTS.length === 1 ? '' : 's'} added`;
+const assignmentSummary = () => ASSIGNMENTS.length === 1
+  ? esc(ASSIGNMENTS[0].title)
+  : `${ASSIGNMENTS.length} assignments`;
+
+// Three states, and the difference between the last two is the whole reason
+// this isn't a disabled button:
+//   done    — a check in place of the numeral, and what exists in place of the
+//             instructions. NEUTRAL: a green tick is the colour this page uses
+//             for a reading, and set-up is not a reading.
+//   ready   — numeral, instructions, button.
+//   later   — numeral, instructions, and nothing to press. A dead control is a
+//             question the page can't answer; the order already says "after".
+function setupCard(n, title, desc, action, onclick) {
+  const done = !action && !!setupState()[['classes', 'students', 'assignments'][n - 1]];
+  return `
+    <div class="card card-lg setup-card${done ? ' setup-done' : ''}">
+      <div class="setup-head">
+        <span class="setup-n">${done ? '✓' : n}</span>
+        <span class="setup-title">${title}</span>
+      </div>
+      <div class="setup-desc">${desc}</div>
+      ${action ? `<button class="btn btn-primary setup-btn" onclick="${onclick}">${action}</button>` : ''}
+    </div>`;
 }
 
 // The two explainers, offered where a teacher has room to read them and nothing
@@ -2879,31 +3009,40 @@ function renderFirstRun() {
 // once does not earn permanent real estate on a triage surface — the same
 // reasoning that moved "Worth a chat, explained" off the header and into the
 // account menu, which is still where a teacher finds these on any later day.
+// Cards in a row of three, matching the set-up row above them — the two rows
+// are the whole of a new teacher's Home, and two different card shapes for two
+// adjacent rows would be drift, not distinction. What separates them is that
+// these navigate and those act, which the ↗ and the absence of a button carry.
 function newHereBlock() {
+  // New tab, all three: this row sits on a Home a teacher is in the middle of
+  // setting up, and a guide read at that moment is read beside the work rather
+  // than instead of it. Navigating away would cost the scroll position, any
+  // open modal, and the reason they were here.
+  const card = (href, key, name, desc) => `
+    <a class="card card-lg setup-card learn-card" href="${href}" target="_blank" rel="noopener"
+       onclick="logUse('dashboard','new-here-${key}')">
+      <div class="setup-title">${name}</div>
+      <div class="setup-desc">${desc}</div>
+    </a>`;
   return `
-    <div class="card-lg new-here" style="max-width:520px;margin-top:var(--tau-s5)">
-      <div class="eyebrow">New here</div>
-      <div style="font-size:var(--tau-text-sm);color:var(--tau-ink-soft);line-height:1.6">
-        Take a moment to read through the specific language of Transformative AI Use before the
-        first submissions land.
+    <div class="setup-section">
+      <div class="section-head"><div class="eyebrow">Learn the tool</div></div>
+      <div class="setup-lede">
+        The language a reading is written in — worth twenty minutes before the first submissions land.
       </div>
-      <!-- New tab, all three: this block sits on a dashboard a teacher is in
-           the middle of setting up, and a guide read at that moment is read
-           beside the work, not instead of it. Navigating away would cost the
-           scroll position, any open modal, and the reason they were here. -->
-      <div class="new-here-links">
-        <a class="new-here-link" href="levels.html" target="_blank" rel="noopener" onclick="logUse('dashboard','new-here-levels')">
-          <span class="nh-name">Agency levels</span>
-          <span class="nh-desc">Where a student's own thinking entered the work — and what each level does not mean</span>
-        </a>
-        <a class="new-here-link" href="dimensions.html" target="_blank" rel="noopener" onclick="logUse('dashboard','new-here-dimensions')">
-          <span class="nh-name">The four dimensions</span>
-          <span class="nh-desc">The four questions asked of every session, how each is scored, and why they are never added up</span>
-        </a>
-        <a class="new-here-link" href="signals.html" target="_blank" rel="noopener" onclick="logUse('dashboard','new-here-signals')">
-          <span class="nh-name">Worth a chat</span>
-          <span class="nh-desc">The signals we check every submission for, and why each one is a question rather than a verdict</span>
-        </a>
+      <div class="setup-row learn-row">
+        ${card('levels.html', 'levels', 'Agency levels',
+          "Where a student's own thinking entered the work — and what each level does not mean")}
+        ${card('dimensions.html', 'dimensions', 'The four dimensions',
+          'The four questions asked of every session, and why they are never added up')}
+        ${card('signals.html', 'signals', 'Worth a chat',
+          'What we check every submission for, and why each one is a question rather than a verdict')}
+        ${/* Fourth, and last, because the three above are the vocabulary this
+              one is written in. The description says what it is and what it
+              isn't — adult work, one draft — so nobody arrives expecting the
+              draft-to-draft view and reads its absence as the tool's. */''}
+        ${card('report.html?id=sample-bikeguide', 'sample', 'A worked example',
+          'A real session read end to end — the level, the four readings and the transcript behind them. Adult work, one draft')}
       </div>
     </div>`;
 }
@@ -3414,7 +3553,15 @@ function assignmentBandNote(a, students) {
 
 
 function renderHome() {
-  if (!CLASSES.length && !ARCHIVED_CLASSES.length) return renderFirstRun();
+  // Home IS the set-up guide until all three exist — not a dashboard with a
+  // hint on it. There is nothing for the triage surface to show before then by
+  // construction: an empty roster produces no submissions and so does a class
+  // with no assignment on it, so the alternative is an all-zero page with the
+  // real instruction tucked into a corner of it.
+  //
+  // ARCHIVED_CLASSES is checked so a teacher who filed every class away at the
+  // end of a term is not handed the new-teacher screen in September.
+  if (!setupComplete() && !ARCHIVED_CLASSES.length) return renderFirstRun();
 
   const cohort   = homeCohort();
   const n        = cohort.length;
@@ -3556,7 +3703,7 @@ function renderHome() {
   // Classes exist but nothing has been read yet — the triage tiles are all
   // zero and the two charts have nothing to draw, so this is the one moment
   // Home has room to spare. See newHereBlock().
-  const newHere = cohort.some(c => c.level) ? '' : `<div class="home-band">${newHereBlock()}</div>`;
+  const newHere = cohort.some(c => c.level) ? '' : newHereBlock();
 
   return `
     <div class="home-stack">

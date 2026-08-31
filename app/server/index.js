@@ -20,6 +20,7 @@ const { runAnalysis, analysisIsStale } = require('./analysis');
 const { checkChatBudget, usageToday, HARD_INPUT_TOKENS_PER_DAY } = require('./budget');
 const { config } = require('./school');
 const { seed } = require('./seed');
+const { SAMPLE_ID, sample } = require('./sample');
 const { costOf, isPriced } = require('./prices');
 
 const PORT = process.env.PORT || 8787;
@@ -389,6 +390,14 @@ const USAGE_SURFACES = {
       'add-class': 'New class',
       'add-students': 'Add students',
       'add-assignment': 'New assignment',
+      // The "Learn the tool" row. These four were being written by the client
+      // and rejected here — the areas were never added when the row shipped,
+      // so every open 400'd and nothing was recorded. Whether a new teacher
+      // opens these at all is the only evidence that row is worth its space.
+      'new-here-levels': 'Guide — Agency levels',
+      'new-here-dimensions': 'Guide — The four dimensions',
+      'new-here-signals': 'Guide — Worth a chat',
+      'new-here-sample': 'Guide — A worked example',
     },
   },
   'teacher-detail': {
@@ -1819,6 +1828,15 @@ async function handleApi(req, res, user, route) {
   // GET /api/submissions/:id/report — full TAU disclosure at the draft
   // marker (revised 2026-07-16). Integrity flags remain teacher-only.
   if (req.method === 'GET' && seg1 === 'submissions' && seg3 === 'report') {
+    // The worked example, before the store is touched: it has no record to
+    // fetch and no owner to check. Teachers only — the flags in it are a
+    // teacher's disclosure, and a student has their own report to read.
+    if (seg2 === SAMPLE_ID) {
+      if (user.role !== 'teacher') return json(res, 403, { error: 'forbidden' });
+      const { submission, analysis } = sample();
+      return json(res, 200, { submission, analysis, stale: false, sample: true });
+    }
+
     const submission = await col('submissions').get(seg2);
     if (!submission) return json(res, 404, { error: 'submission not found' });
     if (!await canReadSubmission(user, submission)) return json(res, 403, { error: 'forbidden' });
@@ -1873,6 +1891,13 @@ async function handleApi(req, res, user, route) {
   // this is a history a student reads front to back, not a live sidebar
   // surfacing the most recent thread first.
   if (req.method === 'GET' && seg1 === 'submissions' && seg3 === 'conversations') {
+    // Same exemption as the report route above — the Sessions toggle on the
+    // worked example reads the transcript the reading was made from.
+    if (seg2 === SAMPLE_ID) {
+      if (user.role !== 'teacher') return json(res, 403, { error: 'forbidden' });
+      return json(res, 200, { conversations: sample().conversations });
+    }
+
     const submission = await col('submissions').get(seg2);
     if (!submission) return json(res, 404, { error: 'submission not found' });
     if (!await canReadSubmission(user, submission)) return json(res, 403, { error: 'forbidden' });

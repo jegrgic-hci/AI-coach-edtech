@@ -77,6 +77,18 @@ not licence to improvise — say so and ask, don't invent.**
   applies to anything drawn on the ground itself; inside a card both are unaffected.
 - **NEVER** add a sparkline, trend line, or mini line-chart as decoration. A trend value defaults
   to plain text ("+2 since draft 2") unless a chart there was explicitly requested.
+- **A new teacher's Home is two rows of three cards — Set-up, then Learn the tool — and it stays
+  that page until all three set-up steps are done.** Added 2026-08-31. All three set-up cards show
+  from day one: the surface exists to answer "yet another tool to learn", and revealing one step at
+  a time never says how small the job is. **Seeing all three is the point; pressing all three is
+  not** — a step whose turn has not come carries **no button rather than a disabled one**, because a
+  dead control is a question the page can't answer, while the numeral and the order already say
+  "after". A **done** step keeps its card, swaps the numeral for a check, and replaces its
+  instructions with **what now exists** ("English 10", "24 students added") — a card that repeated
+  its own instructions after the fact is the one thing on the page a teacher would have to work out
+  was already handled. **Set-up carries no colour**: no accent, no band token, an ink check and never
+  a green one, and never the forest numeral fill that means "the step you are inside". Colour on a
+  teacher surface means a measurement, and set-up is not a reading.
 - **Change over time is a flow diagram, never a line.** Added 2026-08-16. A line asserts a rate of
   change through the gap between two readings and nothing was measured in that gap; a ribbon
   asserts only membership — these N students held this reading, then that one. **Strongest reading
@@ -468,6 +480,7 @@ Settled. Don't relitigate without a reason that's changed.
 | **Both light and dark themes ship.** | Students write at night, on phones. Dark is charcoal, not forest — a brand-tinted dark theme becomes a green room. |
 | **Light is the default for everyone; the OS preference is ignored.** | Confirmed 2026-07-20. A teacher projecting the tool shouldn't get a different screen from the class because their laptop is in dark mode. Dark is a choice a reader makes, not one the device makes for them. |
 | **`index.html` is never touched.** | Revertibility guarantee. All work is `app/` only. |
+| **A new teacher's Home *is* the set-up guide, not a dashboard with a hint on it.** *(Added 2026-08-31.)* | The complaint this answers is "yet another tool to learn", so the first screen has to state how small the job is and then be the job. One card per missing thing, a lede that says there are three, and nothing else competing — the triage surface has nothing to triage until all three exist, and a page reporting "✓ all on track" over an empty roster is reporting success at the moment nothing has happened. **All three show on day one even though only the first is actionable, and each stays put and marks itself done** — decided by the product owner 2026-08-31 over two revisions of the build, which first showed only the reachable step and then only the unfinished ones; both left a teacher unable to see the shape of the job. The argument against inert cards was right about disabled *controls* and wrong about the cards. Home reverts to the dashboard once all three exist, and not before: a class with no roster and a class with no assignment both produce zero submissions, so the alternative is an all-zero triage page with the real instruction tucked in a corner. A wizard was rejected: set-up spans days (access codes are handed out in class tomorrow) and a modal sequence cannot be resumed or half-done. The Add students card has two descriptions, chosen off `codeRoster` exactly as `applyRosterMode()` chooses the form — one description for both would promise anonymity to a teacher whose students have email addresses. The **Learn the tool** row's fourth card is a worked example — the real bikeguide session in the real report renderer (`server/sample.js`), never a mock, because a mock drifts from the thing it teaches. It carries its provenance at the top rather than in the card: real session, student turns theirs and the AI's shortened, adult work rather than school work, second person because it is the student's own report. |
 
 ---
 

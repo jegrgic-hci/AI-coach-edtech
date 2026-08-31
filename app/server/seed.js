@@ -32,10 +32,16 @@ const ts = (daysAgo) => new Date(Date.now() - daysAgo * DAY).toISOString();
 // days ago, tsOffset(3) is 3 days from now.
 const tsOffset = (days) => new Date(Date.now() + days * DAY).toISOString();
 
-async function upsertUser({ email, displayName, role, schoolAdmin = false }) {
+async function upsertUser({ email, displayName, role, schoolAdmin = false, codeRoster = false, handle = null }) {
   let user = (await col('users').list({ email }))[0];
   if (!user) {
-    user = await col('users').add({ email, displayName, role, schoolAdmin, createdAt: ts(60) });
+    user = await col('users').add({
+      email, displayName, role, schoolAdmin, codeRoster,
+      // Minted once and never recomputed (`pilotuser.md`), so it is written at
+      // creation and left alone afterwards — including here.
+      ...(handle ? { handle } : {}),
+      createdAt: ts(60),
+    });
   }
   if (user.displayName !== displayName) user = await col('users').update(user.id, { displayName });
   // Role and grant are re-applied on every seed rather than only at creation:
@@ -345,6 +351,17 @@ async function seed() {
   // The platform-admin account `admin@school.dev` (Dana Okoye) was seeded here
   // and is deleted. `admin.html` is reached with a real platform-admin account;
   // `bootstrap-admin.js` creates the first one on an empty store.
+
+  // Two teachers with NOTHING on them, and nothing is the point: they are the
+  // only way to see the new-teacher Home, which every other seeded account has
+  // already passed through. Deliberately never given a class here — a seed
+  // that "helpfully" set one up would delete the state it exists to show.
+  //
+  // Two, not one, because the Add students card describes a different form for
+  // each: a Pilot user (`codeRoster`) adds anonymous students by count, and
+  // everyone else pastes a roster of names and email addresses.
+  await upsertUser({ email: 'newteacher@school.dev', displayName: 'Mr. Blank', role: 'teacher' });
+  await upsertUser({ email: 'pilotteacher@school.dev', displayName: 'Ms. Pilot', role: 'teacher', codeRoster: true, handle: 'pilot' });
 
   // Users first, so class membership (which is by studentId) can be built
   // before any assignment or class record needs it.

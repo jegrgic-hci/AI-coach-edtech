@@ -12,6 +12,8 @@ const TEST_ACCOUNTS = [
   { email: 'elena@school.dev', note: 'student — American Literature, on the final open draft (in progress)' },
   { email: 'marcus@school.dev', note: 'student — American Literature, integrity flags, open assignment complete' },
   { email: 'teacher@school.dev', note: 'teacher + school administrator — dashboard, roster, and teacher accounts' },
+  { email: 'newteacher@school.dev', note: 'teacher — nothing set up yet: the new-teacher Home, named rosters' },
+  { email: 'pilotteacher@school.dev', note: 'teacher — nothing set up yet: the same Home, anonymous rosters (Pilot user)' },
   { email: 'admin@school.dev', note: 'platform administrator — accounts, product metrics, and cost' },
 ];
 

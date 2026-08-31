@@ -90,7 +90,9 @@
       document.getElementById('pending').textContent = 'Could not load this report.';
       return;
     }
-    const { submission, analysis, stale } = await res.json();
+    const { submission, analysis, stale, sample } = await res.json();
+
+    if (sample) renderSampleNotice();
 
     renderNavCrumbs(document.getElementById('navCrumbs'), [
       { label: 'All assignments', href: '/' },
@@ -140,6 +142,32 @@
   // turn is shown as text rather than as a guessed label.
   function adaptClassified(stored) {
     return stored.map((t) => ({ ...t, text: t.text || t.excerpt || '' }));
+  }
+
+  // Everything a teacher needs to know before reading a word of this one, and
+  // all of it is a claim about provenance rather than a disclaimer:
+  //   - the session is real, and the only real one we have;
+  //   - the student's turns are theirs, the AI's are shortened, so the
+  //     transcript is a record and not a log;
+  //   - it is not school work, so it shows how a reading is written and
+  //     nothing about how drafts move;
+  //   - and it is in the second person because this is the student's own
+  //     report, which is the other half of what it is here to show.
+  // Above the hero, not under it: a reader who learns any of this afterwards
+  // has already read the reading as something it isn't.
+  function renderSampleNotice() {
+    const el = document.createElement('div');
+    el.className = 'card sample-notice';
+    el.innerHTML = `
+      <div class="sample-notice-head">An example — not one of your students</div>
+      <p>This is a real session: a rider co-writing a bicycle maintenance guide with an AI, and the
+      only real transcript we have. Their own turns are as they wrote them; the AI's replies are
+      shortened.</p>
+      <p>It is adult work rather than school work — one draft, no revision — so it shows you how a
+      reading is written and nothing about how a student moves between drafts. It is written in the
+      second person because it is the report <em>they</em> would read.</p>`;
+    const layout = document.querySelector('.results-layout');
+    layout.insertBefore(el, layout.firstChild);
   }
 
   // Placed directly under the hero, not folded into any other card — a
