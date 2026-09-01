@@ -766,7 +766,10 @@ function openTeacherModal(teacher) {
   $('teacherImprovementEligible').checked = teacher ? teacher.improvementEligible === true : false;
   $('improvementEligibleField').classList.toggle('hidden', !data.viewer?.platformAdmin);
   $('teacherCodeRoster').checked = teacher ? teacher.codeRoster === true : false;
-  $('codeRosterField').classList.toggle('hidden', !data.viewer?.platformAdmin);
+  // Not `platformAdmin` like the two above: this grant can be delegated to a
+  // school administrator running pilot onboarding, so the server answers who
+  // may set it and the form asks rather than deciding for itself.
+  $('codeRosterField').classList.toggle('hidden', !data.viewer?.canGrantPilot);
   $('teacherError').classList.add('hidden');
   $('teacherModal').classList.remove('hidden');
   $('teacherFirstName').focus();

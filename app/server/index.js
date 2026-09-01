@@ -152,6 +152,26 @@ function canAdminPeople(user) {
   return isPlatformAdmin(user) || (user.role === 'teacher' && user.schoolAdmin === true);
 }
 
+// Who may mark a teacher as a Pilot user. The other two grants stay
+// platform-only; this one is delegable, and the difference is whose consent
+// each records.
+//
+// `schoolAdmin` is platform-only because a tier that can create its own tier is
+// recursive. `improvementEligible` is platform-only because it records that WE
+// hold a signed agreement with that teacher, so only we can assert it. Neither
+// applies to `codeRoster`: a Pilot user accepts the Pilot Agreement themselves,
+// in the product, before anything of theirs is contributed (terms.js) — so
+// setting this grant asks nobody to consent on the teacher's behalf. It sets up
+// the arrangement the teacher is then free to decline at sign-in.
+//
+// A field on an account rather than a widening of `schoolAdmin`, because it is
+// one person's job and not a property of the role: the school administrator
+// running pilot onboarding gets it, a future one does not unless we say so. It
+// is itself platform-only to hand out, so it does not self-propagate either.
+function canGrantPilot(user) {
+  return isPlatformAdmin(user) || (canAdminPeople(user) && user.canGrantPilot === true);
+}
+
 // Whether this teacher's classes may contribute work to the measurement.
 //
 // Two grants reach the same answer, for two different situations. A named
@@ -2074,7 +2094,7 @@ async function handleApi(req, res, user, route) {
       adminEvents: (await col('adminEvents').list())
         .sort((a, b) => b.ts.localeCompare(a.ts))
         .slice(0, 20),
-      viewer: { role: user.role, platformAdmin: isPlatformAdmin(user) },
+      viewer: { role: user.role, platformAdmin: isPlatformAdmin(user), canGrantPilot: canGrantPilot(user) },
       // What the tool costs is ours, not the school's — a school administrator
       // manages their own people and reads their own product usage, but our
       // margin is not their business. Withheld server-side rather than hidden
@@ -2147,7 +2167,12 @@ async function handleApi(req, res, user, route) {
       // can sit in two teachers' classes and must not change credential type
       // by being added to a second one. So this flag on its own moves nothing
       // — it is read at the point a student account is provisioned.
-      codeRoster: isPlatformAdmin(user) && body.codeRoster === true,
+      //
+      // The one grant a school administrator can be given the ability to set,
+      // so the person running pilot onboarding can do it without us in the
+      // loop on every teacher. See canGrantPilot for why this one and not the
+      // two above.
+      codeRoster: canGrantPilot(user) && body.codeRoster === true,
       // Stays 'active'. "Invited but not signed in yet" is derived from the
       // absence of passwordSetAt, not from a third status value — a new status
       // would have to be understood by isSuspended(), the two status toggles,
@@ -2200,6 +2225,12 @@ async function handleApi(req, res, user, route) {
       if (isPlatformAdmin(user)) {
         patch.schoolAdmin = body.schoolAdmin === true;
         patch.improvementEligible = body.improvementEligible === true;
+      }
+      // Split from the two above rather than sharing their gate, because this
+      // one is delegable — see canGrantPilot. An administrator without the
+      // delegation still never reaches it, and an edit that omits the field
+      // leaves the grant alone rather than silently clearing it.
+      if (canGrantPilot(user)) {
         patch.codeRoster = body.codeRoster === true;
       }
       await col('users').update(teacher.id, patch);
@@ -2215,6 +2246,8 @@ async function handleApi(req, res, user, route) {
         if (patch.improvementEligible !== (teacher.improvementEligible === true)) {
           grantChanges.push(patch.improvementEligible ? 'granted measurement improvement contributor' : 'revoked measurement improvement contributor');
         }
+      }
+      if (canGrantPilot(user)) {
         // Turning this off does not convert the students already provisioned
         // under it — their accounts carry their own credential type — so the
         // line records a change to what the roster form will create next.

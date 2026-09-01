@@ -46,6 +46,13 @@
 //                 control appear, and the class stamp below is what actually
 //                 releases anything. Two keys, because permission to consent
 //                 and the act of consenting are decisions by different people.
+//                 canGrantPilot is a grant on a school administrator
+//                 (2026-09-01), settable only by a platform-admin: it lets them
+//                 set `codeRoster` on the teachers they add, so the person
+//                 running pilot onboarding is not blocked on us for every one.
+//                 Delegable where the other two grants are not, because a Pilot
+//                 user accepts the Pilot Agreement themselves — nobody consents
+//                 on their behalf. See canGrantPilot in index.js.
 //   authSessions  dev login sessions — replaced by Firebase ID tokens in prod:
 //                 { id, userId, token, createdAt, expiresAt }
 //   classes       { id, teacherId, name, studentIds: [], createdAt }
