@@ -2372,7 +2372,7 @@ async function handleApi(req, res, user, route) {
 
   // ---------- teacher routes ----------
 
-  if (seg1 === 'teacher' || (req.method === 'POST' && seg1 === 'assignments' && (!seg2 || seg3 === 'note' || seg3 === 'edit' || seg3 === 'due-dates' || seg3 === 'delete' || seg3 === 'archive')) || (req.method === 'POST' && seg1 === 'submissions' && (seg3 === 'note' || seg3 === 'followed-up')) || (req.method === 'POST' && seg1 === 'classes') || (req.method === 'POST' && seg1 === 'templates')) {
+  if (seg1 === 'teacher' || (req.method === 'POST' && seg1 === 'assignments' && (!seg2 || seg3 === 'note' || seg3 === 'edit' || seg3 === 'due-dates' || seg3 === 'delete' || seg3 === 'archive')) || (req.method === 'POST' && seg1 === 'submissions' && (seg3 === 'note' || seg3 === 'flag-decision')) || (req.method === 'POST' && seg1 === 'classes') || (req.method === 'POST' && seg1 === 'templates')) {
     if (user.role !== 'teacher') return json(res, 403, { error: 'teacher only' });
   }
 
@@ -2964,7 +2964,29 @@ async function handleApi(req, res, user, route) {
       Promise.all(assignments.map((a) => col('sessions').list({ assignmentId: a.id }))),
       col('signalMarks').list({ teacherId: user.id }),
     ]);
-    const markedAtBySubmission = new Map(marks.map((m) => [m.submissionId, m.markedAt]));
+    // Two shapes live in this collection. A mark written since 2026-09-01
+    // carries a flagKey and an outcome and belongs to ONE flag. A mark written
+    // before it has neither: it says the teacher dealt with a whole draft, and
+    // there is no honest way to spread that across the flags it covered.
+    //
+    // Legacy marks therefore keep suppressing the draft — a teacher who has
+    // already had the conversation must not have it raised at them again — but
+    // they carry no outcome, so nothing downstream can read them as evidence
+    // for or against any detector. Unknown is recorded as unknown.
+    const decisionsBySubmission = new Map();
+    const legacyMarkedBySubmission = new Map();
+    for (const m of marks) {
+      if (!m.flagKey) {
+        legacyMarkedBySubmission.set(m.submissionId, m.markedAt);
+        continue;
+      }
+      if (!decisionsBySubmission.has(m.submissionId)) decisionsBySubmission.set(m.submissionId, {});
+      decisionsBySubmission.get(m.submissionId)[m.flagKey] = {
+        outcome: m.outcome,
+        reason: m.reason || null,
+        markedAt: m.markedAt,
+      };
+    }
 
     const submissions = {};
     for (const s of students) for (const a of assignments) submissions[`${s.id}_${a.id}`] = [];
@@ -3062,11 +3084,15 @@ async function handleApi(req, res, user, route) {
         // capture was built. Self-report, never evidence: the surfaces that
         // draw it deliberately put no reading beside it.
         ...(sub.reflection ? { reflectionType: sub.reflectionType, reflection: sub.reflection } : {}),
-        // When this teacher marked the draft's flags as followed up — null
-        // for every unflagged draft and every flagged one still open. Rides
-        // on the submission rather than arriving as a separate id list
-        // because every reader of it already has the submission in hand.
-        followedUpAt: markedAtBySubmission.get(sub.id) || null,
+        // This teacher's ruling on each of the draft's flags, keyed by flag —
+        // `{ [flagKey]: { outcome, reason, markedAt } }`, absent keys being the
+        // flags still open. Rides on the submission rather than arriving as a
+        // separate list because every reader of it already has the submission
+        // in hand.
+        flagDecisions: decisionsBySubmission.get(sub.id) || null,
+        // A pre-2026-09-01 draft-level mark, kept only so it still suppresses
+        // the draft it was made on. Carries no outcome and no attribution.
+        followedUpAt: legacyMarkedBySubmission.get(sub.id) || null,
         ...(done && analysis.flags?.length ? { integrityFlags: analysis.flags.map((f) => f.flag) } : {}),
         // Behavioural patterns detected off the turn sequence — ids only.
         // The turn spans stay on the analysis doc: the dashboard aggregates
@@ -3280,42 +3306,61 @@ async function handleApi(req, res, user, route) {
     return json(res, 200, { ok: true });
   }
 
-  // POST /api/submissions/:id/followed-up — the teacher marking that they've
-  // had the conversation this draft's flags were worth having. Presentation
-  // only: the flags stay on the analysis and stay rendered under the draft.
-  // What changes is that the draft stops colouring the student amber and
-  // stops counting them into the triage queue.
+  // POST /api/submissions/:id/flag-decision — the teacher ruling on ONE flag:
+  // `acted` (the conversation covered this) or `nothing` (it didn't earn one).
+  // Presentation only, as before: the flag stays on the analysis and stays
+  // rendered under the draft. What changes is that it stops colouring the
+  // student amber and stops counting them into the triage queue.
   //
-  // Keyed to the draft, not the student: every piece of review-tier evidence
-  // (integrity flags, a score spike) is anchored to one submission, so the
-  // next flagged draft is unmarked by construction and raises the signal
-  // again on its own. Nothing expires and nothing needs re-marking.
+  // Keyed to the FLAG, not the draft (2026-09-01). Every piece of review-tier
+  // evidence is anchored to one flag on one submission, and
+  // teacher-dashboard-design.md's rule is that an override belongs on whatever
+  // its evidence is anchored to — an override at a coarser grain always needs
+  // a rule for when it stops applying, and that rule is always a guess. The
+  // draft-level mark was that coarser grain: on a draft carrying three flags
+  // it could not say which of them was worth the teacher's time, which is the
+  // one thing this record exists to answer.
   //
-  // A re-analysis of an already-marked draft could add a flag underneath the
-  // mark. Left as-is: retry-analysis is a rare admin repair, and a mark the
-  // teacher set after reading the draft is still a fact about that draft.
-  if (req.method === 'POST' && seg1 === 'submissions' && seg3 === 'followed-up') {
+  // The signal still renews itself with no expiry rule, for the same reason it
+  // did before: the next flagged draft arrives with every flag undecided by
+  // construction.
+  if (req.method === 'POST' && seg1 === 'submissions' && seg3 === 'flag-decision') {
     const submission = await col('submissions').get(seg2);
     if (!submission) return json(res, 404, { error: 'submission not found' });
     if (!(await teacherScope(user)).students.some((s) => s.id === submission.studentId)) {
       return json(res, 403, { error: 'not your student' });
     }
     const body = await readBody(req);
-    // Deterministic id so marking twice is idempotent rather than two docs,
-    // and unmarking is a delete without a lookup.
-    const id = `${user.id}_${submission.id}`;
-    if (body.marked === false) {
+    const flagKey = String(body.flagKey || '').trim();
+    if (!flagKey) return json(res, 400, { error: 'flagKey required' });
+
+    // Deterministic id so deciding twice is idempotent rather than two docs,
+    // and clearing is a delete without a lookup.
+    const id = `${user.id}_${submission.id}_${flagKey}`;
+    if (!body.outcome) {
       await col('signalMarks').delete(id);
-      return json(res, 200, { ok: true, marked: false, markedAt: null });
+      return json(res, 200, { ok: true, outcome: null, markedAt: null });
     }
+    if (body.outcome !== 'acted' && body.outcome !== 'nothing') {
+      return json(res, 400, { error: 'outcome must be "acted", "nothing", or null' });
+    }
+    // Only a rejection carries a reason: "why wasn't this worth raising" is
+    // the answer that improves the detector, and asking the same of a
+    // confirmation would be asking a teacher to justify doing their job.
+    const reason = body.outcome === 'nothing'
+      ? String(body.reason || '').trim().slice(0, 2000) || null
+      : null;
     const markedAt = now();
     await col('signalMarks').set(id, {
       teacherId: user.id,
       studentId: submission.studentId,
       submissionId: submission.id,
+      flagKey,
+      outcome: body.outcome,
+      reason,
       markedAt,
     });
-    return json(res, 200, { ok: true, marked: true, markedAt });
+    return json(res, 200, { ok: true, outcome: body.outcome, reason, markedAt });
   }
 
   // POST /api/events — client-observed signals (copy, episode-save/resume)

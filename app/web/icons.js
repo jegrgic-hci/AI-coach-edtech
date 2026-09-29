@@ -24,6 +24,17 @@ const ICONS = {
     '<path d="M8.5 5 15 12l-6.5 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
   close:
     '<path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+  // close's counterpart. The two are only ever drawn as a pair — a flag the
+  // teacher confirmed against one they rejected — so the check is set to the
+  // same 1.8 weight rather than the 1.6 most of this file uses.
+  check:
+    '<path d="M5 12.5 9.5 17 19 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+  // Marks the one piece of text on a draft the student never sees. Needed the
+  // moment a teacher writes a private reason inches from the note that IS
+  // published to them — the distinction is too costly to leave to a tint.
+  lock:
+    '<rect x="4.5" y="10.5" width="15" height="9.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/>'
+    + '<path d="M8 10.5V7.75a4 4 0 0 1 8 0v2.75" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
   search:
     '<circle cx="11" cy="11" r="6.25" fill="none" stroke="currentColor" stroke-width="1.6"/>'
     + '<path d="m15.6 15.6 4.4 4.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',

@@ -139,15 +139,23 @@
 //                 than migrated away — they are the record of which teacher
 //                 granted what, and deleting history to tidy a schema trades
 //                 something irreplaceable for nothing.
-//   signalMarks   { id, teacherId, studentId, submissionId, markedAt }
-//                 A teacher marking one flagged draft as followed up. Id is
-//                 `${teacherId}_${submissionId}` so a second mark overwrites
-//                 rather than duplicates, and unmarking is a delete. Scoped
-//                 to the teacher on purpose — "I've had this conversation"
-//                 is a fact about a person, not about the draft, so a
-//                 co-teacher still sees the flag as open.
+//   signalMarks   { id, teacherId, studentId, submissionId, flagKey, outcome,
+//                   reason, markedAt }
+//                 A teacher's ruling on ONE flag: outcome 'acted' (the
+//                 conversation covered it) or 'nothing' (it didn't earn one),
+//                 with an optional private reason on the latter. Id is
+//                 `${teacherId}_${submissionId}_${flagKey}` so a second
+//                 ruling overwrites rather than duplicates, and clearing is
+//                 a delete. Scoped to the teacher on purpose — "I've had this
+//                 conversation" is a fact about a person, not about the draft.
 //                 Presentation only: it never touches the analysis, and the
 //                 flags stay rendered under the draft either way.
+//                 PRE-2026-09-01 ROWS HAVE NO flagKey AND NO outcome — they
+//                 marked a whole draft. They still suppress the draft they
+//                 were made on, and they are never read as evidence about a
+//                 detector: which of the draft's flags they covered is not
+//                 recoverable, and guessing would put invented data into the
+//                 one record built to measure the detectors.
 //   adminEvents   { id, ts, actorId, actorName, action, targetId, targetName,
 //                   targetRole, detail }
 //                 Every account action taken from the administration surface:

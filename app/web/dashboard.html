@@ -1033,15 +1033,59 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    than to the whole class). */
 .sub-note { padding: var(--tau-s3) var(--tau-s4); font-size: var(--tau-text-sm); margin-top: var(--tau-s2); }
 .integrity-flags-row {
-  display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+  display: flex; flex-direction: column; gap: 0;
   margin-top: 7px; padding-top: 7px;
   border-top: 1px solid var(--tau-line);
 }
+/* One flag, one row, one ruling. Stacked rather than set side by side: side
+   by side is a layout for comparison, and these are judged one at a time on
+   their own evidence. Deliberately NOT a card either — flags render as quiet
+   lines on purpose, and five enclosed amber cards on one student escalates a
+   conversation-starter into a verdict, which the voice rules forbid. */
+.flag-item {
+  display: flex; align-items: flex-start; gap: var(--tau-s3);
+  padding: var(--tau-s2) 0;
+  flex-wrap: wrap;
+}
+.flag-item + .flag-item { border-top: 1px solid var(--tau-line); }
+.flag-item-body { flex: 1 1 20rem; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.flag-item-actions { display: flex; align-items: center; gap: var(--tau-s1); flex-wrap: wrap; }
+/* A ruled-on flag is not an alert, so its evidence steps back — but it stays
+   legible. The ruling changed its salience, not its truth. */
+.flag-item.decided .flag-line { color: var(--tau-ink-faint); }
 .flag-line {
   display: flex; align-items: baseline; gap: var(--tau-s2);
   font-size: var(--tau-text-sm);
   color: var(--tau-ink-soft);
 }
+/* The teacher's private reason for rejecting a flag. Quiet grey against the
+   auditor-tinted .sub-note directly below it — but the tint is not what
+   carries the distinction, the lock and the label are. */
+.flag-reason {
+  margin-top: var(--tau-s1);
+  padding: var(--tau-s2) var(--tau-s3);
+  background: var(--tau-surface-2);
+  border-radius: var(--tau-r-sm);
+  font-size: var(--tau-text-sm);
+  color: var(--tau-ink-soft);
+}
+.flag-reason-lbl {
+  display: flex; align-items: center; gap: 5px;
+  font-family: var(--tau-font-mono); font-size: var(--tau-text-label-sm); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--tau-ink-faint); margin-bottom: 3px;
+}
+.flag-reason-lbl .tau-icon { width: 13px; height: 13px; }
+/* Where the note lands, stated on the note itself. A teacher is typing next
+   to a box that publishes to a child; visibility is part of the content, not
+   something to infer from a border colour. */
+.sub-note-delivery {
+  display: flex; align-items: center; gap: 5px;
+  margin-top: var(--tau-s2);
+  font-size: var(--tau-text-label-sm);
+  color: var(--tau-ink-faint);
+}
+.sub-note-delivery .tau-icon { width: 13px; height: 13px; }
 .flag-learn-more {
   font-size: var(--tau-text-sm); font-weight: 600;
   color: var(--tau-forest);
@@ -2334,11 +2378,27 @@ function flaggedDrafts(subs) {
     .filter(d => d.spike || d.integrity.length);
 }
 
-// `followedUpAt` is the teacher recording that they've had this draft's
-// conversation. It drops the draft out of everything that colours or counts
-// the student and out of nothing else — the flags themselves stay on the
-// analysis and stay rendered under the draft in the drill panel.
-function openFlaggedDrafts(subs) { return flaggedDrafts(subs).filter(d => !d.sub.followedUpAt); }
+// The flags on one draft, as the keys a ruling is stored against. The spike is
+// computed here rather than living in `integrityFlags`, so its key is spelled
+// out — it still needs a stable one, because a ruling has to hang on something
+// that survives a reload.
+function flagKeysOf(d) { return [...(d.spike ? ['score-spike'] : []), ...d.integrity]; }
+
+// A ruling is the teacher's answer on ONE flag: 'acted' (the conversation
+// covered this) or 'nothing' (it didn't earn one). It drops that flag out of
+// everything that colours or counts the student and out of nothing else — the
+// flag itself stays on the analysis and stays rendered under the draft.
+//
+// `followedUpAt` is the pre-2026-09-01 draft-level mark. It suppresses every
+// flag on its draft, because a teacher who already had that conversation must
+// not have it raised at them a second time — but it says nothing about WHICH
+// flag was worth it, and nothing here pretends otherwise.
+function openFlagKeys(d) {
+  if (d.sub.followedUpAt) return [];
+  return flagKeysOf(d).filter(k => !d.sub.flagDecisions?.[k]);
+}
+
+function openFlaggedDrafts(subs) { return flaggedDrafts(subs).filter(d => openFlagKeys(d).length > 0); }
 
 function hasOpenFlagOn(sid, aid) { return openFlaggedDrafts(getSubs(sid, aid)).length > 0; }
 function hasOpenFlag(sid)        { return ASSIGNMENTS.some(a => hasOpenFlagOn(sid, a.id)); }
@@ -2361,13 +2421,20 @@ function _computeStudentSignal(studentId, assignmentId) {
 
   const integrityKeys = [];
   let hasSpikeFlag = false;
-  let flaggedCount = 0, followedUpCount = 0;
+  // Counted per FLAG, not per draft. A draft with two flags where one has been
+  // ruled on is half dealt with, and the student's signal should say so rather
+  // than rounding to either end.
+  let flaggedCount = 0, ruledOnCount = 0;
   assignments.forEach(a => {
     flaggedDrafts(getSubs(studentId, a.id)).forEach(d => {
-      flaggedCount++;
-      if (d.sub.followedUpAt) { followedUpCount++; return; }
-      d.integrity.forEach(f => { if (!integrityKeys.includes(f)) integrityKeys.push(f); });
-      if (d.spike) hasSpikeFlag = true;
+      const keys = flagKeysOf(d);
+      const open = openFlagKeys(d);
+      flaggedCount += keys.length;
+      ruledOnCount += keys.length - open.length;
+      open.forEach(k => {
+        if (k === 'score-spike') hasSpikeFlag = true;
+        else if (!integrityKeys.includes(k)) integrityKeys.push(k);
+      });
     });
   });
   if (integrityKeys.length || hasSpikeFlag) {
@@ -2439,7 +2506,7 @@ function _computeStudentSignal(studentId, assignmentId) {
   // flagged draft has been followed up. Both are quiet, but only the second
   // has a conversation behind it, and a roster that renders them identically
   // makes the mark look like it deleted something.
-  const followedUp = flaggedCount > 0 && followedUpCount === flaggedCount;
+  const followedUp = flaggedCount > 0 && ruledOnCount === flaggedCount;
 
   if (!signals.length) return { status: 'on-track', reason: '', signals: [], followedUp };
   const primary = signals[0];
@@ -5109,34 +5176,63 @@ function renderDrillPanel(subs, label, sig, ctx) {
     const isLast   = i === subs.length - 1;
     const prevSub  = i > 0 ? subs[i - 1] : null;
 
-    const flagLines = [];
+    // One ruling per flag. The pair needs sub.id for the same reason the note
+    // button does — a draft that predates ids has nothing to key a ruling to —
+    // and a legacy draft-level mark stands in for all of them, so those drafts
+    // show the evidence without controls rather than inviting a second answer
+    // to a question already answered.
+    const flagKeys = [...(flagInfo ? ['score-spike'] : []), ...iFlags];
+    const legacyMark = !!sub.followedUpAt;
+    const decidable = !!sub.id && !legacyMark;
+    const openKeys = legacyMark ? [] : flagKeys.filter(k => !sub.flagDecisions?.[k]);
+    const allRuledOn = flagKeys.length > 0 && openKeys.length === 0;
+
+    const choiceBtn = (key, value, current, icon, label) => {
+      const on = current === value;
+      return `<button class="btn btn-choice btn-sm" aria-pressed="${on}"
+        onclick="event.stopPropagation();setFlagDecision('${sub.id}','${key}',${on ? 'null' : `'${value}'`})"
+        >${iconSVG(icon)}${label}</button>`;
+    };
+
+    const flagItem = (key, text, trayCall) => {
+      const d = sub.flagDecisions?.[key] || null;
+      return `<div class="flag-item${d || legacyMark ? ' decided' : ''}">
+        <div class="flag-item-body">
+          <div class="flag-line">
+            <span>${text}</span>
+            <a class="flag-learn-more" onclick="${trayCall}">Learn more</a>
+          </div>
+          ${d && d.outcome === 'nothing' && d.reason
+            ? `<div class="flag-reason">
+                 <span class="flag-reason-lbl">${iconSVG('lock')}Private — only you see this</span>
+                 ${esc(d.reason)}
+               </div>`
+            : ''}
+        </div>
+        ${decidable ? `<div class="flag-item-actions">
+          ${choiceBtn(key, 'acted', d?.outcome, 'check', 'Had the chat')}
+          ${choiceBtn(key, 'nothing', d?.outcome, 'close', 'Not worth raising')}
+          ${d?.outcome === 'nothing'
+            ? `<button class="btn btn-tertiary btn-sm" onclick="event.stopPropagation();openFlagReason('${sub.id}','${key}')">${d.reason ? 'Edit reason' : 'Add a reason'}</button>`
+            : ''}
+        </div>` : ''}
+      </div>`;
+    };
+
+    const flagItems = [];
     if (flagInfo) {
-      flagLines.push(`<div class="flag-line">
-        <span>Score jumped +${flagInfo.scoreDiff} points in ${flagInfo.mins} minutes</span>
-        <a class="flag-learn-more" onclick="openFlagTray('score-spike',{scoreDiff:${flagInfo.scoreDiff},mins:${flagInfo.mins}});event.stopPropagation()">Learn more</a>
-      </div>`);
+      flagItems.push(flagItem('score-spike',
+        `Score jumped +${flagInfo.scoreDiff} points in ${flagInfo.mins} minutes`,
+        `openFlagTray('score-spike',{scoreDiff:${flagInfo.scoreDiff},mins:${flagInfo.mins}});event.stopPropagation()`));
     }
     iFlags.forEach(f => {
-      flagLines.push(`<div class="flag-line">
-        <span>${FLAG_META[f]?.desc || f}</span>
-        <a class="flag-learn-more" onclick="openFlagTray('${f}');event.stopPropagation()">Learn more</a>
-      </div>`);
+      flagItems.push(flagItem(f, FLAG_META[f]?.desc || f, `openFlagTray('${f}');event.stopPropagation()`));
     });
 
-    // The mark belongs to the draft's flags, so it only exists on a row that
-    // has them, and it needs sub.id for the same reason the note button does —
-    // a draft that predates ids has nothing to key a mark to.
-    const followedUp = !!sub.followedUpAt;
-    const markControl = sub.id && flagLines.length
-      ? (followedUp
-        ? `<span class="flag-followed-up">Followed up ${formatShortDate(sub.followedUpAt)}</span>
-           <button class="btn btn-tertiary btn-sm" onclick="event.stopPropagation();setFollowedUp('${sub.id}', false)">Undo</button>`
-        : `<button class="btn btn-tertiary btn-sm" onclick="event.stopPropagation();setFollowedUp('${sub.id}', true)">Mark as followed up</button>`)
-      : '';
-
-    const flagRow = flagLines.length
-      ? `<div class="integrity-flags-row${followedUp ? ' integrity-flags-row-followed-up' : ''}">
-           <div style="flex:1;display:flex;flex-direction:column;gap:3px">${flagLines.join('')}</div>
+    const flagRow = flagItems.length
+      ? `<div class="integrity-flags-row${legacyMark ? ' integrity-flags-row-followed-up' : ''}">
+           ${legacyMark ? `<span class="flag-followed-up">Followed up ${formatShortDate(sub.followedUpAt)}</span>` : ''}
+           ${flagItems.join('')}
          </div>`
       : '';
 
@@ -5144,7 +5240,7 @@ function renderDrillPanel(subs, label, sig, ctx) {
       ? `<span class="sub-chip" style="font-size:var(--tau-text-label-sm);font-weight:600;color:var(--tau-positive);background:var(--tau-positive-bg);padding:2px 7px;border-radius:20px">Final</span>`
       : `<span class="sub-chip" style="font-size:var(--tau-text-label-sm);font-weight:600;color:var(--tau-ink-soft);background:var(--tau-surface-2);border:1px solid var(--tau-line);padding:2px 7px;border-radius:20px">Draft</span>`;
 
-    return `<div class="sub-row list-row-boxed ${(flagInfo || iFlags.length) && !followedUp ? 'flagged' : ''}">
+    return `<div class="sub-row list-row-boxed ${flagKeys.length && !allRuledOn ? 'flagged' : ''}">
       <div class="sub-row-main">
         <span class="sub-num">#${i + 1}</span>
         ${statusChip}
@@ -5157,11 +5253,11 @@ function renderDrillPanel(subs, label, sig, ctx) {
       ${sub.teacherNote ? `<div class="card-edge-auditor sub-note">
         <span class="eyebrow-lbl" style="color:var(--tau-auditor)">${iconSVG('chat')}Your note to this student</span>
         ${esc(sub.teacherNote)}
+        <span class="sub-note-delivery">${iconSVG('arrowForward')}They read this on the report for Draft ${i + 1}</span>
       </div>` : ''}
       ${renderReflectionSection(sub, prevSub)}
       ${sub.id ? `<div class="sub-row-actions">
-        <button class="btn btn-tertiary btn-sm" onclick="event.stopPropagation();openSubmissionNote('${sub.id}', ${i + 1})">${sub.teacherNote ? 'Edit note' : 'Add note'}</button>
-        ${markControl}
+        <button class="btn btn-tertiary btn-sm" onclick="event.stopPropagation();openSubmissionNote('${sub.id}', ${i + 1})">${iconSVG('chat')}${sub.teacherNote ? 'Edit note to student' : 'Send student a note'}</button>
       </div>` : ''}
     </div>`;
   }).join('');
@@ -6167,17 +6263,41 @@ function openMoveStudent(sid) {
 // replacement, so both surfaces stay in sync through the one record.
 // No confirm step either way: nothing is destroyed, the flags stay exactly
 // where they were, and Undo is one click away in the same place.
-async function setFollowedUp(subId, marked) {
-  let sub = null;
+function findSub(subId) {
   for (const subs of Object.values(SUBMISSIONS)) {
     const hit = subs.find(s => s.id === subId);
-    if (hit) { sub = hit; break; }
+    if (hit) return hit;
   }
-  const { markedAt } = await api(`/api/submissions/${subId}/followed-up`, { method: 'POST', body: { marked } });
+  return null;
+}
+
+// One flag, one ruling. `outcome` is 'acted', 'nothing', or null to clear —
+// pressing the selected chip again passes null, which is what makes the pair a
+// two-option toggle rather than two buttons plus a third Undo control.
+//
+// A reason survives a switch to 'acted' on the server (it stores null) and has
+// to be cleared here too, or the patched-in-place copy would keep showing
+// text the store no longer holds.
+async function setFlagDecision(subId, flagKey, outcome, reason = null) {
+  const sub = findSub(subId);
+  const { markedAt } = await api(`/api/submissions/${subId}/flag-decision`, {
+    method: 'POST', body: { flagKey, outcome, reason },
+  });
   // Patched in place as well as refetched — /api/teacher/dashboard takes real
   // seconds, and this changes counts and chips all over the page. The cache
   // has to go with it: every one of those reads a memoized signal.
-  if (sub) sub.followedUpAt = marked ? (markedAt || new Date().toISOString()) : null;
+  if (sub) {
+    if (!outcome) {
+      if (sub.flagDecisions) delete sub.flagDecisions[flagKey];
+    } else {
+      if (!sub.flagDecisions) sub.flagDecisions = {};
+      sub.flagDecisions[flagKey] = {
+        outcome,
+        reason: outcome === 'nothing' ? reason : null,
+        markedAt: markedAt || new Date().toISOString(),
+      };
+    }
+  }
   _signalCache.clear();
   renderContent();
   await loadDashboardData();
@@ -6216,6 +6336,33 @@ function openSubmissionNote(subId, draftNumber) {
       // scroll reset dropped the teacher at the top of the page behind the
       // modal they had just closed. Nothing in the rail depends on a note.
       renderContent();
+    },
+  });
+}
+
+// The private half of what a teacher writes on a draft, and the only text here
+// the student never sees. It runs as a modal rather than an inline field on
+// purpose: the ruling has already landed by the time this opens, so nothing
+// stands between the teacher and clearing the row — the reason is genuinely
+// optional and can be skipped, added later, or never added at all.
+//
+// Offered only on a rejection. "Why wasn't this worth raising" is the answer
+// that improves the detector; asking the same of a confirmation would be
+// asking a teacher to justify having done their job.
+function openFlagReason(subId, flagKey) {
+  const sub = findSub(subId);
+  const current = sub?.flagDecisions?.[flagKey]?.reason || '';
+  const flagName = FLAG_META[flagKey]?.short || flagKey;
+  openObjModal({
+    title: current ? `Edit your reason — ${flagName}` : `Why wasn't this worth raising?`,
+    subtitle: 'Private to you. The student never sees this, and it is not part of your note to them. It tells us which signals are worth surfacing and which aren\'t.',
+    bodyHtml: `<label for="flag-reason-input">Your reason</label>
+      <textarea id="flag-reason-input" rows="4" placeholder="What made this a false alarm on this student's work?">${esc(current)}</textarea>`,
+    confirmLabel: current ? 'Save reason' : 'Add reason',
+    focusId: 'flag-reason-input',
+    onConfirm: async () => {
+      const text = document.getElementById('flag-reason-input').value.trim();
+      await setFlagDecision(subId, flagKey, 'nothing', text || null);
     },
   });
 }
