@@ -852,6 +852,7 @@ function applyClosedState() {
   banner.classList.toggle('hidden', !state.closed && !!state.session);
 
   $('btnSubmit').disabled = state.closed || !state.session;
+  $('btnSubmitCompact').disabled = $('btnSubmit').disabled;
   $('btnNewSession').disabled = state.closed || !state.session;
   if (state.closed) {
     $('composer').classList.add('hidden');
@@ -926,6 +927,7 @@ function renderSessionList() {
   const convs = state.conversations.filter((c) => c.cycleIndex === currentCycle);
 
   $('btnNewSession').disabled = state.closed || !state.session;
+  $('sessionsLabel').textContent = convs.length ? `Sessions (${convs.length})` : 'Sessions';
 
   if (!convs.length) {
     list.append(el('p', 'rail-empty', 'No sessions yet.'));
@@ -1054,6 +1056,9 @@ function renderConversation() {
 
   const locked = hasConv && state.conv.locked;
   $('composer').classList.toggle('hidden', !hasConv || locked || state.closed);
+  // With no conversation open there is no composer, and picking or starting a
+  // session is the only thing to do — so on compact the list is the pane shown.
+  if (!hasConv) showPane('list');
   renderReadingBanner(locked);
   // Hidden while reading an archived draft: "all drafts submitted" is about
   // the assignment as a whole, not the draft being read.
@@ -1336,7 +1341,20 @@ $('btnRename').onclick = async () => {
   renderSessionList();
 };
 
-$('btnNewSession').onclick = startNewSession;
+$('btnNewSession').onclick = () => { showPane('detail'); startNewSession(); };
+
+// List-detail (components.css §19a). Only compact reads data-pane — above it
+// both panes are on screen — so this is safe to set at any width. Choosing a
+// session, or starting one, is the end of the list's job.
+function showPane(which) {
+  $('wsLayout').dataset.pane = which;
+}
+$('btnSessionsBack').onclick = () => showPane('list');
+$('sessionsBackIcon').outerHTML = iconSVG('arrowBack');
+$('sessionList').addEventListener('click', (e) => { if (e.target.closest('.rail-item')) showPane('detail'); });
+// The same action as the list's own Submit draft; a second button, not a
+// second path.
+$('btnSubmitCompact').onclick = () => $('btnSubmit').click();
 
 // Copy from an AI/auditor message = observed extraction.
 document.addEventListener('copy', () => {
@@ -1621,10 +1639,13 @@ $('btnConfirmSubmit').onclick = async () => {
 // body does not scroll on this page — the home content pane does. The
 // workspace view is deliberately not bound: its bar sits directly above
 // .chat-header, which is already the seam.
+// On a phone the whole view scrolls instead, so the hero leaves with the
+// content (style.css) — whichever of the two is scrolling sets the bar.
 {
-  const pane = $('home');
   const bar = $('tauNav');
-  pane.addEventListener('scroll', () => bar.classList.toggle('scrolled', pane.scrollTop > 2), { passive: true });
+  for (const pane of [$('home'), $('viewAssignments')]) {
+    pane.addEventListener('scroll', () => bar.classList.toggle('scrolled', pane.scrollTop > 2), { passive: true });
+  }
 }
 
 mountAccountChip($('accountChip')).catch(() => {});

@@ -357,6 +357,183 @@
     }
   }
 
+  // ---------- rail drawer ----------
+
+  // M3 window size classes (designsystem.md, Hard Constraints). The same two
+  // literals every stylesheet writes; a media query cannot read a token.
+  const SIZE = {
+    compact: window.matchMedia('(max-width: 599px)'),
+    belowExpanded: window.matchMedia('(max-width: 839px)'),
+  };
+  // The rail's presentation for the current window: standing (a column), mini
+  // (the navigation rail holds the column, the full rail is the drawer), or
+  // drawer (no column; opened from the masthead). `slot` is where the masthead
+  // menu button goes. `mini`, if given, is the page's .rail-mini; any
+  // [data-rail-open] inside it opens the drawer. Without one the drawer runs
+  // the whole way below expanded — M3's modal drawer at medium, which a rail
+  // whose destinations don't reduce to a few short labels takes instead
+  // (admin.html). `identity`, if given, is the account chip: it moves into the
+  // drawer's foot on compact only, where the masthead has room for the mark,
+  // the page name and one control; at medium the masthead still holds it.
+  function mountRailDrawer({ rail, slot, identity, mini }) {
+    if (!rail || !slot) return null;
+    const icon = (name) => (window.iconSVG ? window.iconSVG(name) : '');
+    if (!rail.id) rail.id = 'rail';
+    rail.classList.add('rail-drawer');
+    const stateNow = () => (mini
+      ? (SIZE.compact.matches ? 'drawer' : SIZE.belowExpanded.matches ? 'mini' : 'standing')
+      : (SIZE.belowExpanded.matches ? 'drawer' : 'standing'));
+
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'rail-toggle';
+    toggle.setAttribute('aria-label', 'Navigation');
+    toggle.setAttribute('aria-controls', rail.id);
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.innerHTML = icon('menu');
+    slot.prepend(toggle);
+
+    // A screen reader cannot reach the scrim, and VoiceOver's escape gesture
+    // sends no key — so the drawer carries its own way out.
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'rail-drawer-close';
+    closeBtn.setAttribute('aria-label', 'Close navigation');
+    closeBtn.innerHTML = icon('close');
+    rail.prepend(closeBtn);
+
+    const foot = el('div', 'rail-drawer-foot');
+    rail.append(foot);
+    const identityHome = identity && identity.parentNode;
+    const identityNext = identity && identity.nextSibling;
+
+    const scrim = el('div', 'rail-scrim');
+    scrim.hidden = true;
+    document.body.append(scrim);
+
+    let release = null;
+    function setInert(on) {
+      if (release) { release(); release = null; }
+      if (on) release = inertOutside(rail, scrim);
+    }
+
+    const drawer = {
+      get isOpen() { return rail.classList.contains('open'); },
+      open() {
+        if (rail.dataset.state === 'standing' || drawer.isOpen) return;
+        rail.classList.add('open');
+        scrim.hidden = false;
+        toggle.setAttribute('aria-expanded', 'true');
+        setInert(true);
+        closeBtn.focus();
+      },
+      close(returnFocus) {
+        if (!drawer.isOpen) return;
+        rail.classList.remove('open');
+        scrim.hidden = true;
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert(false);
+        closeAllMenus();
+        if (returnFocus) toggle.focus();
+      },
+    };
+
+    toggle.addEventListener('click', (e) => { e.stopPropagation(); drawer.open(); });
+    closeBtn.addEventListener('click', () => drawer.close(true));
+    scrim.addEventListener('click', () => drawer.close(true));
+    rail.addEventListener('keydown', (e) => {
+      // A menu open inside the drawer takes Escape first (tauMenu handles it).
+      if (e.key === 'Escape' && !rail.querySelector('.menu-panel:not([hidden])')) drawer.close(true);
+    });
+    // Choosing a destination is the end of the drawer's job. Capture phase, so
+    // the page's own handler still runs and the drawer is already closing.
+    rail.addEventListener('click', (e) => {
+      if (e.target.closest('.rail-item, .menu-item, a[href]')) drawer.close();
+    }, true);
+
+    if (mini) {
+      mini.addEventListener('click', (e) => {
+        if (e.target.closest('[data-rail-open]')) { e.stopPropagation(); drawer.open(); }
+      });
+    }
+
+    function place() {
+      const state = stateNow();
+      // Crossing a size class with the drawer open closes it rather than
+      // leaving a modal up over a layout that no longer needs one.
+      if (state !== rail.dataset.state) drawer.close();
+      rail.dataset.state = state;
+      toggle.classList.toggle('is-live', state === 'drawer');
+      if (mini) mini.classList.toggle('is-live', state === 'mini');
+      if (!identity) return;
+      if (state === 'drawer' && SIZE.compact.matches) foot.append(identity);
+      else if (identity.parentNode === foot) identityHome.insertBefore(identity, identityNext);
+    }
+    [SIZE.compact, SIZE.belowExpanded].forEach((q) => q.addEventListener('change', place));
+    place();
+    return drawer;
+  }
+
+  // Everything outside `node`'s own ancestry goes inert, so focus and the
+  // reading order stay inside a modal layer while it is open. `keep` is the
+  // scrim, which is a sibling but must stay clickable. Returns the undo.
+  function inertOutside(node, keep) {
+    const made = [];
+    for (let n = node; n && n !== document.body; n = n.parentElement) {
+      for (const sib of n.parentElement.children) {
+        if (sib !== n && sib !== keep && !sib.inert) { sib.inert = true; made.push(sib); }
+      }
+    }
+    return () => made.forEach((n) => { n.inert = false; });
+  }
+
+  // ---------- bottom sheet ----------
+
+  // The supporting pane of a .tpl-supporting below expanded (components.css
+  // §19b). At expanded the pane is simply on screen and none of this acts.
+  // The page supplies the pane (with a .sheet-close in its header) and the
+  // controls that open it; this adds the handle and the scrim, and gives it
+  // the drawer's modal behaviour — inert behind, Escape, focus in and back.
+  function mountSheet({ sheet, openers = [] }) {
+    if (!sheet) return null;
+    const handle = el('div', 'sheet-handle');
+    handle.setAttribute('aria-hidden', 'true');
+    sheet.prepend(handle);
+    if (!sheet.hasAttribute('tabindex')) sheet.tabIndex = -1;
+    const scrim = el('div', 'tau-scrim');
+    scrim.hidden = true;
+    document.body.append(scrim);
+
+    let release = null;
+    let returnTo = null;
+    const s = {
+      get isOpen() { return sheet.classList.contains('open'); },
+      open(from) {
+        if (!SIZE.belowExpanded.matches || s.isOpen) return;
+        returnTo = from || document.activeElement;
+        sheet.classList.add('open');
+        scrim.hidden = false;
+        release = inertOutside(sheet, scrim);
+        sheet.focus({ preventScroll: true });
+      },
+      close() {
+        if (!s.isOpen) return;
+        sheet.classList.remove('open');
+        scrim.hidden = true;
+        if (release) { release(); release = null; }
+        if (returnTo && returnTo.isConnected) returnTo.focus({ preventScroll: true });
+      },
+    };
+    openers.forEach((b) => b.addEventListener('click', () => s.open(b)));
+    sheet.querySelectorAll('.sheet-close').forEach((b) => b.addEventListener('click', () => s.close()));
+    scrim.addEventListener('click', () => s.close());
+    sheet.addEventListener('keydown', (e) => { if (e.key === 'Escape') s.close(); });
+    // Growing into expanded puts the pane on screen beside the main one; a
+    // modal left open over that would be a sheet over its own content.
+    SIZE.belowExpanded.addEventListener('change', () => { if (!SIZE.belowExpanded.matches) s.close(); });
+    return s;
+  }
+
   // Minimal DOM helper — api.js loads before app.js/report-boot.js define
   // their own, and this file has no other dependency to reach for one.
   function el(tag, className, text) {
@@ -392,6 +569,9 @@
   window.requireLogin = toLogin;
   window.renderNavCrumbs = renderNavCrumbs;
   window.renderNavLocal = renderNavLocal;
+  window.mountRailDrawer = mountRailDrawer;
+  window.mountSheet = mountSheet;
+  window.TAU_SIZE = SIZE;
   // Exported so dashboard.html's "+ Add" picker gets the same keyboard model
   // as the account menu instead of keeping its own half of the behaviour.
   window.tauMenu = tauMenu;

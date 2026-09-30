@@ -158,6 +158,11 @@
    covers this variant too, so the old "pointer-dense toolbars only" caveat no
    longer applies and has been removed rather than left as folklore. */
 .btn-sm { min-height: var(--tau-h-chip); font-size: var(--tau-text-sm); padding: 0 var(--tau-s3); }
+/* The ::after above covers the target vertically only; on a touch screen a
+   thumb is wider than a cursor, and 36px was always a desktop concession.
+   Below expanded, not below phone: the medium class is tablets (Hard
+   Constraints, 2026-09-29). */
+@media (max-width: 839px) { .btn-sm { min-height: var(--tau-target); } }
 
 /* The confirm button on an irreversible action, and the only filled control in
    the app that isn't forest. Attention rather than caution: deleting an
@@ -172,6 +177,27 @@
    buttons elsewhere on the same row. */
 .btn-tertiary { background: none; border-color: transparent; color: var(--tau-forest); }
 .btn-tertiary:hover:not(:disabled) { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
+
+/* An M3 choice chip: one decision with two answers, at most one selected.
+   Pressing the selected one again clears it, which is what lets a pair carry
+   accept / reject / undecided without a third Undo control.
+   BOTH selected states take the same forest fill. The icon carries accept vs
+   reject, never the colour — caution amber is spoken for by "worth a chat"
+   itself, and attention red would turn a judgement about a signal into a
+   verdict about a student, which the caution/attention split forbids.
+   Set aria-pressed on both, not a class: the selected state has to reach a
+   screen reader, and a toggle button is what this actually is. */
+.btn-choice { background: var(--tau-surface); color: var(--tau-forest); border-color: var(--tau-line-strong); }
+.btn-choice:hover:not(:disabled) { background: var(--tau-surface-2); }
+.btn-choice[aria-pressed="true"] {
+  background: var(--tau-forest);
+  color: var(--tau-on-forest);
+  border-color: var(--tau-forest);
+}
+.btn-choice[aria-pressed="true"]:hover:not(:disabled) {
+  background: var(--tau-forest-lift);
+  border-color: var(--tau-forest-lift);
+}
 
 /* ---------- 3b. icons ----------
    M3-style, self-hosted (icons.js) — see that file for why not the Material
@@ -203,6 +229,7 @@
   font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-disclosure-fg);
   transition: background var(--tau-dur-short) var(--tau-ease-standard), border-radius var(--tau-dur-short) var(--tau-ease-standard);
 }
+@media (max-width: 839px) { .acard-disclosure-toggle { min-height: var(--tau-target); } }
 .acard-disclosure-toggle::-webkit-details-marker { display: none; }
 .acard-disclosure-toggle:hover { background: var(--tau-surface-3); }
 /* The note chip carries the auditor tint even closed, not just its text —
@@ -329,7 +356,7 @@ details[open] > .acard-disclosure-toggle {
    extra row height. */
 .dim-quad-name {
   display: flex; align-items: center; gap: var(--tau-s2);
-  font-size: var(--tau-text-lg); font-weight: 600; color: var(--tau-ink);
+  font: var(--tau-type-title-md); letter-spacing: var(--tau-track-title); color: var(--tau-ink);
 }
 /* Zone 2 — the score as one instrument: the number and its five-pip .steps
    bar read as a single fact on one row, not stacked as two. Forest,
@@ -359,12 +386,6 @@ details[open] > .acard-disclosure-toggle {
 }
 .dim-evidence { color: var(--tau-ink-soft); }
 
-@media (max-width: 640px) {
-  .dim-grid { grid-template-columns: 1fr; }
-  .dim-grid .dim-quad:nth-child(2n) { border-right: none; }
-  .dim-grid .dim-quad:nth-last-child(-n+2) { border-bottom: 1px solid var(--tau-line); }
-  .dim-grid .dim-quad:last-child { border-bottom: none; }
-}
 
 /* ---------- 5. card ---------- */
 
@@ -421,7 +442,7 @@ details[open] > .acard-disclosure-toggle {
 }
 
 .card-head { display: flex; align-items: baseline; gap: var(--tau-s3); flex-wrap: wrap; }
-.card-head h3, .card-head h4 { font-size: var(--tau-text-md); font-weight: 600; }
+.card-head h3, .card-head h4 { font: var(--tau-type-title-sm); }
 
 /* ---------- 6. turn shell ---------- */
 
@@ -437,6 +458,16 @@ details[open] > .acard-disclosure-toggle {
    the measure inside the 45–75 range whatever the window does. The auditor is
    left alone — its full-bleed form is a locked decision below. */
 .turn-coach { max-width: min(72%, 68ch); }
+/* On a phone the cap is the problem, not the window: 72% of ~330px is ~34
+   characters a line, under the 45 the rule above is protecting. The AI turn
+   takes the width; the student's still hugs its own edge, just less. */
+/* A window query, not a pane query, until every surface a turn appears on
+   has panes — outside one a container query has nothing to measure (report
+   and the teacher transcript still to migrate). */
+@media (max-width: 599px) {
+  .turn { max-width: 88%; }
+  .turn-coach { max-width: 100%; }
+}
 
 /* Was --tau-ink-faint. At 10.5px uppercase that sits below the threshold where
    you register the speaker before reading the bubble, which leaves attribution
@@ -633,7 +664,9 @@ details[open] > .acard-disclosure-toggle {
    the labels of. */
 .field-row { display: flex; gap: var(--tau-s3); }
 .field-row > .field { flex: 1; min-width: 0; }
-@media (max-width: 480px) { .field-row { flex-direction: column; } }
+/* A window query on purpose: a field row lives in a modal, which is mounted on
+   body and outside every pane. */
+@media (max-width: 599px) { .field-row { flex-direction: column; } }
 /* Both channels. A 1px border hue change is not a focus indicator — the rule
    designsystem.md already states for the composer, applied here 2026-08-22
    (m3-lab §2). The outline:none this replaces was suppressing tokens.css's own
@@ -738,7 +771,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
   flex-direction: column;
   gap: 14px;
 }
-.confirm h4 { font-size: 17px; font-weight: 600; }
+.confirm h4 { font: var(--tau-type-title-md); letter-spacing: var(--tau-track-title); }
 .confirm p { font-size: var(--tau-text-md); color: var(--tau-ink-soft); }
 .confirm ul {
   margin: 0;
@@ -853,7 +886,8 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
   position: fixed;
   top: 0;
   right: 0;
-  width: 400px;
+  /* Never wider than the screen it slides over — on a phone it is the screen. */
+  width: min(400px, 100vw);
   height: 100%;
   background: var(--tau-surface);
   border-left: 1px solid var(--tau-line);
@@ -874,7 +908,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
   border-bottom: 1px solid var(--tau-line);
   flex-shrink: 0;
 }
-.tray-title { font-size: var(--tau-text-lg); font-weight: 700; color: var(--tau-ink); letter-spacing: -0.2px; flex: 1; }
+.tray-title { font: var(--tau-type-title-md); letter-spacing: var(--tau-track-title); color: var(--tau-ink); flex: 1; }
 .tray-subtitle { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); margin-top: 3px; }
 .tray-close {
   background: none;
@@ -927,6 +961,9 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
   transition: background var(--tau-dur-short) var(--tau-ease-standard);
 }
 .list-row:hover { background: var(--tau-hover-surface); }
+/* Phone: a row with several trailing values wraps them under the name rather
+   than running them off the right edge (Hard Constraints: rows reflow). */
+@media (max-width: 599px) { .list-row { flex-wrap: wrap; row-gap: var(--tau-s1); } }
 .list-row-name { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); }
 .list-row-meta {
   font-size: var(--tau-text-xs);
@@ -986,6 +1023,11 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
   transition: background var(--tau-dur-medium) var(--tau-ease-standard);
 }
 .tau-nav.scrolled { background: var(--tau-surface-2); }
+/* The page name beside the wordmark, on every masthead. Was `header h1` on
+   dashboard/levels/signals/dimensions and `.app-header h1` on teacher/admin —
+   six copies of one rule under two selectors (designsystem.md logged it as
+   debt, 2026-08-24). Title-medium: deliberately subordinate to the mark. */
+.masthead-title { margin: 0; font: var(--tau-type-title-md); letter-spacing: var(--tau-track-title); }
 .tau-nav-mark {
   display: flex;
   align-items: center;
@@ -1034,6 +1076,51 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 }
 
 .tau-nav-fill { flex: 1; min-width: var(--tau-s3); }
+
+/* Phone masthead (designsystem.md Hard Constraints). The mark alone is the
+   brand, so "Thinking" — the text node beside the logo, on every masthead that
+   uses .tau-nav-mark — gives its width to the breadcrumb or page name, which
+   are the only things in the bar that say where you are. Compact, since
+   2026-09-29 (was ≤ 760): at 600 the one-row bar still holds the mark, the
+   trail, the Report/Session toggle and the account. */
+@media (max-width: 599px) {
+  .tau-nav-mark { font-size: 0; gap: 0; }
+  .avatar-trigger .whoami-name { max-width: 12ch; }
+  /* Two rows. One row at 360px left the breadcrumb ~120px, which clipped the
+     current segment — the one part of the trail that says where you are —
+     and pushed the report page wider than the screen once the Report/Session
+     toggle joined it. The mark and the account keep the top; the trail and
+     the toggle (which are both about THIS draft) share the second. */
+  .tau-nav {
+    display: grid; height: auto;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: "mark . chip" "crumbs crumbs local";
+    column-gap: var(--tau-s3);
+    padding: 0 var(--tau-s4);
+  }
+  .tau-nav-mark { grid-area: mark; height: 56px; }
+  .tau-nav > .account-chip { grid-area: chip; justify-self: end; }
+  .tau-nav-fill { display: none; }
+  .tau-nav-crumbs { grid-area: crumbs; min-height: var(--tau-target); }
+  /* With no toggle, its column still measures the chip above it — so the
+     trail takes the whole row rather than stopping where the toggle would. */
+  .tau-nav:has(> .tau-nav-local.hidden) .tau-nav-crumbs { grid-column: 1 / -1; }
+  .tau-nav-crumbs:empty { display: none; }
+  .tau-nav-local { grid-area: local; align-self: center; }
+}
+@media (max-width: 839px) {
+  .tau-nav-local-opt { min-height: 38px; } /* + the pill's 3px frame = 44 */
+}
+/* At every width, not only compact: the title in the middle of the trail gives
+   way first, then the way back (shrink weights 20 vs 1), and the current
+   segment never does — it is the one part that says where you are. Scoped to
+   compact until 2026-09-29, which left the one-row bar at 768 clipping
+   "Draft 3" to "D" while the title beside it kept every character. */
+.tau-nav-crumbs > * { flex-shrink: 0; white-space: nowrap; }
+.tau-nav-crumbs .crumb-label,
+.tau-nav-crumbs .crumb-link { min-width: 3ch; overflow: hidden; text-overflow: ellipsis; }
+.tau-nav-crumbs .crumb-label { flex-shrink: 20; }
+.tau-nav-crumbs .crumb-link { flex-shrink: 1; }
 
 /* Scoped to one draft, never global — rendered only when a conversation and
    a report genuinely both exist for the draft currently on screen. Visually
@@ -1220,6 +1307,130 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 
 /* Empty state for a .rail-body that has nothing in it yet. */
 .rail-empty { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); padding: var(--tau-s2) var(--tau-s3); }
+
+/* ---------- 13b. rail per size class: standing · mini · drawer ---------- */
+
+/* One .rail, three presentations (designsystem.md, Hard Constraints: "The rail
+   takes one presentation per size class, and never loses content").
+     standing  the rail as a column — expanded, and the default before script
+     mini      the M3 navigation rail (.rail-mini, 80px) takes the column; the
+               full rail becomes the drawer, opened from the mini rail's menu
+     drawer    no column at all; the drawer opens from .rail-toggle at the
+               start of the masthead, and the account chip moves into its foot
+   mountRailDrawer() in api.js decides which, from the window, and writes it to
+   the rail as data-state. The CSS below only draws the state — it asks no
+   question of the window itself, so the drawer's styles exist once.
+
+   A page that passes no .rail-mini has no mini state: the drawer runs the
+   whole way below expanded (M3's modal drawer at medium). admin.html is that
+   page — see designsystem.md, "The rail takes one presentation per size
+   class". */
+.rail-toggle, .rail-drawer-close {
+  display: none; align-items: center; justify-content: center;
+  width: var(--tau-target); height: var(--tau-target); flex-shrink: 0;
+  border: none; border-radius: var(--tau-r-pill); background: none;
+  color: var(--tau-ink); cursor: pointer;
+  transition: background var(--tau-dur-short) var(--tau-ease-standard);
+}
+.rail-toggle { margin-left: calc(-1 * var(--tau-s2)); }
+.rail-drawer-close { align-self: flex-end; margin: calc(-1 * var(--tau-s2)) calc(-1 * var(--tau-s1)) 0 0; }
+.rail-toggle:hover, .rail-drawer-close:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
+.rail-toggle:focus-visible, .rail-drawer-close:focus-visible { outline: var(--tau-focus-ring); outline-offset: -2px; }
+.rail-toggle .tau-icon, .rail-drawer-close .tau-icon { width: 24px; height: 24px; }
+.rail-scrim, .rail-drawer-foot { display: none; }
+
+.rail-toggle.is-live,
+.rail[data-state="drawer"] .rail-drawer-close,
+.rail[data-state="mini"] .rail-drawer-close { display: inline-flex; }
+
+.rail[data-state="drawer"],
+.rail[data-state="mini"] {
+  position: fixed; top: 0; bottom: 0; left: 0; z-index: 91;
+  width: min(320px, 86vw); min-width: 0;
+  padding-top: var(--tau-s4);
+  overflow-y: auto;
+  /* The drawer's own edge, since off the page it no longer sits in a column
+     whose neighbour gives it one. Rounded on the side that faces the page —
+     M3's modal drawer. */
+  border-radius: 0 var(--tau-r-xl) var(--tau-r-xl) 0;
+  /* visibility, not display, so the slide has a start state — and hidden,
+     not merely off-screen, so a closed drawer is out of the tab order. */
+  visibility: hidden;
+  transform: translateX(-100%);
+  transition: transform var(--tau-dur-medium) var(--tau-ease-accelerate),
+              visibility 0s linear var(--tau-dur-medium);
+}
+/* One scroller, the drawer. On desktop .rail-body scrolls between a pinned
+   head and foot; at phone height that left a list box ~5 rows tall, cut
+   mid-row, inside a drawer that could itself scroll. */
+.rail[data-state="drawer"] > *, .rail[data-state="mini"] > * { flex-shrink: 0; }
+.rail[data-state="drawer"] .rail-body, .rail[data-state="mini"] .rail-body { flex: none; overflow-y: visible; }
+.rail[data-state].open {
+  visibility: visible;
+  transform: none;
+  box-shadow: var(--tau-shadow-lift);
+  transition: transform var(--tau-dur-medium) var(--tau-ease-decelerate);
+}
+/* The scrim is what gives the drawer its edge: the rail and the page are
+   the same shell value, and a shadow cannot cast from a fill that matches
+   its ground (Hard Constraints, "raised"). */
+.rail-scrim:not([hidden]) {
+  display: block; position: fixed; inset: 0; z-index: 90;
+  background: var(--tau-scrim);
+  animation: tau-fade var(--tau-dur-medium) var(--tau-ease-standard);
+}
+.rail[data-state] .rail-drawer-foot:not(:empty) {
+  display: flex; flex-shrink: 0; margin-top: auto;
+  padding-top: var(--tau-s4);
+  border-top: 1px solid var(--tau-line-strong);
+}
+/* The account menu opens downward from a masthead. At the foot of a drawer
+   there is no room below it. */
+.rail-drawer-foot .menu-panel { top: auto; bottom: calc(100% + 8px); left: 0; right: auto; }
+.rail-drawer-foot .account-chip { margin-left: 0; }
+@keyframes tau-fade { from { opacity: 0; } }
+
+/* ---------- 13c. navigation rail (medium) ---------- */
+
+/* M3's navigation rail: the rail's top-level groups as icon-and-label
+   destinations, and a menu button at its top that opens the full rail as the
+   drawer. It carries no content the drawer does not — every class, filter and
+   count is one tap behind the menu (Hard Constraints: never loses content).
+   The page supplies the destinations, since they are the page's own groups;
+   mountRailDrawer() shows it (.is-live) only in the mini state. */
+.rail-mini { display: none; }
+.rail-mini.is-live {
+  display: flex; flex-direction: column; align-items: center; gap: var(--tau-s3);
+  width: var(--tau-rail-mini-w); flex-shrink: 0;
+  padding: var(--tau-s3) 0;
+}
+.rail-mini-menu {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: var(--tau-target); height: var(--tau-target); margin-bottom: var(--tau-s2);
+  border: none; border-radius: var(--tau-r-pill); background: none; color: var(--tau-ink); cursor: pointer;
+}
+.rail-mini-menu .tau-icon { width: 24px; height: 24px; }
+.rail-mini-item {
+  display: flex; flex-direction: column; align-items: center; gap: var(--tau-s1);
+  width: 100%; min-height: 56px; padding: 0;
+  border: none; background: none; cursor: pointer;
+  font: inherit; font-size: var(--tau-text-label-md); font-weight: 600; color: var(--tau-ink-soft);
+}
+/* The indicator is the pill, not the whole item — M3's 56×32 active
+   indicator. Tonal, as .rail-item.active is: wayfinding never elevates. */
+.rail-mini-pill {
+  display: grid; place-items: center; width: 56px; height: 32px;
+  border-radius: var(--tau-r-pill);
+  transition: background var(--tau-dur-short) var(--tau-ease-standard);
+}
+.rail-mini-pill .tau-icon { width: 22px; height: 22px; }
+.rail-mini-menu:hover,
+.rail-mini-item:hover .rail-mini-pill { background: color-mix(in oklab, var(--tau-ink) var(--tau-state-hover), transparent); }
+.rail-mini-menu:focus-visible { outline: var(--tau-focus-ring); outline-offset: -2px; }
+.rail-mini-item:focus-visible { outline: none; }
+.rail-mini-item:focus-visible .rail-mini-pill { outline: var(--tau-focus-ring); outline-offset: 2px; }
+.rail-mini-item.active { color: var(--tau-ink); cursor: default; }
+.rail-mini-item.active .rail-mini-pill { background: var(--tau-surface); }
 
 /* ---------- 14. menu ---------- */
 
@@ -1499,9 +1710,35 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
   font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.5; margin: 0 0 var(--tau-s3);
 }
 .pattern-try b { color: var(--tau-tool-info); }
-.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--tau-s3); margin-bottom: var(--tau-s2); }
+/* Wraps: when the title and its count do not fit on one line, the count drops
+   under the title whole, rather than both halves wrapping inside themselves
+   into two columns of single words. */
+.section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--tau-s1) var(--tau-s3); margin-bottom: var(--tau-s2); }
 .section-head .eyebrow { margin-bottom: 0; }
 .section-summary { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+
+/* --- .card-title — the title of a top-level card on a teacher surface.
+   Added 2026-09-27. These were eyebrows (12px, grey), which put the card's
+   name BELOW the bold 14.5px finding sentence it sits over: the title read as
+   a caption to its own content. The eyebrow rule allows this — "unless a title
+   one size up already names the group" (designsystem.md, Hard Constraints).
+   19px, not 15.5: --tau-text-lg is 1px over the finding's bold lead and the
+   two would still compete. Ink, not grey — grey stays with the count beside
+   it, which is metadata. An eyebrow still labels a sub-section INSIDE a card. */
+.card-title {
+  font: var(--tau-type-title-lg); letter-spacing: var(--tau-track-title);
+  color: var(--tau-ink);
+  margin: 0 0 var(--tau-s4);
+}
+.section-head .card-title { margin: 0; }
+/* A card inside a card titles one rung down, so it never outranks the card
+   it sits in: the chart pair inside a draft's timeline card, the same pair
+   inside a table row's expanded panel, and anything inside a class overview's
+   tabs (the overview's own title is its direct child, so it keeps the 19px). */
+.tl-card .card-title,
+.drill-row .card-title,
+.overview-card > * .card-title { font: var(--tau-type-title-md); }
+.section-head:has(.card-title) { margin-bottom: var(--tau-s4); }
 
 /* --- .comp — the level composition of a room.
    The cohort form of report-lab.html's .ladder: same four rungs, same
@@ -2022,7 +2259,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
    own box is, and the same grid sits in a full-width page and in a narrower
    card. A container query asks the box. */
 .cols-2up {
-  display: grid; grid-template-columns: 1fr 1fr;
+  display: grid; grid-template-columns: 1fr;
   gap: var(--tau-s6); align-items: stretch;
   container-type: inline-size;
 }
@@ -2032,22 +2269,20 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
    same distinction .home-cols-top already records against .home-cols. */
 .cols-2up > .col { min-width: 0; }
 /* Below this the four-segment bar has no room to hold its numerals, and
-   fitLabels starts pushing them all to the gutter. */
-@container (max-width: 720px) {
-  .cols-2up { grid-template-columns: 1fr; }
-}
-@supports not (container-type: inline-size) {
-  @media (max-width: 1200px) { .cols-2up { grid-template-columns: 1fr; } }
+   fitLabels starts pushing them all to the gutter.
+   FIXED 2026-09-29: this was `@container (max-width: 720px)` with the
+   container-type on .cols-2up ITSELF — and a container query only ever
+   matches an ANCESTOR, never the element that is the container. With no
+   container above it, the rule never fired: the pair stayed two-up at every
+   width, phones included, and only the @supports fallback (browsers without
+   container queries) ever collapsed it. It asks the pane now, compact-first;
+   the container-type above stays, for anything inside the pair to ask. */
+@container pane (min-width: 721px) {
+  .cols-2up { grid-template-columns: 1fr 1fr; }
 }
 
-.home-cols-2up {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: var(--tau-s6); align-items: start;
-}
-.home-cols-2up > .home-col { min-width: 0; }
-/* Same 1200px breakpoint .home-cols already uses — one column below it,
-   in the same reading order. */
-@media (max-width: 1200px) { .home-cols-2up { grid-template-columns: 1fr; } }
+/* .home-cols-2up deleted 2026-09-29 — no renderer uses it; .cols-2up above
+   is what it was generalised into. */
 
 /* The top row: the triage counts, and the same counts per class. Same
    1.45fr/1fr as .home-cols and for the same reason — but STRETCHED
@@ -2062,11 +2297,14 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
    right while one side was a metric readout and the other an entity
    index; it stopped being right when they became the same component. */
 .home-cols-top {
-  display: grid; grid-template-columns: 1fr 1fr;
+  display: grid; grid-template-columns: 1fr;
   gap: var(--tau-s6); align-items: stretch;
 }
 .home-cols-top > .home-col { min-width: 0; }
-@media (max-width: 1200px) { .home-cols-top { grid-template-columns: 1fr; } }
+/* Two up when the pane holds ~340px a side — .feed-pair's threshold (§19c).
+   Was a 1200px window, which at 768 with the navigation rail stacked a pair
+   that fits, and asked nothing of the pane it sits in. */
+@container pane (min-width: 720px) { .home-cols-top { grid-template-columns: 1fr 1fr; } }
 /* The tiles used to be vertically centred here to disguise the fact that
    their band started its content lower than the labelled band beside it.
    Giving that band its own eyebrow fixes the cause — both now start at the
@@ -2240,9 +2478,30 @@ min-height: 24px;
    the header and the agency strip. */
 .trace-row, .trace-head, .trace-agency {
   display: grid;
-  grid-template-columns: minmax(96px, 1.4fr) minmax(0, 3fr) minmax(74px, auto);
   align-items: center;
   gap: var(--tau-s4);
+  /* Narrow, the base: three columns left the cells ~60px for two drafts, and
+     the draft headers and agency names ran into each other. The cells take
+     their own full line under the name and its move. */
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "name move" "cells cells";
+  row-gap: var(--tau-s1);
+}
+.trace-row > :nth-child(1), .trace-head > :nth-child(1), .trace-agency > :nth-child(1) { grid-area: name; }
+.trace-row > :nth-child(2), .trace-head > :nth-child(2), .trace-agency > :nth-child(2) { grid-area: cells; }
+.trace-row > :nth-child(3), .trace-head > :nth-child(3), .trace-agency > :nth-child(3) { grid-area: move; }
+/* Wide: name | cells | move on one line. Asks the pane — the Trace renders only
+   on the dashboard's student view, which is inside it. */
+@container pane (min-width: 600px) {
+  .trace-row, .trace-head, .trace-agency {
+    grid-template-columns: minmax(96px, 1.4fr) minmax(0, 3fr) minmax(74px, auto);
+    grid-template-areas: none;
+    row-gap: var(--tau-s4);
+  }
+  /* :nth-child(n), not *: the base placement is (0,2,0) and a bare * reset at
+     (0,1,1) lost to it — the children kept area names the wide grid no
+     longer defines, and the browser minted implicit columns for them. */
+  .trace-row > :nth-child(n), .trace-head > :nth-child(n), .trace-agency > :nth-child(n) { grid-area: auto; }
 }
 .trace-row, .trace-agency { padding: 5px 0; }
 .trace-agency { border-bottom: 1px solid var(--tau-line); padding-bottom: var(--tau-s3); }
@@ -2322,7 +2581,7 @@ min-height: 24px;
   padding: var(--tau-s5) var(--tau-s6) var(--tau-s4);
   border-bottom: 1px solid var(--tau-line);
 }
-.doc-dialog-head h2 { margin: 0; font-size: var(--tau-text-xl); }
+.doc-dialog-head h2 { margin: 0; font: var(--tau-type-title-lg); letter-spacing: var(--tau-track-title); }
 
 .doc-dialog-close {
   font: inherit; font-size: var(--tau-text-xl); line-height: 1;
@@ -2354,7 +2613,7 @@ min-height: 24px;
 }
 .doc-prose h3 {
   margin: var(--tau-s6) 0 var(--tau-s2);
-  font-size: var(--tau-text-lg); color: var(--tau-ink);
+  font: var(--tau-type-title-md); letter-spacing: var(--tau-track-title); color: var(--tau-ink);
 }
 .doc-prose h3:first-child { margin-top: 0; }
 .doc-prose p, .doc-prose ul { margin: 0 0 var(--tau-s3); }
@@ -2377,3 +2636,159 @@ min-height: 24px;
 /* Separated from the password fields above it: this is a different kind of
    decision, not a third input. */
 .terms-check { margin-top: var(--tau-s4); }
+
+/* ============================================================================
+ * §19  ADAPTIVE LAYOUT — M3 canonical layouts. Added 2026-09-29.
+ *
+ * designsystem.md, Hard Constraints: "Only a layout template and the
+ * navigation ask the window. A component asks its pane." The templates below
+ * are the only rules in this file (besides §13b's rail and the 44px floor)
+ * that may write a window width, and they write only M3's two: 599 / 839.
+ * Everything a template places is in a PANE, and every pane is a size
+ * container named `pane`, so a component inside one writes
+ *   @container pane (min-width: …)
+ * compact-first: its base style is the narrow form, and the query upgrades it.
+ * A browser without container queries (iOS 15 iPads, still in schools) then
+ * gets a working narrow layout rather than a broken wide one.
+ *
+ * Prototyped in app/web/layout-lab.html; verified in app/web/adaptive-lab.html
+ * against the real classes.
+ * ========================================================================= */
+
+/* Inline-size containment means a pane's width can never come from its
+   content — which is right for a grid track and wrong for anything sized
+   shrink-to-fit, so it lives on the pane classes only, never on .card. */
+.pane-list, .pane-detail, .pane-main, .pane-side {
+  container: pane / inline-size;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Visibility by window, for the one control that has to sit in two places
+   (Submit draft: the list's foot, and the conversation's header on compact).
+   !important because it must beat any component's own display, and a
+   utility that loses to the thing it is applied to does nothing. */
+@media (min-width: 600px) { .compact-only { display: none !important; } }
+@media (max-width: 599px) { .not-compact { display: none !important; } }
+
+/* ---------- 19a. list-detail ---------- */
+
+/* Expanded: list | detail at the rail's width. Medium: both panes, the list
+   narrowed to 240 — at 768 that leaves a 528px detail, enough for a
+   conversation. Compact: ONE pane at a time, chosen by data-pane on the
+   template; the detail by default, so the thing being worked on leads. */
+.tpl-list-detail {
+  flex: 1; min-height: 0;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+@media (min-width: 840px) {
+  .tpl-list-detail { grid-template-columns: var(--tau-rail-w) minmax(0, 1fr); }
+}
+/* The list pane is usually a .rail, whose own fixed width would overflow a
+   240px track. Layout, which the template owns. */
+.tpl-list-detail > .pane-list { width: auto; min-width: 0; }
+
+/* The step back from detail to list, labelled with where it goes
+   ("Sessions (3)"). Compact only: above it the list is on screen. */
+.pane-back { display: none; }
+@media (max-width: 599px) {
+  .tpl-list-detail { grid-template-columns: minmax(0, 1fr); }
+  .tpl-list-detail:not([data-pane="list"]) > .pane-list,
+  .tpl-list-detail[data-pane="list"] > .pane-detail { display: none; }
+  .tpl-list-detail .pane-back {
+    display: inline-flex; align-items: center; gap: var(--tau-s1); flex-shrink: 0;
+    min-height: var(--tau-target); padding: 0 var(--tau-s3) 0 var(--tau-s1);
+    border: none; border-radius: var(--tau-r-pill); background: none; cursor: pointer;
+    font: inherit; font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-forest);
+    white-space: nowrap;
+  }
+  .tpl-list-detail .pane-back:hover { background: color-mix(in oklab, var(--tau-ink) var(--tau-state-hover), transparent); }
+  .tpl-list-detail .pane-back:focus-visible { outline: var(--tau-focus-ring); outline-offset: -2px; }
+  .tpl-list-detail .pane-back .tau-icon { width: 20px; height: 20px; }
+}
+
+/* ---------- 19b. supporting pane ---------- */
+
+/* Expanded: main | side, each scrolling on its own. Below expanded the side
+   pane is an M3 modal bottom sheet over the main one, opened by a
+   .sheet-toggle and wired by mountSheet() in api.js — the reader keeps their
+   place, which a whole-view swap lost. One element either way: the window
+   changes its presentation, never its content. */
+.tpl-supporting {
+  flex: 1; min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+.tpl-supporting > .pane-main { overflow-y: auto; }
+.tpl-supporting > .pane-side { display: flex; flex-direction: column; background: var(--tau-surface); }
+.sheet-handle, .sheet-close { display: none; }
+
+@media (min-width: 840px) {
+  .tpl-supporting { grid-template-columns: minmax(0, 1fr) 380px; }
+  /* Content raised off the shell, rounded on the side that faces the main
+     pane — the same treatment as the workspace's chat pane. */
+  .tpl-supporting > .pane-side {
+    overflow-y: auto;
+    border-radius: var(--tau-r-xl) 0 0 0;
+    box-shadow: var(--tau-shadow);
+  }
+  /* Nothing is hidden at expanded, so there is nothing to open. */
+  .sheet-toggle { display: none !important; }
+}
+@media (max-width: 839px) {
+  .tpl-supporting > .pane-side {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 91;
+    margin: 0 auto; max-width: 640px; height: 78dvh;
+    border-radius: var(--tau-r-dialog) var(--tau-r-dialog) 0 0;
+    box-shadow: var(--tau-shadow-lift);
+    /* visibility for the same two reasons as the drawer: the slide needs a
+       start state, and a closed sheet must be out of the tab order. */
+    visibility: hidden;
+    transform: translateY(100%);
+    transition: transform var(--tau-dur-medium) var(--tau-ease-accelerate),
+                visibility 0s linear var(--tau-dur-medium);
+  }
+  .tpl-supporting > .pane-side.open {
+    visibility: visible;
+    transform: none;
+    transition: transform var(--tau-dur-medium) var(--tau-ease-decelerate);
+  }
+  .sheet-handle {
+    display: block; flex-shrink: 0;
+    width: 32px; height: 4px; margin: var(--tau-s3) auto var(--tau-s1);
+    border-radius: 2px; background: var(--tau-line-strong);
+  }
+  .sheet-close {
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    width: var(--tau-target); height: var(--tau-target);
+    border: none; border-radius: var(--tau-r-pill); background: none; color: var(--tau-ink); cursor: pointer;
+  }
+  .sheet-close:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
+  .sheet-close:focus-visible { outline: var(--tau-focus-ring); outline-offset: -2px; }
+}
+@media (max-width: 599px) {
+  .tpl-supporting > .pane-side { height: 90dvh; }
+}
+
+/* The modal layer under a sheet. Same construction as .rail-scrim. */
+.tau-scrim { display: none; }
+.tau-scrim:not([hidden]) {
+  display: block; position: fixed; inset: 0; z-index: 90;
+  background: var(--tau-scrim);
+  animation: tau-fade var(--tau-dur-medium) var(--tau-ease-standard);
+}
+
+/* ---------- 19c. feed ---------- */
+
+/* A column of cards; a .feed-pair puts two side by side when THE PANE can
+   hold them (~340px each), whatever the window is. This replaces the
+   viewport-1200 rules on .cols-2up / .home-cols-2up / .home-cols-top as each
+   surface migrates. */
+.tpl-feed { display: flex; flex-direction: column; gap: var(--tau-s5); min-width: 0; }
+.feed-pair { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--tau-s5); }
+@container pane (min-width: 720px) {
+  .feed-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

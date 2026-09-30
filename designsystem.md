@@ -228,14 +228,20 @@ not licence to improvise — say so and ask, don't invent.**
 - **An empty state distinguishes "we cannot see it" from "we looked and there is nothing."** They are
   different findings and route to different responses. Neither gets the full scaffold of the
   populated state wrapped around no content.
-- Scores display as **1–4 per dimension, or "not enough here". No total, ever. Never a percentage.**
+- Scores display as **1–4 per dimension, or "Not enough evidence". No total, ever. Never a percentage.**
   A class-level figure is a **distribution** (how many students in each band), **never a mean** —
   bands are ordinal. **Amended 2026-08-12** (was "1–5 per dimension, 4–20 total"); see
   `tau-dimensions.md` *The scoring scale* for the scale and `teacher-dashboard-design.md`
   *The unit of every aggregate* for the teacher surfaces.
-- **"Not enough here" is not band 0** — it never shares a cell, a ramp position or a count with
-  band 1, and it is never hidden or collapsed. Band 1 means the behaviour is absent; "not enough
-  here" means the session was too thin to judge.
+- **"Not enough evidence" is not band 0** — it never shares a cell, a ramp position or a count with
+  band 1, and it is never hidden or collapsed. Band 1 means the behaviour is absent; "Not enough
+  evidence" means the session was too thin to judge.
+- **The displayed label is "Not enough evidence", never "not enough here".** Settled 2026-09-27 —
+  the shipped code already said it everywhere (every legend, tooltip and composition row in
+  `viz.js`) and this file was the one saying otherwise. "Evidence" is the more accurate word: a
+  reading is evidence coded against a scheme (`tau-dimensions.md`, *The scoring foundation*), and
+  what is missing is that evidence, not presence. The other docs still use "not enough here" as the
+  **name of the concept**; that is not display copy, and it is not to be copied onto a surface.
 - Dimension names are fixed: **Prompting Quality, Selective Use, Calibrated Skepticism, Original
   Contribution.** No synonyms, no rewording per surface.
 - **Band labels are per dimension and a numeral is never shown to a teacher.** Added 2026-08-16.
@@ -259,11 +265,21 @@ not licence to improvise — say so and ask, don't invent.**
   never sits underneath a red or amber finding pretending to be neutral.
 - **Colour is never the only channel** — pair with shape, weight, dash, or text.
 - **Every app masthead is the same object: wordmark, then `<h1>` page name, then controls — and its
-  h1 is `--tau-text-lg` / 700 / −0.2px on every surface.** Added 2026-08-24. `dashboard.html` had
-  been the lone dissenter at 22px / 600 / −0.4px. The h1 names the page and is deliberately
-  subordinate to the Tau wordmark beside it in a 64px bar; a larger step out-weighs the brand mark.
-  It is `header h1` on dashboard/levels/signals/dimensions and `.app-header h1` on teacher/admin —
-  **two selectors for one component, which is real debt and the next thing to collapse here.**
+  h1 is `.masthead-title`, title-medium, on every surface.** Added 2026-08-24; **collapsed onto one
+  class 2026-09-29** (was `header h1` on four pages and `.app-header h1` on two — six copies of one
+  rule). `dashboard.html` had been the lone dissenter at 22px / 600 / −0.4px. The h1 names the page
+  and is deliberately subordinate to the Tau wordmark beside it in a 64px bar; a larger step
+  out-weighs the brand mark.
+- **A heading takes a title role, never a size token.** Added 2026-09-29. `font:
+  var(--tau-type-title-lg | -md | -sm)` plus `letter-spacing: var(--tau-track-title)` — M3's title
+  roles carrying this ramp's values (19 / 15.5 / 14.5px, all 700, all −0.01em). **Size carries rank;
+  700 carries "this is a title"** — before the roles one rung drifted across 600, 650, 700 and 800,
+  and a title at 600 read lighter than a bold lead-in in the body beneath it. *Large*: a top-level
+  card, a page section, a dialog. *Medium*: the masthead, a card inside a card, a tray, a group of
+  cards on a page. *Small*: a heading inside a card. **Not titles, and not on these roles**: figures
+  (a count, a score numeral), the guide pages' long-form scale (`levels`/`signals`/`dimensions`, their
+  own 18–34px literals, consistent across the three), the student home hero and login hero, and a
+  serif question or quote. The site map is under *Type roles* in the implementation plan.
 - **`--tau-text-xs` (11.5px) is for labels, chips, counts and dates. A SENTENCE takes
   `--tau-text-sm` (13px) or larger, never xs.** Added 2026-08-24. The two label roles
   (`--tau-text-label-sm/md`) were carved out on 2026-08-22 for the naming job, which left xs with no
@@ -275,9 +291,10 @@ not licence to improvise — say so and ask, don't invent.**
   ~160 sites across `dashboard.html`, `teacher.html`, `components.css`, `style.css`, `report.css`)
   snapped a literal to a rung when it sat **within 1px** of one and left it alone beyond that, so a
   surviving literal marks a real gap rather than a missed site. **The ramp has no 17px rung** — it
-  jumps `--tau-text-lg` 15.5 → `--tau-text-xl` 19 — and four headings sit there (`.chunk-head h2`,
-  `.confirm h4`, `.stat-row-count b`, `.report-jump-score-n`). That is an open gap, not licence to
-  round either way.
+  jumps `--tau-text-lg` 15.5 → `--tau-text-xl` 19. Four sites sat there; **two were headings and
+  took title-medium on 2026-09-29** (`.chunk-head h2`, `.confirm h4` — they were missing a role, not
+  a rung). The other two are **figures** (`.stat-row-count b`, `.report-jump-score-n`), which no
+  title role covers; they stay literal until figures get a role of their own.
 - **`--tau-ink-faint` never carries text on `--tau-shell`.** Added 2026-08-24 with the token's
   darkening (light `#767D85` → `#686C71`, dark `#858C92` → `#8D949A`). It now clears 4.5:1 on
   surface, surface-2 and surface-3 in both themes, but lands at 4.19 on the shell; taking it further
@@ -305,6 +322,12 @@ not licence to improvise — say so and ask, don't invent.**
   itself a reason to enclose a new value.
 - **Every card/table section meant to be scanned (not read top-to-bottom) gets an `.eyebrow`
   label**, unless a title one size up already names the group.
+- **A top-level card on a teacher surface is named by `.card-title` (19px / 700 / ink), never an
+  eyebrow, with `--tau-s4` before its content.** Added 2026-09-27. As a 12px grey eyebrow the name
+  sat under the 14.5px bold finding beneath it and read as a caption to its own card. **A card
+  inside a card titles one rung down (15.5px)**, so it never outranks its parent — the chart pair
+  inside a draft's timeline card was the case that showed it. The count beside a title stays small
+  and grey: it is metadata. Eyebrows remain for sub-sections *inside* a card.
 - **Voice is coach, not judge.** No "AI-generated content detected," no "risk" vocabulary, no
   verdicts. Integrity flags are conversation-starters, teacher-only, **never shown in student
   view**, no red, no alert iconography.
@@ -313,6 +336,89 @@ not licence to improvise — say so and ask, don't invent.**
   its chrome** (background/border/radius/padding/shadow). If a component doesn't fit, change the
   component in `components.css` or add a modifier there — not a local override.
 - **`--tau-target: 44px` is a real minimum, not advisory.**
+- **Three window size classes, M3's: *compact* `< 600px`, *medium* `600–839px`, *expanded*
+  `≥ 840px`.** Added 2026-09-29, **replacing** "Two widths, and only two" (760 / 1200, 2026-09-27).
+  The two-width rule stopped the breakpoints multiplying but put its phone line at 760, which split
+  M3's medium class in half: an iPad in portrait (768–834) got the desktop rail and a crushed content
+  pane. A media query cannot read a custom property, so these are a convention, not tokens — **write
+  `(max-width: 599px)` or `(max-width: 839px)`, nothing else.** M3's Large (≥ 1200) is not split out:
+  no layout here changes there. **Test at 360, 768 and 1280.** 360 is the narrowest phone in the
+  market (390 hides overflow 360 shows); 768 is the medium class's tablet.
+- **Only a layout template and the navigation ask the window. A component asks its pane.** Added
+  2026-09-29. A viewport query cannot tell a phone from a narrow pane on a wide screen, so a
+  component written against one breaks wherever it is placed in the other — the 2026-09-27 phone
+  pass found the rail crushing content to ~80px, invisible to every viewport rule on the page. The
+  three templates (`.tpl-list-detail`, `.tpl-supporting`, `.tpl-feed`, components.css) and the rail
+  may use `@media` at the two widths above; **everything else uses `@container` on the pane it sits
+  in**, with a threshold set by its own content, not by a device. **Components are compact-first**:
+  the base style is the narrow layout and a `min-width` container query upgrades it, so a browser
+  without container queries (iOS 15 iPads, still in schools) gets the working narrow form rather
+  than a broken wide one. Prototyped in `app/web/layout-lab.html`. **Two consequences, both found
+  migrating the workspace (2026-09-29):** (1) *a component shared with a surface that has no panes yet
+  keeps a window query* at 599 / 839 — outside a pane a container query has nothing to measure, and
+  the compact-first base would then apply on desktop too. It becomes a pane query when its last
+  surface migrates (`.turn`, `.list-row` and the `.tau-nav` masthead are in this state; the composer
+  row, which lives only in the workspace, already asks its pane). (2) **A size container is the
+  containing block for `position: fixed` descendants.** Anything fixed — a tooltip, a popover, a
+  modal — must be mounted outside the panes (on `body`), or it positions against the pane instead of
+  the window. Check `.dbar-tip` before the dashboard's panes land.
+- **At phone width the page never scrolls sideways.** A wide *object* may scroll inside its own card
+  (a flow, a conversation map — see *Conversation map encoding*); the document never does. A row
+  that does not fit **reflows** (the name above its readings), it does not scroll.
+- **A table is not a wide object: it never scrolls sideways, inside its card or anywhere.** Added
+  2026-09-29. Below the width its columns need, a `table.roster` renders as **M3 list items** —
+  headline, supporting text, trailing content — with each cell placed in the slot that already says
+  what it is (a level chip needs no "Agency" label beside it). Where a table is kept, it is because
+  comparing one column down the rows is the job; below that width nothing is being compared, and a
+  label repeated on every row is noise. Sorting survives as a row of sort chips above the list (the
+  sortable headers, restyled — the only header cells with a job once there are no columns). A bare
+  number takes a unit in the list form only ("3 missing", "12 students", `.cell-unit`), since there is
+  no column over it. **The one exception to compact-first:** the table stays the base and the list is
+  the `max-width` pane query, because rebuilding `display: table` by hand is the fragile direction; a
+  browser without container queries gets the table scrolling inside its card, never the page. **A row
+  that expands in place (Browse Assignments' drill panel) navigates to its detail page below
+  expanded instead** — a panel of charts opened inside a list item is the worst of both, and the
+  Assignment Detail page already exists.
+- **The rail takes one presentation per size class, and never loses content.** Added 2026-09-29,
+  extending the phone drawer rule below. *Expanded*: the standing rail. *Medium*: an **M3
+  navigation rail** (`.rail-mini`, 80px) — the rail's top-level groups as icon-and-label
+  destinations, with a menu button at its top that opens the full rail as the drawer. *Compact*: the
+  drawer only. The teacher rail's four groups (Home, Classes, Assignments, Students) sit inside M3's
+  three-to-seven-destination range for a navigation rail, which is why medium can have one at all;
+  the classes and filters under them are reached through the drawer, never dropped. **A rail whose
+  destinations do not reduce to a few short labels takes the drawer at medium instead** (M3 allows the
+  modal drawer at any size): `admin.html` — up to seven sections with labels like "Email delivery",
+  on a weekly surface — has no mini rail, so its drawer runs the whole way below expanded. A page
+  opts into the mini state by passing `mini` to `mountRailDrawer()`; without it there is no mini
+  state.
+- **On a phone the rail is a drawer, opened from a menu button at the start of the masthead.** Added
+  2026-09-27. Not a bottom tab bar: the teacher rail is a list of classes and filters, not three to
+  five peer destinations, and a tab bar would have to drop most of it. The drawer is `.rail` with
+  `.rail-drawer` (components.css §13b, `mountRailDrawer()` in `api.js`) — same component, same
+  surface, **no content removed**, the rest of the page `inert` while it is open. Choosing a
+  destination closes it. In the phone masthead the wordmark drops "Thinking" (the mark alone is the
+  brand) and the page `<h1>` stays. **The account chip moves into the drawer's foot**, name and all —
+  the rail already has an identity slot, and the chip is never shrunk to initials (*components.css*
+  §14: "the name is the identity"; a monogram was rejected as decoration standing in for one).
+- **Below expanded, every control is 44px.** `.btn-sm`'s 36px exception is expanded-only (decided
+  2026-09-27 for phones, **extended to medium 2026-09-29**: the medium class is tablets, and a tablet
+  is a touch screen). Below 840px it takes `--tau-target` like everything else.
+- **The student workspace is list-detail: sessions are the list, the conversation is the detail.**
+  Revised 2026-09-29 (was a "Sessions (3)" disclosure above the chat). *Expanded and medium* show both
+  panes, the list narrowing to 240px at medium. *Compact* shows **one pane at a time**: the
+  conversation by default, and a back step labelled with where it goes ("Sessions (3)") to the list;
+  the list is shown instead when no conversation is open, since then it is the only thing to act on.
+  **Submit draft is a required action and is visible from both panes** — in the conversation's header
+  and at the list's foot — never behind a step.
+- **The report is supporting-pane: the report leads, the sessions it was read from support it.**
+  Added 2026-09-29. *Expanded*: side by side, each scrolling on its own, and the Report / Sessions
+  toggle is retired there because nothing is hidden for it to switch. *Medium and compact*: the
+  sessions open as an **M3 modal bottom sheet** over the report (capped at 640px wide), so the reader
+  keeps their place — a whole-view swap lost it. The opener is the one button in the masthead's local
+  slot ("Sessions"), since it must be reachable while the report is still being read. *(Not built:
+  opening the sheet at a turn chosen in the report. The turn plot's classified turns carry no
+  conversation id to find it by, and the plot already shows the chosen turn's words in its own
+  detail panel.)*
 - **Motion:** `transform`/`opacity` only for movement, never `top`/`left`/`width`/`height`.
   `--tau-dur-short` + `-standard` easing for state changes (hover/press/toggle); `--tau-dur-medium`
   + `-decelerate`/`-accelerate` for anything that moves or resizes.
@@ -468,7 +574,7 @@ Settled. Don't relitigate without a reason that's changed.
 
 | Decision | Why |
 |---|---|
-| **Scores display as a band per dimension, or "not enough here". No total, ever. Never a percentage.** *(Amended 2026-08-12 — was "1–5 per dimension, 4–20 total", justified by what `scoreTAU()` emitted. The code still emits the old shape; that is stale build state, not the spec.)* | Percentages were invented by the v7 doc, imply precision the plan explicitly disclaims, and read as letter grades — `62%` looks like a D. The total went for a separate reason: it sums facets the measurement model says are correlated. See *Hard Constraints* for the binding form. |
+| **Scores display as a band per dimension, or "Not enough evidence". No total, ever. Never a percentage.** *(Amended 2026-08-12 — was "1–5 per dimension, 4–20 total", justified by what `scoreTAU()` emitted. The code still emits the old shape; that is stale build state, not the spec.)* | Percentages were invented by the v7 doc, imply precision the plan explicitly disclaims, and read as letter grades — `62%` looks like a D. The total went for a separate reason: it sums facets the measurement model says are correlated. See *Hard Constraints* for the binding form. |
 | **Dimension names: Prompting Quality, Selective Use, Calibrated Skepticism, Original Contribution.** | These are the engine's own names. v7 drifted to generic ed-speak; "Calibrated Skepticism" teaches something, "Critical Synthesis" doesn't. |
 | **The "friction line at 51%" does not exist.** | Undefined anywhere, re-imports pass/fail into a coach tool, and drove an untokenised blue into the score ring. |
 | **Students see their overall level and all four dimension readings.** *(Amended 2026-08-12 — was "the total and all four dimension scores"; there is no total. The disclosure decision it settled stands: nothing about a student's own reading is withheld from them.)* | Confirmed 2026-07-20. Obliges two rules — see *Score display rules* below. |
@@ -936,7 +1042,8 @@ folding into a colour migration — several of these need layout changes, not ju
 the composer row uses it, so the two composer controls are 36px rather than 44px. That is
 defensible on a pointer-dense toolbar and indefensible on a phone. Either the composer row
 promotes to full `.btn` under a mobile breakpoint, or `.btn-sm` is retired — decide it in the
-accessibility pass, not by letting the exception spread.
+accessibility pass, not by letting the exception spread. **Decided 2026-09-27:** the first — `.btn-sm`
+is 44px at phone width (see Hard Constraints).
 
 `.msg-edit-btn` is fixed: it is now a full `--tau-target` box and appears on `:focus-visible`
 as well as hover, which it did not before. Hover-only put it out of reach of a keyboard entirely
@@ -1250,6 +1357,41 @@ analysis pipeline, `app.js` logic, and the store are sound. This is the presenta
 The advice that survives unchanged: **don't batch large changes.** That's how you end up
 bisecting 200 edits to find one grey panel.
 
+### M3 adaptive layout — CURRENT, started 2026-09-29
+
+Prototyped in `app/web/layout-lab.html`; the rules are in *Hard Constraints* (size classes, window
+vs pane, the rail per size class, list-detail workspace, supporting-pane report, tables as lists).
+Order, each step verified at 360 / 768 / 1280 before the next:
+
+1. ~~**Type roles**~~ — DONE 2026-09-29. Site map below.
+2. ~~**The layout layer**~~ — DONE 2026-09-29. `components.css` §13b (the rail as a `data-state`
+   of standing / mini / drawer, written by `mountRailDrawer()`), §13c (`.rail-mini`), §19
+   (`.tpl-list-detail`, `.tpl-supporting` + `mountSheet()`, `.tpl-feed` / `.feed-pair`, the
+   `pane` size container, `.compact-only` / `.not-compact`); `--tau-margin` and
+   `--tau-rail-mini-w` in `tokens.css`; `window.TAU_SIZE` in `api.js`. Verified in
+   `app/web/adaptive-lab.html` at 360 / 768 / 1280 with each open state.
+3. **Surfaces, one at a time, each deleting its own media queries as it moves**: ~~student workspace
+   (the proof)~~ DONE 2026-09-29 → ~~report~~ DONE 2026-09-29 (drops 640/880/1180) → ~~`teacher.html`~~ **DELETED** 2026-09-29 (orphaned since 2026-08-21, flagged for deletion
+   or rebuild; migrating it would have made that decision by default, so it was put to the owner,
+   who chose delete — with `teacher.js` and the two endpoints only it called) → ~~`dashboard.html`~~ DONE 2026-09-29 (shell + navigation rail, Home, both tables, the student view;
+   drops 780/1150/1200 and `labelRosterCells()`) → ~~`admin.html`~~ DONE 2026-09-30 (drawer below expanded, no mini rail; verified with stubbed
+   data, since no seeded account reaches it). **No window width other than 599 and 839 is left anywhere in `app/web`.**
+
+#### Type roles — site map (2026-09-29)
+
+| Role | Sites |
+|---|---|
+| **Title large** — 19 / 700 | `.card-title`, `.tl-title`, `.content-title`, `.report-section-title`, `.report-hero-title` (was 600), `.acard-title`, `.login-card h1`, `.agreement-card h1`, `.doc-dialog-head h2`, admin `.section-title` / `.modal-title` (were −0.3px) |
+| **Title medium** — 15.5 / 700 | `.masthead-title` (new; replaced six page rules), card-in-card `.card-title`, `.tray-title`, `.confirm h4` (was 17 / 600), `.chunk-head h2` (was 17), `.dim-quad-name` (was 600), `.provstrip-evidence-title` (was 600), `.pcard-head h3`, `.report-panel h3`, `.doc-prose h3` |
+| **Title small** — 14.5 / 700 | `.card-head h3/h4` (was 600), `.group-title` (was 800), `.roster-step-title` (was 650), `.pattern-title`, `.setup-title`, `.chat-header` (was 600) |
+
+**Deliberately left off the roles**: figures (`.stat-tile-val`, `.stat-row-count b`,
+`.report-jump-score-n`, `.dim-quad-score-n .n`, `.draft-stat-val`, admin `.pattern-figure` /
+`.admin-lead-figure`, `.group-nav .n`); the retired-total numerals (`.report-total-n`, `.tau-score` —
+see CLAUDE.md, not to be restyled, to be deleted with the student-view rebuild); the guide pages'
+long-form scale; `.hero-greeting`, `.login-hero-title`, `.samr-hero .samr-level`; `.dim-card-q`
+(serif question); `.level-name` (a selectable row, not a heading); `.title-field` (an input).
+
 ---
 
 ## Verifying visually
@@ -1334,6 +1476,12 @@ the same line in the band and origin blocks, and a naive `^\s*--` reports 21 fal
 ---
 
 ## Known debt
+
+- **Dead base rules in `report.css`** (found 2026-09-29, step 3b): `.report-hero-row`,
+  `-charts`, `-score`, `-dims`, `-dim*`, `-verdict`, `-description`, `.ladder*` and `.dim-row*` have
+  no renderer on `report.html` (the hero now renders `.report-hero`, `-eyebrow`, `-head`, `-title`
+  only). Their media blocks were deleted with the adaptive migration; the base rules were left for a
+  pass that checks each against `report-render.js` before removing it.
 
 - **d3 loads from a CDN** (`report.html:8`). Under the DPA posture in the plan, that's an
   external request on every report view, and it breaks behind a district firewall. Self-host.
@@ -1420,6 +1568,164 @@ is the one exception and only because meter fills are already on forest's list.
 | `--tau-ease-standard`, `--tau-ease-decelerate`, `--tau-ease-accelerate` | No easing was ever declared explicitly (bare `ease` or nothing); these are M3's `standard` and `emphasized-decelerate`/`-accelerate` curves, giving symmetric and directional motion one deliberate curve each instead of the browser default. |
 
 ## Session log
+
+**2026-09-29 — M3 adaptive layout: the decisions, and type roles**
+
+Compared the system against Material 3 for mobile. The finding: the M3 already taken (state layers,
+focus, heights, surface ramp, label roles, top app bar, motion) is the visual layer, and none of it
+was what made phones hard. What was missing is M3's **layout** layer — window size classes,
+canonical layouts, navigation per size class — and the reason every phone fix spread across files:
+components asked the viewport, so a component in a narrow pane on a wide screen was invisible to
+every rule. Mocked in `app/web/layout-lab.html` (three surfaces × 360/768/1280, frames as size
+containers so one page renders all three), then settled as Hard Constraints: size classes 600/840
+replace the 2026-09-27 two widths; only templates and the rail ask the window; components are
+compact-first container queries; the rail gets an M3 navigation rail at medium; the workspace is
+list-detail; the report is supporting-pane with a bottom sheet; tables become list items below the
+width their columns need and never scroll; a drilling row goes to its detail page on compact. M3
+has no data-table component (M2 did), which is the reason for the list-item answer, not an
+obstacle to it.
+
+**Type roles (step 1 of the plan above).** `--tau-type-title-lg/-md/-sm` as `font` shorthands over
+the existing ramp, plus `--tau-track-title`. 26 heading rules across nine files moved onto them,
+and the masthead's six page rules collapsed into `.masthead-title` in `components.css`. Verified by before/after
+screenshots at 1280 of dashboard (Home, class, assignment, student, all assignments),
+`teacher.html`, student home, a report and a guide page: every difference is one the site map
+records — report hero title 600→700, student home section heads 17→15.5, the masthead's line
+height settling on 1.3 (a ~1px shift under it on the guide pages).
+
+**The layout layer (step 2).** Built on the real classes and checked in a new
+`adaptive-lab.html` — the layout lab could only fake a window with a container, which proved the
+idea but not the code. **One design change from the plan**: the drawer's styles no longer sit in a
+media query. `mountRailDrawer()` computes the rail's state from the window and writes it to the rail
+(`data-state`), and the CSS only draws the state, so the drawer exists once whatever width a page
+switches at. A page that passes no `.rail-mini` keeps the 2026-09-27 760px behaviour exactly;
+the dashboard is that page until step 3d. Regression-checked on the dashboard at 390 (drawer
+opens, full content, chip in the foot) and 1280 (unchanged). **One visible change to a shipped
+surface**: the phone drawer is now rounded on the edge facing the page, M3's modal drawer. The
+44px floor for `.btn-sm` and `.acard-disclosure-toggle` moved from ≤ 760 to ≤ 839 (the medium
+class is tablets). The drawer's inert logic became `inertOutside()`, shared with the new sheet.
+
+**The student workspace on list-detail (step 3a).** `index.html`'s workspace is now
+`.tpl-list-detail` with the rail as `.pane-list` and `.chat` as `.pane-detail`. The "Sessions (n)"
+disclosure and its `setSessionsOpen()` are gone; `showPane()` sets `data-pane` — the list when no
+conversation is open (it is then the only thing to act on), the conversation once a session is
+chosen or started, the list again from the back step. Submit draft is in both panes on compact
+(`#btnSubmitCompact`, `.compact-only`, forwarding to `#btnSubmit` and mirroring its disabled state).
+`arrowBack` joined `icons.js`. `style.css`'s shared 760 block split by size class: the home view's
+band layout, `#input` at 16px and the 44px Submit draft moved to ≤ 839 (tablets zoom and touch like
+phones); the conversation pane's compact-only rules to ≤ 599. Three things found only by looking:
+**the composer row wrapped Send at a 620px window** (its pane is 372px there, narrower than a phone)
+— it now asks its pane, the first component to; **the one-row masthead clipped "Draft 3" to "D" at
+768** because the breadcrumb's shrink order (title gives way, current segment never) lived only in
+the compact block — it is now the rule at every width; and **four parallel screenshot sessions
+starved Firestore** so conversations did not load, which looked like a regression and was not —
+the driver now runs workspace checks one at a time. Verified at 360, 620, 768, 1280 (list, detail,
+back step, composer row one line at 620 and 1280) and the home view at 360 / 768 with real data.
+
+**The report on supporting-pane (step 3b).** `report.html` is `.tpl-supporting`: the report in
+`.pane-main`, the sessions record in `.pane-side` — beside it at expanded, an M3 bottom sheet below
+(`mountSheet()`), opened by a single "Sessions" button in the masthead's local slot, which the
+template hides at expanded. The Report/Sessions view swap (`mode`, `applyMode()`'s swap half,
+`renderConvViewTitle()`) is gone; the sessions load at once when the pane is on screen and on first
+opening of the sheet otherwise. The body became a full-height column so each pane scrolls on its
+own, and took the shell ground (was `--tau-bg`), since the pane is content raised off it. Inside the
+pane the session list sits above the transcript rather than beside it — at 380px two columns left the
+transcript ~140px. **Every window query in `report.css` is gone**: `.report-jump-btn`, `.dim-cards`,
+`.level-block`, `.level-statement-body` and `.turnplot-row` now ask their pane, compact-first; two
+blocks (760 and 640) were **dead** and deleted — `.report-hero-row/-charts/-score/-dims/-verdict`,
+`.ladder` and `.dim-row` have no renderer on this page. Their base rules are still in the sheet
+(*Known debt*). `.turnplot-row`'s threshold moved from a 1180 window to an 880 pane: with the
+sessions beside the report, a window threshold would have stacked the plot at every laptop width.
+Verified at 360 / 768 (sheet opened: 360×760 and 640×658, nine turns loaded) and 1280 (pane 380 wide,
+loaded without opening, opener hidden), and as the teacher at 1280 (report drawn, pane loaded, no
+errors). Not verified: dark theme, a real device.
+
+**2026-09-30 — `admin.html` (the last surface).** The sideways-scrolling rail strip is gone: below
+expanded the rail is the drawer, opened from the masthead, with no mini rail (see the rail Hard
+Constraint for why this page is the exception). `mountRailDrawer()` lost its last legacy branch —
+the 760px `PHONE` query — so a rail without `mini` now drawers below 840 and moves the account chip
+into the drawer foot on compact only. Two things the drawer needed from the page: `renderNav()` now
+fills `#adminNavBody` rather than the rail itself (it was replacing the rail's `innerHTML`, which
+would have erased the drawer's close button and foot on every render), and `admin.html` now loads
+`icons.js`, without which the menu and close buttons drew nothing. The masthead wraps below
+expanded with the voice line on a row of its own; `.admin-main` is a pane, and its rows ask it —
+the teacher row's identity takes the first line in a narrow pane (at 360 the name and address were
+squeezed into ~80px), `.area-row` and the roster search stack. **Verified without an admin account**:
+the page opened from disk with `fetch` stubbed to a school-administrator fixture (three teachers,
+four students) through the screenshot driver, at 360 / 768 / 1280 with the drawer open. Nothing was
+written to any database. Not verified: the platform-administrator views (Status, Cost, Email), whose
+payloads the fixture does not carry.
+
+**The dashboard (step 3d), in four stages, each verified before the next.** (1) *Shell:*
+`.rail-mini` with the rail's four groups (Home, Classes — which opens the drawer, since there is no
+all-classes screen — Assignments, Students), synced to the screen by `syncRailMini()`; `#content`
+became `.pane-main`; the search-becomes-a-button header and the content padding moved to ≤ 839,
+because at 768 the three centred header columns cut "Teacher Dashboard" to a letter. `home` and
+`people` joined `icons.js`. (2) *Home:* `.home-cols-top`, `.home-cols`, the set-up and learn rows
+and `.cols-2up` ask the pane; `.home-col` became a size container so a class row reflows on its
+COLUMN's width; `.home-cols-2up` was dead and went. **`.cols-2up` had never collapsed** — its
+`@container (max-width: 720px)` sat on the container itself, and a container query only matches
+ancestors, so the pair stayed two-up on phones; it asks the pane now. (3) *Tables:* see the Hard
+Constraint — list items below a 760px pane, sort chips, units, and the Browse Assignments drill
+going to the assignment's page in list form (`toggleBrowseAssignmentDrill()` asks the table's
+computed display, since the list form is the pane's decision, not the window's). (4) *Student
+view:* the assignment-summary rows (760, raised from 640 after a screenshot showed the title
+squeezed to ~100px), the submission rows (560) and `.trace` ask the pane; `.dim-grid`'s block was
+dead. Two bugs found only by measuring: the Trace minted **five** columns in its wide form — the
+reset `.trace-row > *` (0,1,1) lost to the base `:nth-child()` placement (0,2,0) — fixed with
+matching specificity. The guide pages (640→599), login (760→839) and `.field-row` (480→599, a
+modal, so a window query on purpose) converged in the same pass.
+
+Verified at 360 / 768 / 1280 as the teacher (and the new-teacher Home): rail states and the drawer
+from the mini rail's menu; Home pair 1/1/2; set-up 1/2/3 and learn 1/2/4; `.cols-2up` 1/1/2 (by
+injected probe — the seed has no closed draft rendering one); both tables list/list/table; the drill
+navigating at 360 / 768 and expanding at 1280; the student view's rows and Trace. Not verified: dark
+theme, a real device, `admin.html`.
+
+**Committed separately first**: per-flag teacher decisions (`18d6d9b`), which had been sitting
+uncommitted with the 2026-09-27 phone pass. The phone pass itself stays uncommitted on purpose — this
+work rewrites parts of it.
+
+**2026-09-27 — phone width, both roles**
+
+Audited every surface at 390 and 360px, signed in, with a CDP screenshot driver (the headless
+`--screenshot` flag cannot sign in, and every app page scrolls an inner pane, so a full-page capture
+shows the first screen only). What it found, worst first: the teacher dashboard was unusable (the
+rail kept its column and crushed content to ~80px); the student home rail was squeezed to 41px by
+`flex-shrink`, which hid the AI-use guidance outright; the workspace put four navigation controls
+above the conversation; `#input` at 15.5px triggers iOS Safari's zoom on every tap; `body` was
+`100vh`, which on a phone puts the composer under the browser toolbar; the report and `teacher.html`
+scrolled sideways. Five Hard Constraints added (two widths, no sideways page scroll, rail as drawer,
+44px at phone, workspace order). What changed, by file:
+
+- `components.css` — §13b rail drawer; `.btn-sm` and `.acard-disclosure-toggle` at 44px on a phone;
+  the `.tau-nav` phone masthead (mark only, two rows: mark + account, then trail + Report/Session
+  toggle, the trail's middle giving way first); `.turn` widths; `.trace` stacks its cells under the
+  name; `.list-row` wraps; `.tray` capped at `100vw`.
+- `api.js` — `mountRailDrawer()`: toggle, scrim, close button, `inert` on everything outside the
+  drawer's ancestry, closes on a destination, moves the account chip into the drawer foot.
+- `dashboard.html` — phone header (search becomes a button that takes the bar while in use), the
+  drawer, `.class-row` / `.assignment-summary-row` / `.sub-row-main` reflow (the last two had inline
+  fixed widths moved into classes so a media query could reach them), and **`table.roster` reflows
+  instead of scrolling** — the header survives as its sortable columns only, and each stacked cell
+  names its own column via `data-label`, copied from the header by one `MutationObserver`
+  (`labelRosterCells()`) rather than edits to 37 renderers.
+- `style.css` / `index.html` / `app.js` — the stray 900px block converged onto 760; the home rail
+  goes *below* the cards on a phone (it is standing, not navigation — the one rail that is not a
+  drawer); the whole home view scrolls so the hero leaves with the content; the workspace's
+  "Sessions (n)" disclosure, **opened by default when no conversation is open**, since then there
+  is no composer and the list is the only thing to act on — folding it there would have hidden
+  "+ New session", a required action; Regenerate/Stop keep only their glyphs at phone width
+  (`aria-label` keeps the name).
+- `teacher.html` — the header wraps, the standing voice line on its own row, never dropped.
+
+Verified at 360 and 390 (light, plus the drawer in dark) and re-shot at 1280 for desktop regressions:
+none. **Not verified:** `admin.html` (no seeded account can reach it — deliberately, see
+`app/README.md`), a real iOS device (keyboard + `dvh` behaviour is emulated, not observed), and every
+modal beyond New assignment. **Still open:** stray breakpoints in `report.css` (640/880/1180),
+`admin.html` (720/860), `dashboard.html` (780/1150) and `components.css` (480/640) — converge each
+when next touched; the flow chart keeps its desktop width and scrolls inside its card, which the
+rule allows but a two-stage flow could simply fit.
 
 **2026-08-23 — the M3 pass reaches the student side**
 

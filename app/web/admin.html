@@ -17,8 +17,7 @@
    .field, .eyebrow, .scrim). Per designsystem.md's placement rule this sheet
    may position those components; it may never redefine them. */
 
-/* Same header rule teacher.html carries for the same reason: .app-header is a
-   bare element with no shared selector of its own. */
+/* .app-header is a bare element with no shared selector of its own. */
 .app-header {
   background: var(--tau-surface);
   border-bottom: 1px solid var(--tau-line);
@@ -28,7 +27,6 @@
   gap: var(--tau-s3);
   flex-shrink: 0;
 }
-.app-header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.2px; }
 
 /* Page shell. The rail itself is components.css §13 — this is only where it
    sits on the page. Its width comes from --tau-rail-w so the column and the
@@ -65,7 +63,7 @@
 .admin-lead-text { font-size: var(--tau-text-md); color: var(--tau-ink-soft); line-height: 1.5; max-width: 42ch; }
 
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: var(--tau-s4); margin-bottom: var(--tau-s3); }
-.section-title { font-size: var(--tau-text-xl); font-weight: 700; letter-spacing: -0.3px; color: var(--tau-ink); }
+.section-title { font: var(--tau-type-title-lg); letter-spacing: var(--tau-track-title); color: var(--tau-ink); }
 .section-note { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); margin-bottom: var(--tau-s4); line-height: 1.5; }
 
 /* Teacher rows: .list-row supplies the chrome, this only lays the columns out. */
@@ -77,17 +75,19 @@
 /* Sits under the address, quieter than it: the invite state is context for a
    support call, not a peer of the person's identity. */
 .account-state { display: inline-block; font-size: var(--tau-text-xs); color: var(--tau-ink-soft); margin-top: 2px; }
-.teacher-counts { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); flex-shrink: 0; text-align: right; }
+.teacher-counts { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); flex-shrink: 0; text-align: left; }
 .teacher-actions { display: flex; gap: var(--tau-s2); flex-shrink: 0; }
 .row-suspended .teacher-name, .row-suspended .teacher-counts { opacity: var(--tau-disabled); }
 
 /* Ranked bars. Single series, so no legend — the section title names it, and
    every bar is directly labelled, which is also why there is no hover
    tooltip: it could only repeat text already on screen. */
-.area-row { display: grid; grid-template-columns: 1fr 210px 130px; align-items: center; gap: var(--tau-s4); padding: var(--tau-s2) 0; }
+.area-row { display: grid; grid-template-columns: 1fr; align-items: center; gap: var(--tau-s1); padding: var(--tau-s2) 0; }
+@container pane (min-width: 560px) { .area-row { grid-template-columns: 1fr 210px 130px; gap: var(--tau-s4); } }
 .area-label { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); }
 .area-surface { font-size: var(--tau-text-xs); color: var(--tau-ink-faint); }
-.area-value { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); text-align: right; }
+.area-value { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); text-align: left; }
+@container pane (min-width: 560px) { .area-value { text-align: right; } }
 /* Never opened is a plain, quiet fact — not a warning. Semantic colour would
    assert a verdict this data can't support (a brand-new install looks
    identical to a genuinely dead feature). */
@@ -127,7 +127,6 @@
 .section-head-tools { display: flex; align-items: center; gap: var(--tau-s3); flex-shrink: 0; }
 .roster-search { display: flex; align-items: center; gap: var(--tau-s2); }
 .roster-search input {
-  width: 240px;
   padding: 7px var(--tau-s3);
   border: 1px solid var(--tau-line);
   border-radius: var(--tau-r-sm);
@@ -143,7 +142,7 @@
    measurement-improvement modal became its second surface. */
 
 .modal-card { width: min(460px, 100%); max-height: 90vh; overflow-y: auto; }
-.modal-title { font-size: var(--tau-text-xl); font-weight: 700; letter-spacing: -0.3px; }
+.modal-title { font: var(--tau-type-title-lg); letter-spacing: var(--tau-track-title); }
 .modal-sub { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.5; }
 .modal-actions { display: flex; justify-content: flex-end; gap: var(--tau-s3); margin-top: var(--tau-s2); }
 .form-error { font-size: var(--tau-text-sm); color: var(--tau-attention); }
@@ -158,27 +157,34 @@
 }
 .hidden { display: none !important; }
 
-@media (max-width: 860px) {
-  /* The rail becomes a scrolling strip rather than collapsing behind a
-     toggle: these are the only four destinations on the surface, and hiding
-     the whole map to save a column trades wayfinding for space we have.
-     Layout only — the rows keep their component chrome. */
-  .admin-shell { grid-template-columns: minmax(0, 1fr); padding: var(--tau-s5) var(--tau-s4); gap: var(--tau-s5); }
-  .admin-nav { position: static; width: auto; min-width: 0; flex-direction: row; gap: var(--tau-s4); overflow-x: auto; }
-  .admin-nav .rail-group { flex-direction: row; gap: var(--tau-s1); flex-shrink: 0; align-items: center; }
-  .admin-nav .rail-group > .eyebrow { padding: 0 var(--tau-s2) 0 0; white-space: nowrap; }
-  .admin-nav .rail-item { width: auto; white-space: nowrap; }
+/* Below expanded (designsystem.md, Hard Constraints, size classes). The rail
+   is the drawer here, opened from the masthead (mountRailDrawer in admin.js)
+   — M3's modal drawer at medium as well as compact, not a navigation rail:
+   up to seven destinations with labels like "Email delivery" do not reduce to
+   icons under 56px pills, and this is a weekly surface, not a daily one. Was a
+   sideways-scrolling strip until 2026-09-29, which the rail rule does not allow. */
+@media (max-width: 839px) {
+  .admin-shell { grid-template-columns: minmax(0, 1fr); padding: var(--tau-s5) var(--tau-margin); gap: var(--tau-s5); }
+  /* The masthead wraps; the standing voice line takes a row of its own and is
+     never dropped — it is the condition everything on the page is read under. */
+  .app-header { flex-wrap: wrap; row-gap: var(--tau-s1); padding: var(--tau-s2) var(--tau-margin); }
+  .app-header .visibility-cue { order: 1; flex-basis: 100%; padding: 0 0 var(--tau-s1); }
+  .app-header .account-chip { margin-left: auto; }
 }
-
-@media (max-width: 720px) {
-  .section-head { flex-wrap: wrap; }
-  .section-head-tools { flex-wrap: wrap; }
-  .roster-search input { width: 100%; min-width: 0; }
-  .roster-search { flex: 1; min-width: 180px; }
-  .status-row { flex-wrap: wrap; }
-  .area-row { grid-template-columns: 1fr; gap: var(--tau-s1); }
-  .area-value { text-align: left; }
-  .teacher-row { flex-wrap: wrap; }
+/* Rows that carry an identity and a trailing action or count wrap when the
+   pane cannot hold them — at any width, since a flex row only wraps when it
+   has to. Was a 720px window rule. */
+.section-head, .section-head-tools, .status-row, .teacher-row { flex-wrap: wrap; }
+.roster-search { flex: 1; min-width: 180px; }
+.roster-search input { width: 100%; min-width: 0; }
+/* Narrow: the person takes the first line, counts and actions the second — side
+   by side at 360 the name and address were squeezed into ~80px. */
+.teacher-id { flex-basis: 100%; }
+@container pane (min-width: 560px) {
+  .teacher-id { flex-basis: auto; }
+  .teacher-counts { text-align: right; }
+  .roster-search { flex: none; }
+  .roster-search input { width: 240px; }
 }
 </style>
 </head>
@@ -186,7 +192,7 @@
 
 <header class="app-header">
   <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="Tau" width="391" height="192">Thinking</span>
-  <h1>Administration</h1>
+  <h1 class="masthead-title">Administration</h1>
   <span class="chip chip-neutral" id="roleChip">Administrator</span>
   <span class="visibility-cue">Aggregate figures only — no student work is visible here</span>
   <!-- Appearance moved inside the account menu, where it now lives on every
@@ -196,8 +202,13 @@
 </header>
 
 <div class="admin-shell">
-  <nav class="rail rail-inset admin-nav" id="adminNav" aria-label="Administration sections"></nav>
-  <main class="admin-main" id="adminMain">
+  <!-- renderNav() fills #adminNavBody, never the rail itself: below expanded
+       mountRailDrawer() puts a close button and a foot inside the rail, and a
+       render that replaced the rail's innerHTML would erase both. -->
+  <nav class="rail rail-inset admin-nav" id="adminNav" aria-label="Administration sections"><div class="rail-body" id="adminNavBody"></div></nav>
+  <!-- .pane-main: a size container (components.css §19). Modals mount on body,
+       outside it, which is where anything position:fixed must stay. -->
+  <main class="admin-main pane-main" id="adminMain">
     <p class="section-note" id="loading">Loading…</p>
   </main>
 </div>
@@ -285,6 +296,7 @@
   </div>
 </div>
 
+<script src="icons.js"></script>
 <script src="api.js"></script>
 <script src="admin.js"></script>
 </body>

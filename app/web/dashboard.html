@@ -63,10 +63,33 @@ header {
 .header-lead h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .header-end { display: flex; align-items: center; justify-content: flex-end; gap: var(--tau-s2); }
 header.scrolled { background: var(--tau-surface-2); }
-/* Identical to .app-header h1 on teacher/admin and to header h1 on levels/
-   signals/dimensions. Same object on all six — wordmark, page name, controls —
-   and this was the one surface dissenting, on size AND weight AND tracking. */
-header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.2px; }
+
+/* ── Phone masthead ──
+   Three centred columns need ~700px. On a phone the bar holds the drawer's
+   menu button, the mark, the page name and search — the account chip has
+   moved into the drawer's foot (mountRailDrawer). Search becomes a button
+   that swaps the bar for the field while it is in use: the field at 40px
+   between everything else would leave it ~90px wide, which is a field in
+   name only. Below expanded, not below phone (2026-09-29): at 768 the three
+   centred columns left the lead ~114px and cut the page name to a letter. */
+.header-search-open, .header-search-cancel { display: none; }
+@media (max-width: 839px) {
+  header { display: flex; padding: 0 var(--tau-s4); gap: var(--tau-s2); }
+  .header-lead { flex: 1; gap: var(--tau-s2); }
+  .header-search { display: none; }
+  .header-search-kbd { display: none; }
+  .header-search input { padding-right: var(--tau-s4); }
+  .header-search-open, header.searching .header-search-cancel {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: var(--tau-target); height: var(--tau-target); flex-shrink: 0;
+    border: none; border-radius: var(--tau-r-pill); background: none;
+    color: var(--tau-ink); cursor: pointer;
+  }
+  .header-search-open .tau-icon, .header-search-cancel .tau-icon { width: 22px; height: 22px; }
+  .header-search-open:hover, .header-search-cancel:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
+  header.searching .header-lead, header.searching .header-end { display: none; }
+  header.searching .header-search { display: block; flex: 1; }
+}
 /* ── Header utility menus (Manage / Account) ──────────────────────────────
    Two dropdowns replace what used to be five flat, equal-weight buttons —
    see teacher-dashboard-design.md's header session log for the reasoning.
@@ -306,7 +329,7 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
   background: var(--tau-surface-3); color: var(--tau-ink-soft);
 }
 .roster-step.live .roster-step-n { background: var(--tau-forest); color: var(--tau-on-forest); }
-.roster-step-title { font-size: var(--tau-text-md); font-weight: 650; }
+.roster-step-title { font: var(--tau-type-title-sm); }
 /* One rhythm inside a zone — fields a step apart, the zone two steps from the
    next, which is the rule the rest of this modal already follows. */
 .roster-step > .menu-field, .roster-step > #hdr-addstudent-classmount > .menu-field { margin-bottom: var(--tau-s4); }
@@ -576,6 +599,9 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
   flex: 1; min-height: 0;
   display: flex; flex-direction: column; gap: var(--tau-s5);
 }
+/* In the drawer the drawer scrolls, not this (components.css §13b). Keyed to
+   the rail's state, not a width, since the drawer now exists at two. */
+.rail[data-state="drawer"] #sidebar-nav, .rail[data-state="mini"] #sidebar-nav { flex: none; }
 
 /* ── Rail, on the shell ──
    Overrides of components.css's .rail/.rail-item, NOT edits to it: .rail is
@@ -602,6 +628,8 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
    across the whole shell. What is no longer needed here is any comment about
    the shadow — the component does not carry one. */
 .rail-item.active { background: var(--tau-surface-2); }
+/* The navigation rail's indicator, for the same reason as the row above. */
+.rail-mini-item.active .rail-mini-pill { background: var(--tau-surface-2); }
 .rail-item-meta { color: var(--tau-ink-soft); }
 
 /* ── Content ── */
@@ -637,6 +665,7 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
   padding: var(--tau-s7) var(--tau-s7);
   background: var(--tau-shell);
 }
+@media (max-width: 839px) { .content { padding: var(--tau-s5) var(--tau-margin); } }
 .content-header {
   margin-bottom: var(--tau-s5);
   padding-bottom: var(--tau-s4);
@@ -647,9 +676,8 @@ header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.
   border-bottom: 1px solid var(--tau-line-strong);
 }
 .content-title {
-  font-size: var(--tau-text-xl);
-  font-weight: 700;
-  letter-spacing: -0.3px;
+  font: var(--tau-type-title-lg);
+  letter-spacing: var(--tau-track-title);
   color: var(--tau-ink);
 }
 .content-meta {
@@ -719,6 +747,64 @@ table.roster tbody tr.expanded-row { background: color-mix(in oklab, var(--tau-f
 table.roster tbody tr.drill-row { cursor: default; }
 table.roster tbody tr.drill-row:hover { background: transparent; }
 table.roster td.n { font-variant-numeric: tabular-nums; }
+
+/* Units for a bare number ("3 missing", "12 students", "Due Oct 3"). Hidden in
+   the table, where the column header already names them; shown in the list
+   form below, where there is no column over the value. */
+.cell-unit { display: none; }
+
+/* The LIST FORM (designsystem.md, Hard Constraints: "A table is not a wide
+   object"). Below the width its columns need, a roster renders as M3 list
+   items — the name as the headline, the rest as a supporting line — and
+   never scrolls. Asks its PANE, not the window: at 768 the navigation rail
+   leaves 640px of content, and at 1280 a table in a narrower pane would need
+   the same. Replaced the 2026-09-27 phone reflow, which stacked every cell
+   under a grey label copied from the header (labelRosterCells(), deleted):
+   "Agency" over a level chip and "Signal" over a signal chip, on every row,
+   is a form, not a list.
+
+   THE ONE EXCEPTION TO COMPACT-FIRST. The table is the base because a table's
+   display values are the browser's own, and rebuilding table / row / cell by
+   hand inside a min-width query is the fragile direction. A browser without
+   container queries gets the table, scrolling inside .tbl-wrap — its card,
+   never the page. */
+@container pane (max-width: 759px) {
+  .tbl-wrap { overflow-x: visible; }
+  table.roster-browse { table-layout: auto; min-width: 0; }
+  table.roster, table.roster tbody, table.roster thead { display: block; }
+  table.roster colgroup { display: none; }
+  /* Sorting survives as a row of chips — the sortable headers, which are the
+     only header cells with a job once there are no columns. */
+  table.roster thead tr {
+    display: flex; flex-wrap: wrap; align-items: center; gap: var(--tau-s2);
+    padding: var(--tau-s3) var(--tau-s4);
+    background: var(--tau-surface); border-bottom: 1px solid var(--tau-line);
+  }
+  table.roster thead th { display: none; }
+  table.roster thead th.sortable {
+    display: inline-flex; align-items: center; gap: var(--tau-s1);
+    min-height: var(--tau-h-chip); padding: 0 var(--tau-s3);
+    background: none; border: 1px solid var(--tau-line-strong); border-radius: var(--tau-r-pill);
+  }
+  table.roster thead th.sort-active { background: var(--tau-surface-2); border-color: transparent; }
+  table.roster tbody tr {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: var(--tau-s1) var(--tau-s3);
+    padding: var(--tau-s3) var(--tau-s4);
+    min-height: 56px;
+    border-bottom: 1px solid var(--tau-line);
+  }
+  table.roster tbody tr:last-child { border-bottom: none; }
+  table.roster th, table.roster td { padding: 0; border-bottom: none; width: auto !important; }
+  /* Headline: the name, a line of its own. */
+  table.roster tbody tr > td:first-child { flex-basis: 100%; font-weight: 600; font-size: var(--tau-text-md); }
+  table.roster tbody td:empty, table.roster .no-signal { display: none; }
+  table.roster tbody td { color: var(--tau-ink-soft); }
+  .cell-unit { display: inline; }
+  table.roster tbody tr.drill-row, table.roster .group-row { display: block; padding: 0; min-height: 0; }
+  table.roster tbody tr.drill-row > td, table.roster .group-row > td { display: block; }
+  table.roster .group-row td { padding: var(--tau-s3) var(--tau-s4) 6px; }
+}
 table.roster .group-row { pointer-events: none; }
 table.roster .group-row td { padding: var(--tau-s3) var(--tau-s4) 6px; background: var(--tau-surface); border-bottom: none; }
 /* A second group (e.g. Closed following Open) gets a rule above it so the
@@ -947,7 +1033,10 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .tl-card.future { box-shadow: none; border-style: dashed; color: var(--tau-ink-faint); }
 .tl-card.live { border-color: color-mix(in oklab, var(--tau-caution) 35%, var(--tau-line)); }
 .tl-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--tau-s3); margin-bottom: var(--tau-s3); flex-wrap: wrap; }
-.tl-title { font-size: var(--tau-text-md); font-weight: 700; }
+/* Each draft on the timeline is a top-level card, so its name is a card title
+   (components.css .card-title) — it was 14.5px, under the 19px of the chart
+   cards it contains. */
+.tl-title { font: var(--tau-type-title-lg); letter-spacing: var(--tau-track-title); }
 .tl-when { font-size: var(--tau-text-xs); color: var(--tau-ink-soft); }
 .future-line { font-size: var(--tau-text-sm); }
 
@@ -1000,6 +1089,32 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
   display: inline-flex; transition: transform var(--tau-dur-short) var(--tau-ease-standard);
 }
 .assignment-summary-row.expanded .chevron { transform: rotate(180deg); }
+/* Fixed columns so the rows of one student line up down the page. Were
+   inline styles, which a phone rule cannot reach. */
+.asr-name { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.asr-level, .asr-signal, .asr-check, .asr-subs { flex-shrink: 0; }
+.asr-signal { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.asr-subs { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+/* Narrow, the base: 452px of columns does not fit, and flex gave the title the
+   loss — rows showed readings with no assignment name. The title keeps line one
+   with its chevron; the readings run on line two at their own widths, which
+   gives up the column alignment rather than the name. */
+.assignment-summary-row { flex-wrap: wrap; row-gap: var(--tau-s2); }
+.asr-name { flex-basis: calc(100% - 14px - var(--tau-s3)); white-space: normal; }
+.asr-level { margin-left: calc(14px + var(--tau-s3)); }
+.asr-subs { margin-left: auto; }
+/* Wide: fixed columns, so the rows of one student line up down the page. Asks
+   the pane — at 761–900 the old ≤760 window rule left 452px of columns beside
+   the rail in ~430px of content, and the title lost again. 760, not 640: at
+   640 the columns took 452px and left the title ~100px ("Personal e…"). */
+@container pane (min-width: 760px) {
+  .assignment-summary-row { flex-wrap: nowrap; row-gap: 0; }
+  .asr-name { flex-basis: auto; white-space: nowrap; }
+  .asr-level { width: 150px; margin-left: 0; }
+  .asr-signal { width: 150px; }
+  .asr-check { width: 108px; text-align: center; }
+  .asr-subs { width: 44px; text-align: right; margin-left: 0; }
+}
 .assignment-drill { border: 1px solid var(--tau-line-strong); border-top: none; border-bottom-left-radius: var(--tau-r-sm); border-bottom-right-radius: var(--tau-r-sm); }
 .sub-history { display: flex; flex-direction: column; gap: 4px; }
 .sub-history .list-row-boxed { margin-bottom: 0; } /* spacing already comes from the flex gap above */
@@ -1011,13 +1126,22 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .sub-row.flagged { border-color: var(--tau-caution); background: var(--tau-caution-bg); }
 .sub-row-main { display: flex; align-items: center; gap: var(--tau-s3); }
 .sub-num  { font-size: var(--tau-text-xs); font-weight: 600; color: var(--tau-ink-soft); width: 20px; flex-shrink: 0; }
-.sub-date { color: var(--tau-ink-soft); width: 140px; flex-shrink: 0; font-size: var(--tau-text-xs); }
+.sub-date { color: var(--tau-ink-soft); flex-shrink: 0; font-size: var(--tau-text-xs); }
 .sub-chip { width: 44px; text-align: center; flex-shrink: 0; }
 /* The level sits with the row's other classifications (#N, Final/Draft, date)
    rather than out at the right margin. It was pushed there by a flex spacer
    left behind when the dimension band pills that used to fill the middle were
    deleted (2026-08-12), which marooned it opposite the fields it belongs with. */
-.sub-level { width: 150px; flex-shrink: 0; }
+.sub-level { flex-shrink: 0; }
+/* Narrow, the base: fixed widths add to ~400px before "Report →", which ran
+   off the card, so the row wraps with each part at its own width. Wide, the
+   widths come back so the rows line up. Asks the pane. */
+.sub-row-main { flex-wrap: wrap; row-gap: var(--tau-s2); }
+@container pane (min-width: 560px) {
+  .sub-row-main { flex-wrap: nowrap; row-gap: 0; }
+  .sub-date { width: 140px; }
+  .sub-level { width: 150px; }
+}
 /* The row's actions, in one bar at the foot of the card. They were plain
    forest text on the theory that enclosure is reserved for values that are
    actionable and rare (designsystem.md's salience budget) — but that test
@@ -1231,7 +1355,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .finding-summary:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
 .finding-summary:focus-visible { outline: var(--tau-focus-ring); outline-offset: calc(-1 * var(--tau-focus-gap)); }
 .f-body { flex: 1; min-width: 0; }
-.pattern-title { font-size: var(--tau-text-md); font-weight: 700; display: block; }
+.pattern-title { font: var(--tau-type-title-sm); display: block; }
 /* The count never stands alone — it sits in the phrase that names its unit
    ("3 students"), weighted and coloured inside that sentence so it still
    reads first. A bare numeral in a column is a number the reader decodes. */
@@ -1313,9 +1437,13 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    a matched pair, which a metric readout and an entity index are not.
    align-items: start so each band hugs its own content rather than stretching
    to match, for the same reason. */
-.home-cols { display: grid; grid-template-columns: 1.45fr 1fr; gap: var(--tau-s6); align-items: start; }
-.home-col { min-width: 0; }
-@media (max-width: 1200px) { .home-cols { grid-template-columns: 1fr; } }
+.home-cols { display: grid; grid-template-columns: 1fr; gap: var(--tau-s6); align-items: start; }
+/* A size container, so a row inside a half-width column reflows on the
+   COLUMN's width (.class-row below) — at 1280 the column is half the pane. A
+   grid track sizes it, so containment costs nothing here. */
+.home-col { min-width: 0; container-type: inline-size; }
+/* The 1200px window this replaced left ~864px of content beside the rail. */
+@container pane (min-width: 860px) { .home-cols { grid-template-columns: 1.45fr 1fr; } }
 
 /* DELETED 2026-08-22 (m3-lab §1). This rule existed only because
    .finding-summary's hover fill was ground-dependent: --tau-hover-surface
@@ -1331,15 +1459,18 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    page reporting a reading it does not have. The button is the only saturated
    thing on the row, which is also the only thing being asked for. */
 .setup-section + .setup-section { margin-top: var(--tau-s6); }
-.setup-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--tau-s4); align-items: stretch; }
+.setup-row { display: grid; grid-template-columns: 1fr; gap: var(--tau-s4); align-items: stretch; }
 /* Four across for the guides, which carry one sentence each against the set-up
    cards' two and a button. Both rows step down through two columns rather than
    straight to one: at the middle width three cards force the roster card's two
    sentences into a column too narrow to read, but two still hold a line worth
    reading. */
-.learn-row { grid-template-columns: repeat(4, 1fr); }
-@media (max-width: 1150px) { .setup-row, .learn-row { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 780px)  { .setup-row, .learn-row { grid-template-columns: 1fr; } }
+/* Pane widths, from what the old 780 / 1150 windows left beside the rail. */
+@container pane (min-width: 440px) { .setup-row, .learn-row { grid-template-columns: repeat(2, 1fr); } }
+@container pane (min-width: 820px) {
+  .setup-row { grid-template-columns: repeat(3, 1fr); }
+  .learn-row { grid-template-columns: repeat(4, 1fr); }
+}
 .setup-head { display: flex; align-items: center; gap: var(--tau-s2); }
 /* Same numeral the roster modal's steps use, and for the same job — the order
    is the only thing saying step 2 comes after step 1 now that neither is
@@ -1350,7 +1481,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
   display: grid; place-items: center; font-size: var(--tau-text-label-sm); font-weight: 700;
   background: var(--tau-surface-3); color: var(--tau-ink-soft);
 }
-.setup-title { font-size: var(--tau-text-md); font-weight: 700; }
+.setup-title { font: var(--tau-type-title-sm); }
 .setup-desc { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.6; }
 /* The card is a flex column, so a button left to itself spans the full width
    and stops reading as one action among the words above it. margin-top:auto
@@ -1409,6 +1540,19 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
   transition: transform var(--tau-dur-short) var(--tau-ease-standard);
 }
 .class-row:hover .class-row-go { transform: translateX(2px); color: var(--tau-forest); }
+/* Narrow: the name keeps the first line with its →, the readings drop to the
+   second. Side by side at 390px the chips took the width and the name ran
+   under them. Compact-first, and asks the NEAREST container — the .home-col
+   the row sits in on Home, the pane anywhere else — since a row in a
+   half-width column is as narrow as a row on a phone. */
+.class-row { flex-wrap: wrap; row-gap: var(--tau-s1); padding-block: var(--tau-s2); }
+.class-row-name { flex-basis: calc(100% - 2em); }
+.class-row .chip { order: 1; }
+@container (min-width: 400px) {
+  .class-row { flex-wrap: nowrap; padding-block: 0; }
+  .class-row-name { flex-basis: auto; }
+  .class-row .chip { order: 0; }
+}
 
 /* .f-updated — the "Updated" marker on a finding card. All that survives of
    the fleet-wide "Dimension trends" section, deleted 2026-08-16: it averaged
@@ -1561,7 +1705,7 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
 <header>
   <div class="header-lead">
     <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="Tau" width="391" height="192">Thinking</span>
-    <h1>Teacher Dashboard</h1>
+    <h1 class="masthead-title">Teacher Dashboard</h1>
   </div>
 
   <!-- The global search field, moved out of the rail 2026-08-24. It always
@@ -1581,8 +1725,10 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
     <kbd class="header-search-kbd" id="global-search-kbd" aria-hidden="true">⌘K</kbd>
     <div id="global-search-results" role="listbox" aria-label="Search results"></div>
   </div>
+  <button type="button" class="header-search-cancel" id="global-search-cancel" data-icon="close" aria-label="Close search"></button>
 
   <div class="header-end">
+    <button type="button" class="header-search-open" id="global-search-open" data-icon="search" aria-label="Search students, classes and assignments"></button>
     <!-- The shared account menu (api.js mountAccountChip -> components.css
          §14). Was hand-built here, which is why the other four surfaces had no
          menu at all and admin.html had nowhere to put a way back. -->
@@ -1591,6 +1737,18 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
 </header>
 
 <div class="layout">
+  <!-- The medium-class navigation rail (components.css §13c): the rail's four
+       groups as destinations, shown by mountRailDrawer() only between 600 and
+       839px. Every class and filter stays one tap behind its menu button, which
+       opens the full rail below as the drawer — nothing is dropped. Classes has
+       no all-classes screen to go to, so it opens the drawer too. -->
+  <nav class="rail-mini" id="rail-mini" aria-label="Destinations">
+    <button type="button" class="rail-mini-menu" data-rail-open aria-label="All classes and filters"><span data-icon="menu"></span></button>
+    <button type="button" class="rail-mini-item" data-mini="home" onclick="goHome()"><span class="rail-mini-pill"><span data-icon="home"></span></span>Home</button>
+    <button type="button" class="rail-mini-item" data-mini="classes" data-rail-open><span class="rail-mini-pill"><span data-icon="folder"></span></span>Classes</button>
+    <button type="button" class="rail-mini-item" data-mini="assignments" onclick="gotoAssignments('all')"><span class="rail-mini-pill"><span data-icon="description"></span></span>Assignments</button>
+    <button type="button" class="rail-mini-item" data-mini="students" onclick="gotoStudents('all')"><span class="rail-mini-pill"><span data-icon="people"></span></span>Students</button>
+  </nav>
   <aside id="sidebar" class="rail">
     <!-- "+ Add" lives here, not in the app bar, since 2026-08-24 — the search
          field took the header's centre and this is the better home for it
@@ -1642,7 +1800,11 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
     </div>
     <div id="sidebar-nav"></div>
   </aside>
-  <main id="content" class="content"></main>
+  <!-- .pane-main: a size container (components.css §19), so anything in it
+       can ask its own width rather than the window's. Nothing position:fixed
+       may be mounted inside it — the tooltip, modals and tray all mount on
+       body, which is where they must stay. -->
+  <main id="content" class="content pane-main"></main>
 </div>
 
 <script>
@@ -2708,8 +2870,20 @@ let expandedInStudent    = null;
 
 // Fills #sidebar-nav, not #sidebar: "+ Add" is static chrome above it and its
 // tauMenu binding must survive a re-render.
+// Which of the navigation rail's four groups the current screen sits under.
+const RAIL_MINI_GROUP = { home: 'home', class: 'classes', assignment: 'assignments', assignments: 'assignments', students: 'students', student: 'students' };
+function syncRailMini() {
+  const group = RAIL_MINI_GROUP[screen];
+  document.querySelectorAll('#rail-mini .rail-mini-item').forEach((b) => {
+    const on = b.dataset.mini === group;
+    b.classList.toggle('active', on);
+    if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+}
+
 function renderSidebar() {
   const el = document.getElementById('sidebar-nav');
+  syncRailMini();
 
   // No trailing dot on class/assignment rows (2026-07-28, designsystem.md's
   // dot rule) — the row's own text carries nothing that names a flag or a
@@ -2853,6 +3027,7 @@ function gsGo(i) {
   const item = gsResults[i];
   if (!item) return;
   closeGlobalSearch({ clear: true });
+  document.querySelector('header').classList.remove('searching');
   item.go();
 }
 
@@ -2919,6 +3094,25 @@ function gsMove(delta) {
   // what a teacher who clicked away to read something expects on returning.
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.header-search')) closeGlobalSearch();
+  });
+
+  // Phone only: the field takes the whole bar while it is in use (see
+  // "Phone masthead" in this page's styles). Above that width neither button
+  // is drawn and .searching changes nothing.
+  const header = input.closest('header');
+  const endSearch = () => {
+    header.classList.remove('searching');
+    closeGlobalSearch({ clear: true });
+    document.getElementById('global-search-open').focus();
+  };
+  document.getElementById('global-search-open').addEventListener('click', (e) => {
+    e.stopPropagation();
+    header.classList.add('searching');
+    input.focus();
+  });
+  document.getElementById('global-search-cancel').addEventListener('click', endSearch);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !input.value && header.classList.contains('searching')) endSearch();
   });
 })();
 
@@ -3712,7 +3906,7 @@ function renderHome() {
   ].filter(Boolean).join(' · ');
 
   const patternsSection = `<div class="section-head">
-      <div class="eyebrow">Behavioral patterns</div>
+      <div class="card-title">Behavioral patterns</div>
       <div class="section-summary">${patternsSummary}</div>
     </div>
     ${patternGroup(groups.low, 'Passive patterns', '--tau-band-1-fg', 'None showing across two or more students.')}
@@ -3767,11 +3961,11 @@ function renderHome() {
       ${newHere}
       <div class="home-cols-top">
         <div class="home-band home-col">
-          <div class="section-head"><div class="eyebrow">Students to follow up</div></div>
+          <div class="section-head"><div class="card-title">Students to follow up</div></div>
           <div>${tiles}</div>
         </div>
         <div class="home-band home-col">
-          <div class="section-head"><div class="eyebrow">Classes at a glance</div></div>
+          <div class="section-head"><div class="card-title">Classes at a glance</div></div>
           <div>${classesSection}</div>
         </div>
       </div>
@@ -4115,7 +4309,7 @@ function renderClassAggregateCard(cid, students, assignments, missingCount, flag
   const panels = { overview: overviewPanel, patterns: patternsPanel, trends: trendsPanel };
 
   return `<div class="overview-card">
-    <div class="overview-eyebrow">Class overview — progression across the term</div>
+    <div class="card-title">Class overview — progression across the term</div>
     <div class="card-tabs" role="tablist" aria-label="Class overview sections">
       <button class="card-tab ${tab === 'overview' ? 'active' : ''}" onclick="event.stopPropagation();setClassTab('${cid}','overview')" role="tab" aria-selected="${tab === 'overview'}">Overview</button>
       <button class="card-tab ${tab === 'patterns' ? 'active' : ''}" onclick="event.stopPropagation();setClassTab('${cid}','patterns')" role="tab" aria-selected="${tab === 'patterns'}">Patterns${patterns.length ? ` <span class="tab-count">${patterns.length}</span>` : ''}</button>
@@ -4517,7 +4711,7 @@ function renderAssignmentTimeline(a, students) {
 function renderDraftScheduleCard(a) {
   const schedule = draftSchedule(a);
   return `<div class="overview-card">
-    <div class="overview-eyebrow">Draft schedule</div>
+    <div class="card-title">Draft schedule</div>
     <div class="schedule-row">
       ${schedule.map(slot => `<div class="schedule-slot ${slot.state === 'live' ? 'live' : ''}">
         <div class="schedule-slot-name">${slot.label}</div>
@@ -4622,6 +4816,12 @@ function toggleAssignBrowseSort(col) {
 }
 
 function toggleBrowseAssignmentDrill(aid) {
+  // In its list form (a narrow pane) the row goes to the assignment's page
+  // instead of opening a panel of charts inside a list item (designsystem.md,
+  // Hard Constraints: tables). Asks the table, not the window, since the list
+  // form is decided by the pane.
+  const table = document.querySelector('#browse-assignments-container table.roster');
+  if (table && getComputedStyle(table).display !== 'table') { gotoAssignment(aid); return; }
   expandedInBrowseAssignments = expandedInBrowseAssignments === aid ? null : aid;
   const container = document.getElementById('browse-assignments-container');
   if (container) container.innerHTML = browseAssignmentTable();
@@ -4816,7 +5016,7 @@ function renderAssignmentAggregateContent(a, students, variant = 'full') {
   const readCount = assignmentCohort(a, students).filter(c => c.bands.some(b => b)).length;
   const patternBlock = groups.all.length ? `
     <div class="section-head">
-      <div class="eyebrow">Behavioural patterns</div>
+      <div class="card-title">Behavioural patterns</div>
       <div class="section-summary">Across the ${readCount} session${readCount !== 1 ? 's' : ''} read</div>
     </div>
     <div class="finding-list">${groups.all.map(patternCardHTML).join('')}</div>` : '';
@@ -4968,11 +5168,11 @@ function browseAssignmentRowTr(a) {
   const mainRow = `<tr class="row-clickable ${expanded ? 'expanded-row' : ''}" onclick="toggleBrowseAssignmentDrill('${a.id}')">
     <td style="font-weight:500">${a.name}</td>
     <td style="color:var(--tau-ink-soft)">${classNames}</td>
-    <td>${dueStr}</td>
+    <td><span class="cell-unit">Due </span>${dueStr}</td>
     <td><span class="chip ${closed ? 'chip-grey' : 'chip-neutral'}">${closed ? 'Closed' : 'Open'}</span></td>
-    <td class="n">${allStudents.length}</td>
-    <td>${missingTotal ? `<span class="chip chip-attention">${missingTotal}</span>` : '<span class="no-signal">—</span>'}</td>
-    <td>${flagTotal ? `<span class="chip chip-caution signal-pill-review">${flagTotal}</span>` : '<span class="no-signal">—</span>'}</td>
+    <td class="n">${allStudents.length}<span class="cell-unit"> student${allStudents.length !== 1 ? 's' : ''}</span></td>
+    <td>${missingTotal ? `<span class="chip chip-attention">${missingTotal}<span class="cell-unit"> missing</span></span>` : '<span class="no-signal">—</span>'}</td>
+    <td>${flagTotal ? `<span class="chip chip-caution signal-pill-review">${flagTotal}<span class="cell-unit"> worth a chat</span></span>` : '<span class="no-signal">—</span>'}</td>
   </tr>`;
 
   const drillRow = expanded
@@ -5049,11 +5249,11 @@ function renderStudentDetail(sid) {
       return `<div style="margin-bottom:${expanded ? 16 : 8}px">
         <div class="assignment-summary-row list-row-boxed ${expanded ? 'expanded' : ''}" onclick="toggleStudentDrill('${key}')">
           <span class="chevron">${iconSVG('expandMore')}</span>
-          <span style="font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}</span>
-          <span style="width:150px;flex-shrink:0">${levelChip(level, true)}</span>
-          <span style="width:150px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${signalPill(asig)}</span>
-          <span style="width:108px;text-align:center;flex-shrink:0">${checkpointChip(st, true)}</span>
-          <span style="width:44px;text-align:right;flex-shrink:0;font-size:var(--tau-text-sm);color:var(--tau-ink-soft)">${subs.length} sub${subs.length !== 1 ? 's' : ''}</span>
+          <span class="asr-name">${a.name}</span>
+          <span class="asr-level">${levelChip(level, true)}</span>
+          <span class="asr-signal">${signalPill(asig)}</span>
+          <span class="asr-check">${checkpointChip(st, true)}</span>
+          <span class="asr-subs">${subs.length} sub${subs.length !== 1 ? 's' : ''}</span>
         </div>
         ${drillPanel}
       </div>`;
@@ -6259,8 +6459,7 @@ function openMoveStudent(sid) {
 // teacher had. It belongs on the submission row, which is where the teacher
 // already is when they decide a draft is worth saying something about.
 //
-// Same route teacher.html posts to; this is an additional entry point, not a
-// replacement, so both surfaces stay in sync through the one record.
+// The only entry point since teacher.html was deleted (2026-09-29).
 // No confirm step either way: nothing is destroyed, the flags stay exactly
 // where they were, and Undo is one click away in the same place.
 function findSub(subId) {
@@ -7713,6 +7912,16 @@ async function submitRosterAdd(scope) {
 document.querySelectorAll('[data-icon]').forEach((el) => { el.innerHTML = iconSVG(el.dataset.icon); });
 
 const addMenu = tauMenu(document.getElementById('trig-manage'), document.getElementById('panel-manage'));
+
+
+// Standing at expanded, the navigation rail + drawer at medium, the drawer
+// alone at compact (components.css §13b/§13c).
+mountRailDrawer({
+  rail: document.getElementById('sidebar'),
+  slot: document.querySelector('.header-lead'),
+  identity: document.getElementById('accountChip'),
+  mini: document.getElementById('rail-mini'),
+});
 
 // Kept as the entry point the header's inline onclick attributes already call,
 // rather than editing every menu item to reach the instance directly.

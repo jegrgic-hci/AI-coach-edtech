@@ -77,7 +77,12 @@
 <!-- View 2: assignment workspace -->
 <div id="viewWorkspace" class="view hidden">
   <div class="ws-body">
-    <aside class="rail">
+    <!-- M3 list-detail (components.css §19a, designsystem.md Hard Constraints).
+         Sessions are the list, the conversation is the detail. On compact one
+         pane shows at a time — data-pane, set by app.js — and Submit draft is
+         in BOTH: the list's foot and, compact only, the conversation's header. -->
+    <div class="tpl-list-detail" id="wsLayout" data-pane="detail">
+    <aside class="rail pane-list" aria-label="Sessions">
       <div class="rail-head">
         <details class="acard-disclosure acard-disclosure-prompt ws-prompt">
           <summary class="acard-disclosure-toggle">
@@ -94,10 +99,14 @@
       </div>
     </aside>
 
-    <section class="chat">
+    <section class="chat pane-detail">
       <div class="chat-header">
+        <!-- Compact only (the template shows it): the step back to the list,
+             named for where it goes. -->
+        <button type="button" class="pane-back" id="btnSessionsBack"><span id="sessionsBackIcon"></span><span id="sessionsLabel">Sessions</span></button>
         <span id="convTitle"></span>
         <button id="btnRename" title="Rename session">&#9998;</button>
+        <button type="button" id="btnSubmitCompact" class="submit-btn compact-only">Submit draft</button>
       </div>
       <div class="reading-banner hidden" id="readingBanner"></div>
       <div class="mode-banner hidden" id="draftsDoneBanner"></div>
@@ -120,8 +129,8 @@
           <textarea id="input" rows="2" placeholder="Message the AI…"></textarea>
           <div class="composer-row">
             <button id="btnEvaluate" class="btn btn-quiet btn-sm btn-auditor" title="Ask the auditor how you're using the AI">How am I doing?</button>
-            <button id="btnRegenerate" class="btn btn-quiet btn-sm hidden">&#8635; Regenerate</button>
-            <button id="btnStop" class="btn btn-quiet btn-sm stop-btn hidden">&#9632; Stop</button>
+            <button id="btnRegenerate" class="btn btn-quiet btn-sm hidden" aria-label="Regenerate"><span aria-hidden="true">&#8635;</span> <span class="btn-word">Regenerate</span></button>
+            <button id="btnStop" class="btn btn-quiet btn-sm stop-btn hidden" aria-label="Stop"><span aria-hidden="true">&#9632;</span> <span class="btn-word">Stop</span></button>
             <span class="spacer"></span>
             <button id="btnSend" class="btn btn-primary btn-sm">Send</button>
           </div>
@@ -129,6 +138,7 @@
         <p class="composer-hint">Your teacher can read this session</p>
       </div>
     </section>
+    </div>
   </div>
 </div>
 

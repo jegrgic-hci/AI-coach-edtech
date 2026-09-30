@@ -612,7 +612,7 @@ function renderComposition(cohort, opts) {
   const { levels, off } = levelComposition(cohort);
   const read = n - off;
   if (!read) {
-    return `<div class="agg-block-lbl">${label}</div>
+    return `<div class="card-title">${label}</div>
       <p class="agg-sample-note">No completed sessions to read yet.</p>`;
   }
   const comp = renderCompHTML(levels, off);
@@ -659,7 +659,7 @@ function renderComposition(cohort, opts) {
   // count with no stated scope, and the two students it excludes are excluded
   // for a reason a teacher cannot see.
   const head = `<div class="section-head">
-      <div class="agg-block-lbl" style="margin:0">${label}</div>
+      <div class="card-title">${label}</div>
       <div class="section-summary">${read} read of ${n}</div>
     </div>`;
 
@@ -701,7 +701,7 @@ function renderBandSection(cohort, opts) {
   const readable = cohort.filter(c => c.bands.some(b => b)).length;
 
   if (!readable) {
-    return `<div class="agg-block-lbl">${label}</div>
+    return `<div class="card-title">${label}</div>
       <p class="agg-sample-note">No completed sessions to read yet.</p>`;
   }
 
@@ -733,7 +733,7 @@ function renderBandSection(cohort, opts) {
 
   return `<div class="section-head">
       <div class="head-with-info">
-        <div class="agg-block-lbl" style="margin:0">${label}</div>
+        <div class="card-title">${label}</div>
         <button class="info-dot tip-trigger" type="button" aria-expanded="false"
           aria-label="How to read the dimension bands"
           data-tip="<b>How to read these</b><br>Every student sits in exactly one band per dimension on this task, so each row counts the same students — which is why every bar is the same length. The tick marks where the weaker two bands end.<br><br>The four are measured in different units, so they are read side by side and never added together.">i</button>
@@ -1060,7 +1060,7 @@ function renderMovement(scope, entries, summary, axis, opts = {}) {
 
   return `<div class="section-head">
       <div class="head-with-info">
-        <div class="eyebrow">${title}</div>
+        <div class="card-title">${title}</div>
         <button class="info-dot tip-trigger" type="button" aria-expanded="false"
           aria-label="How to read ${title.toLowerCase()}"
           data-tip="<b>How to read this</b><br>Each column counts every student once, at their latest reading in that ${axis.unit}. A ribbon is a group of students carried from one ${axis.unit} to the next, so a rising ribbon is students holding onto more of their own thinking.<br><br>${axis.note}${showTabs ? '<br><br>One at a time: the four are measured in different units, so they are read side by side and never added together.' : ''}">i</button>

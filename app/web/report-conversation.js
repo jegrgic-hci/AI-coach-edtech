@@ -81,18 +81,6 @@ function formatConvDuration(conversations) {
   return 'under a minute';
 }
 
-// The title carries the hierarchy a student needs to orient on this specific
-// view — which assignment, which draft — since "session" here means one chat
-// thread, not the draft itself (that's what "sessions" means everywhere else
-// in the data model). Never say "conversation" in this view's copy: sessions
-// are grouped under a draft, drafts under an assignment, and that's the only
-// vocabulary a student should see.
-function renderConvViewTitle(submission) {
-  const el = document.getElementById('convViewTitle');
-  const title = submission.assignmentTitle || 'Assignment';
-  el.textContent = `${title} : Draft ${submission.cycleIndex + 1}`;
-}
-
 function renderConvViewIntro(conversations) {
   const el = document.getElementById('convViewIntro');
   if (!conversations.length) {
@@ -101,7 +89,7 @@ function renderConvViewIntro(conversations) {
   }
   const n = conversations.length;
   el.textContent = `${n} session${n === 1 ? '' : 's'} over ${formatConvDuration(conversations)}. `
-    + 'A record, not a live chat — pick a session on the left to read it.';
+    + 'A record, not a live chat — pick a session to read it.';
 }
 
 // Lazy-loaded and cached — most students never open this view in a given
@@ -114,7 +102,6 @@ async function loadConversationView(submission) {
     // workspace itself lands on.
     convViewState.activeId = conversations.length ? conversations[conversations.length - 1].id : null;
   }
-  renderConvViewTitle(submission);
   renderConvViewIntro(convViewState.conversations);
   renderConvViewList(convViewState.conversations);
   renderConvViewTranscript(convViewState.conversations.find((c) => c.id === convViewState.activeId) || null);

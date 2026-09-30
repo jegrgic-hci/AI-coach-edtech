@@ -9,39 +9,45 @@
     return;
   }
 
-  // 'report' | 'sessions' — which of the two the results-layout is currently
-  // showing. reportReady flips once render() has actually drawn the report,
-  // so switching back from Sessions while analysis is still pending restores
-  // the spinner rather than an empty results panel.
-  let mode = 'report';
+  // reportReady flips once render() has actually drawn the report; until then
+  // the pending line holds the report pane.
   let reportReady = false;
 
-  function setLocalNav(submission) {
-    renderNavLocal(document.getElementById('navLocal'), [
-      { label: 'Report', active: mode === 'report', onClick: () => { mode = 'report'; applyMode(); setLocalNav(submission); } },
-      {
-        label: 'Sessions', active: mode === 'sessions',
-        onClick: () => {
-          mode = 'sessions'; applyMode(); setLocalNav(submission);
-          loadConversationView(submission).catch((err) => {
-            console.error('session view failed', err);
-            document.getElementById('convViewTranscript').innerHTML =
-              '<p class="conv-view-empty">Could not load your sessions. Reload to try again.</p>';
-          });
-        },
-      },
-    ]);
-  }
-
   function applyMode() {
-    document.getElementById('conversationView').classList.toggle('hidden', mode !== 'sessions');
-    if (mode === 'sessions') {
-      document.getElementById('pending').style.display = 'none';
-      document.getElementById('results').style.display = 'none';
-      return;
-    }
     document.getElementById('pending').style.display = reportReady ? 'none' : '';
     document.getElementById('results').style.display = reportReady ? 'flex' : 'none';
+  }
+
+  // The sessions are the supporting pane (components.css §19b): beside the
+  // report at expanded, a bottom sheet below it. Loaded when they are first
+  // going to be seen — at once if the pane is on screen, on first opening of
+  // the sheet if not — since most readers of a phone report never open it.
+  let currentSubmission = null;
+  let sessionsLoaded = false;
+  function ensureSessions() {
+    if (sessionsLoaded || !currentSubmission) return;
+    sessionsLoaded = true;
+    loadConversationView(currentSubmission).catch((err) => {
+      console.error('session view failed', err);
+      sessionsLoaded = false;
+      document.getElementById('convViewTranscript').innerHTML =
+        '<p class="conv-view-empty">Could not load your sessions. Reload to try again.</p>';
+    });
+  }
+  document.getElementById('convCloseIcon').outerHTML = iconSVG('close');
+  const sessionsSheet = mountSheet({ sheet: document.getElementById('conversationView') });
+  TAU_SIZE.belowExpanded.addEventListener('change', ensureSessionsIfShown);
+  function ensureSessionsIfShown() { if (!TAU_SIZE.belowExpanded.matches) ensureSessions(); }
+
+  // Below expanded, one button in the masthead's local slot opens the sheet.
+  // At expanded the slot is hidden (.sheet-toggle) — nothing to open.
+  function setLocalNav() {
+    renderNavLocal(document.getElementById('navLocal'), [
+      {
+        label: 'Sessions',
+        onClick: (e) => { ensureSessions(); sessionsSheet.open(e.currentTarget); },
+      },
+    ]);
   }
 
   // Both states that end in "run it again" — a failed analysis and one that
@@ -53,9 +59,7 @@
   // a first read of an old draft are not the same event to the person waiting.
   function offerRerun(bodyHTML, actionLabel, working) {
     const pending = document.getElementById('pending');
-    // Never over the Sessions view — applyMode() owns that toggle, and a poll
-    // landing while the reader is in the transcript must not pull them out of it.
-    if (mode === 'report') pending.style.display = '';
+    pending.style.display = '';
     pending.innerHTML =
       `${bodyHTML}<br><br>
        <button id="retryBtn" class="btn btn-quiet" type="button">${actionLabel}</button>`;
@@ -99,7 +103,9 @@
       { label: submission.assignmentTitle || 'Assignment' },
       { label: `Draft ${submission.cycleIndex + 1}`, current: true },
     ]);
-    setLocalNav(submission);
+    currentSubmission = submission;
+    setLocalNav();
+    ensureSessionsIfShown();
 
     if (!analysis || analysis.status === 'pending') {
       setTimeout(load, 2500);

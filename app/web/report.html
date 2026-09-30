@@ -20,11 +20,20 @@
   <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="Tau" width="391" height="192">Thinking</span>
   <nav class="tau-nav-crumbs" id="navCrumbs"></nav>
   <span class="tau-nav-fill"></span>
-  <span class="tau-nav-local hidden" id="navLocal"></span>
+  <!-- Below expanded: the one control that opens the sessions sheet
+       (report-boot.js). At expanded .sheet-toggle hides it — the sessions
+       are on screen beside the report, so there is nothing to open. -->
+  <span class="tau-nav-local sheet-toggle hidden" id="navLocal"></span>
   <div class="account-chip" id="accountChip"></div>
   <!-- Appearance lives in the account menu now, on every surface. -->
 </header>
 
+<!-- M3 supporting pane (components.css §19b, designsystem.md Hard Constraints).
+     The report leads; the sessions it was read from support it — beside it at
+     expanded, a bottom sheet below. Replaced the Report/Sessions view swap,
+     which lost the reader's place in the report. -->
+<div class="tpl-supporting report-panes">
+<main class="pane-main" id="reportMain">
 <div class="results-layout">
   <div id="pending">
     <div class="spinner"></div>
@@ -78,18 +87,21 @@
       <div id="growthMovesContent"></div>
     </div>
   </div>
-
-  <!-- Static record, not the live AI chat: every session from this draft,
-       read-only. Toggled in place of #results by the nav's local
-       Report/Sessions option — see report-boot.js. -->
-  <div class="card card-lg conv-view hidden" id="conversationView">
-    <span class="report-section-title" id="convViewTitle">Loading…</span>
-    <p class="tab-intro" id="convViewIntro">Loading…</p>
-    <div class="conv-view-body">
-      <div class="conv-view-list" id="convViewList"></div>
-      <div class="conv-view-transcript" id="convViewTranscript"></div>
-    </div>
+</div>
+</main>
+<!-- Static record, not the live AI chat: every session from this draft,
+     read-only. -->
+<aside class="pane-side conv-pane" id="conversationView" aria-label="Your sessions">
+  <div class="conv-pane-head">
+    <h2 class="conv-pane-title">Your sessions</h2>
+    <button type="button" class="sheet-close" aria-label="Close sessions"><span id="convCloseIcon"></span></button>
   </div>
+  <p class="conv-pane-intro" id="convViewIntro">Loading…</p>
+  <div class="conv-view-body">
+    <div class="conv-view-list" id="convViewList"></div>
+    <div class="conv-view-transcript" id="convViewTranscript"></div>
+  </div>
+</aside>
 </div>
 
 

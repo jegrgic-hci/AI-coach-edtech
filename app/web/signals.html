@@ -33,7 +33,6 @@ header {
   align-items: center;
   gap: var(--tau-s3);
 }
-header h1 { font-size: var(--tau-text-lg); font-weight: 700; letter-spacing: -0.2px; }
 .header-back {
   margin-left: auto;
   font-size: var(--tau-text-sm);
@@ -179,7 +178,7 @@ footer p { max-width: 40rem; }
   .panels { grid-template-columns: 1fr 1fr; }
   .panels .panel-wide { grid-column: 1 / -1; }
 }
-@media (max-width: 640px) {
+@media (max-width: 599px) { /* compact; was 640 until 2026-09-29 */
   .doc { padding: var(--tau-s5) var(--tau-s4) 64px; }
   .doc-title { font-size: 28px; }
   .signal { padding: var(--tau-s4) 16px 18px; }
@@ -190,7 +189,7 @@ footer p { max-width: 40rem; }
 
 <header>
   <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="Tau" width="391" height="192">Thinking</span>
-  <h1>Worth a chat</h1>
+  <h1 class="masthead-title">Worth a chat</h1>
   <a class="header-back" href="dashboard.html">Back to dashboard</a>
 </header>
 

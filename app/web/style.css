@@ -6,6 +6,9 @@ body {
   background: var(--tau-bg);
   color: var(--tau-ink);
   height: 100vh;
+  /* The visible height, not the largest: 100vh on a phone includes the strip
+     the browser's toolbar covers, which is where the composer sits. */
+  height: 100dvh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -131,8 +134,7 @@ button:hover { border-color: var(--tau-forest); }
   display: flex;
   align-items: center;
   gap: 10px;
-  font-weight: 600;
-  font-size: var(--tau-text-md);
+  font: var(--tau-type-title-sm);
 }
 /* Drawn small, reaching --tau-target through a transparent expansion rather
    than by growing its box (m3-lab §3) — the same construction .btn::after and
@@ -369,7 +371,22 @@ button:hover { border-color: var(--tau-forest); }
 }
 .composer-notice-quiet strong { color: var(--tau-ink); }
 
-.composer-row { display: flex; gap: var(--tau-s2); align-items: center; flex-wrap: wrap; }
+.composer-row { display: flex; gap: var(--tau-s2); align-items: center; flex-wrap: nowrap; }
+/* The row holds the auditor chip, one glyph control and Send on one line;
+   with the words, Send wrapped to a row of its own. The glyphs (↻, ■) are the
+   conventional ones and each button keeps its name in aria-label, so only the
+   visible word goes.
+   Asks the PANE, not the window (designsystem.md, Hard Constraints): at a
+   620px window the conversation pane is ~370px beside the list, narrower than
+   a 390px phone, and a ≤599 window rule left Send wrapping there.
+   Compact-first — glyphs are the base, words the upgrade — so a browser with
+   no container queries gets the row that fits. */
+.composer-row .btn-word { display: none; }
+.composer-row .btn-quiet:not(.btn-auditor) { min-width: var(--tau-target); justify-content: center; padding: 0; }
+@container pane (min-width: 480px) {
+  .composer-row .btn-word { display: inline; }
+  .composer-row .btn-quiet:not(.btn-auditor) { min-width: 0; padding: 0 var(--tau-s3); } /* .btn-sm's own */
+}
 .composer-row .spacer { flex: 1; }
 
 /* Inside the box, a bordered button is a frame 12px inside a frame. The quiet
@@ -476,7 +493,7 @@ button:hover { border-color: var(--tau-forest); }
 .tau-bar > div { height: 100%; background: var(--tau-forest); border-radius: 3px; }
 
 .report-panel { background: var(--tau-surface); border: 1px solid var(--tau-line); border-radius: 12px; padding: 20px; }
-.report-panel h3 { font-size: var(--tau-text-lg); margin-bottom: 12px; }
+.report-panel h3 { font: var(--tau-type-title-md); letter-spacing: var(--tau-track-title); margin-bottom: 12px; }
 
 .strength { border-left: 3px solid var(--tau-forest); padding: 6px 14px; margin-bottom: 12px; }
 .strength .quote { font-style: italic; }
@@ -602,10 +619,12 @@ button:hover { border-color: var(--tau-forest); }
   max-width: 420px;
   gap: 14px;
 }
-.login-card h1 { font-size: var(--tau-text-xl); }
+.login-card h1 { font: var(--tau-type-title-lg); letter-spacing: var(--tau-track-title); }
 .login-sub { font-size: var(--tau-text-md); color: var(--tau-ink-soft); margin-top: -8px; }
 
-@media (max-width: 760px) {
+/* Below expanded (was 760 until 2026-09-29): at a tablet's 768 the hero beside
+   a 420px panel leaves the hero ~300px. */
+@media (max-width: 839px) {
   .login-shell { flex-direction: column; overflow-y: auto; }
   .login-hero {
     flex: 0 0 auto;
@@ -778,7 +797,7 @@ button:hover { border-color: var(--tau-forest); }
   max-width: min(46rem, 100%);
   gap: 14px;
 }
-.agreement-card h1 { font-size: var(--tau-text-xl); }
+.agreement-card h1 { font: var(--tau-type-title-lg); letter-spacing: var(--tau-track-title); }
 .agreement-mark { height: 40px; width: auto; align-self: flex-start; }
 
 /* Capped and scrolled rather than left to run the length of the page: the tick
@@ -925,9 +944,9 @@ button:hover { border-color: var(--tau-forest); }
    3. .rail-item-meta steps up from ink-faint to ink-soft. ink-faint
       measures 2.79:1 on the shell — below AA for normal text; ink-soft is
       4.60:1. Not a preference; the old value is not legible here. */
-.dash-rail, .ws-body > .rail { background: var(--tau-shell); }
-.dash-rail .rail-item.active, .ws-body > .rail .rail-item.active { background: var(--tau-surface-2); }
-.dash-rail .rail-item-meta, .ws-body > .rail .rail-item-meta { color: var(--tau-ink-soft); }
+.dash-rail, .ws-body .pane-list { background: var(--tau-shell); }
+.dash-rail .rail-item.active, .ws-body .pane-list .rail-item.active { background: var(--tau-surface-2); }
+.dash-rail .rail-item-meta, .ws-body .pane-list .rail-item-meta { color: var(--tau-ink-soft); }
 
 /* Pinned to the bottom by .rail-foot's margin-top:auto — whatever room the
    assignment list doesn't use, this claims, so guidance reads as the rail's
@@ -1000,7 +1019,7 @@ button:hover { border-color: var(--tau-forest); }
 
 .chunk { margin-bottom: 38px; }
 .chunk-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
-.chunk-head h2 { font-size: 17px; letter-spacing: -0.01em; }
+.chunk-head h2 { font: var(--tau-type-title-md); letter-spacing: var(--tau-track-title); }
 .chunk-count { font-size: var(--tau-text-label-md); color: var(--tau-ink-soft); }
 .chunk-note { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); margin-bottom: 14px; }
 .chunk-head + #currentList { margin-top: 14px; }
@@ -1024,7 +1043,7 @@ button:hover { border-color: var(--tau-forest); }
 .acard-class { font-size: var(--tau-text-label-sm); font-weight: 700; color: var(--tau-ink-soft); }
 .acard-sep { color: var(--tau-line-strong); font-size: var(--tau-text-label-sm); }
 .acard-title-row { display: flex; align-items: center; justify-content: space-between; gap: var(--tau-s3); margin-top: 5px; }
-.acard-title { font-size: var(--tau-text-xl); letter-spacing: -0.015em; }
+.acard-title { font: var(--tau-type-title-lg); letter-spacing: var(--tau-track-title); }
 .acard-rubric-btn { flex-shrink: 0; }
 
 /* ---------- draft rows (home card) ---------- */
@@ -1160,7 +1179,7 @@ button.draft-tile:hover {
    so this composes onto .card exactly rather than keeping a third value. */
 .pcard { margin-bottom: 10px; }
 .pcard-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-.pcard-head h3 { font-size: var(--tau-text-lg); flex: 1; min-width: 200px; }
+.pcard-head h3 { font: var(--tau-type-title-md); letter-spacing: var(--tau-track-title); flex: 1; min-width: 200px; }
 .pcard-outcome { display: flex; align-items: baseline; gap: 9px; }
 .pcard-band { font-size: var(--tau-text-sm); font-weight: 600; padding-left: 8px; border-left-width: 3px; border-left-style: solid; }
 .pcard-meta { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); margin: 3px 0 11px; }
@@ -1187,21 +1206,63 @@ button.draft-chip:hover { border-color: var(--tau-forest); }
    width/padding this particular chip needs from it. */
 .draft-chip[class*='level-'] { border-left-width: 5px; padding-left: 10px; }
 
-@media (max-width: 900px) {
-  .dash { flex-direction: column; overflow-y: auto; }
-  /* Layout only — the rail stops being a column and becomes a band across
-     the top. Its chrome (ground, row shape, active state) is untouched. */
+/* Below expanded (designsystem.md Hard Constraints, size classes — was 760px
+   until 2026-09-29, 900px before that). The home view's rail is standing
+   guidance, not navigation, so it has no mini form: below expanded it is a
+   band under the cards, which at 768 is a full-width column of work rather
+   than 272px of rail beside 496px of cards. */
+@media (max-width: 839px) {
+  /* The view scrolls, not .dash inside it, so the hero goes with the content
+     rather than holding a quarter of the screen above it. */
+  #viewAssignments { overflow-y: auto; }
+  #viewAssignments > .hero { flex-shrink: 0; }
+  .dash { flex-direction: column; flex: none; overflow: visible; }
+  /* Layout only — the rail stops being a column and becomes a band. Its
+     chrome (ground, row shape, active state) is untouched.
+     BELOW the assignments, not above: this rail is standing, not navigation —
+     guidance and a jump list to cards that are already on the page — and above
+     them it pushed a student's work off the first screen. flex-shrink:0
+     because as a shrinkable flex child of a scrolling column it was being
+     squeezed to 41px, which hid the guidance outright. */
   /* line-strong, not line: drawn on --tau-shell, where --tau-line inverts. */
-  .dash-rail { width: 100%; min-width: 0; border-bottom: 1px solid var(--tau-line-strong); overflow: visible; padding-bottom: 24px; }
-  .dash-main { overflow: visible; padding: 24px 20px 60px; }
+  .dash-rail { order: 1; flex-shrink: 0; width: 100%; min-width: 0; border-top: 1px solid var(--tau-line-strong); overflow: visible; padding: 24px var(--tau-s4); }
+  .dash-main { overflow: visible; padding: 24px var(--tau-s4) 40px; flex-shrink: 0; }
   /* Collapsed, the rail is a band: the three blocks run side by side so the
      meters keep a sane width instead of stretching the full page. */
   .rail-progress { display: flex; flex-wrap: wrap; gap: 30px 40px; align-items: flex-start; }
   .rail-block { flex: 1 1 240px; max-width: 340px; }
   .rail-block + .rail-block { margin-top: 0; }
 
-  /* The workspace rail sits above the chat rather than beside it. */
-  .ws-body { flex-direction: column; }
-  .ws-body > .rail { width: 100%; min-width: 0; }
+  /* 16px is not a ramp step, it is iOS Safari's threshold: a focused field
+     under it zooms the whole page, on every tap into the composer. Below
+     expanded, not below phone — an iPad's Safari zooms the same way. */
+  #input { font-size: 16px; }
+  /* Hard Constraints: below expanded every control is 44px. */
+  .submit-btn { min-height: var(--tau-target); }
+}
+
+/* Compact. The workspace's pane switching is the template's (components.css
+   §19a); what is left here is what only this conversation pane needs when it
+   is the whole screen. */
+@media (max-width: 599px) {
+  /* One pane on screen, so no edge is a docking seam any more. */
+  .chat { margin: 0 var(--tau-s2) var(--tau-s2); border-radius: var(--tau-r-xl); }
+  .chat-header { padding: var(--tau-s1) var(--tau-s2) var(--tau-s1) var(--tau-s1); min-height: var(--tau-target); gap: var(--tau-s1); }
+  /* The title yields first: the back step and Submit draft are the two
+     things on this row that do something. The full title is in the list. */
+  #convTitle { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chat-header .submit-btn { padding: 0 var(--tau-s4); box-shadow: none; }
+  .composer { padding: var(--tau-s2) var(--tau-s3) var(--tau-s3); }
+  .messages { padding: var(--tau-s4); }
+  .composer-notice-close { width: var(--tau-target); height: var(--tau-target); margin: -11px -8px -11px 0; }
+
+  /* Assignment card: the title takes the width and the prompt button drops
+     under it — side by side, a four-word title was wrapping to five lines. */
+  .acard-title-row { flex-wrap: wrap; }
+  /* A submitted draft's tile keeps "Draft 2 · Submitted … View report" on
+     its one line; the note flag, when there is one, drops to a second. */
+  .draft-tile { flex-wrap: wrap; row-gap: var(--tau-s1); }
+  .draft-tile-num, .draft-tile-status, .draft-tile-go { white-space: nowrap; }
+  .draft-tile .draft-row-note-flag { order: 1; flex-basis: 100%; }
 }
 

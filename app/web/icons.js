@@ -35,6 +35,10 @@ const ICONS = {
   lock:
     '<rect x="4.5" y="10.5" width="15" height="9.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/>'
     + '<path d="M8 10.5V7.75a4 4 0 0 1 8 0v2.75" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  // Opens the rail when it is a drawer (phone width). Three equal bars, the
+  // one shape that means "the navigation is behind this" on every phone.
+  menu:
+    '<path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
   search:
     '<circle cx="11" cy="11" r="6.25" fill="none" stroke="currentColor" stroke-width="1.6"/>'
     + '<path d="m15.6 15.6 4.4 4.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
@@ -43,6 +47,17 @@ const ICONS = {
     + '<path d="M9 12.5h6M9 16h6M9 9h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
   arrowForward:
     '<path d="M4 12h15M13.5 5.5 20 12l-6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+  // The medium-class navigation rail's destinations (components.css §13c) —
+  // Material Symbols' home and group silhouettes, on this file's 1.6 stroke.
+  home:
+    '<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+  people:
+    '<circle cx="9" cy="8.5" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/>'
+    + '<path d="M3.5 19c.6-3 2.8-4.5 5.5-4.5s4.9 1.5 5.5 4.5M15.5 5.8a3 3 0 0 1 0 5.4M17.5 14.8c1.6.6 2.7 2 3 4.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  // arrowForward mirrored — the list-detail step back to the list on compact
+  // (components.css .pane-back), where the label names the destination.
+  arrowBack:
+    '<path d="M20 12H5M10.5 5.5 4 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
   // ── Menu vocabulary ──────────────────────────────────────────────────────
   // Added when the object action menus landed. The header's "+ Add" picker
   // used emoji (📄 👤 🗂) while this file existed unused beside it — two icon

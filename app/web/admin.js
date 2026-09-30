@@ -717,7 +717,7 @@ const VIEWS = {
 
 function renderNav() {
   const allowed = new Set(navItems().map((i) => i.id));
-  $('adminNav').innerHTML = NAV.map((group) => {
+  $('adminNavBody').innerHTML = NAV.map((group) => {
     const items = group.items.filter((i) => allowed.has(i.id));
     if (!items.length) return '';
     return `<div class="rail-group">
@@ -813,7 +813,7 @@ async function reload() {
   render();
 }
 
-// Hash routing, the same shape teacher.html already uses. It costs nothing and
+// Hash routing. It costs nothing and
 // it means a reload, the back button, and a pasted link all land where the
 // person expects rather than resetting to the default view.
 function viewFromHash() {
@@ -942,6 +942,14 @@ $('adminMain').addEventListener('click', async (e) => {
     await api(`/api/admin/teachers/${teacher.id}/status`, { method: 'POST', body: { status: to } });
     return reload();
   }
+});
+
+// Standing at expanded, the drawer below it (components.css §13b). No mini
+// rail — see admin.html's below-expanded block for why.
+mountRailDrawer({
+  rail: $('adminNav'),
+  slot: document.querySelector('.app-header'),
+  identity: $('accountChip'),
 });
 
 (async function init() {
