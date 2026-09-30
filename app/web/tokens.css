@@ -154,6 +154,12 @@
    * Validated in the ordinal mode against the real tau surfaces: monotone
    * lightness, adjacent ΔL >= 0.06, light end clearing 2:1.
    *
+   * DIMENSION BANDS ONLY since 2026-09-30. Agency levels moved to
+   * --tau-level-N below: one ramp for both put Passive and "didn't happen" in
+   * the same colour on side-by-side charts measuring different things. All
+   * four dimensions share this one hue — the row label names the dimension,
+   * so colour does not have to.
+   *
    * DIRECTION: band 1 is the step furthest from the ground in both themes —
    * darkest on white, lightest on dark. Deliberately opposite to
    * --tau-band-N-fg's "step down in lightness 1->4", because the finding this
@@ -163,6 +169,37 @@
   --tau-scale-2: #44769b;  --tau-scale-2-ink: var(--tau-surface);
   --tau-scale-3: #6a96b7;  --tau-scale-3-ink: var(--tau-ink);
   --tau-scale-4: #91b6d4;  --tau-scale-4-ink: var(--tau-ink);
+
+  /* --tau-level-N — AGENCY LEVELS, plotted together (.comp, the agency flow).
+   * Added 2026-09-30. Level 1 = Passive … 4 = Transformative.
+   *
+   * THE CHIPS' HUES, STRONGER. Same four hues as --tau-band-N (indigo 280,
+   * teal 205, blue 242, sage 162), so a level is one colour family on a chip
+   * and on a chart — an earlier cut swapped Reactive's and Directive's hues
+   * and ended in aqua, and read as foreign to the palette. The chips are
+   * tints for identifying ONE level; a chart needs four marks told apart at a
+   * glance, so these carry more chroma (~0.08; Directive 0.14) and step in
+   * lightness. Under one hue the four levels washed into one tint on the
+   * flow and could not be followed across assignments.
+   *
+   * Transformative is SAGE, the brand hue, as its chip already is — the
+   * band table in designsystem.md classes these hues as taxonomic, not
+   * evaluative. No warm hue: every warm hue is a semantic tier.
+   *
+   * DIRECTIVE IS VIVID ON PURPOSE. It shares hue 242 with --tau-scale-N,
+   * the dimensions' steel blue; chroma is what keeps them apart (nearest
+   * level-to-band pair ΔE 7.5 light, 5.3 dark — dark is tighter because its
+   * steel ramp spans the whole lightness range and the -ink rule stops these
+   * slotting between its steps). Levels and bands never share a chart.
+   *
+   * Validated against the real surfaces: ordinal (monotone lightness,
+   * adjacent ΔL >= 0.06, light end clearing 2:1) and adjacent separation
+   * (CVD ΔE >= 8, normal vision ΔE >= 15). Level 1 is darkest in both themes.
+   * *-ink: each label clears 4.5:1 on its fill. */
+  --tau-level-1: #353766;  --tau-level-1-ink: var(--tau-surface);
+  --tau-level-2: #0f6d76;  --tau-level-2-ink: var(--tau-surface);
+  --tau-level-3: #198ed2;  --tau-level-3-ink: var(--tau-ink);
+  --tau-level-4: #7fbe9f;  --tau-level-4-ink: var(--tau-ink);
 
   /* --tau-agency-N — THE PER-TURN RAMP, on one student's own turns.
    * Added 2026-08-18 for the report's turn map (report.css, .turnplot).
@@ -489,6 +526,15 @@
     --tau-scale-3: #5c8fb3;  --tau-scale-3-ink: var(--tau-surface);
     --tau-scale-4: #325f80;  --tau-scale-4-ink: var(--tau-ink);
 
+    /* Agency levels for dark. Level 1 is darkest here too, NOT the step
+       furthest from the ground: with the hue order held fixed across themes
+       (colour follows the level), the reversed ramps tried collapsed under
+       protan vision and none cleared ΔE 8. */
+    --tau-level-1: #4a4d7e;  --tau-level-1-ink: var(--tau-ink);
+    --tau-level-2: #1d97a3;  --tau-level-2-ink: var(--tau-surface);
+    --tau-level-3: #66baf7;  --tau-level-3-ink: var(--tau-surface);
+    --tau-level-4: #86d9b0;  --tau-level-4-ink: var(--tau-surface);
+
     /* Same direction as light: step 4 is the strongest, furthest from the
        ground. On a dark ground that means lightest, not darkest. */
     --tau-agency-1: #2C3A33;  --tau-agency-1-ink: var(--tau-ink);
@@ -539,6 +585,11 @@
   --tau-scale-2: #8ec0e4;  --tau-scale-2-ink: var(--tau-surface);
   --tau-scale-3: #5c8fb3;  --tau-scale-3-ink: var(--tau-surface);
   --tau-scale-4: #325f80;  --tau-scale-4-ink: var(--tau-ink);
+  /* Agency levels for dark — see the media-query block above. */
+  --tau-level-1: #4a4d7e;  --tau-level-1-ink: var(--tau-ink);
+  --tau-level-2: #1d97a3;  --tau-level-2-ink: var(--tau-surface);
+  --tau-level-3: #66baf7;  --tau-level-3-ink: var(--tau-surface);
+  --tau-level-4: #86d9b0;  --tau-level-4-ink: var(--tau-surface);
 
   /* The agency ramp keeps its own direction in both themes: step 4 is the
      strongest and sits furthest from the ground, so lightest here. */
@@ -568,6 +619,14 @@
   --tau-band-2-bg: oklch(0.953 0.022 205); --tau-band-2-fg: oklch(0.38 0.058 205);
   --tau-band-3-bg: oklch(0.948 0.018 242); --tau-band-3-fg: oklch(0.34 0.052 244);
   --tau-band-4-bg: oklch(0.948 0.022 162); --tau-band-4-fg: oklch(0.30 0.048 162);
+  --tau-scale-1: #1a5780; --tau-scale-1-ink: var(--tau-surface);
+  --tau-scale-2: #44769b; --tau-scale-2-ink: var(--tau-surface);
+  --tau-scale-3: #6a96b7; --tau-scale-3-ink: var(--tau-ink);
+  --tau-scale-4: #91b6d4; --tau-scale-4-ink: var(--tau-ink);
+  --tau-level-1: #353766; --tau-level-1-ink: var(--tau-surface);
+  --tau-level-2: #0f6d76; --tau-level-2-ink: var(--tau-surface);
+  --tau-level-3: #198ed2; --tau-level-3-ink: var(--tau-ink);
+  --tau-level-4: #7fbe9f; --tau-level-4-ink: var(--tau-ink);
   --tau-positive: oklch(0.50 0.10 158); --tau-caution: oklch(0.52 0.11 68); --tau-attention: oklch(0.48 0.10 18);
   --tau-positive-bg: oklch(0.96 0.022 158); --tau-caution-bg: oklch(0.96 0.024 72); --tau-attention-bg: oklch(0.96 0.022 18);
   --tau-auditor: oklch(0.42 0.09 300); --tau-auditor-bg: oklch(0.965 0.015 300);

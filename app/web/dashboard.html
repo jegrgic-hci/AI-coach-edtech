@@ -4299,11 +4299,16 @@ function renderClassAggregateCard(cid, students, assignments, missingCount, flag
   const scopeStr = lvFlow && closedCount > lvFlow.stages
     ? `${nStr} · last ${lvFlow.stages} of ${closedCount} closed assignments`
     : `${nStr} · ${closedCount} closed assignment${closedCount !== 1 ? 's' : ''}`;
-  // Same organism Home mounts; this tier only swaps the flows and the axis.
-  const trendsPanel = renderMovement(`class:${cid}`,
-    movementEntries(lvFlow,
-      DIM_KEYS.map(key => classFlow(students, assignments, sub => subBand(sub, key)))),
-    scopeStr, FLOW_AXIS_ASSIGNMENT);
+  // Same two mounts Home has; this tier only swaps the flows and the axis.
+  // Was ONE strip of five until 2026-09-30, the last place agency sat in a
+  // selector beside the four dimensions — the peerage Home and the assignment
+  // summary had already been split to stop asserting.
+  const trendsPanel = renderMovement(`class-agency:${cid}`,
+      agencyEntries(lvFlow), scopeStr, FLOW_AXIS_ASSIGNMENT, { title: 'Agency across assignments' })
+    + `<div class="movement-gap"></div>`
+    + renderMovement(`class:${cid}`,
+      dimensionEntries(DIM_KEYS.map(key => classFlow(students, assignments, sub => subBand(sub, key)))),
+      scopeStr, FLOW_AXIS_ASSIGNMENT, { title: 'Dimensions across assignments' });
 
   const tab = classTab[cid] || 'overview';
   const panels = { overview: overviewPanel, patterns: patternsPanel, trends: trendsPanel };
@@ -4363,7 +4368,7 @@ function renderClassAssignmentCard(a, students) {
 function renderClassAssignmentGroup(label, list, students) {
   if (!list.length) return '';
   return `
-    <div class="eyebrow" style="margin:var(--tau-s6) 0 12px">${label} (${list.length})</div>
+    <h2 class="group-title">${label}<span class="group-count">${list.length}</span></h2>
     <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:var(--tau-s5)">
       ${list.map(a => renderClassAssignmentCard(a, students)).join('')}
     </div>`;
@@ -4407,8 +4412,8 @@ function renderClassDetail(cid) {
       <div class="content-meta" style="margin-top:8px">${metaParts.join(' · ')}</div>
     </div>
     ${renderClassAggregateCard(cid, students, assignments, missingIds.size, totalFlags)}
-    ${renderClassAssignmentGroup('Open', open, students)}
-    ${renderClassAssignmentGroup('Closed', closed, students)}
+    ${renderClassAssignmentGroup('Open assignments', open, students)}
+    ${renderClassAssignmentGroup('Closed assignments', closed, students)}
   `;
 }
 

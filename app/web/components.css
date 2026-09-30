@@ -1649,6 +1649,20 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
+/* --- .card-tabs--secondary — tabs that choose WITHIN a view, after M3's
+   primary/secondary tab split. PROVISIONAL, 2026-09-30: on trial on
+   Movement's dimension selector, not yet a designsystem.md rule.
+   Where it sits under a primary row (class overview > Trends), two identical
+   rows left no way to tell which level a click belonged to. Everything that
+   carried "this is the main switch" steps down one notch: smaller, lighter
+   type, an ink rather than forest underline, and a hairline instead of 2px.
+   Active state is weight plus underline, never colour alone. */
+.card-tabs--secondary { gap: var(--tau-s4); }
+.card-tabs--secondary .card-tab { font-size: var(--tau-text-xs); font-weight: 500; padding-bottom: 7px; }
+.card-tabs--secondary .card-tab.active { color: var(--tau-ink); font-weight: 600; border-bottom-width: 1px; border-bottom-color: var(--tau-ink); }
+/* Between the two Movement mounts on the class Trends tab. */
+.movement-gap { height: var(--tau-s7); }
+
 /* --- .seg — THE TOGGLE. A fourth selector, and the justification for it is a
    distinction the other three do not cover: .card-tabs switches between views
    of content that already exists, .tau-nav-local switches destination, and
@@ -1739,6 +1753,21 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 .drill-row .card-title,
 .overview-card > * .card-title { font: var(--tau-type-title-md); }
 .section-head:has(.card-title) { margin-bottom: var(--tau-s4); }
+/* --- .group-title — names a run of cards on the page ground ("Open
+   assignments"). Added 2026-09-30, replacing an eyebrow that read "Open (1)":
+   it named a status, not the object, and at 12px grey it did not mark where
+   the assignment cards began after the class overview. Same rank as
+   .card-title because it heads a peer section of the page, and it must
+   outrank the card titles inside it. The count stays small and grey. */
+.group-title {
+  font: var(--tau-type-title-lg); letter-spacing: var(--tau-track-title);
+  color: var(--tau-ink);
+  margin: var(--tau-s7) 0 var(--tau-s4);
+}
+.group-title .group-count {
+  font-size: var(--tau-text-sm); font-weight: 500; letter-spacing: 0;
+  color: var(--tau-ink-soft); margin-left: var(--tau-s2);
+}
 
 /* --- .comp — the level composition of a room.
    The cohort form of report-lab.html's .ladder: same four rungs, same
@@ -1799,11 +1828,14 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    below were rebuilt to fix, and it was living one section up in the
    same column: two adjacent 1-4 scales in two contradictory colour
    languages, one of which ran opposite in lightness to the other.
-   One ordinal ramp now serves both. See the token block below. */
-.comp-1 .comp-fill { background: var(--tau-scale-1); }
-.comp-2 .comp-fill { background: var(--tau-scale-2); }
-.comp-3 .comp-fill { background: var(--tau-scale-3); }
-.comp-4 .comp-fill { background: var(--tau-scale-4); }
+   One ordinal ramp served both until 2026-09-30, when agency levels took
+   their own multi-hue --tau-level-N: sharing a ramp put Passive and
+   "didn't happen" in one colour on side-by-side charts measuring
+   different things. See tokens.css. */
+.comp-1 .comp-fill { background: color-mix(in srgb, var(--tau-level-1) 65%, var(--tau-surface)); }
+.comp-2 .comp-fill { background: color-mix(in srgb, var(--tau-level-2) 65%, var(--tau-surface)); }
+.comp-3 .comp-fill { background: color-mix(in srgb, var(--tau-level-3) 65%, var(--tau-surface)); }
+.comp-4 .comp-fill { background: color-mix(in srgb, var(--tau-level-4) 65%, var(--tau-surface)); }
 /* Tabular so four rows read as a column of magnitudes. The unit is
    stated once by the section head; repeating "students" on four rows
    would be noise, which is the one place this departs from the
@@ -2400,16 +2432,21 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
 /* Drawn at 1:1 from the measured width — no width:100% on the SVG, because
    scaling a viewBox magnifies the type along with the geometry. */
 .flow-svg { display: block; }
-/* Light fills: the shape should read before the colour does. Four ramp steps
-   at a heavier alpha let the darkest ribbons dominate a chart whose subject
-   is movement, not magnitude. */
-.flow-rib { fill-opacity: 0.32;
+/* 0.65, 2026-09-30. Translucent so a crossing shows both groups rather than
+   hiding one. At 0.32 the four steps washed into one tint and a ribbon's
+   level could only be read on hover; 0.65 keeps each identifiable at rest.
+   THE FLOW IS THE COLOUR REFERENCE for agency: .comp-fill mixes the same
+   level token 65% into the surface, which is exactly what a ribbon shows
+   over the card, so a level is one colour on both charts. Change this and
+   that mix together. The 1px surface edge is the dataviz ring on
+   overlapping marks: where ribbons cross, it keeps them two shapes. */
+.flow-rib { fill-opacity: 0.65; stroke: var(--tau-surface); stroke-width: 1;
             transition: fill-opacity var(--tau-dur-short) var(--tau-ease-standard); }
 /* Highlighting is class-driven, not :hover — the marks that light up are the
    hovered ribbon's students wherever else they appear, which no selector can
    express. traceFlow() sets .tracing on the svg and .lit on that path. */
-.flow-svg.tracing .flow-rib { fill-opacity: 0.1; }
-.flow-svg.tracing .flow-rib.lit { fill-opacity: 0.85; }
+.flow-svg.tracing .flow-rib { fill-opacity: 0.12; }
+.flow-svg.tracing .flow-rib.lit { fill-opacity: 0.9; }
 .flow-when { font-size: var(--tau-text-label-sm); font-weight: 700;
              fill: var(--tau-ink-faint); }
 /* A count is measured, so the numerals stay ink and the words carry which

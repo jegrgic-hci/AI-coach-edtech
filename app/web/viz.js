@@ -373,7 +373,9 @@ function flowMovement(paths) {
 // infographic rather than a chart: 12px counts landing at 17px in a
 // full-width card. Extra width now goes where it earns something — into the
 // ribbons — while type, node width and plot height stay put at any size.
-const FLOW_NODE = 6;      // thin: the ribbons are the data, nodes are anchors
+// Wide enough that a column reads as a stack of bands, not a row of ticks.
+// Was 6, which left the band colour to the ribbons alone.
+const FLOW_NODE = 12;
 const FLOW_GAP  = 14;
 const FLOW_TOP  = 26;
 const FLOW_PLOT = 176;    // wide-and-short reads as flow; tall reads as bars
@@ -395,7 +397,9 @@ function flowSVG(paths, stageLabels, nodes, axisLabel) {
   FLOW_PENDING.push({ id, paths, stageLabels, nodes, axisLabel });
   return `<div class="flow-wrap"><div class="flow-mount" id="${id}"></div></div>
     <div class="dbar-key flow-key">${nodes.map(nd => `<span class="dbar-key-item${nd.off ? ' off' : ''}">`
-      + `<i${nd.off ? '' : ` style="background:${nd.fill}"`}></i>${nd.name}</span>`).join('')}</div>`;
+      // The swatch shows what a ribbon shows — the fill at .flow-rib's 0.65
+      // over the card — so the key matches the marks it names.
+      + `<i${nd.off ? '' : ` style="background:color-mix(in srgb, ${nd.fill} 65%, var(--tau-surface))"`}></i>${nd.name}</span>`).join('')}</div>`;
 }
 
 let FLOW_SEQ = 0;
@@ -458,7 +462,9 @@ function drawFlow(el, { paths, stageLabels, nodes, axisLabel }) {
       if (!tally.has(key)) tally.set(key, []);
       tally.get(key).push(i);
     });
-    [...tally.keys()].sort().forEach(key => {
+    // Largest group first, so a one-student ribbon is painted over a
+    // ten-student one at a crossing rather than tinted underneath it.
+    [...tally.keys()].sort((p, q) => tally.get(q).length - tally.get(p).length || (p < q ? -1 : 1)).forEach(key => {
       const [fr, to] = key.split(':').map(Number), members = tally.get(key), cnt = members.length;
       const src = nodes[fr], dst = nodes[to];
       const h = cnt * k, x1 = xs[s] + FLOW_NODE, x2 = xs[s + 1];
@@ -531,6 +537,9 @@ function traceFlow(svg, ribMembers, total) {
     ribMembers[+hit.dataset.rib].forEach(i => byStudent[i].forEach(r => lit.add(r)));
     svg.classList.add('tracing');
     ribs.forEach(p => p.classList.toggle('lit', lit.has(+p.dataset.rib)));
+    // A traced path painted under another group reads through its tint, so
+    // the lit ones are lifted to the top of the stack.
+    ribs.forEach(p => { if (p.classList.contains('lit')) p.parentNode.appendChild(p); });
   });
   svg.addEventListener('mouseleave', clear);
 }
@@ -553,10 +562,10 @@ function redrawFlows(root) {
 }
 
 const FLOW_LEVEL_NODES = [
-  { name: 'Transformative', fill: 'var(--tau-scale-4)' },
-  { name: 'Directive', fill: 'var(--tau-scale-3)' },
-  { name: 'Reactive', fill: 'var(--tau-scale-2)' },
-  { name: 'Passive', fill: 'var(--tau-scale-1)' },
+  { name: 'Transformative', fill: 'var(--tau-level-4)' },
+  { name: 'Directive', fill: 'var(--tau-level-3)' },
+  { name: 'Reactive', fill: 'var(--tau-level-2)' },
+  { name: 'Passive', fill: 'var(--tau-level-1)' },
   { name: 'Not enough evidence', off: true },
 ];
 
@@ -1067,7 +1076,7 @@ function renderMovement(scope, entries, summary, axis, opts = {}) {
       </div>
       <div class="section-summary">${summary}</div>
     </div>
-    ${showTabs ? `<div class="card-tabs" role="tablist" aria-label="Choose a reading">${tabs}</div>` : ''}
+    ${showTabs ? `<div class="card-tabs card-tabs--secondary" role="tablist" aria-label="Choose a reading">${tabs}</div>` : ''}
     ${flow ? (() => {
       const c = active.copy(flowState(flow.paths, mv), axis.unit, flow.labels);
       return `<div class="trend-lede"><b>${c.state}</b> ${c.means}</div>

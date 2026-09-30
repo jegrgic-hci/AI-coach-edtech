@@ -96,6 +96,23 @@ not licence to improvise — say so and ask, don't invent.**
   product. Identity is carried by a **legend**, never by labels down both sides. Ribbons take the
   source node's ramp step — **no semantic colour**, since green-up/red-down grades a room on
   improvement. See `teacher-dashboard-design.md`, session log 2026-08-16.
+- **Agency levels and dimension bands never share a colour ramp.** Added 2026-09-30. A level reads
+  the whole session and a band reads one facet, and one shared ramp put Passive and "didn't happen"
+  in the same colour on side-by-side charts. **Dimension bands** (`--tau-scale-N`) are **one hue
+  (242) for all four dimensions**: the row label names the dimension, so colour does not.
+  **Agency levels** (`--tau-level-N`) use **the level chips' own hues** (`--tau-band-N`: indigo
+  280, teal 205, blue 242, sage 162), so a level is one colour family on a chip and on a chart —
+  at more chroma and stepped in lightness, because a chart has to tell four marks apart at a
+  glance where a chip identifies one. Under one hue at the flow's ribbon opacity the four levels
+  washed into one tint and could not be followed across assignments. **Transformative is sage**,
+  as its chip is: these are the taxonomic band hues, not `--tau-positive`, so a rising ribbon
+  turning sage is the chip palette, not green-up. **No warm hue** (every warm hue is a semantic
+  tier). **Directive stays vivid** — it shares hue 242 with the dimensions, and chroma is what
+  separates them. **The flow is the colour reference:** ribbons draw at 0.65, and agency bars and
+  flow legends mix the level token 65% into the surface so a level is one colour on both. Level 1
+  is darkest in **both** themes (a reversed dark ramp with fixed hues fails CVD). Any change must
+  re-pass the dataviz validator: adjacent CVD ΔE ≥ 8, normal-vision ΔE ≥ 15, ordinal monotone with
+  ΔL ≥ 0.06, and each `-ink` ≥ 4.5:1 on its fill. Values live in `tokens.css`.
 - **A flow's stages must be a comparison that survives the surface's scope.** Added 2026-08-16.
   Calendar buckets where the scope spans classes running different work (Home); **draft slots where
   the scope is one assignment** every student did. Never mix the two on one axis, and never pad an
