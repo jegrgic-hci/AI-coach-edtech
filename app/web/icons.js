@@ -35,6 +35,12 @@ const ICONS = {
   lock:
     '<rect x="4.5" y="10.5" width="15" height="9.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/>'
     + '<path d="M8 10.5V7.75a4 4 0 0 1 8 0v2.75" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  // A teacher's read of an agency level — it reads right, or it doesn't.
+  // Material Symbols' thumb_up outline; thumbDown is the same drawing turned
+  // over (see iconSVG), so the pair can never drift apart in weight.
+  thumbUp:
+    '<path d="M7.5 10.5v9h-3v-9Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>'
+    + '<path d="M7.5 10.5 11 4.5c1.4 0 2.3 1 2 2.4l-.6 2.6h5.3a1.8 1.8 0 0 1 1.8 2.2l-1.4 6.3a1.8 1.8 0 0 1-1.8 1.5H7.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
   // Opens the rail when it is a drawer (phone width). Three equal bars, the
   // one shape that means "the navigation is behind this" on every phone.
   menu:
@@ -105,6 +111,9 @@ const ICONS = {
 };
 
 function iconSVG(name, className = '') {
+  if (name === 'thumbDown') {
+    return `<svg class="tau-icon${className ? ` ${className}` : ''}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><g transform="rotate(180 12 12)">${ICONS.thumbUp}</g></svg>`;
+  }
   const body = ICONS[name];
   if (!body) return '';
   return `<svg class="tau-icon${className ? ` ${className}` : ''}" viewBox="0 0 24 24" fill="none" aria-hidden="true">${body}</svg>`;

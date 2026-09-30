@@ -68,9 +68,14 @@ const LEVEL_NAMES = ['Passive', 'Reactive', 'Directive', 'Transformative'];
 // the same row buried the actual alert under a second, equally loud pill. See
 // designsystem.md's chip-reservation rule. No pip: the label states the
 // classification in full, so a colour-coded dot repeats a fact already on the page.
+//
+// `small` is for a chart's column labels (Trace) only. It was a 10px literal
+// until 2026-09-30 and the student view's rows passed it too, which drew each
+// row's reading smaller than its date — the failure components.css records
+// fixing once already for the roster.
 function levelChip(n, small) {
   if (!n) return `<span class="no-signal">—</span>`;
-  return `<span class="band band-plain band-${n}"${small ? ' style="font-size:10px"' : ''}>${LEVEL_NAMES[n - 1]}</span>`;
+  return `<span class="band band-plain band-${n}"${small ? ' style="font-size:var(--tau-text-label-md)"' : ''}>${LEVEL_NAMES[n - 1]}</span>`;
 }
 
 // The gloss on a level, SPOKEN TO THE TEACHER — rewritten 2026-08-17 to the

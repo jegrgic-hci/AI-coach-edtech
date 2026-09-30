@@ -51,7 +51,7 @@ not as a spec. This table is authoritative; where it and a body section disagree
 | **Assignment card — open** | tiles · submitted-vs-readable pace line · patterns (Layer 1). **No distribution, no origin mix.** | `renderAssignmentAggregateContent(a, s, 'summary')` |
 | **Assignment card — closed** | tiles · **agency composition, and nothing else** (2026-08-18). No bands, no finding prose, no flows — the card repeats in a list, so it carries one chart and the link out. | same, `'summary'` |
 | **Assignment Detail** | draft schedule · **the summary is two Movement mounts on the draft axis** (2026-08-18) — agency, then the four dimensions behind tabs — plus coaching note, patterns, origin mix · timeline of per-draft snapshots, each closed one carrying **agency + bands side by side** (`.cols-2up`) | `renderAssignmentDetail()` |
-| **Student** | rows and drill panel read **level**, not a total. Each expanded assignment leads with a **Trace** — the finding, then agency + four dimension rows across the closed drafts (2026-08-17) | `renderStudentDetail()` · `renderStudentTrace()` |
+| **Student** | rows and drill panel read **level**, not a total. Each expanded assignment leads with a **Trace** — the finding, then agency + four dimension rows across the closed drafts (2026-08-17). Each draft row carries the teacher's rulings — per flag, and 👍/👎 on the level (2026-09-30, `rulings.js`, shared with the report) | `renderStudentDetail()` · `renderStudentTrace()` |
 | **Browse Students** | Student · **Agency** (latest readable level) · Signal. The mean-of-totals column is gone. | `renderBrowseStudents()` |
 
 **There is no line chart anywhere in `dashboard.html`.** `svgLineChart`, `FINAL_METRICS`,
@@ -120,8 +120,9 @@ not as a spec. This table is authoritative; where it and a body section disagree
 3. **Collapse the closed assignment list**, finding on the closed row, newest first, latest open.
    Designed but not built: https://claude.ai/code/artifact/f7975efe-cd68-4cdd-b646-72e3b62ffd9b
 3b. **The flag and signal COPY** — the one pocket still speaking in totals: `FLAG_META`'s
-   `score-spike` / `reflection-score-mismatch` / `reflection-delta-mismatch`, the flag tray, the signal
-   `reason` strings, and the drill row's "Score jumped +N points". Their detectors are gated on
+   `reflection-score-mismatch` / `reflection-delta-mismatch`, the flag tray, and the signal
+   `reason` strings. (`score-spike` and its "Score jumped +N points" row were retired 2026-09-30 —
+   see the session log.) Their detectors are gated on
    `scoreTAU` and the flag NAMES are part of the flag system's IA, so this is one job — half of it leaves
    a row line contradicting its own "Learn more". Currently unreachable in the demo seed.
 4. ~~**The student tier**~~ **Done 2026-08-17** — see the fourth session-log entry. The original note
@@ -2157,6 +2158,41 @@ see `app/README.md`'s file map if you need to work on that surface instead.
 *Added 2026-07-27. Going forward, log dashboard-affecting sessions here — same convention
 `designsystem.md` uses for the rest of `app/`. Retroactive entries below reconstruct what's
 already landed; write new ones going forward rather than editing history in place.*
+
+**2026-09-30 — a teacher's read of the agency level; rulings on the report; score spike retired**
+
+**The agency level takes a ruling.** Each draft row in the student view carries 👍/👎 beside its
+level. A 👎 saves on its own; under it sit an optional **Too high / Too low** and an optional private
+reason. Stored in `agencyMarks` (`store.js`), one per teacher per draft, with the level and
+`analysisVersion` frozen at marking time so a ruling still says what it was about after a re-analysis.
+A record only — never shown to the student, never touches the reading, counted nowhere on this page.
+**Only the level, not the four dimensions:** each dimension is coded against a published scheme, while
+the level is read off their profile and has no outside authority to check it against, so it is where a
+teacher's judgement adds the most. **On the draft row, never the assignment row** — that row's level
+is whichever draft is latest and would outlive the ruling made on it (the override-grain rule above).
+
+**The report mirrors the student view.** `rulings.js` draws both controls — the flag pair and the
+thumbs — for `dashboard.html` and `report.html` alike, and the report fetch carries this teacher's
+`rulings` (absent for a student and on the worked example). The report's flags panel had no controls
+before; the level strip sits at the foot of the hero, labelled *Your read of this level* with the lock,
+because the hero's own copy is written to the student. **Reasons are inline on both surfaces**, which
+retired `openFlagReason()`'s modal — the report has no modal, and one row with a modal reason for flags
+and an inline one for the level would be two interactions for one job. Writes show at once and are
+queued in tap order: a Firestore write takes most of a second, and concurrent writes redrawn from
+their responses let an earlier tap undo a later one on screen.
+
+**`score-spike` is gone** — `checkFlag()`, its drill row, tray copy and `FLAG_META` entry. It fired on
+a fast, large jump between two submissions, which meant gaming when a student could re-analyse at will;
+under draft-lock each draft is its own session and that jump is revision working. It was also the last
+place this page printed a total. Existing `signalMarks` rows keyed `score-spike` stay as history.
+**Not built, deliberately:** a start-to-submit timing flag. A gamed session is already visible — a
+two-turn chat beside a finished essay, a reading of "not enough here", `provenance-mismatch` on ideas
+the chat never held. **`pq/su/cs/oc` stay on the wire**: the attention-tier signals (declining,
+passive, low-skepticism, AI-initiated ideas) still read them — item 3b.
+
+**The level reads at `--tau-text-sm`, weight 600, in the student view's rows.** `levelChip(n, true)`
+drew it at a 10px literal, smaller than the date beside it; `small` now maps to
+`--tau-text-label-md` and survives only for Trace's column labels.
 
 **2026-08-30 — the anonymous Add-students form is flat, and Edit no longer eats the list**
 

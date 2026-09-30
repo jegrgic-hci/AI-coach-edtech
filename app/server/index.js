@@ -1103,6 +1103,12 @@ function bandOf(reading, key) {
   return dim && Number.isInteger(dim.band) ? dim.band : null;
 }
 
+// What a page needs of a teacher's ruling. `level` and `analysisVersion` stay
+// in the store: they exist to interpret the ruling later, and no page draws them.
+function agencyMarkView(m) {
+  return { outcome: m.outcome, direction: m.direction || null, reason: m.reason || null, markedAt: m.markedAt };
+}
+
 async function statusSummary() {
   const dayAgo = new Date(Date.now() - 86400000).toISOString();
   const todayStart = new Date().toISOString().slice(0, 10);
@@ -1886,6 +1892,29 @@ async function handleApi(req, res, user, route) {
     // on the wire before the shared nav existed.
     const assignment = await col('assignments').get(submission.assignmentId);
 
+    // The same rulings the student view shows, so a teacher reads one answer
+    // on both surfaces and can give it from either. Same two shapes as the
+    // dashboard payload: a legacy draft-level mark has no flagKey and stands
+    // in for every flag on the draft.
+    let rulings = null;
+    if (isTeacher) {
+      const [marks, agencyMark] = await Promise.all([
+        col('signalMarks').list({ teacherId: user.id, submissionId: submission.id }),
+        col('agencyMarks').get(`${user.id}_${submission.id}`),
+      ]);
+      const flagDecisions = {};
+      let followedUpAt = null;
+      for (const m of marks) {
+        if (!m.flagKey) { followedUpAt = m.markedAt; continue; }
+        flagDecisions[m.flagKey] = { outcome: m.outcome, reason: m.reason || null, markedAt: m.markedAt };
+      }
+      rulings = {
+        flagDecisions,
+        followedUpAt,
+        agencyMark: agencyMark ? agencyMarkView(agencyMark) : null,
+      };
+    }
+
     // `stale` is a fourth state alongside pending/error/complete, not a
     // variety of complete: the record finished cleanly and is simply older
     // than the report that has to draw it. Sent as a sibling of `analysis`
@@ -1902,6 +1931,9 @@ async function handleApi(req, res, user, route) {
       },
       analysis: report,
       stale: analysisIsStale(analysis),
+      // Present for a teacher only; its absence is what keeps the ruling
+      // controls off a student's report.
+      ...(rulings ? { rulings } : {}),
     });
   }
 
@@ -2959,11 +2991,13 @@ async function handleApi(req, res, user, route) {
     // than collection-wide so document reads stay bounded to this teacher's
     // work, not the whole install. Same fix the admin overview got above.
     const inScope = new Set(students.map((s) => s.id));
-    const [subsByAssignment, sessionsByAssignment, marks] = await Promise.all([
+    const [subsByAssignment, sessionsByAssignment, marks, agencyMarks] = await Promise.all([
       Promise.all(assignments.map((a) => col('submissions').list({ assignmentId: a.id }))),
       Promise.all(assignments.map((a) => col('sessions').list({ assignmentId: a.id }))),
       col('signalMarks').list({ teacherId: user.id }),
+      col('agencyMarks').list({ teacherId: user.id }),
     ]);
+    const agencyMarkBySubmission = new Map(agencyMarks.map((m) => [m.submissionId, agencyMarkView(m)]));
     // Two shapes live in this collection. A mark written since 2026-09-01
     // carries a flagKey and an outcome and belongs to ONE flag. A mark written
     // before it has neither: it says the teacher dealt with a whole draft, and
@@ -3056,11 +3090,12 @@ async function handleApi(req, res, user, route) {
         // readSession() emits them (PQ, CS, SU, OC) — keyed across rather than
         // indexed so the two orderings can never silently drift into each other.
         bands: done ? DASHBOARD_DIM_ORDER.map((k) => bandOf(analysis.reading, k)) : [null, null, null, null],
-        // The retired 1-5 scores. Still on the wire for ONE reader: the flag
-        // and signal detectors (score spike, the "passive engagement" /
-        // low-skepticism thresholds), which are gated on scoreTAU's signature
-        // change and are open item 3b in teacher-dashboard-design.md. Nothing
-        // that draws a level or a band may read these.
+        // The retired 1-5 scores. Still on the wire for ONE reader: the
+        // attention-tier signal detectors (declining, "passive engagement",
+        // low-skepticism, AI-initiated ideas), which are gated on scoreTAU's
+        // signature change and are open item 3b in teacher-dashboard-design.md.
+        // The score spike read them too until it was retired 2026-09-30.
+        // Nothing that draws a level or a band may read these.
         pq: done ? analysis.tau.PQ : 0,
         su: done ? analysis.tau.SU : 0,
         cs: done ? analysis.tau.CS : 0,
@@ -3090,6 +3125,9 @@ async function handleApi(req, res, user, route) {
         // separate list because every reader of it already has the submission
         // in hand.
         flagDecisions: decisionsBySubmission.get(sub.id) || null,
+        // This teacher's read of the draft's agency level — `{ outcome,
+        // direction, reason }` or null. See agencyMarks in store.js.
+        agencyMark: agencyMarkBySubmission.get(sub.id) || null,
         // A pre-2026-09-01 draft-level mark, kept only so it still suppresses
         // the draft it was made on. Carries no outcome and no attribution.
         followedUpAt: legacyMarkedBySubmission.get(sub.id) || null,
@@ -3255,6 +3293,49 @@ async function handleApi(req, res, user, route) {
       markedAt,
     });
     return json(res, 200, { ok: true, outcome: body.outcome, reason, markedAt });
+  }
+
+  // POST /api/submissions/:id/agency-mark — the teacher's read of this draft's
+  // agency level: 'up' (it reads right) or 'down', the latter with an optional
+  // direction and private reason. A record only: the student never sees it
+  // and it never touches the reading. The four dimensions are coded against
+  // published schemes; the level is read off their profile and has no outside
+  // authority to check it against, which is what makes a teacher's read of it
+  // worth keeping.
+  //
+  // A full replace, not a patch — the client sends the whole ruling each time,
+  // so a direction changed after a reason was written must send the reason too.
+  if (req.method === 'POST' && seg1 === 'submissions' && seg3 === 'agency-mark') {
+    const submission = await col('submissions').get(seg2);
+    if (!submission) return json(res, 404, { error: 'submission not found' });
+    if (!(await teacherScope(user)).students.some((s) => s.id === submission.studentId)) {
+      return json(res, 403, { error: 'not your student' });
+    }
+    const body = await readBody(req);
+    const id = `${user.id}_${submission.id}`;
+    if (!body.outcome) {
+      await col('agencyMarks').delete(id);
+      return json(res, 200, { ok: true, mark: null });
+    }
+    if (body.outcome !== 'up' && body.outcome !== 'down') {
+      return json(res, 400, { error: 'outcome must be "up", "down", or null' });
+    }
+    const down = body.outcome === 'down';
+    const analysis = submission.analysisId ? await col('analyses').get(submission.analysisId) : null;
+    const mark = await col('agencyMarks').set(id, {
+      teacherId: user.id,
+      studentId: submission.studentId,
+      submissionId: submission.id,
+      outcome: body.outcome,
+      direction: down && (body.direction === 'high' || body.direction === 'low') ? body.direction : null,
+      reason: down ? String(body.reason || '').trim().slice(0, 2000) || null : null,
+      // What the ruling was about, frozen: a re-analysis can move the level,
+      // and "too high" means nothing without the level it was said of.
+      level: analysis?.reading?.levelIndex ?? null,
+      analysisVersion: analysis?.version || 0,
+      markedAt: now(),
+    });
+    return json(res, 200, { ok: true, mark: agencyMarkView(mark) });
   }
 
   // POST /api/events — client-observed signals (copy, episode-save/resume)

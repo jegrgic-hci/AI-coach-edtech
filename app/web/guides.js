@@ -52,17 +52,7 @@ const FLAG_META = {
       'This flag is more significant when paired with Unnatural Fluency — both together strengthen the concern.',
     ],
   },
-  'score-spike': {
-    short: 'Score spike',
-    desc: 'TAU score increased sharply between two submissions in a short window',
-    what: 'Two submissions were made within a short time window, but the TAU score jumped significantly — more than would be expected from a normal revision cycle.',
-    why: 'Rapid score improvement can indicate that the student submitted an initial draft, then quickly replaced it with a substantially different session — possibly one prepared in advance or generated with different inputs.',
-    steps: [
-      'Compare the two submissions side by side using the scores and timestamps above.',
-      'Ask the student what changed between the two versions and why they resubmitted so quickly.',
-      'A spike on a single dimension is less concerning than a broad jump across all four.',
-    ],
-  },
+  // 'score-spike' retired 2026-09-30 — see checkFlag's note in dashboard.html.
   'reflection-score-mismatch': {
     short: 'Reflection–Score Gap',
     desc: "Student described pushback or prior knowledge the scores don't show",
@@ -92,7 +82,6 @@ const FLAG_TYPES = {
   'unnatural-fluency':         'integrity',
   'provenance-mismatch':       'integrity',
   'shadow-session-pattern':    'integrity',
-  'score-spike':               'score',
   'reflection-score-mismatch': 'reflection',
   'reflection-delta-mismatch': 'reflection',
 };
@@ -101,7 +90,6 @@ const FLAG_TYPES = {
 const FLAG_TYPE_LABELS = {
   integrity: 'Integrity',
   reflection: 'Reflection',
-  score: 'Score analysis',
 };
 
 // One card per signal, in FLAG_META order.

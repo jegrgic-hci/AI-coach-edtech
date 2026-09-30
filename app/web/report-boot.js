@@ -94,7 +94,8 @@
       document.getElementById('pending').textContent = 'Could not load this report.';
       return;
     }
-    const { submission, analysis, stale, sample } = await res.json();
+    const { submission, analysis, stale, sample, rulings: r } = await res.json();
+    rulings = r || null;
 
     if (sample) renderSampleNotice();
 
@@ -192,17 +193,70 @@
       </div>`;
   }
 
+  // The teacher's rulings on this draft, from the report fetch — the same
+  // record the student view in the dashboard reads and writes, so each
+  // surface shows what was decided on the other. Absent for a student, and on
+  // the worked example, which has no record to rule on.
+  let rulings = null;
+  let flagsShown = null;
+  let readingShown = null;
+
+  Rulings.configure({
+    get: (id) => (id === submissionId ? rulings : null),
+    changed() {
+      renderFlagsPanel(flagsShown);
+      renderLevelRuling(readingShown);
+    },
+  });
+
   // Teacher mode only — the API strips flags for students, so this panel
-  // can never render from a student fetch.
+  // can never render from a student fetch. Redrawn in place after a ruling,
+  // hence one panel found by id rather than a new one appended each time.
   function renderFlagsPanel(flags) {
     if (!flags) return;
-    const panel = document.createElement('div');
-    panel.className = 'card';
+    let panel = document.getElementById('flagsPanel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'flagsPanel';
+      panel.className = 'card';
+      document.getElementById('results').appendChild(panel);
+    }
+    // A pre-2026-09-01 draft-level mark stands in for every flag, so those
+    // drafts show the evidence without controls, as the student view does.
+    const legacy = rulings?.followedUpAt || null;
+    const decidable = !!rulings && !legacy;
     panel.innerHTML = `
       <span class="eyebrow">Worth a chat — teacher view</span>
       <p class="flags-framing">Conversation-starters, never verdicts. Some signals have known false-positive profiles (ELL translation workflows, IEP accommodations).</p>
-      ${renderFlags(flags.map((f) => ({ type: f.flag, detail: f.evidence })))}`;
-    document.getElementById('results').appendChild(panel);
+      ${legacy ? `<p class="flags-followed-up">Followed up ${new Date(legacy).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>` : ''}
+      ${renderFlags(
+        flags.map((f) => ({ type: f.flag, detail: f.evidence })),
+        (f) => decidable
+          ? `<div class="flag-ruling-actions">${Rulings.flagActions(submissionId, f.type)}</div>${Rulings.flagReason(submissionId, f.type)}`
+          : null,
+        (f) => !!legacy || !!rulings?.flagDecisions?.[f.type],
+      )}`;
+  }
+
+  // The teacher's read of the level, at the foot of the hero. The hero's own
+  // copy is written to the student, so this strip carries its own label — and
+  // the lock, because nothing in it reaches them.
+  function renderLevelRuling(reading) {
+    const hero = document.querySelector('#samrHero .report-hero');
+    if (!hero || !rulings || !reading || !reading.level) return;
+    let strip = document.getElementById('levelRuling');
+    if (!strip) {
+      strip = document.createElement('div');
+      strip.id = 'levelRuling';
+      strip.className = 'hero-ruling';
+      hero.appendChild(strip);
+    }
+    strip.innerHTML = `
+      <div class="hero-ruling-row">
+        <span class="hero-ruling-lbl">${iconSVG('lock')}Your read of this level</span>
+        ${Rulings.agencyThumbs(submissionId)}
+      </div>
+      ${Rulings.agencyFollowup(submissionId)}`;
   }
 
   function render(submission, analysis) {
@@ -218,7 +272,10 @@
     renderTeacherNote(submission.teacherNote);
     // The presence of flags IS the teacher signal — the API strips them for
     // students server-side, so there is nothing for the client to decide.
-    renderFlagsPanel(analysis.flags);
+    flagsShown = analysis.flags;
+    readingShown = reading;
+    renderFlagsPanel(flagsShown);
+    renderLevelRuling(readingShown);
 
     // The conversation on the time axis, and the draft on the authorship axis.
     // Both live in session-view.js because the teacher reads the same two.

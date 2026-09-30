@@ -17,6 +17,8 @@
 <!-- The four viz organisms. Reads no app state — see viz.js's header for the
      boundary and for the two things this page has to provide it. -->
 <script src="viz.js"></script>
+<!-- A teacher's rulings on a draft (flags, agency level). Shared with the report. -->
+<script src="rulings.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
@@ -1131,8 +1133,11 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 /* The level sits with the row's other classifications (#N, Final/Draft, date)
    rather than out at the right margin. It was pushed there by a flex spacer
    left behind when the dimension band pills that used to fill the middle were
-   deleted (2026-08-12), which marooned it opposite the fields it belongs with. */
-.sub-level { flex-shrink: 0; }
+   deleted (2026-08-12), which marooned it opposite the fields it belongs with.
+   At --tau-text-sm, one step above the row's xs dates and counts, since
+   2026-09-30: it is the row's reading, and it was drawn at a 10px literal,
+   smaller than the date beside it. */
+.sub-level { flex-shrink: 0; font-size: var(--tau-text-sm); }
 /* Narrow, the base: fixed widths add to ~400px before "Report →", which ran
    off the card, so the row wraps with each part at its own width. Wide, the
    widths come back so the rows line up. Asks the pane. */
@@ -1182,24 +1187,8 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
   font-size: var(--tau-text-sm);
   color: var(--tau-ink-soft);
 }
-/* The teacher's private reason for rejecting a flag. Quiet grey against the
-   auditor-tinted .sub-note directly below it — but the tint is not what
-   carries the distinction, the lock and the label are. */
-.flag-reason {
-  margin-top: var(--tau-s1);
-  padding: var(--tau-s2) var(--tau-s3);
-  background: var(--tau-surface-2);
-  border-radius: var(--tau-r-sm);
-  font-size: var(--tau-text-sm);
-  color: var(--tau-ink-soft);
-}
-.flag-reason-lbl {
-  display: flex; align-items: center; gap: 5px;
-  font-family: var(--tau-font-mono); font-size: var(--tau-text-label-sm); font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.05em;
-  color: var(--tau-ink-faint); margin-bottom: 3px;
-}
-.flag-reason-lbl .tau-icon { width: 13px; height: 13px; }
+/* The private reason for a ruling moved to components.css (.ruling-reason,
+   section 3d) — the report draws it too. */
 /* Where the note lands, stated on the note itself. A teacher is typing next
    to a box that publishes to a child; visibility is part of the content, not
    something to infer from a border colour. */
@@ -2500,8 +2489,8 @@ function detectTrends(minCount = 2, scopeIds = null) {
 }
 
 // THE RETIRED 4-20 TOTAL, and the only place this page is still allowed to
-// build one. Its readers are the flag and signal detectors below — the score
-// spike, the "passive engagement" threshold, the reflection mismatches — which
+// build one. Its readers are the signal detectors below — the "passive
+// engagement" threshold and the declining trend — which
 // are open item 3b in teacher-dashboard-design.md: their detectors are gated on
 // scoreTAU's signature change and their NAMES are part of the flag system's IA,
 // so converting them is one job, not a side effect of this one. Half of it
@@ -2511,40 +2500,27 @@ function detectTrends(minCount = 2, scopeIds = null) {
 // see subLevel/subBand above.
 function legacyTotal(sub) { return sub.pq + sub.su + sub.cs + sub.oc; }
 
-function checkFlag(subs) {
-  const flags = [];
-  for (let i = 1; i < subs.length; i++) {
-    const prev = subs[i-1], curr = subs[i];
-    const mins      = (curr.ts - prev.ts) / 60000;
-    const scoreDiff = legacyTotal(curr) - legacyTotal(prev);
-    const maxDim    = Math.max(...['pq','su','cs','oc'].map(d => curr[d] - prev[d]));
-    if (mins <= 10 && (scoreDiff >= 5 || maxDim >= 3)) {
-      flags.push({ submissionIndex: i, mins: Math.round(mins), scoreDiff, maxDim });
-    }
-  }
-  return flags;
-}
+// checkFlag() and its 'score-spike' flag were retired 2026-09-30. It fired on a
+// fast, large jump between two submissions, which was evidence of gaming when a
+// student could re-analyse at will. Under draft-lock each draft is its own
+// session, and a fast, large change between drafts is revision working. It was
+// also the last place this page printed a total ("Score jumped +5 points").
 
 function getSubs(sid, aid)      { return SUBMISSIONS[`${sid}_${aid}`] || []; }
 function latestSub(subs)        { return subs.length ? subs[subs.length - 1] : null; }
 
 // Every piece of review-tier evidence is anchored to ONE draft: an integrity
-// flag lives on the submission, and a score spike is attributed to the later
-// of the pair it was measured across. So "worth a chat" is a property of a
-// draft that a student inherits, not the other way round — which is what lets
-// a teacher mark one draft as followed up without touching the next.
+// flag lives on the submission. So "worth a chat" is a property of a draft that
+// a student inherits, not the other way round — which is what lets a teacher
+// rule on one draft without touching the next.
 function flaggedDrafts(subs) {
-  const spike = new Set(checkFlag(subs).map(f => f.submissionIndex));
   return subs
-    .map((sub, i) => ({ sub, i, spike: spike.has(i), integrity: sub.integrityFlags || [] }))
-    .filter(d => d.spike || d.integrity.length);
+    .map((sub, i) => ({ sub, i, integrity: sub.integrityFlags || [] }))
+    .filter(d => d.integrity.length);
 }
 
-// The flags on one draft, as the keys a ruling is stored against. The spike is
-// computed here rather than living in `integrityFlags`, so its key is spelled
-// out — it still needs a stable one, because a ruling has to hang on something
-// that survives a reload.
-function flagKeysOf(d) { return [...(d.spike ? ['score-spike'] : []), ...d.integrity]; }
+// The flags on one draft, as the keys a ruling is stored against.
+function flagKeysOf(d) { return d.integrity; }
 
 // A ruling is the teacher's answer on ONE flag: 'acted' (the conversation
 // covered this) or 'nothing' (it didn't earn one). It drops that flag out of
@@ -2582,7 +2558,6 @@ function _computeStudentSignal(studentId, assignmentId) {
   const signals = [];
 
   const integrityKeys = [];
-  let hasSpikeFlag = false;
   // Counted per FLAG, not per draft. A draft with two flags where one has been
   // ruled on is half dealt with, and the student's signal should say so rather
   // than rounding to either end.
@@ -2593,13 +2568,10 @@ function _computeStudentSignal(studentId, assignmentId) {
       const open = openFlagKeys(d);
       flaggedCount += keys.length;
       ruledOnCount += keys.length - open.length;
-      open.forEach(k => {
-        if (k === 'score-spike') hasSpikeFlag = true;
-        else if (!integrityKeys.includes(k)) integrityKeys.push(k);
-      });
+      open.forEach(k => { if (!integrityKeys.includes(k)) integrityKeys.push(k); });
     });
   });
-  if (integrityKeys.length || hasSpikeFlag) {
+  if (integrityKeys.length) {
     const has = k => integrityKeys.includes(k);
     let reason;
     if (has('shadow-session-pattern') && has('unnatural-fluency')) {
@@ -2613,7 +2585,9 @@ function _computeStudentSignal(studentId, assignmentId) {
     } else if (has('provenance-mismatch')) {
       reason = 'Essay credits ideas the AI introduced first';
     } else {
-      reason = 'Score jumped sharply between two submissions';
+      // The score spike's line until 2026-09-30. What reaches here now is a
+      // flag the cascade above doesn't name, so it speaks as that flag.
+      reason = FLAG_META[integrityKeys[0]]?.desc || 'A signal on one of their drafts';
     }
     signals.push({ tier: 'review', reason });
   }
@@ -5255,7 +5229,7 @@ function renderStudentDetail(sid) {
         <div class="assignment-summary-row list-row-boxed ${expanded ? 'expanded' : ''}" onclick="toggleStudentDrill('${key}')">
           <span class="chevron">${iconSVG('expandMore')}</span>
           <span class="asr-name">${a.name}</span>
-          <span class="asr-level">${levelChip(level, true)}</span>
+          <span class="asr-level">${levelChip(level)}</span>
           <span class="asr-signal">${signalPill(asig)}</span>
           <span class="asr-check">${checkpointChip(st, true)}</span>
           <span class="asr-subs">${subs.length} sub${subs.length !== 1 ? 's' : ''}</span>
@@ -5372,11 +5346,8 @@ function renderReflectionSection(sub, prevSub) {
 
 function renderDrillPanel(subs, label, sig, ctx) {
   if (!subs.length) return `<div class="drill-panel"><em style="color:var(--tau-ink-soft);font-size:var(--tau-text-sm)">No submissions for this assignment.</em></div>`;
-  const flags   = checkFlag(subs);
-  const flagIdx = new Set(flags.map(f => f.submissionIndex));
   const rows = [...subs].reverse().map((sub, ri) => {
     const i = subs.length - 1 - ri;
-    const flagInfo = flagIdx.has(i) ? flags.find(f => f.submissionIndex === i) : null;
     const iFlags   = sub.integrityFlags || [];
     const isLast   = i === subs.length - 1;
     const prevSub  = i > 0 ? subs[i - 1] : null;
@@ -5386,53 +5357,31 @@ function renderDrillPanel(subs, label, sig, ctx) {
     // and a legacy draft-level mark stands in for all of them, so those drafts
     // show the evidence without controls rather than inviting a second answer
     // to a question already answered.
-    const flagKeys = [...(flagInfo ? ['score-spike'] : []), ...iFlags];
+    const flagKeys = iFlags;
     const legacyMark = !!sub.followedUpAt;
     const decidable = !!sub.id && !legacyMark;
     const openKeys = legacyMark ? [] : flagKeys.filter(k => !sub.flagDecisions?.[k]);
     const allRuledOn = flagKeys.length > 0 && openKeys.length === 0;
 
-    const choiceBtn = (key, value, current, icon, label) => {
-      const on = current === value;
-      return `<button class="btn btn-choice btn-sm" aria-pressed="${on}"
-        onclick="event.stopPropagation();setFlagDecision('${sub.id}','${key}',${on ? 'null' : `'${value}'`})"
-        >${iconSVG(icon)}${label}</button>`;
-    };
-
-    const flagItem = (key, text, trayCall) => {
+    const flagItem = (key) => {
       const d = sub.flagDecisions?.[key] || null;
       return `<div class="flag-item${d || legacyMark ? ' decided' : ''}">
         <div class="flag-item-body">
           <div class="flag-line">
-            <span>${text}</span>
-            <a class="flag-learn-more" onclick="${trayCall}">Learn more</a>
+            <span>${FLAG_META[key]?.desc || key}</span>
+            <a class="flag-learn-more" onclick="openFlagTray('${key}');event.stopPropagation()">Learn more</a>
           </div>
-          ${d && d.outcome === 'nothing' && d.reason
-            ? `<div class="flag-reason">
-                 <span class="flag-reason-lbl">${iconSVG('lock')}Private — only you see this</span>
-                 ${esc(d.reason)}
-               </div>`
-            : ''}
+          ${decidable ? Rulings.flagReason(sub.id, key) : ''}
         </div>
-        ${decidable ? `<div class="flag-item-actions">
-          ${choiceBtn(key, 'acted', d?.outcome, 'check', 'Had the chat')}
-          ${choiceBtn(key, 'nothing', d?.outcome, 'close', 'Not worth raising')}
-          ${d?.outcome === 'nothing'
-            ? `<button class="btn btn-tertiary btn-sm" onclick="event.stopPropagation();openFlagReason('${sub.id}','${key}')">${d.reason ? 'Edit reason' : 'Add a reason'}</button>`
-            : ''}
-        </div>` : ''}
+        ${decidable ? `<div class="flag-item-actions">${Rulings.flagActions(sub.id, key)}</div>` : ''}
       </div>`;
     };
+    const flagItems = iFlags.map(flagItem);
 
-    const flagItems = [];
-    if (flagInfo) {
-      flagItems.push(flagItem('score-spike',
-        `Score jumped +${flagInfo.scoreDiff} points in ${flagInfo.mins} minutes`,
-        `openFlagTray('score-spike',{scoreDiff:${flagInfo.scoreDiff},mins:${flagInfo.mins}});event.stopPropagation()`));
-    }
-    iFlags.forEach(f => {
-      flagItems.push(flagItem(f, FLAG_META[f]?.desc || f, `openFlagTray('${f}');event.stopPropagation()`));
-    });
+    // The teacher's read of this draft's level sits beside the level it
+    // judges — on the draft, never on the assignment row above, whose level is
+    // just whichever draft is latest and would outlive the ruling made on it.
+    const rulable = !!sub.id && subLevel(sub) != null;
 
     const flagRow = flagItems.length
       ? `<div class="integrity-flags-row${legacyMark ? ' integrity-flags-row-followed-up' : ''}">
@@ -5450,10 +5399,12 @@ function renderDrillPanel(subs, label, sig, ctx) {
         <span class="sub-num">#${i + 1}</span>
         ${statusChip}
         <span class="sub-date">${formatDate(sub.ts)}</span>
-        <span class="sub-level">${levelChip(subLevel(sub), true)}</span>
+        <span class="sub-level">${levelChip(subLevel(sub))}</span>
+        ${rulable ? Rulings.agencyThumbs(sub.id) : ''}
         <div style="flex:1"></div>
         ${sub.id ? `<a href="/report.html?id=${sub.id}&role=teacher" target="_blank" onclick="event.stopPropagation()" class="btn btn-quiet btn-sm">Report →</a>` : ''}
       </div>
+      ${rulable ? Rulings.agencyFollowup(sub.id) : ''}
       ${flagRow}
       ${sub.teacherNote ? `<div class="card-edge-auditor sub-note">
         <span class="eyebrow-lbl" style="color:var(--tau-auditor)">${iconSVG('chat')}Your note to this student</span>
@@ -5712,14 +5663,11 @@ document.addEventListener('click', (e) => {
 
 // ── Flag tray ─────────────────────────────────────────────────────────────────
 
-function openFlagTray(key, spikeCtx) {
+function openFlagTray(key) {
   const meta = FLAG_META[key];
   if (!meta) return;
 
-  let desc = meta.desc;
-  if (key === 'score-spike' && spikeCtx) {
-    desc = `Score jumped +${spikeCtx.scoreDiff} points in ${spikeCtx.mins} minute${spikeCtx.mins !== 1 ? 's' : ''}`;
-  }
+  const desc = meta.desc;
 
   document.getElementById('tray-title').textContent   = meta.short;
   document.getElementById('tray-subtitle').textContent = desc;
@@ -6475,44 +6423,30 @@ function findSub(subId) {
   return null;
 }
 
-// One flag, one ruling. `outcome` is 'acted', 'nothing', or null to clear —
-// pressing the selected chip again passes null, which is what makes the pair a
-// two-option toggle rather than two buttons plus a third Undo control.
+// A teacher's rulings — on each flag, and on the agency level — are drawn and
+// posted by rulings.js, which the report shares. This page supplies the
+// submission to patch and what to redraw.
 //
-// A reason survives a switch to 'acted' on the server (it stores null) and has
-// to be cleared here too, or the patched-in-place copy would keep showing
-// text the store no longer holds.
-async function setFlagDecision(subId, flagKey, outcome, reason = null) {
-  const sub = findSub(subId);
-  const { markedAt } = await api(`/api/submissions/${subId}/flag-decision`, {
-    method: 'POST', body: { flagKey, outcome, reason },
-  });
-  // Patched in place as well as refetched — /api/teacher/dashboard takes real
-  // seconds, and this changes counts and chips all over the page. The cache
-  // has to go with it: every one of those reads a memoized signal.
-  if (sub) {
-    if (!outcome) {
-      if (sub.flagDecisions) delete sub.flagDecisions[flagKey];
-    } else {
-      if (!sub.flagDecisions) sub.flagDecisions = {};
-      sub.flagDecisions[flagKey] = {
-        outcome,
-        reason: outcome === 'nothing' ? reason : null,
-        markedAt: markedAt || new Date().toISOString(),
-      };
-    }
-  }
-  _signalCache.clear();
-  renderContent();
-  await loadDashboardData();
-  // renderSidebar() + renderContent(), never render() — the rail's Worth-a-chat
-  // count does change here, but this is an in-place update, and render() resets
-  // the scroll to the top by design (see its comment). Going through it threw
-  // the teacher back to the top, away from the row they had just acted on.
-  // loadDashboardData() has already cleared the signal cache.
-  renderSidebar();
-  renderContent();
-}
+// A flag ruling is patched in place AND refetched — /api/teacher/dashboard
+// takes real seconds, and a flag ruling changes counts and chips all over the
+// page; every one of those reads a memoized signal, so the cache goes with it.
+// renderSidebar() + renderContent(), never render(): the rail's Worth-a-chat
+// count does change, but render() resets the scroll to the top by design,
+// which threw the teacher away from the row they had just acted on.
+//
+// An agency ruling and an opened reason box change only the row itself, so
+// they redraw and stop. Nothing on this page counts a teacher's read of a level.
+Rulings.configure({
+  get: findSub,
+  async changed(subId, kind) {
+    if (kind !== 'flag') { renderContent(); return; }
+    _signalCache.clear();
+    renderContent();
+    await loadDashboardData();
+    renderSidebar();
+    renderContent();
+  },
+});
 
 function openSubmissionNote(subId, draftNumber) {
   let existing = null;
@@ -6544,32 +6478,8 @@ function openSubmissionNote(subId, draftNumber) {
   });
 }
 
-// The private half of what a teacher writes on a draft, and the only text here
-// the student never sees. It runs as a modal rather than an inline field on
-// purpose: the ruling has already landed by the time this opens, so nothing
-// stands between the teacher and clearing the row — the reason is genuinely
-// optional and can be skipped, added later, or never added at all.
-//
-// Offered only on a rejection. "Why wasn't this worth raising" is the answer
-// that improves the detector; asking the same of a confirmation would be
-// asking a teacher to justify having done their job.
-function openFlagReason(subId, flagKey) {
-  const sub = findSub(subId);
-  const current = sub?.flagDecisions?.[flagKey]?.reason || '';
-  const flagName = FLAG_META[flagKey]?.short || flagKey;
-  openObjModal({
-    title: current ? `Edit your reason — ${flagName}` : `Why wasn't this worth raising?`,
-    subtitle: 'Private to you. The student never sees this, and it is not part of your note to them. It tells us which signals are worth surfacing and which aren\'t.',
-    bodyHtml: `<label for="flag-reason-input">Your reason</label>
-      <textarea id="flag-reason-input" rows="4" placeholder="What made this a false alarm on this student's work?">${esc(current)}</textarea>`,
-    confirmLabel: current ? 'Save reason' : 'Add reason',
-    focusId: 'flag-reason-input',
-    onConfirm: async () => {
-      const text = document.getElementById('flag-reason-input').value.trim();
-      await setFlagDecision(subId, flagKey, 'nothing', text || null);
-    },
-  });
-}
+// openFlagReason()'s modal went 2026-09-30: the private reason is written
+// inline now (rulings.js), on this page and on the report alike.
 
 // ── New-assignment / Edit-assignment modal ───────────────────────────────────
 // Ported from teacher.js's inline form — same fields, same fade-default

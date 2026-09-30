@@ -250,7 +250,10 @@ function renderGrowthMoves(growthMoves) {
 // not by label or chronology — staying out of the draft after a pushback is
 // as meaningful an outcome as landing in it, so it gets its own group instead
 // of reading as "nothing happened."
-function renderFlags(flags) {
+//
+// `ruling(f)` is the teacher's control for one flag (rulings.js), or null where
+// there is nothing to rule on; `decided(f)` steps a ruled-on flag back.
+function renderFlags(flags, ruling = () => null, decided = () => false) {
   if (!flags.length) return `<div class="no-flags">No integrity flags detected.</div>`;
   const TYPE_LABEL = {
     "stylistic-inconsistency": "Stylistic Inconsistency",
@@ -261,11 +264,15 @@ function renderFlags(flags) {
   };
   // "Learn more →" was dropped: nothing has ever handled data-learn, so it was
   // a link to nowhere sitting next to the most consequential copy on the page.
-  return flags.map(f => `
-    <div class="flag-row">
+  return flags.map(f => {
+    const control = ruling(f);
+    return `
+    <div class="flag-row${decided(f) ? ' decided' : ''}">
       <span class="flag-type">${TYPE_LABEL[f.type] || f.type}</span>
       <div class="flag-detail">${esc(f.detail)}</div>
-    </div>`).join("");
+      ${control ? `<div class="flag-ruling">${control}</div>` : ''}
+    </div>`;
+  }).join("");
 }
 
 // Report jump nav — content for the mini score chip that docks into the

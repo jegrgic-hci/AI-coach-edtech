@@ -194,6 +194,26 @@
     }
     .flag-detail { font-size: var(--tau-text-sm); color: var(--tau-ink); }
     .no-flags { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); padding: 8px 0; }
+    /* The teacher's ruling on the flag, under its evidence — the same control
+       the student view draws (rulings.js). A ruled-on flag steps back as it
+       does there: the ruling changed its salience, not its truth. */
+    .flag-ruling { grid-column: 1 / -1; }
+    .flag-ruling-actions { display: flex; align-items: center; gap: var(--tau-s1); flex-wrap: wrap; }
+    .flag-row.decided .flag-detail { color: var(--tau-ink-faint); }
+    .flags-followed-up { margin: 0; font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink-faint); }
+
+    /* The teacher's read of the level, at the foot of the hero. Ruled off from
+       the student-facing reading above it, because nothing here reaches them. */
+    .hero-ruling {
+      margin-top: var(--tau-s4); padding-top: var(--tau-s3);
+      border-top: 1px solid var(--tau-line);
+    }
+    .hero-ruling-row { display: flex; align-items: center; gap: var(--tau-s3); flex-wrap: wrap; }
+    .hero-ruling-lbl {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink-soft);
+    }
+    .hero-ruling-lbl .tau-icon { width: 14px; height: 14px; }
 
     /* ── Shared ────────────────────────────────────────── */
     .spinner {

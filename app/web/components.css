@@ -253,6 +253,48 @@ details[open] > .acard-disclosure-toggle {
 }
 .acard-disclosure-prompt p { font-family: var(--tau-font-serif); }
 
+/* ---------- 3d. rulings ----------
+   A teacher's rulings on one draft (rulings.js): a flag's pair, the agency
+   level's thumbs, and the private reason either can carry. Here rather than
+   in dashboard.html because the report draws the same controls. */
+
+/* An icon-only .btn-choice — square, so a pair of them reads as one control. */
+.btn-icon-only { padding: 0; width: var(--tau-h-chip); justify-content: center; }
+@media (max-width: 839px) { .btn-icon-only { width: var(--tau-target); } }
+.ruling-thumbs { display: inline-flex; gap: var(--tau-s1); vertical-align: middle; }
+.ruling-followup { display: flex; flex-direction: column; gap: var(--tau-s2); margin-top: var(--tau-s2); }
+.ruling-followup-row { display: flex; align-items: center; gap: var(--tau-s1); flex-wrap: wrap; }
+
+/* The one text on a draft the student never sees. Quiet grey against the
+   auditor-tinted note to the student that sits near it — but the tint is not
+   what carries the distinction, the lock and the label are. */
+.ruling-reason {
+  margin-top: var(--tau-s1);
+  padding: var(--tau-s2) var(--tau-s3);
+  background: var(--tau-surface-2);
+  border-radius: var(--tau-r-sm);
+  font-size: var(--tau-text-sm);
+  color: var(--tau-ink-soft);
+}
+.ruling-reason-lbl {
+  display: flex; align-items: center; gap: 5px;
+  font-family: var(--tau-font-mono); font-size: var(--tau-text-label-sm); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--tau-ink-faint); margin-bottom: 3px;
+}
+.ruling-reason-lbl .tau-icon { width: 13px; height: 13px; }
+.ruling-reason-edit textarea {
+  display: block; width: 100%; box-sizing: border-box;
+  margin-top: var(--tau-s1);
+  font: inherit; font-size: var(--tau-text-sm); color: var(--tau-ink);
+  background: var(--tau-surface);
+  border: 1px solid var(--tau-line-strong); border-radius: var(--tau-r-sm);
+  padding: var(--tau-s2) var(--tau-s3);
+  resize: vertical;
+}
+.ruling-reason-edit textarea:focus { outline: 2px solid var(--tau-forest); outline-offset: -1px; }
+.ruling-reason-btns { display: flex; gap: var(--tau-s1); margin-top: var(--tau-s2); }
+
 /* ---------- 4. band chip + meters ---------- */
 
 /* Plain language leads; SAMR rides alongside in .band-sub, never inside the
@@ -286,8 +328,10 @@ details[open] > .acard-disclosure-toggle {
    instead of keeping .band's 12.5px, and drops to weight 500. In the roster
    it was rendering smaller than the uppercase column header above it, which
    made the row's most important sentence its least legible element.
-   Consumers that want it smaller still set their own font-size. */
-.band-plain { background: none; box-shadow: none; padding: 0; font-size: inherit; font-weight: 500; }
+   Consumers that want it smaller still set their own font-size.
+   Weight 600 since 2026-09-30: at 500 the level sat at the same weight as the
+   dates and counts beside it, and it is the row's reading. */
+.band-plain { background: none; box-shadow: none; padding: 0; font-size: inherit; font-weight: 600; }
 
 /* Same SAMR ramp as .band-1..4 above, applied as a border-left accent instead
    of a filled pill — for surfaces that want the level to read as a stripe on

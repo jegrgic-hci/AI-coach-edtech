@@ -156,6 +156,18 @@
 //                 detector: which of the draft's flags they covered is not
 //                 recoverable, and guessing would put invented data into the
 //                 one record built to measure the detectors.
+//                 Rows with flagKey 'score-spike' are rulings on a detector
+//                 retired 2026-09-30. Kept as history; nothing draws them.
+//   agencyMarks   { id, teacherId, studentId, submissionId, outcome, direction,
+//                   reason, level, analysisVersion, markedAt }
+//                 A teacher's read of ONE draft's agency level: outcome 'up'
+//                 (it reads right) or 'down', the latter with an optional
+//                 direction ('high'|'low') and private reason. Id is
+//                 `${teacherId}_${submissionId}`. `level` and
+//                 `analysisVersion` are copied from the analysis at marking
+//                 time, so a ruling still says what it was about after a
+//                 re-analysis moves the level. A record only: never shown to
+//                 the student, never touches the reading.
 //   adminEvents   { id, ts, actorId, actorName, action, targetId, targetName,
 //                   targetRole, detail }
 //                 Every account action taken from the administration surface:
