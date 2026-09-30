@@ -2030,6 +2030,12 @@ assumed live.
 
 ## `teacher.html`'s session view — needs a rebuild, flagged 2026-08-08
 
+> **⚠ SUPERSEDED 2026-09-29 — the page is deleted.** `teacher.html`, `teacher.js` and the two
+> `GET /api/teacher/assignments…` endpoints only it called are gone. The decision below resolved as
+> "delete": nothing linked to the page, and the owner did not know it existed. The one part worth
+> keeping — `computeMoments()`, the session-ready moments strip — was not ported; it is in git history
+> (last present at `18d6d9b`) if the dashboard's Student view wants it.
+
 **Owner's verdict, direct: "I'm not sure where the session view for the teacher came from, but its
 design is terrible."** Recording that here rather than in a commit message because it's the kind of
 judgement that otherwise gets rediscovered from scratch in six months.

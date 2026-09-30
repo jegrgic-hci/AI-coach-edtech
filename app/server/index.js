@@ -3178,112 +3178,6 @@ async function handleApi(req, res, user, route) {
     });
   }
 
-  // GET /api/teacher/assignments — all assignments with roster summary
-  if (req.method === 'GET' && seg1 === 'teacher' && seg2 === 'assignments' && !seg3) {
-    const { students, assignments: ownAssignments } = await teacherScope(user);
-    // Two parallel batches per collection instead of two queries per
-    // (assignment, student) pair plus one per draft — the same N+1 that made
-    // the triage dashboard slow, on a route that reads the same records.
-    const [subsByAssignment, activeSessionsByAssignment] = await Promise.all([
-      Promise.all(ownAssignments.map((a) => col('submissions').list({ assignmentId: a.id }))),
-      Promise.all(ownAssignments.map((a) => col('sessions').list({ assignmentId: a.id, status: 'active' }))),
-    ]);
-    const allAnalysisIds = [...new Set(subsByAssignment.flat().map((s) => s.analysisId).filter(Boolean))];
-    const analysisDocs = await Promise.all(allAnalysisIds.map((id) => col('analyses').get(id)));
-    const analysisById = new Map(allAnalysisIds.map((id, i) => [id, analysisDocs[i]]));
-
-    const assignments = [];
-    for (let ai = 0; ai < ownAssignments.length; ai++) {
-      const a = ownAssignments[ai];
-      const subsByStudent = new Map();
-      for (const sub of subsByAssignment[ai]) {
-        if (!subsByStudent.has(sub.studentId)) subsByStudent.set(sub.studentId, []);
-        subsByStudent.get(sub.studentId).push(sub);
-      }
-      const activeStudentIds = new Set(activeSessionsByAssignment[ai].map((s) => s.studentId));
-      const roster = [];
-      for (const s of students) {
-        const submissions = (subsByStudent.get(s.id) || [])
-          .sort((x, y) => x.cycleIndex - y.cycleIndex);
-        const active = activeStudentIds.has(s.id);
-        const cycles = [];
-        for (const sub of submissions) {
-          const analysis = sub.analysisId ? analysisById.get(sub.analysisId) : null;
-          cycles.push({
-            submissionId: sub.id,
-            cycleIndex: sub.cycleIndex,
-            submittedAt: sub.submittedAt,
-            analysisStatus: analysis?.status || null,
-            tau: analysis?.status === 'complete' ? { PQ: analysis.tau.PQ, SU: analysis.tau.SU, CS: analysis.tau.CS, OC: analysis.tau.OC, totalScore: analysis.tau.totalScore, SAMR: analysis.tau.SAMR } : null,
-            reading: analysis?.status === 'complete' && analysis.reading
-              ? { level: analysis.reading.level, bands: (analysis.reading.dimensions || []).reduce((acc, d) => { acc[d.key] = d.band; return acc; }, {}) }
-              : null,
-            flagCount: analysis?.flags?.length || 0,
-            hasNote: !!sub.teacherNote,
-          });
-        }
-        roster.push({
-          studentId: s.id,
-          displayName: s.displayName,
-          email: s.email,
-          activeSession: active,
-          cycles,
-        });
-      }
-      assignments.push({ ...a, roster });
-    }
-    return json(res, 200, assignments);
-  }
-
-  // GET /api/teacher/assignments/:aid/students/:sid — the detail layer:
-  // every cycle's conversations with the FULL turn record (superseded and
-  // meta-turns included, annotated), events, analysis with flags.
-  if (req.method === 'GET' && seg1 === 'teacher' && seg2 === 'assignments' && seg3) {
-    // /api/teacher/assignments/:aid/students/:sid → ['', 'api', 'teacher', 'assignments', aid, 'students', sid]
-    const parts = route.split('/');
-    const aid = parts[4];
-    const sid = parts[6];
-    const assignment = await col('assignments').get(aid);
-    const student = await col('users').get(sid);
-    if (!assignment || !student) return json(res, 404, { error: 'not found' });
-    // This route returns full transcripts and integrity flags, so ownership is
-    // checked on both axes — the assignment must be this teacher's, and the
-    // student must be on one of this teacher's rosters. Without it, a teacher
-    // who guessed an id could read another teacher's student.
-    const scope = await teacherScope(user);
-    if (assignment.teacherId !== user.id || !scope.students.some((s) => s.id === sid)) {
-      return json(res, 403, { error: 'not your student' });
-    }
-
-    const sessionRows = (await col('sessions').list({ assignmentId: aid, studentId: sid }))
-      .sort((a, b) => a.cycleIndex - b.cycleIndex);
-    const sessions = [];
-    for (const session of sessionRows) {
-      const convRows = (await col('conversations').list({ sessionId: session.id }))
-        .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-      const conversations = [];
-      for (const conv of convRows) {
-        const turns = await conversationTurns(conv.id);
-        const dead = new Set(turns.flatMap((t) => t.meta?.supersedes || []));
-        conversations.push({
-          ...conv,
-          turns: turns.map((t) => ({
-            ...t,
-            superseded: dead.has(t.id),
-            metaTurn: !!t.meta?.metaTurn,
-          })),
-        });
-      }
-      const events = (await col('events').list({ sessionId: session.id }))
-        .sort((a, b) => a.ts.localeCompare(b.ts));
-      const submission = (await col('submissions').list({ sessionId: session.id }))[0] || null;
-      const analysis = submission?.analysisId ? await col('analyses').get(submission.analysisId) : null;
-      sessions.push({ session, conversations, events, submission, analysis });
-    }
-
-    return json(res, 200, { assignment, student, sessions });
-  }
-
   // The grant-replies escape valve was removed 2026-08-21 with the reply cap it
   // relieved. It is not re-pointed at the token cap: a grant only makes sense
   // against a limit students meet in normal work, and the token ceiling is set
@@ -3492,7 +3386,6 @@ function homePageFor(user) {
 const PAGE_ACCESS = {
   '/admin.html': canAdminPeople,
   '/dashboard.html': (u) => u.role === 'teacher',
-  '/teacher.html': (u) => u.role === 'teacher',
   // Written to the teacher — "your students", what to ask in the conversation
   // afterwards. A student reading their own level needs the report's wording,
   // not this one. signals.html is teacher-only for a harder reason: integrity

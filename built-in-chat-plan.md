@@ -211,7 +211,7 @@ Two separate onboardings. Only the first is new — levels 2–4 are already bui
 |---|---|---|
 | **Platform admin (us)** | Schools, each school's first admin | A script (`provision-school.js`), not a UI |
 | **School admin** | Teachers | `admin.html`, school-scoped |
-| **Teacher** | Classes, students (by email), assignments | `teacher.html` |
+| **Teacher** | Classes, students (by email), assignments | `dashboard.html` (was `teacher.html`, deleted 2026-09-29) |
 | **Student** | Nothing — signs in and works | — |
 
 Each level creates only the level below. Nobody promotes themselves; role is always assigned.

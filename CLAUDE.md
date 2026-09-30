@@ -43,7 +43,7 @@ every tier is one of exactly two things: **agency (level + trend)** or **a dimen
 — there is no total, no mean and nothing out of 20 in the measurement. The **student view is the one
 surface not yet rebuilt**, so the retired totals it still emits are stale code, never the model.
 
-**For any work on `app/web/dashboard.html` (the teacher triage surface), also read `teacher-dashboard-design.md`** — IA, the flag/signal system, and a session log scoped to that page. Covers `dashboard.html` only, not `teacher.html` (assignment creation, transcripts, notes — see `app/README.md`'s file map for that surface instead).
+**For any work on `app/web/dashboard.html` (the teacher triage surface), also read `teacher-dashboard-design.md`** — IA, the flag/signal system, and a session log scoped to that page. Covers `dashboard.html`, which is the whole teacher surface — `teacher.html` was deleted 2026-09-29.
 
 Run it: `npm install` once, then `npm run start:demo` → http://localhost:8787. **Use `start:demo`, not `start`** — the demo seed is opt-in (`SEED_DEMO=1`) as of 2026-08-08, and plain `npm start` seeds nothing because that is what production runs. Everything is behind a login; test accounts are in `app/README.md`. **Requires GCP credentials** (`gcloud auth application-default login`) — the app runs on Vertex and Firestore, not on local files. `app/gcp-setup.md` is the setup walkthrough.
 
@@ -62,7 +62,7 @@ differently:
 | Where | Status | What to do |
 |---|---|---|
 | **`index.html`** and this file's *Phase 3* below | **Correct and current** for the single-file CTA, which still runs it and must stay revertible | Leave it. It is the right spec for that codebase and the wrong spec for `app/`. |
-| **`app/server/analysis.js`** (`mapTo5`, `totalScore`), and its output in `index.js`, `report-render.js`, `teacher.js`, `app.js` | **Retired but still running.** Cannot be removed until `scoreTAU`'s signature changes and the student view is rebuilt | Do not read it as the model. Finding it in the code is expected, not a discovery. |
+| **`app/server/analysis.js`** (`mapTo5`, `totalScore`), and its output in `index.js`, `report-render.js`, `app.js` | **Retired but still running.** Cannot be removed until `scoreTAU`'s signature changes and the student view is rebuilt | Do not read it as the model. Finding it in the code is expected, not a discovery. |
 | **Any design doc** — `tau-dimensions.md`, `designsystem.md`, `teacher-dashboard-design.md` | **History.** Kept for the reasoning that produced the change | Never cite as spec. |
 
 **`tau-dimensions.md`'s *The scoring foundation* is the only authority on what a dimension is.** Every
