@@ -418,6 +418,7 @@ const USAGE_SURFACES = {
       'new-here-dimensions': 'Guide — The four dimensions',
       'new-here-signals': 'Guide — Worth a chat',
       'new-here-sample': 'Guide — A worked example',
+      'new-here-tour': 'Guide — How Tau Thinking works',
     },
   },
   'teacher-detail': {
@@ -3544,6 +3545,39 @@ function serveStatic(req, res, route) {
   fs.createReadStream(full).pipe(res);
 }
 
+// ---------- demo walkthrough ----------
+
+// The self-playing walkthrough at /demo/. Public, and safe to be: every /api/
+// request a framed page makes is answered in the browser by demo/fake-api.js,
+// which is injected ahead of the page's own scripts, so nothing behind the
+// login is reachable from here — only page shells, which carry no data.
+//
+// The demo's own files live in web/demo/; anything else under /demo/ is the
+// real app page of that name. Serving the real pages rather than copies is the
+// point — a copy drifts from the product it demonstrates.
+const DEMO_DIR = path.join(WEB_DIR, 'demo');
+const DEMO_SHIM = '<script src="/demo/fake-api.js"></script>';
+
+function serveDemo(req, res, route) {
+  if (route === '/demo') {
+    res.writeHead(302, { Location: '/demo/' });
+    return res.end();
+  }
+  const rest = route === '/demo/' ? 'player.html' : route.slice('/demo/'.length);
+  const own = path.join(DEMO_DIR, path.normalize(rest));
+  if (own.startsWith(DEMO_DIR + path.sep) && fs.existsSync(own)) return serveStatic(req, res, `/demo/${rest}`);
+
+  const full = path.join(WEB_DIR, path.normalize(rest));
+  if (!full.startsWith(WEB_DIR + path.sep) || !fs.existsSync(full)) {
+    res.writeHead(404);
+    return res.end('not found');
+  }
+  if (path.extname(full) !== '.html') return serveStatic(req, res, `/${rest}`);
+  const html = fs.readFileSync(full, 'utf8').replace(/<head>/i, `<head>\n${DEMO_SHIM}`);
+  res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-cache' });
+  res.end(html);
+}
+
 // ---------- boot ----------
 
 // Seeding is a write to Firestore now, so it has to finish before the first
@@ -3565,6 +3599,8 @@ const server = http.createServer(async (req, res) => {
       const user = await authenticate(req);
       if (!user) return json(res, 401, { error: 'not signed in' });
       await handleApi(req, res, user, route);
+    } else if (route === '/demo' || route.startsWith('/demo/')) {
+      serveDemo(req, res, route);
     } else {
       if (await redirectedForBadToken(req, res, route)) return;
       if (await redirectedToOwnPage(req, res, route)) return;

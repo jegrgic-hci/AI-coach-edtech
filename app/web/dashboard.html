@@ -3109,7 +3109,14 @@ function renderFirstRun() {
       <div class="content-meta">${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
     </div>
     <div class="setup-section">
-      <div class="section-head"><div class="eyebrow">Set-up</div></div>
+      <div class="section-head">
+        <div class="eyebrow">Set-up</div>
+        ${/* The tour, beside the job it shows: its first chapter is these three
+              cards. New tab, like the Learn the tool row, so it plays next to
+              the set-up rather than in place of it. */''}
+        <a class="btn btn-quiet btn-sm" href="/demo/" target="_blank" rel="noopener"
+           onclick="logUse('dashboard','new-here-tour')">How Tau Thinking works ↗</a>
+      </div>
       <div class="setup-lede">Three things and you're running.</div>
       <div class="setup-row">${setupCards().join('')}</div>
     </div>
@@ -3393,7 +3400,7 @@ function homeCohort() {
 function statRow(value, label, color, onclickFn) {
   return `<div class="class-row"${onclickFn ? ` onclick="${onclickFn}"` : ''}>
     <span class="class-row-name">${label}</span>
-    <span class="stat-row-count"><b style="color:${color}">${value}</b> students</span>
+    <span class="stat-row-count"><b style="color:${color}">${value}</b> student${value === 1 ? '' : 's'}</span>
     <span class="class-row-go">→</span></div>`;
 }
 
@@ -7791,6 +7798,8 @@ async function submitRosterAdd(scope) {
   document.getElementById(ids.preview).hidden = true;
   document.getElementById(ids.preview).innerHTML = '';
   await loadDashboardData();
+  // The rail prints each class's roster count, so it is stale too.
+  renderSidebar();
   renderContent();
   if (scope === 'roster') {
     // The per-class roster modal shows the roster it just changed, so the
@@ -8108,6 +8117,9 @@ document.getElementById('hdrNewClassForm').onsubmit = async (e) => {
   submitBtn.disabled = false;
   await loadDashboardData();
   renderSidebar();
+  // Home's set-up cards read CLASSES too — without this, step one kept
+  // offering "Create a class" beside the class it had just made.
+  renderContent();
   pendingNewClassId = created.id;
   document.getElementById('newclass-success-name').textContent = created.name;
   const extras = [];
@@ -8156,7 +8168,15 @@ mountAccountChip(document.getElementById('accountChip'), {
   // All three open in a new tab — the same reason the New here block does. A
   // teacher reaches for one of these while looking at a student, and comes
   // back to that student, not to a reloaded dashboard.
+  // The tour leads: it is the most general of the four, and the other three
+  // are the vocabulary it is written in.
   extras: [{
+    icon: '▶',
+    label: 'How Tau Thinking works',
+    desc: 'A short tour of the whole tool, in five chapters · new tab',
+    href: '/demo/',
+    newTab: true,
+  }, {
     icon: 'ⓘ',
     label: 'Agency levels, explained',
     desc: 'What each level means, and what it does not · new tab',

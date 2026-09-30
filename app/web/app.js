@@ -1242,7 +1242,9 @@ async function streamAction(path, body, role) {
   // text on stop, superseded turns on edit/regenerate).
   if (state.conv) {
     const data = await api(`/api/conversations/${state.conv.id}`);
-    state.conv = data.conversation;
+    // The conversation record carries no cycleIndex — it is a workspace-only
+    // grouping (see openConversation). Dropping it here read "Draft NaN".
+    state.conv = { ...data.conversation, cycleIndex: state.conv.cycleIndex };
     state.turns = data.turns;
     renderConversation();
   }

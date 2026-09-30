@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How Tau Thinking Works</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="stylesheet" href="/tokens.css">
+<link rel="stylesheet" href="/components.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--tau-font-ui);
+  background: var(--tau-shell);
+  color: var(--tau-ink);
+  min-height: 100vh;
+}
+.demo-page { max-width: 1200px; margin: 0 auto; padding: 28px 16px 48px; }
+.demo-head h1 { font-size: var(--tau-text-xl); font-weight: 600; margin-bottom: 14px; }
+
+/* The chapter menu. Each card names the part of the product it shows and
+   what it covers; picking one plays that chapter and nothing after it. */
+.chapters {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px;
+  margin-bottom: 18px;
+}
+.chapter-card {
+  display: flex; flex-direction: column; gap: 4px; text-align: left;
+  padding: 12px 14px; border-radius: var(--tau-r-md, 12px);
+  border: 1px solid var(--tau-line-strong); background: none; color: var(--tau-ink);
+  font: inherit; cursor: pointer;
+}
+.chapter-card:hover { background: color-mix(in oklab, var(--tau-ink) var(--tau-state-hover), var(--tau-shell)); }
+.chapter-card.active { background: var(--tau-surface); border-color: var(--tau-surface); box-shadow: var(--tau-shadow); }
+.chapter-card-head { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: var(--tau-text-md); }
+.chapter-n {
+  display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; flex: none;
+  background: var(--tau-ink); color: var(--tau-surface); font-size: var(--tau-text-xs); font-weight: 600;
+}
+.chapter-card-desc { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: var(--tau-leading-snug); }
+
+/* The app is laid out at a fixed desktop size and scaled to fit, so the tour
+   shows the layout a teacher actually sees rather than whatever size class
+   the visitor's window would put it in. */
+.stage {
+  position: relative; width: 100%;
+  border-radius: var(--tau-r-dialog); overflow: hidden;
+  box-shadow: var(--tau-shadow-lift); background: var(--tau-surface);
+}
+.stage-inner { position: absolute; top: 0; left: 0; width: 1280px; height: 800px; transform-origin: 0 0; }
+.stage iframe { width: 100%; height: 100%; border: 0; display: block; }
+/* The tour is something to watch, not to operate: the frame never takes a
+   click, so nothing a visitor does can put a page out of step with its stop. */
+.shield { position: absolute; inset: 0; z-index: 2; }
+
+/* The spotlight: one lit region, everything else dimmed. The dim is the
+   hole's own shadow, so the lit region needs no second element to cut it. */
+.spot {
+  position: absolute; z-index: 5; pointer-events: none; border-radius: 12px;
+  box-shadow: 0 0 0 4000px rgb(14 20 17 / 0.58), 0 0 0 3px rgb(255 255 255 / 0.9);
+  transition: top 450ms var(--tau-ease-standard), left 450ms var(--tau-ease-standard),
+              width 450ms var(--tau-ease-standard), height 450ms var(--tau-ease-standard),
+              box-shadow 300ms;
+}
+.spot.off { box-shadow: 0 0 0 4000px rgb(14 20 17 / 0), 0 0 0 3px rgb(255 255 255 / 0); }
+
+/* Between stops the stage goes to its own ground and back, so a page being
+   rearranged for the next stop is never seen mid-change. */
+.veil {
+  position: absolute; inset: 0; z-index: 8; pointer-events: none;
+  background: var(--tau-shell); opacity: 0; transition: opacity 220ms;
+}
+.veil.on { opacity: 1; }
+
+.callout {
+  position: absolute; z-index: 7; width: 300px;
+  background: var(--tau-surface); color: var(--tau-ink);
+  border-radius: 16px; padding: 20px 22px 16px;
+  box-shadow: 0 22px 60px rgb(0 0 0 / 0.3);
+  transition: opacity 250ms, top 450ms var(--tau-ease-standard), left 450ms var(--tau-ease-standard);
+}
+.callout[hidden] { display: none; }
+.callout-step {
+  font-size: 13px; font-weight: 600; letter-spacing: var(--tau-track-caps);
+  text-transform: uppercase; color: var(--tau-ink-soft); margin-bottom: 8px;
+}
+.callout-title { font-size: 21px; font-weight: 600; line-height: 1.25; margin-bottom: 8px; }
+.callout-body { font-size: 16px; line-height: 1.5; color: var(--tau-ink-soft); }
+.callout-foot { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+.callout-foot[hidden] { display: none; }
+.callout-track { flex: 1; height: 4px; border-radius: 2px; background: var(--tau-line); overflow: hidden; }
+.callout-fill { height: 100%; width: 0; background: var(--tau-ink); }
+.callout .btn { font-size: 15px; }
+.callout-pause {
+  width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--tau-line-strong);
+  background: none; color: var(--tau-ink); cursor: pointer; font-size: 13px;
+}
+
+/* The student's own editor, over the app. It has to read at a glance as a
+   different product — a word processor in the style of Google Docs — so no
+   one mistakes the writing for something done inside Tau. Its colours are
+   that other product's, deliberately not our tokens; no logo or wordmark. */
+.doc-win {
+  position: absolute; inset: 0; z-index: 3;
+  display: flex; flex-direction: column;
+  background: #f9fbfd; font-family: Arial, Helvetica, sans-serif; color: #1f1f1f;
+}
+.doc-win[hidden] { display: none; }
+.doc-top { display: flex; align-items: center; gap: 12px; padding: 10px 16px 0; background: #f9fbfd; }
+.doc-icon { width: 28px; height: 38px; border-radius: 3px; background: #4285f4; position: relative; flex: none; }
+.doc-icon::after {
+  content: ''; position: absolute; left: 7px; right: 7px; top: 13px; height: 13px;
+  background: repeating-linear-gradient(#fff 0 2px, transparent 2px 5px);
+}
+.doc-name { font-size: 18px; line-height: 1.2; }
+.doc-menu { display: flex; gap: 14px; font-size: 14px; color: #444746; margin-top: 3px; }
+.doc-share { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.doc-share b { background: #c2e7ff; color: #001d35; border-radius: 20px; padding: 10px 22px; font-size: 14px; font-weight: 500; }
+.doc-share i {
+  width: 32px; height: 32px; border-radius: 50%; background: #7cb342; color: #fff;
+  display: grid; place-items: center; font-style: normal; font-size: 14px;
+}
+.doc-toolbar {
+  margin: 8px 16px 0; padding: 6px 14px; border-radius: 24px; background: #edf2fa;
+  display: flex; gap: 18px; align-items: center; font-size: 14px; color: #444746;
+}
+.doc-toolbar span + span { padding-left: 18px; border-left: 1px solid #c7c7c7; }
+.doc-canvas { flex: 1; overflow: hidden; padding-top: 18px; }
+.doc-page {
+  margin: 0 auto; width: 720px; min-height: 100%; padding: 64px 72px;
+  background: #fff; box-shadow: 0 1px 3px rgb(60 64 67 / 0.3);
+  font-size: 15px; line-height: 1.55; white-space: pre-wrap;
+}
+.doc-page .doc-title { font-size: 26px; line-height: 1.3; display: block; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<div class="demo-page">
+  <div class="demo-head"><h1>How Tau Thinking works</h1></div>
+  <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
+
+  <div class="stage" id="stage">
+    <div class="stage-inner" id="stage-inner">
+      <iframe id="frame" title="Tau Thinking, showing the chapter" tabindex="-1"></iframe>
+      <div class="shield"></div>
+      <div class="doc-win" id="doc-win" hidden>
+        <div class="doc-top">
+          <span class="doc-icon"></span>
+          <div>
+            <div class="doc-name" id="doc-title"></div>
+            <div class="doc-menu"><span>File</span><span>Edit</span><span>View</span><span>Insert</span><span>Format</span><span>Tools</span><span>Extensions</span><span>Help</span></div>
+          </div>
+          <div class="doc-share"><b>Share</b><i>M</i></div>
+        </div>
+        <div class="doc-toolbar"><span>100%</span><span>Normal text</span><span>Arial</span><span>11</span><span><b>B</b>&nbsp;&nbsp;<i>I</i>&nbsp;&nbsp;<u>U</u></span></div>
+        <div class="doc-canvas"><div class="doc-page" id="doc-text"></div></div>
+      </div>
+      <div class="spot off" id="spot"></div>
+      <div class="callout" id="callout" role="dialog" aria-live="polite" hidden>
+        <div class="callout-step" id="callout-step"></div>
+        <div class="callout-title" id="callout-title"></div>
+        <div class="callout-body" id="callout-body"></div>
+        <div class="callout-foot" id="callout-foot">
+          <button type="button" class="callout-pause" id="btn-pause" aria-label="Pause">❚❚</button>
+          <div class="callout-track"><div class="callout-fill" id="callout-fill"></div></div>
+          <button type="button" class="btn btn-quiet btn-sm" id="btn-back">Back</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btn-next">Next</button>
+        </div>
+      </div>
+      <div class="veil" id="veil"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/demo/story.js"></script>
+<script src="/demo/chapters.js"></script>
+<script src="/demo/player.js"></script>
+</body>
+</html>
