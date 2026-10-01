@@ -155,5 +155,9 @@ The most serious objection at our school is the buses, which already make two ru
     'Go to one source yourself. The Seattle study is a search away, and reading it would let you say what it found in your own words.',
   ];
 
-  return { template, cohort, roster, chat, auditor, essay, reflection, labels, provenance, reading, growthMoves };
+  // What Ms. Rivera starts typing to Maya on her final draft — the tour shows
+  // the note box filled, never sent.
+  const noteToStudent = 'Answering the bus objection with your own idea was the strongest move in this. Next time, find the Seattle study yourself and say in your words what it found.';
+
+  return { template, cohort, roster, chat, auditor, essay, reflection, labels, provenance, reading, growthMoves, noteToStudent };
 })();

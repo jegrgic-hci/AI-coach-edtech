@@ -64,6 +64,13 @@ body {
 }
 .spot.off { box-shadow: 0 0 0 4000px rgb(14 20 17 / 0), 0 0 0 3px rgb(255 255 255 / 0); }
 
+/* Details inside the lit region, outlined rather than lit, so the region
+   keeps its whole shape and each detail still reads as a point of the stop. */
+.mark {
+  position: absolute; z-index: 6; pointer-events: none; border-radius: 10px;
+  border: var(--tau-focus-ring);
+}
+
 /* Between stops the stage goes to its own ground and back, so a page being
    rearranged for the next stop is never seen mid-change. */
 .veil {
@@ -86,15 +93,19 @@ body {
 }
 .callout-title { font-size: 21px; font-weight: 600; line-height: 1.25; margin-bottom: 8px; }
 .callout-body { font-size: 16px; line-height: 1.5; color: var(--tau-ink-soft); }
-.callout-foot { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+.callout-foot { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 16px; }
 .callout-foot[hidden] { display: none; }
-.callout-track { flex: 1; height: 4px; border-radius: 2px; background: var(--tau-line); overflow: hidden; }
-.callout-fill { height: 100%; width: 0; background: var(--tau-ink); }
-.callout .btn { font-size: 15px; }
-.callout-pause {
-  width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--tau-line-strong);
-  background: none; color: var(--tau-ink); cursor: pointer; font-size: 13px;
+.callout .btn { font-size: 15px; white-space: nowrap; }
+
+/* For a lit region with no room beside it — a centred dialog — the callout
+   lies flat as a strip above or below it: words on the left, Back and Next
+   on the right. */
+.callout.horizontal {
+  width: 820px;
+  display: grid; grid-template-columns: 1fr auto; column-gap: 32px; align-items: end;
 }
+.callout.horizontal > :not(.callout-foot) { grid-column: 1; }
+.callout.horizontal .callout-foot { grid-column: 2; grid-row: 1 / span 3; margin-top: 0; }
 
 /* The student's own editor, over the app. It has to read at a glance as a
    different product — a word processor in the style of Google Docs — so no
@@ -156,13 +167,12 @@ body {
         <div class="doc-canvas"><div class="doc-page" id="doc-text"></div></div>
       </div>
       <div class="spot off" id="spot"></div>
+      <div id="marks"></div>
       <div class="callout" id="callout" role="dialog" aria-live="polite" hidden>
         <div class="callout-step" id="callout-step"></div>
         <div class="callout-title" id="callout-title"></div>
         <div class="callout-body" id="callout-body"></div>
         <div class="callout-foot" id="callout-foot">
-          <button type="button" class="callout-pause" id="btn-pause" aria-label="Pause">❚❚</button>
-          <div class="callout-track"><div class="callout-fill" id="callout-fill"></div></div>
           <button type="button" class="btn btn-quiet btn-sm" id="btn-back">Back</button>
           <button type="button" class="btn btn-primary btn-sm" id="btn-next">Next</button>
         </div>

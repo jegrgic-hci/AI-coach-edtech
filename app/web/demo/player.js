@@ -3,9 +3,9 @@
 // in front of the visitor: a stop's `setup` runs behind a brief veil, and the
 // page appears already where the stop is about.
 //
-// Stops advance on their own, with Back, Next and pause for anyone reading at
-// their own pace. Going forward runs the next stop's setup on the page as it
-// stands; going anywhere else rebuilds the chapter from its starting world and
+// The visitor moves through stops with Back and Next, at their own pace —
+// nothing advances on a timer. Going forward runs the next stop's setup on
+// the page as it stands; going anywhere else rebuilds the chapter from its starting world and
 // replays every setup up to that stop, so each stop's setup can assume the
 // ones before it ran.
 
@@ -112,9 +112,8 @@ window.DEMO_LATENCY = 0;
   }
 
   // ── Spotlight and callout ──────────────────────────────────────────────────
-  function rectOf(els) {
+  function rectOf(els, pad = 8) {
     const rs = els.map((e) => e.getBoundingClientRect());
-    const pad = 8;
     const r = {
       left: Math.min(...rs.map((x) => x.left)) - pad,
       top: Math.min(...rs.map((x) => x.top)) - pad,
@@ -139,17 +138,36 @@ window.DEMO_LATENCY = 0;
     });
   }
 
+  function outline(rects) {
+    $('marks').replaceChildren(...rects.map((r) => {
+      const mark = document.createElement('div');
+      mark.className = 'mark';
+      Object.assign(mark.style, {
+        left: `${r.left}px`, top: `${r.top}px`,
+        width: `${r.right - r.left}px`, height: `${r.bottom - r.top}px`,
+      });
+      return mark;
+    }));
+  }
+
   // Beside the lit region where there is room — right, then left, then below,
   // then above — and otherwise tucked into its corner.
   function place(r, side, at) {
     const box = $('callout');
+    box.style.width = '';
+    // A region that fills all but the sidebar leaves a little under the
+    // callout's width beside it; narrowing to fit beats covering its edge.
+    if (r && !box.classList.contains('horizontal')) {
+      const room = Math.max(r.left - GAP - EDGE, STAGE_W - EDGE - GAP - r.right);
+      if (room >= 240 && room < box.offsetWidth) box.style.width = `${room}px`;
+    }
     const w = box.offsetWidth, h = box.offsetHeight;
     const clampY = (y) => Math.max(EDGE, Math.min(STAGE_H - h - EDGE, y));
     const clampX = (x) => Math.max(EDGE, Math.min(STAGE_W - w - EDGE, x));
     let x, y;
     if (!r) {
-      x = at ? at.x : (STAGE_W - w) / 2;
-      y = at ? at.y : (STAGE_H - h) / 2;
+      x = at ? clampX(at.x) : (STAGE_W - w) / 2;
+      y = at ? clampY(at.y) : (STAGE_H - h) / 2;
     } else {
       // Each side, pulled back inside the stage. The first that leaves the lit
       // region clear wins; when none can, the one covering least of it.
@@ -187,40 +205,6 @@ window.DEMO_LATENCY = 0;
     page.append(t, document.createTextNode(body.join('\n').replace(/^\n+/, '')));
   }
 
-  // ── Timing ─────────────────────────────────────────────────────────────────
-  // Long enough to read the callout twice at an ordinary pace.
-  let duration = 0, elapsed = 0, paused = false, hovered = false, lastTick = 0, ticking = false;
-
-  function readingTime(stop) {
-    return stop.ms || Math.max(6500, Math.min(13000, 3000 + 42 * (stop.title.length + stop.body.length)));
-  }
-
-  function tick(now) {
-    if (!ticking) return;
-    const dt = lastTick ? now - lastTick : 0;
-    lastTick = now;
-    if (!paused && !hovered && duration) {
-      elapsed += dt;
-      $('callout-fill').style.width = `${Math.min(100, (elapsed / duration) * 100)}%`;
-      if (elapsed >= duration) { ticking = false; next(); return; }
-    }
-    requestAnimationFrame(tick);
-  }
-
-  function startClock(ms) {
-    duration = ms; elapsed = 0; lastTick = 0;
-    $('callout-fill').style.width = '0%';
-    if (!ticking) { ticking = true; requestAnimationFrame(tick); }
-  }
-
-  function stopClock() { ticking = false; duration = 0; }
-
-  function setPaused(p) {
-    paused = p;
-    $('btn-pause').textContent = p ? '▶' : '❚❚';
-    $('btn-pause').setAttribute('aria-label', p ? 'Play' : 'Pause');
-  }
-
   // ── Moving between stops ───────────────────────────────────────────────────
   async function veil(on) {
     $('veil').classList.toggle('on', on);
@@ -235,6 +219,7 @@ window.DEMO_LATENCY = 0;
     $('callout-title').textContent = stop.title;
     $('callout-body').textContent = stop.body;
     $('callout-foot').hidden = false;
+    $('callout').classList.toggle('horizontal', !!stop.horizontal);
     $('btn-back').disabled = k === 0;
     $('btn-next').textContent = !last ? 'Next' : following ? `Next: ${following.title}` : 'Done';
     $('callout').hidden = false;
@@ -242,7 +227,7 @@ window.DEMO_LATENCY = 0;
 
   async function goTo(k) {
     const my = ++token;
-    stopClock();
+    outline([]);
     const t = tools(my);
     await veil(true);
     try {
@@ -265,13 +250,22 @@ window.DEMO_LATENCY = 0;
         for (const target of targets) els.push(await t.el(target));
         r = rectOf(els);
       }
+      // `mark` outlines one detail inside the lit region; `marks`, several.
+      // Only a lone mark is scrolled to: several are chosen to share a view.
+      const markTargets = stop.marks || (stop.mark ? [stop.mark] : []);
+      if (stop.mark) {
+        (await t.el(stop.mark)).scrollIntoView({ block: 'nearest', behavior: 'instant' });
+        await t.sleep(60);
+      }
+      const m = [];
+      for (const target of markTargets) m.push(rectOf([await t.el(target)], 6));
       at = k;
       showDocs(stop.docs);
       renderCallout(stop, k);
       lightUp(r);
+      outline(m);
       place(r, stop.side, stop.at);
       await veil(false);
-      startClock(readingTime(stop));
     } catch (err) {
       if (err instanceof Stale) return;
       console.error(err);
@@ -298,7 +292,6 @@ window.DEMO_LATENCY = 0;
   function play(c) {
     chapter = c;
     at = -1;
-    setPaused(false);
     drawMenu();
     return goTo(0);
   }
@@ -308,7 +301,7 @@ window.DEMO_LATENCY = 0;
   async function cover() {
     const my = ++token;
     chapter = null; at = -1;
-    stopClock();
+    outline([]);
     drawMenu();
     await veil(true);
     window.DEMO_STATE = null;
@@ -322,6 +315,7 @@ window.DEMO_LATENCY = 0;
     $('callout-title').textContent = 'See Tau Thinking at work';
     $('callout-body').textContent = 'Pick a chapter above. Each is a few stops on the real screens — about half a minute.';
     $('callout-foot').hidden = true;
+    $('callout').classList.remove('horizontal');
     $('callout').hidden = false;
     place(null);
     await veil(false);
@@ -342,14 +336,10 @@ window.DEMO_LATENCY = 0;
 
   $('btn-next').onclick = () => next();
   $('btn-back').onclick = () => back();
-  $('btn-pause').onclick = () => setPaused(!paused);
-  $('callout').addEventListener('mouseenter', () => { hovered = true; });
-  $('callout').addEventListener('mouseleave', () => { hovered = false; });
   document.addEventListener('keydown', (e) => {
     if (!chapter || e.target.closest('input, textarea')) return;
     if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); back(); }
-    else if (e.key === ' ') { e.preventDefault(); setPaused(!paused); }
   });
 
   const start = Number(new URLSearchParams(location.search).get('chapter'));

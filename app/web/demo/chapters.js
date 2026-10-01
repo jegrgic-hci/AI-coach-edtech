@@ -48,8 +48,8 @@
           t.w().openNewAssignmentModal(['c-1']);
           await t.set('#na-template', S.template.id);
         },
-        spots: ['#na-template-row', '#na-requirements'],
-        block: 'start',
+        spot: '#new-assignment-modal-overlay .modal',
+        mark: '#na-template-row',
         title: 'Start from a template',
         body: 'Pick a saved template and its wording fills in: what the task is, why it matters, what it needs. Students see all three at the top of every session.',
       },
@@ -123,31 +123,23 @@
           await t.click('#btnConfirmSubmit');
           await t.el('#samrHero .report-hero', 12000);
         },
-        spot: '#samrHero',
+        // No spotlight: this stop shows the whole report arrive, and the
+        // Student report chapter goes through it part by part.
+        at: { x: 964, y: 96 },
         title: 'Her report comes back',
-        body: 'A level for where her own thinking entered the work, and why — in plain sentences, from her own session. It says how the work was made, not how good it is.',
+        body: 'Where her own thinking entered the work, four readings of how she used the AI, and whose ideas reached the essay — with her session beside it. The next chapter goes through each part.',
       },
     ],
   }, {
     title: 'Student report',
-    desc: 'Opening one student’s report from the dashboard.',
+    desc: 'The teacher’s view of one student’s report.',
     scenario: 'teacher-reviewing',
     stops: [
       {
-        async setup(t) {
-          await dashboard(t);
-          t.w().gotoStudentFromClass('s-1');
-          t.w().toggleStudentDrill('c-1::a-1');
-        },
-        spot: '.drill-trace',
-        title: 'Every student has a page',
-        body: 'Open Maya and each assignment shows her level on every draft, and how each reading moved between them.',
-      },
-      {
         setup: (t) => t.open('report.html?id=sub-s-1-0', '#samrHero .report-hero'),
         spot: '#samrHero',
-        title: 'The report she reads',
-        body: 'Each draft has a report, and you see exactly what Maya sees: her level, and the sentences that explain it.',
+        title: 'Now, the teacher’s view',
+        body: 'Open any draft’s report from your dashboard and you see exactly what Maya sees: her level, and the sentences that explain it.',
       },
       {
         spot: '#levelRuling',
@@ -158,8 +150,11 @@
         async setup(t) {
           await t.scroll('#readingCards');
           await t.click(['.dim-card', 'Calibrated Skepticism']);
+          // The card grows into the dialog; measure it once it has landed.
+          await t.sleep(400);
         },
         spot: '[role=dialog][aria-modal=true]',
+        horizontal: true,
         title: 'Every reading shows its evidence',
         body: 'Four readings, each resting on moments quoted from her session — and on the one moment that didn’t fit.',
       },
@@ -178,32 +173,36 @@
       },
     ],
   }, {
-    title: 'Class results',
-    desc: 'How the room did, and how it moved between drafts.',
+    title: 'Your dashboard',
+    desc: 'The whole room, then one assignment up close.',
     scenario: 'teacher-reviewing',
+    // Two views, each a different picture: Home is every class, an assignment
+    // is one task. One student's picture is the next chapter's.
     stops: [
       {
         setup: dashboard,
-        spot: '.home-cols-top',
-        title: 'Where to look first',
-        body: 'Home opens on who might need a conversation, and where each class landed.',
-      },
-      {
-        async setup(t) {
-          await t.click(['.pattern-card summary', 'Challenge Arc']);
-        },
         spot: ['.home-band', 'Behavioral patterns'],
         block: 'start',
+        marks: [['.finding-list', 'Validation Spiral'], ['.finding-list', 'Challenge Arc']],
         title: 'Habits across the room',
-        body: 'Passive patterns show who needs help; high-agency ones show who can help. Each one comes with something to try.',
+        body: 'Home starts with what students are doing. Passive patterns show who needs help; high-agency ones show who can help. Open any one for something to try.',
+      },
+      {
+        spot: ['.home-band', 'Agency over time'],
+        block: 'start',
+        marks: ['.trend-lede', '.flow-wrap'],
+        title: 'Which way the class is heading',
+        body: 'Agency over time, for every class at once. Read it for the trend — the sentence on top says what the flow shows. Below it, the same for each dimension.',
       },
       {
         async setup(t) {
           t.w().gotoAssignment('a-1');
         },
-        spot: ['.overview-card', 'agency across the drafts'],
-        title: 'How far each student moved',
-        body: 'Every student’s level on draft 1 and on the final. The ribbons show who moved up, who held, and who slipped.',
+        spots: ['.content-header', '.teach-note'],
+        block: 'start',
+        marks: [['.overview-card', 'Draft schedule'], '.teach-note'],
+        title: 'One assignment, up close',
+        body: 'Open an assignment and the picture narrows to one task: when each draft was due, and how the class worked on it.',
       },
       {
         async setup(t) {
@@ -211,20 +210,87 @@
         },
         spot: ['.overview-card', 'dimensions across the drafts'],
         block: 'start',
-        title: 'The same, for each dimension',
-        body: 'One tab per dimension, each with something to try. Here, more students were checking what they were told by the final draft.',
+        marks: ['.card-tabs--secondary', '.overview-card .pattern-try'],
+        title: 'Each dimension, for this assignment',
+        body: 'One tab per dimension, each read for the trend and with something to try. Here, more students were checking what they were told by the final draft.',
       },
     ],
   }, {
-    title: 'Worth a chat',
-    desc: 'A flagged draft, what it means, and marking it done.',
+    title: 'Your students',
+    desc: 'The student list, one student’s drafts, and who’s worth a chat.',
     scenario: 'teacher-reviewing',
     stops: [
       {
-        setup: dashboard,
-        spot: ['.class-row', 'Worth a chat'],
+        async setup(t) {
+          await dashboard(t);
+          t.w().gotoStudents('all');
+        },
+        spots: ['.content-header', '.browse-class-group'],
+        block: 'start',
+        // The filter bar has no class of its own; it is the search box's row.
+        marks: ['.roster-browse thead', 'div:has(> #browseSearchInput)'],
+        title: 'Every student, one list',
+        body: 'Each class’s roster, with each student’s agency and anything worth a look. Sort any column, search by name, or filter to who’s worth a chat.',
+      },
+      {
+        async setup(t) {
+          t.w().gotoStudentFromClass('s-1');
+        },
+        spots: ['.content-header', '.assignment-summary-row'],
+        mark: '.assignment-summary-row',
+        title: 'Open a student',
+        body: 'Pick Maya from the list and you get her page: every assignment she’s done, with her latest level on each. Open one to see its drafts.',
+      },
+      {
+        async setup(t) {
+          t.w().toggleStudentDrill('c-1::a-1');
+        },
+        spot: '.drill-trace',
+        marks: ['.drill-trace .viz-lede', '.trace-agency'],
+        title: 'One snapshot, across her drafts',
+        body: 'Her agency level on each draft, and beneath it the four dimensions it’s read through, each as a band. Read down a column for one draft, along a row for how it changed. The line on top says what moved.',
+      },
+      {
+        spot: '.reflection-arc',
+        title: 'What she said about her work',
+        body: 'Her reflection on each draft, in her own words — to set beside what the readings show.',
+      },
+      {
+        async setup(t) {
+          await t.click('.sub-row [aria-label="Level reads wrong"]');
+        },
+        spot: '.sub-row',
+        marks: ['.sub-row .ruling-thumbs', '.sub-row .ruling-followup'],
+        title: 'Do you agree with the level?',
+        body: 'Each draft’s level has a thumbs up and down beside it. Thumbs down asks which way it’s off — too high or too low — and why. Your read is yours; Maya never sees it.',
+      },
+      {
+        async setup(t) {
+          await t.click(['.sub-row-actions button', 'Send student a note']);
+          await t.set('#submission-note-input', S.noteToStudent);
+        },
+        spot: '#obj-modal-overlay .modal',
+        title: 'Send her a note',
+        body: 'A note goes with one draft. Maya reads it on that draft’s report, beside the readings — your words next to what the tool saw.',
+      },
+      {
+        async setup(t) {
+          t.w().closeObjModal();
+          await t.sleep(150);
+        },
+        spot: '.sub-row',
+        mark: ['.sub-row a.btn', 'Report'],
+        title: 'Open the full report',
+        body: 'Report opens the draft’s full report — the one Maya reads, with the evidence behind every reading.',
+      },
+      {
+        async setup(t) {
+          t.w().gotoStudents('review');
+        },
+        spots: ['.content-header', '.browse-class-group'],
+        block: 'start',
         title: 'Two students are worth a chat',
-        body: 'Something on one of their drafts is worth asking about. It’s a question to raise, never a verdict.',
+        body: 'Back on the list, filter to who’s worth a chat. Something on one of their drafts is worth asking about — a question to raise, never a verdict.',
       },
       {
         async setup(t) {
@@ -233,7 +299,7 @@
         },
         spot: '.integrity-flags-row',
         title: 'The signal sits on one draft',
-        body: 'On Priya’s final draft, her turns read as polished rather than typed live. The flag names what was noticed, and where.',
+        body: 'Open Priya. On her final draft, her turns read as polished rather than typed live. The flag names what was noticed, and where.',
       },
       {
         async setup(t) {
@@ -253,14 +319,6 @@
         spot: '.integrity-flags-row',
         title: 'After the conversation, mark it',
         body: '“Had the chat”, or “Not worth raising” with a private reason. The flag stays on the record; it just stops asking.',
-      },
-      {
-        async setup(t) {
-          t.w().goHome();
-        },
-        spot: ['.class-row', 'Worth a chat'],
-        title: 'The list keeps up',
-        body: 'One student left to talk to.',
       },
     ],
   }];
