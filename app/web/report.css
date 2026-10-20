@@ -1234,8 +1234,26 @@
     .turnplot .tp-run:focus-visible rect { stroke: var(--tau-forest); stroke-width: 2; }
     .turnplot .tp-turn:focus, .turnplot .tp-run:focus { outline: none; }
 
+    /* The AI lane. Outlined and neutral, the way an AI bubble is outlined in
+       the exchange view — the AI's acts are never filled with the agency ramp,
+       and never carry semantic colour (Voice: coach, not judge). Same three
+       states as a turn. */
+    .turnplot .tp-ai { cursor: pointer; }
+    .turnplot .tp-ai rect { fill: var(--tau-surface); stroke: var(--tau-ink-soft); stroke-width: 1.5;
+                            transition: opacity var(--tau-dur-short) var(--tau-ease-standard); }
+    .turnplot .tp-ai:hover rect { stroke: var(--tau-ink); stroke-width: 2; }
+    .turnplot.is-selecting .tp-ai:not(.is-open) rect { opacity: 0.4; }
+    .turnplot .tp-ai.is-open rect,
+    .turnplot .tp-ai:focus-visible rect { stroke: var(--tau-forest); stroke-width: 2.5; }
+    .turnplot .tp-ai:focus { outline: none; }
+    .turnplot-swatch.turnplot-swatch-ai {
+      width: 10px; height: 10px; margin: 2px; border-radius: 1px;
+      background: var(--tau-surface); border: 1.5px solid var(--tau-ink-soft);
+      transform: rotate(45deg);
+    }
+
     @media (prefers-reduced-motion: reduce) {
-      .turnplot .tp-turn rect { transition: none; }
+      .turnplot .tp-turn rect, .turnplot .tp-ai rect { transition: none; }
     }
 
     /* The detail card is permanent furniture, not a tooltip. A run's name and a
@@ -1272,6 +1290,42 @@
                             font-size: var(--tau-text-md); font-weight: 600; }
     .turnplot-detail-band .turnplot-swatch { width: 12px; height: 12px; }
     .turnplot-detail-note { margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+    /* --- .pguide — the pattern guide under a workshop chart (pattern-guide.js).
+       Headings take the small title role (Hard Constraints: a heading takes a
+       title role); every sentence is text-sm or larger. A pattern that showed
+       in this chat is marked by its "In your chat" line AND a recessed fill —
+       neutral, never a tier colour, because a found low-agency pattern is not
+       an alert and a found high-agency one is not a prize. */
+    .pguide-group { display: flex; flex-direction: column; gap: var(--tau-s2); margin-top: var(--tau-s5); }
+    .pguide-title { margin: 0; font: var(--tau-type-title-sm); letter-spacing: var(--tau-track-title); color: var(--tau-ink); }
+    .pguide-intro { margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+    .pguide-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--tau-s2); margin-top: var(--tau-s2); }
+    @container pane (min-width: 720px) {
+      .pguide-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    .pguide-item {
+      border: 1px solid var(--tau-line); border-radius: var(--tau-r-md);
+      padding: var(--tau-s3) var(--tau-s4); display: flex; flex-direction: column; gap: var(--tau-s1);
+    }
+    .pguide-item.is-found { background: var(--tau-surface-2); border-color: var(--tau-line-strong); }
+    .pguide-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--tau-s1) var(--tau-s3); }
+    .pguide-name { font-size: var(--tau-text-md); font-weight: 600; color: var(--tau-ink); }
+    .pguide-found { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink-soft); }
+    .pguide-what { margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink); line-height: 1.5; }
+    .pguide-why { margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.5; }
+
+    /* Who said it, when the card holds both sides of an exchange. */
+    .turnplot-detail-who {
+      font-size: var(--tau-text-label-md); font-weight: 600; color: var(--tau-ink-soft);
+      margin-bottom: calc(-1 * var(--tau-s2));
+    }
+    /* The teaching note on a claim disputed without a reason. A sentence, so
+       text-sm (Hard Constraints: a sentence is never xs); ink, not a tier
+       colour — it is advice, not a finding about the student. */
+    .turnplot-detail-teach {
+      margin: 0; font-size: var(--tau-text-sm); line-height: 1.55; color: var(--tau-ink);
+      border-left: 2px solid var(--tau-line-strong); padding-left: var(--tau-s3);
+    }
 
     /* Empty state states what to do, and is the initial state — nothing is
        selected on load, so the plot is read as a whole before any one turn is

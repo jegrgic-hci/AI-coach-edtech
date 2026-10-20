@@ -104,6 +104,62 @@ and it did not survive that reading:
 
 `extraction-landing` is now a pure sequence pattern, fixed at `medium`.
 
+#### AI-side moments: AI Caved, and the unreasoned-pushback note — added 2026-10-14
+
+**The first detector whose subject is the AI.** Sycophancy is only legible against the student's half
+of the same exchange, so one LLM call (`tracePushback`, `analysis.js`) reads both. Candidates are
+student turns already labelled `rejection` or `challenge` that have an AI turn on each side within one
+conversation; the call answers three questions about **acts, never correctness**:
+
+1. **Target**: a *claim* (whether something the AI said is true or sound, including "are you sure?")
+   or a *choice* (style, focus, format: the student's call to make).
+2. **Reason** (claims only): did the student give a reason, evidence, source or argument?
+3. **AI response**: kept, softened or dropped its earlier position.
+
+| Pushback | Reason given | AI kept | AI softened / dropped |
+|---|---|---|---|
+| On a choice | n/a | nothing recorded | nothing recorded (it followed instructions) |
+| On a claim | yes | nothing recorded | nothing recorded (it updated on reasons) |
+| On a claim | **no** → teaching note | nothing recorded | **`ai-caved`** |
+
+**Two outputs, and neither touches the student's agency:**
+
+- **`ai-caved`** comes from `detectAIMoments()` and is stored as **`aiMoments`, never in `patterns`**.
+  Every consumer of `patterns` reads it as student agency: the turn plot maps any tier that isn't
+  high/medium to "low", and the dashboard counts `groups.all` as students with patterns. A separate
+  array is what guarantees the AI's acts can't count for or against the student. The pushback turn
+  already counts as the student's Rejection/Challenge, and the shared-evidence rule forbids it
+  counting a second time.
+- **The unreasoned-pushback note is a qualifier, not a detector.** It is `turn.pushback.reason ===
+  false` on a claim, rendered as advice on that turn. It is **never a low-agency card**: the
+  rejection keeps its high-agency reading, because disagreeing is agency and the note teaches how to
+  disagree better. A separate low card on the same turn would count one event twice, in opposite
+  directions.
+
+**Rendering:** the turn plot gets a lane titled "The AI" below the four agency rows, drawn only when
+there are moments to show. Analyses stored before the trace have no reading of the AI at all, and an
+empty lane would wrongly say "looked, never backed off." Markers are outlined diamonds, placed between
+turn *n* and *n + 1* because the act is the AI's reply to turn *n*, with no semantic colour.
+
+**Two calls, not one (2026-10-15).** Asked inside the exchange, "did the student give a reason" was
+missed: under a long AI turn the model read *"But the office phone covers that"* as bare disagreement,
+three runs out of three, with that sentence named in the prompt as an example. The disputed claim sat
+past the 1,200 characters the call saw. The reason is now asked of the student's turn **alone**
+(`REASON_PROMPT`), as a verbatim quote that is accepted only if it really is in their turn, and stored
+as `pushback.reasonQuote` so a reader can check the call. The exchange call sees 3,000 characters of
+each AI turn. Re-tested on every real demo-room exchange, three runs each: stable, no false caves.
+Target still wobbles on a dispute phrased as a request ("…what's your strongest remaining
+objection?" reads as claim or choice), but both readings are safe, since a choice never produces
+`ai-caved`.
+
+**Status: provisional.** Smoke-tested on six authored exchanges (one per cell; all four claim cases
+read correctly) and on one live local session, where the stock model answered "I don't think that's
+right" with "That is a fair perspective, and many people agree with you." **Not yet validated on real
+sessions.** Bikeguide's AI turns are paraphrased, so they can't support it, and Emilie's classes are
+in prod. Read every hit from the first real run before treating it as a finding. Choice-target
+`aiResponse` was unreliable in the smoke test (a held suggestion read as "dropped"); nothing reads it
+today. Not backfilled: it needs an LLM call, unlike `detectPatterns`.
+
 **What this does *not* license is a general overlap rule.** The same labelling run put two other bands
 on shared turns — `assertion-unquestioned` inside `extraction-landing`, twice in bikeguide — and those
 are the system working. They read opposite directions from one pivot turn: the assertion moment looks
@@ -600,6 +656,13 @@ unmeasured and undefined.
 ---
 
 ## Session log
+
+- **2026-10-14 — AI Caved: the first AI-subject detector.** Built for the teacher workshop demo,
+  whose point is showing how a stock model leads a conversation. The chat is unsteered (`coach.js`),
+  so the cave is the model's own behaviour and not something we staged. Design and status are in
+  *AI-side moments* under Layer 1. **The standing decision:** an AI-side reading goes in `aiMoments`,
+  never in `patterns`, and a student-side qualifier on an already-counted turn is a note and not a
+  card. Both follow from the shared-evidence rule.
 
 - **2026-08-18 — the AI labels arrived, and the first thing they exposed was a detector reading the
   wrong turn.** With `aiLabel` populated (`convolabel.md`), bikeguide went from 7 pattern runs to 13,

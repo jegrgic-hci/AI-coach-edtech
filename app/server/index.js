@@ -8,7 +8,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { col } = require('./store');
-const { authenticate, isSuspended, login, logout, setPassword, passwordFields, sessionCookie, clearedCookie, tokenFrom, inspectCredentialToken, redeemCredentialToken, DEMO_MODE, DEV_PASSWORD } = require('./auth');
+const { authenticate, isSuspended, login, logout, startSession, setPassword, passwordFields, sessionCookie, clearedCookie, tokenFrom, inspectCredentialToken, redeemCredentialToken, DEMO_MODE, DEV_PASSWORD } = require('./auth');
+const workshops = require('./workshops');
 const { sendInvite, sendReset } = require('./invites');
 const { newAccessCode, normalizeCode, teacherSlug, labelSlug, buildUsername, USERNAME_TLD } = require('./codes');
 const { termsFor, needsToAccept } = require('./terms');
@@ -49,12 +50,31 @@ function now() {
 }
 
 // Behind Cloud Run the socket address is the load balancer, so the client is
-// the first hop in X-Forwarded-For. Only ever used to throttle failed logins —
-// a spoofed value costs the spoofer their own throttle bucket, nothing more.
+// the first hop in X-Forwarded-For. Only ever used to throttle failed logins
+// and wrong workshop codes — a spoofed value costs the spoofer their own
+// throttle bucket, nothing more.
 function clientIp(req) {
   const fwd = req.headers['x-forwarded-for'];
   if (fwd) return String(fwd).split(',')[0].trim();
   return req.socket?.remoteAddress || null;
+}
+
+// Wrong workshop codes, per address, in memory. Per instance, so it bounds a
+// walk of the code space rather than stopping one outright — enough for what a
+// guessed code opens, which is a seat in a demo and nobody's data.
+const JOIN_MISS_LIMIT = 30;
+const JOIN_MISS_WINDOW_MS = 10 * 60000;
+const joinMisses = new Map();
+function joinThrottled(ip) {
+  const m = joinMisses.get(ip);
+  if (!m) return false;
+  if (Date.now() - m.since > JOIN_MISS_WINDOW_MS) { joinMisses.delete(ip); return false; }
+  return m.n >= JOIN_MISS_LIMIT;
+}
+function recordJoinMiss(ip) {
+  const m = joinMisses.get(ip);
+  if (!m || Date.now() - m.since > JOIN_MISS_WINDOW_MS) joinMisses.set(ip, { n: 1, since: Date.now() });
+  else m.n += 1;
 }
 
 // Turns are append-only: an edit or regeneration appends a new turn whose
@@ -97,11 +117,18 @@ async function teacherScope(user) {
   // read every class, user and assignment in the install on every call to
   // build one teacher's rail (see store.js on why that form is a cost
   // decision), serially.
-  const [allClasses, allStudents, allAssignments] = await Promise.all([
+  const [ownClasses, allStudents, ownAssignments] = await Promise.all([
     col('classes').list({ teacherId: user.id }),
     col('users').list({ role: 'student' }),
     col('assignments').list({ teacherId: user.id }),
   ]);
+  // Workshop classes are not part of a teacher's teaching at all — they are a
+  // room of adults trying the tool for five minutes (workshops.js). Dropped
+  // here, at the one place every roster, rollup and access check is derived
+  // from, so not one of them has to know workshops exist. Their own page
+  // (workshop.html) reads them through workshops.js instead.
+  const allClasses = ownClasses.filter((c) => !c.workshop);
+  const allAssignments = ownAssignments.filter((a) => !a.workshop);
   // An archived class is a finished term: its records stay readable, it just
   // stops occupying the rail and every rollup. Filtering here rather than at
   // each call site is what stops a student who only ever belonged to that
@@ -377,10 +404,23 @@ Return JSON: {"labels": ["...", "..."]}`,
   return json(res, 200, { labels: clean });
 }
 
+// Who may make workshop links: a teacher holding the grant, or a platform
+// admin, who is the tier that hands the grant out and so needs no grant of
+// their own to run a demo.
+function canRunWorkshops(user) {
+  return isPlatformAdmin(user) || (user.role === 'teacher' && user.workshopLinks === true);
+}
+
 async function canReadSubmission(user, submission) {
   if (submission.studentId === user.id) return true;
-  if (user.role !== 'teacher') return false;
-  return (await teacherScope(user)).students.some((s) => s.id === submission.studentId);
+  if (!canRunWorkshops(user) && user.role !== 'teacher') return false;
+  if (user.role === 'teacher' && (await teacherScope(user)).students.some((s) => s.id === submission.studentId)) return true;
+  // A workshop guest is outside teacherScope by design, so whoever ran the
+  // workshop is let in by the workshop itself — and nobody else is.
+  const author = await col('users').get(submission.studentId);
+  if (!author || !author.workshopId) return false;
+  const workshop = await col('workshops').get(author.workshopId);
+  return !!workshop && workshop.teacherId === user.id;
 }
 
 // ---------- product telemetry ----------
@@ -811,6 +851,85 @@ async function handleAuth(req, res, route) {
     });
     res.end(JSON.stringify({ id: result.user.id, displayName: result.user.displayName, role: result.user.role }));
     return true;
+  }
+
+  // ---------- joining a workshop (workshops.js) ----------
+  //
+  // Public by necessity: the person joining has no account yet. A GET creates
+  // nothing; the account is made by the POST behind the page's Join button.
+  //
+  //   GET  /api/join          who this browser already is: a guest of a live
+  //                           workshop goes straight back in, and a real account
+  //                           is named because Join would sign it out here
+  //   GET  /api/join/:code    the workshop's name, so the person can see it is
+  //                           the right room before they join it
+  //   POST /api/join          { name, code } → a guest account and its cookie
+  const joinMatch = /^\/api\/join(?:\/([^/]+))?$/.exec(route);
+  if (joinMatch) {
+    const current = await authenticate(req);
+    const nextFor = (w) => `/index.html?open=${encodeURIComponent(w.assignmentId)}&cycle=0`;
+    // A guest keeps their way back in through a close or a full room; only
+    // expiry ends it, because by then their session is gone.
+    const own = current && current.identity === 'guest' && current.workshopId
+      ? await col('workshops').get(current.workshopId) : null;
+    const ownLive = own && workshops.unavailableReason(own) !== 'expired' ? own : null;
+
+    if (req.method === 'GET' && !joinMatch[1]) {
+      json(res, 200, {
+        next: ownLive ? nextFor(ownLive) : null,
+        signedInAs: current && current.identity !== 'guest' ? current.displayName : null,
+      });
+      return true;
+    }
+
+    // Wrong codes are counted per address, so the code space can't be walked.
+    // The limit is loose because a school is one address: a room of forty
+    // mistyping must never lock itself out.
+    const ip = clientIp(req);
+    if (joinThrottled(ip)) {
+      json(res, 429, { reason: 'throttled', error: 'Too many wrong codes. Wait a few minutes and try again.' });
+      return true;
+    }
+    const body = req.method === 'POST' ? await readBody(req) : {};
+    const code = req.method === 'GET' ? joinMatch[1] : body.code;
+    const workshop = await workshops.workshopByCode(code);
+    if (!workshop) recordJoinMiss(ip);
+    const reason = workshops.unavailableReason(workshop);
+
+    if (req.method === 'GET') {
+      json(res, 200, reason === 'invalid' || reason === 'expired'
+        ? { status: reason }
+        : { status: reason || 'open', name: workshop.name, expiresAt: workshop.expiresAt });
+      return true;
+    }
+
+    if (req.method === 'POST' && !joinMatch[1]) {
+      const name = String(body.name || '').trim();
+      if (ownLive && workshop && ownLive.id === workshop.id) {
+        json(res, 200, { next: nextFor(workshop) });
+        return true;
+      }
+      if (reason) {
+        json(res, 410, { reason, error: 'This workshop is not open.' });
+        return true;
+      }
+      if (!name) {
+        json(res, 400, { reason: 'name', error: 'Enter your name.' });
+        return true;
+      }
+      const guest = await workshops.admitGuest(workshop, name);
+      if (!guest) {
+        json(res, 410, { reason: 'full', error: 'This workshop is not open.' });
+        return true;
+      }
+      const session = await startSession(guest, workshop.expiresAt);
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Set-Cookie': sessionCookie(session.token, session.maxAge),
+      });
+      res.end(JSON.stringify({ next: nextFor(workshop) }));
+      return true;
+    }
   }
 
   // Unauthenticated by necessity: the login page has to ask before anyone has
@@ -1333,6 +1452,11 @@ async function handleApi(req, res, user, route) {
       // Drives the Administration link in the shared account chip. Sent for
       // every role so the chip needs no second request to decide.
       canAdmin: canAdminPeople(user),
+      // Drives the Workshops link, same reason as canAdmin above.
+      workshopLinks: canRunWorkshops(user),
+      // A workshop guest has no account to come back to — the student app uses
+      // this to drop "All assignments" and say what the session is.
+      guest: user.identity === 'guest',
       // Whether this account has an agreement of its own on file. Null for a
       // code-roster student, who is covered by their teacher and was never
       // asked — offering them a copy of a document they did not sign would
@@ -1785,12 +1909,18 @@ async function handleApi(req, res, user, route) {
     if (session.status !== 'active') return json(res, 409, { error: 'already submitted' });
     // The deadline itself. Everything else about closing an assignment is
     // presentation; this is the line that makes it mean something.
-    if (isClosed(await assignmentFor(session))) return json(res, 403, { error: CLOSED_MESSAGE, closed: true });
+    const submitAssignment = await assignmentFor(session);
+    if (isClosed(submitAssignment)) return json(res, 403, { error: CLOSED_MESSAGE, closed: true });
     const body = await readBody(req);
     const essayText = String(body.essayText || '').trim();
-    if (!essayText) return json(res, 400, { error: 'essay draft required' });
-    const reflectionType = reflectionTypeFor(session.cycleIndex);
-    const reflection = readReflection(body.reflection, reflectionType);
+    // A workshop is read for its conversation alone (analysis.js), so it asks
+    // for no draft: text nothing reads is minutes taken from the room for nothing.
+    if (!essayText && !submitAssignment?.workshop) return json(res, 400, { error: 'essay draft required' });
+    // A workshop asks for none. The reflection is a student's account held
+    // against their evidence over a term; in a five-minute demo it is only the
+    // slowest step between a guest and the report the demo exists to show.
+    const reflectionType = submitAssignment?.workshop ? 'none' : reflectionTypeFor(session.cycleIndex);
+    const reflection = reflectionType === 'none' ? {} : readReflection(body.reflection, reflectionType);
     if (!reflection) return json(res, 400, { error: 'reflection required' });
 
     for (const c of await col('conversations').list((c) => c.sessionId === session.id)) {
@@ -1925,6 +2055,10 @@ async function handleApi(req, res, user, route) {
         id: submission.id,
         assignmentId: submission.assignmentId,
         assignmentTitle: assignment ? assignment.title : null,
+        // A workshop draft is read for its turn plot alone (analysis.js), so
+        // the report draws that and nothing else — known here, before the
+        // analysis finishes, so even the waiting line can say the right thing.
+        workshop: !!(assignment && assignment.workshop),
         cycleIndex: submission.cycleIndex,
         submittedAt: submission.submittedAt,
         essayText: submission.essayText,
@@ -2004,7 +2138,7 @@ async function handleApi(req, res, user, route) {
     // to do two reads *per teacher* — invisible at one seeded teacher, and the
     // same N+1 shape that had studentPatterns() taking 85 seconds, growing with
     // exactly the thing this page exists to add more of.
-    const [usage, teacherDocsRaw, allClasses, allAssignments, allStudents, allSubmissions, patterns, cost] =
+    const [usage, teacherDocsRaw, classesRaw, assignmentsRaw, studentsRaw, allSubmissions, patterns, cost] =
       await Promise.all([
         col('usage').list(),
         col('users').list({ role: 'teacher' }),
@@ -2015,6 +2149,12 @@ async function handleApi(req, res, user, route) {
         studentPatterns(),
         isPlatformAdmin(user) ? costSummary() : Promise.resolve(null),
       ]);
+    // Workshop guests and their one-off class are demonstrations, not people
+    // or classes on this install: counting them would inflate every roster
+    // figure here for a week and then drop it when they are purged.
+    const allClasses = classesRaw.filter((c) => !c.workshop);
+    const allAssignments = assignmentsRaw.filter((a) => !a.workshop);
+    const allStudents = studentsRaw.filter((s) => s.identity !== 'guest');
 
     const lastActive = {};
     for (const u of usage) {
@@ -2066,6 +2206,7 @@ async function handleApi(req, res, user, route) {
         schoolAdmin: t.schoolAdmin === true,
         improvementEligible: t.improvementEligible === true,
         codeRoster: t.codeRoster === true,
+        workshopLinks: t.workshopLinks === true,
         // How many of this teacher's classes have actually been marked. The
         // grant alone says nothing arrived — the teacher still has to tick the
         // class — and without this the two are indistinguishable from here.
@@ -2206,6 +2347,10 @@ async function handleApi(req, res, user, route) {
       // loop on every teacher. See canGrantPilot for why this one and not the
       // two above.
       codeRoster: canGrantPilot(user) && body.codeRoster === true,
+      // May this teacher make workshop links (workshops.js)? A link creates
+      // accounts for anyone holding it, so it is ours to hand out, not a
+      // school's: platform admin only, like the two grants above it.
+      workshopLinks: isPlatformAdmin(user) && body.workshopLinks === true,
       // Stays 'active'. "Invited but not signed in yet" is derived from the
       // absence of passwordSetAt, not from a third status value — a new status
       // would have to be understood by isSuspended(), the two status toggles,
@@ -2219,6 +2364,7 @@ async function handleApi(req, res, user, route) {
     if (teacher.schoolAdmin) grants.push('school administrator');
     if (teacher.improvementEligible) grants.push('measurement improvement contributor');
     if (teacher.codeRoster) grants.push('Pilot user');
+    if (teacher.workshopLinks) grants.push('workshop links');
     await recordAdminEvent(user, 'create', teacher, grants.join(' + '));
     if (!sent.accepted) await recordAdminEvent(user, 'invite-failed', teacher, sent.failureReason);
     return json(res, 200, {
@@ -2258,6 +2404,7 @@ async function handleApi(req, res, user, route) {
       if (isPlatformAdmin(user)) {
         patch.schoolAdmin = body.schoolAdmin === true;
         patch.improvementEligible = body.improvementEligible === true;
+        patch.workshopLinks = body.workshopLinks === true;
       }
       // Split from the two above rather than sharing their gate, because this
       // one is delegable — see canGrantPilot. An administrator without the
@@ -2279,6 +2426,9 @@ async function handleApi(req, res, user, route) {
         if (patch.improvementEligible !== (teacher.improvementEligible === true)) {
           grantChanges.push(patch.improvementEligible ? 'granted measurement improvement contributor' : 'revoked measurement improvement contributor');
         }
+        if (patch.workshopLinks !== (teacher.workshopLinks === true)) {
+          grantChanges.push(patch.workshopLinks ? 'granted workshop links' : 'revoked workshop links');
+        }
       }
       if (canGrantPilot(user)) {
         // Turning this off does not convert the students already provisioned
@@ -2298,7 +2448,8 @@ async function handleApi(req, res, user, route) {
           if (patch.codeRoster) {
             const stamp = improvementStamp(user);
             for (const c of await col('classes').list({ teacherId: teacher.id })) {
-              if (!c.improvement) await col('classes').update(c.id, { improvement: stamp });
+              // Workshop classes never: demo guests are not pilot data.
+              if (!c.improvement && !c.workshop) await col('classes').update(c.id, { improvement: stamp });
             }
           }
         }
@@ -2403,6 +2554,61 @@ async function handleApi(req, res, user, route) {
     return json(res, 200, { ok: true });
   }
 
+  // ---------- workshops (teacher, with the workshopLinks grant) ----------
+  //
+  //   GET  /api/workshops              mine, with the room view, and the tasks
+  //   POST /api/workshops              { name, taskId } → a new workshop and code
+  //   GET  /api/workshops/:id/room     the presented room view: finished conversations, no names, shuffled
+  //   POST /api/workshops/:id/close    End workshop: stop admitting; results stay readable
+  //   POST /api/workshops/:id/delete   delete it and every guest's work now
+  //   POST /api/workshops/tasks        { title, description } → a saved task of my own
+  //   POST /api/workshops/tasks/:id/edit     { title, description }
+  //   POST /api/workshops/tasks/:id/delete
+  if (seg1 === 'workshops') {
+    if (!canRunWorkshops(user)) {
+      return json(res, 403, { error: 'this account is not set up to run workshops' });
+    }
+    if (req.method === 'GET' && !seg2) {
+      return json(res, 200, {
+        workshops: await workshops.workshopsFor(user),
+        tasks: await workshops.tasksFor(user),
+      });
+    }
+    if (req.method === 'POST' && seg2 === 'tasks') {
+      const taskId = seg3 || null;
+      const action = seg4 || null;
+      if (taskId && action === 'delete') {
+        return (await workshops.deleteTask(user, taskId))
+          ? json(res, 200, { ok: true }) : json(res, 404, { error: 'task not found' });
+      }
+      if (taskId && action !== 'edit') return json(res, 404, { error: 'not found' });
+      const saved = await workshops.saveTask(user, await readBody(req), taskId);
+      if (saved.error) return json(res, saved.status || 400, { error: saved.error });
+      return json(res, 200, { id: saved.id });
+    }
+    if (req.method === 'POST' && !seg2) {
+      const body = await readBody(req);
+      const created = await workshops.createWorkshop(user, body);
+      await recordAdminEvent(user, 'create', { displayName: created.name, role: 'workshop' }, `code ${created.code}, until ${created.expiresAt.slice(0, 10)}`);
+      return json(res, 200, { id: created.id });
+    }
+    const workshop = seg2 ? await col('workshops').get(seg2) : null;
+    if (!workshop || workshop.teacherId !== user.id) return json(res, 404, { error: 'workshop not found' });
+    if (req.method === 'GET' && seg3 === 'room') {
+      return json(res, 200, await workshops.roomFor(workshop));
+    }
+    if (req.method === 'POST' && seg3 === 'close') {
+      await col('workshops').update(workshop.id, { closedAt: now() });
+      return json(res, 200, { ok: true });
+    }
+    if (req.method === 'POST' && seg3 === 'delete') {
+      const guests = await workshops.purgeWorkshop(workshop);
+      await recordAdminEvent(user, 'delete', { displayName: workshop.name, role: 'workshop' }, `${guests} guest${guests === 1 ? '' : 's'} and their work`);
+      return json(res, 200, { ok: true });
+    }
+    return json(res, 404, { error: 'not found' });
+  }
+
   // ---------- teacher routes ----------
 
   if (seg1 === 'teacher' || (req.method === 'POST' && seg1 === 'assignments' && (!seg2 || seg3 === 'note' || seg3 === 'edit' || seg3 === 'due-dates' || seg3 === 'delete' || seg3 === 'archive')) || (req.method === 'POST' && seg1 === 'submissions' && (seg3 === 'note' || seg3 === 'flag-decision')) || (req.method === 'POST' && seg1 === 'classes') || (req.method === 'POST' && seg1 === 'templates')) {
@@ -2423,7 +2629,9 @@ async function handleApi(req, res, user, route) {
     // No class picker in the creation form yet — an assignment with no
     // classIds sent defaults to every class this teacher has, so existing
     // creation flow behaves the same as before classes existed.
-    const allClassIds = (await col('classes').list((c) => c.teacherId === user.id)).map((c) => c.id);
+    // Never a workshop class: an ordinary assignment must not land in front of
+    // a room of demo guests because the form sent no classes.
+    const allClassIds = (await col('classes').list((c) => c.teacherId === user.id && !c.workshop)).map((c) => c.id);
     const classIds = Array.isArray(body.classIds) && body.classIds.length ? body.classIds : allClassIds;
     // One due date per draft slot, ascending — the last IS the assignment's
     // due date (see store.js's schema comment on draftDueDates).
@@ -2588,6 +2796,9 @@ async function handleApi(req, res, user, route) {
     // improvementEligible grant on the teacher; revoking never does, so consent
     // can always be withdrawn even after the eligibility is taken away.
     if (typeof body.improvement === 'boolean') {
+      if (body.improvement && classDoc.workshop) {
+        return json(res, 403, { error: 'a workshop is a demonstration; its sessions are never contributed' });
+      }
       if (body.improvement && !canContributeImprovement(user)) {
         return json(res, 403, { error: 'this account is not set up to contribute class work to measurement improvement' });
       }
@@ -3388,7 +3599,7 @@ function cacheControl(route) {
 //
 // Only pages are gated. tokens.css, login.js, theme.js and the favicons stay
 // public — gating those would leave the login page unable to render itself.
-const PUBLIC_PAGES = new Set(['/login.html', '/set-password.html']);
+const PUBLIC_PAGES = new Set(['/login.html', '/set-password.html', '/join.html']);
 
 // Pages served without a session, on the strength of a credential token alone.
 // /agreement.html is on both lists: with a `t` it is the first step of setting
@@ -3476,6 +3687,8 @@ const PAGE_ACCESS = {
   '/levels.html': (u) => u.role === 'teacher',
   '/dimensions.html': (u) => u.role === 'teacher',
   '/signals.html': (u) => u.role === 'teacher',
+  '/workshop.html': canRunWorkshops,
+  '/workshop-room.html': canRunWorkshops,
 };
 
 async function redirectedToOwnPage(req, res, route) {
@@ -3601,6 +3814,11 @@ const server = http.createServer(async (req, res) => {
       await handleApi(req, res, user, route);
     } else if (route === '/demo' || route.startsWith('/demo/')) {
       serveDemo(req, res, route);
+    } else if (route === '/join' || route === '/join/') {
+      // Joining a workshop. The one page a signed-out visitor reaches other
+      // than sign-in — it has to be, since its job is to make the account they
+      // don't have yet.
+      serveStatic(req, res, '/join.html');
     } else {
       if (await redirectedForBadToken(req, res, route)) return;
       if (await redirectedToOwnPage(req, res, route)) return;
@@ -3616,6 +3834,13 @@ const server = http.createServer(async (req, res) => {
 seed()
   .then(() => {
     server.listen(PORT, () => console.log(`CTA dev server: http://localhost:${PORT}`));
+    // The entry page promises a guest their session is deleted when the
+    // workshop expires. Checked at boot and hourly rather than by a scheduler:
+    // Cloud Run scales to zero, so an idle instance runs this the next time it
+    // starts, and the link itself refuses entry from the moment of expiry.
+    const purge = () => workshops.purgeExpiredWorkshops().catch((err) => console.error('workshop purge failed:', err.message));
+    purge();
+    setInterval(purge, 3600 * 1000).unref();
   })
   .catch((err) => {
     console.error('seed failed — not starting the server:', err);

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Join a workshop — Tau Thinking</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="/tokens.css">
+<link rel="stylesheet" href="/components.css">
+<link rel="stylesheet" href="/style.css">
+<script src="/theme.js"></script>
+<style>
+  /* Page-local: one surface (designsystem.md, Placement). */
+  .join-help { margin: 0 0 var(--tau-s2); font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+  .join-room { margin: 0 0 var(--tau-s2); min-height: 1.4em; font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-forest); }
+  .join-room.is-error { color: var(--tau-attention); }
+  #joinCode { font-variant-numeric: tabular-nums; letter-spacing: 0.06em; }
+  .join-facts { margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.55; }
+</style>
+</head>
+<!-- The sign-in page's shell, so someone typing tauthinking.com/join lands on
+     what is recognisably the product's front door rather than a one-off form. -->
+<body class="login-body">
+
+<div class="login-shell">
+  <section class="login-hero">
+    <img class="login-hero-logo" src="/assets/logo-mark.png" alt="Tau" width="391" height="192">
+    <h1 class="login-hero-title">Develop your thinking.</h1>
+    <p class="login-hero-tagline">AI should redefine how you think — not substitute it.</p>
+    <p class="login-hero-sub">A short conversation with an AI, then a picture of how it went.</p>
+  </section>
+
+  <section class="login-panel">
+    <main class="card card-lg login-card">
+      <h1>Join a workshop</h1>
+      <p class="login-sub">Your facilitator has the code.</p>
+
+      <form id="joinForm" class="auth-form" novalidate>
+        <label for="joinName">Your name</label>
+        <input id="joinName" name="name" type="text" autocomplete="given-name" maxlength="40" required>
+        <p class="join-help">First name is fine.</p>
+
+        <label for="joinCode">Workshop code</label>
+        <input id="joinCode" name="code" type="text" inputmode="numeric" autocomplete="off" maxlength="9" required
+               aria-describedby="joinRoom">
+        <p class="join-room" id="joinRoom" aria-live="polite"></p>
+
+        <p class="auth-notice hidden" id="joinSignedIn" role="note"></p>
+        <p class="login-error hidden" id="joinError" role="alert"></p>
+        <button type="submit" class="login-submit" id="joinSubmit">Join</button>
+
+        <!-- Stated before Join, not after: what happens to what they type is
+             the one thing a person has to know before they type it. -->
+        <p class="join-facts" id="joinFacts"></p>
+      </form>
+    </main>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var BASE_FACTS = 'The facilitator can read your conversation. Apart from your name, don’t type anything personal.';
+
+  // Why a code can't be used, in the joiner's terms. Each says what to do
+  // next, since every one has a person in the room who can fix it.
+  var CLOSED = {
+    invalid: 'No workshop has that code. Check it with your facilitator.',
+    expired: 'This workshop has ended.',
+    closed: 'This workshop has ended.',
+    full: 'This workshop is full.',
+    throttled: 'Too many wrong codes. Wait a few minutes and try again.'
+  };
+
+  function digits() { return $('joinCode').value.replace(/[\s-]/g, ''); }
+
+  function setFacts(expiresAt) {
+    $('joinFacts').textContent = BASE_FACTS + (expiresAt
+      ? ' Everything is deleted on ' + new Date(expiresAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric' }) + '.'
+      : ' Everything is deleted after the workshop.');
+  }
+
+  function showRoom(text, isError) {
+    $('joinRoom').textContent = text || '';
+    $('joinRoom').classList.toggle('is-error', !!isError);
+    $('joinCode').setAttribute('aria-invalid', isError ? 'true' : 'false');
+  }
+
+  setFacts(null);
+
+  // A guest coming back with a live cookie goes straight back to their chat.
+  fetch('/api/join')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.next) { location.replace(data.next); return; }
+      if (data.signedInAs) {
+        $('joinSignedIn').textContent = 'You’re signed in as ' + data.signedInAs + ' in this browser. Joining ' +
+          'signs you out of that account here — use a private window to keep it.';
+        $('joinSignedIn').classList.remove('hidden');
+      }
+    })
+    .catch(function () {});
+
+  // Names the room as soon as the code is whole, so the person can see they
+  // are joining the right one before they press Join.
+  var lastLooked = null;
+  $('joinCode').addEventListener('input', function () {
+    var c = digits();
+    if (c.length !== 6) { lastLooked = null; showRoom(''); setFacts(null); return; }
+    if (c === lastLooked) return;
+    lastLooked = c;
+    fetch('/api/join/' + c)
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (digits() !== c) return;
+        if (data.status === 'open') { showRoom(data.name, false); setFacts(data.expiresAt); }
+        else showRoom(CLOSED[data.reason || data.status] || CLOSED.invalid, true);
+      })
+      .catch(function () {});
+  });
+
+  $('joinForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var name = $('joinName').value.trim();
+    $('joinError').classList.add('hidden');
+    if (!name) {
+      $('joinError').textContent = 'Enter your name.';
+      $('joinError').classList.remove('hidden');
+      $('joinName').focus();
+      return;
+    }
+    if (digits().length !== 6) {
+      showRoom('The code is six digits.', true);
+      $('joinCode').focus();
+      return;
+    }
+    var btn = $('joinSubmit');
+    btn.disabled = true;
+    fetch('/api/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, code: digits() })
+    })
+      .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+      .then(function (res) {
+        if (res.ok && res.body.next) { location.href = res.body.next; return; }
+        btn.disabled = false;
+        if (res.body.reason === 'name') { $('joinName').focus(); return; }
+        showRoom(CLOSED[res.body.reason] || CLOSED.invalid, true);
+        $('joinCode').focus();
+      })
+      .catch(function () {
+        $('joinError').textContent = 'That didn’t go through. Check your connection and press Join again.';
+        $('joinError').classList.remove('hidden');
+        btn.disabled = false;
+      });
+  });
+})();
+</script>
+</body>
+</html>

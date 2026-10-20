@@ -1,6 +1,6 @@
 // Session view — the two turn-level surfaces of a draft report.
 //
-//   renderTurnPlot(el, classified, patterns)
+//   renderTurnPlot(el, classified, patterns, aiMoments)
 //     The conversation on the time axis. One square per student turn at one of
 //     four heights; runs of turns the detector named are shaded behind them.
 //     Position carries the level and NOTHING is drawn between two turns — the
@@ -143,8 +143,26 @@
   };
   var TIER_NAME = { 4: 'High agency', 3: 'Student-led', 2: 'Shared', 1: 'Low agency' };
 
-  function renderTurnPlot(host, classified, patterns) {
+  // A claim disputed with no reason given — the student's half of the
+  // AI-caved exchange, shown as a teaching note on the turn, never as a lower
+  // agency reading: the pushback itself is still read as pushback.
+  function unreasonedClaim(t) {
+    return !!(t.pushback && t.pushback.target === 'claim' && t.pushback.reason === false);
+  }
+
+  // opts.workshop — the five-minute workshop report (report-boot.js
+  // renderPlotOnly). Two differences, and the live tool's report passes no
+  // opts and gets neither:
+  //   - the plot widens its turn columns to fill the card, because a 3–8 turn
+  //     conversation drawn at the 19px a 44-turn session needs sits in one
+  //     corner of an empty card, with its caption clipped;
+  //   - the headline states counts rather than characterising the session.
+  //     The two fixed sentences below were written for long student sessions
+  //     and told a teacher who opened with their own position that they had
+  //     "spent most of this conversation acting on what the AI gave you".
+  function renderTurnPlot(host, classified, patterns, aiMoments, opts) {
     if (!host) return;
+    opts = opts || {};
     host.innerHTML = '';
 
     var student = studentTurns(classified);
@@ -156,7 +174,19 @@
 
     var ctx = { student: student, ai: aiAround(classified) };
     var turns = student.map(function (t, i) {
-      return { n: i + 1, label: t.label || 'narrative', text: t.text || '', tier: TIER[t.label] || 2 };
+      return {
+        n: i + 1, label: t.label || 'narrative', text: t.text || '', tier: TIER[t.label] || 2,
+        unreasoned: unreasonedClaim(t)
+      };
+    });
+
+    // The AI's acts sit in their own lane below the agency rows, never on
+    // them: a mark's height on this plot is the STUDENT's agency, and these
+    // are not.
+    var caved = (aiMoments || []).filter(function (m) {
+      return m.id === 'ai-caved' && m.start >= 0 && m.start < turns.length;
+    }).map(function (m) {
+      return { n: m.start + 1, degree: m.degree, quote: m.quote || '' };
     });
 
     // detectPatterns indexes student turns from 0; the plot counts from 1.
@@ -171,11 +201,24 @@
     var finding = el('p', 'claim');
     var low = turns.filter(function (t) { return t.tier <= 2; }).length;
     var top = turns.filter(function (t) { return t.tier === 4; }).length;
-    finding.innerHTML = '<strong>' + (low > turns.length / 2
-      ? 'Most of your turns asked for something or edited what came back.'
-      : 'You spent most of this conversation acting on what the AI gave you.') + '</strong> ' +
-      low + ' of your ' + turns.length + ' turns sit in the lower two rows' +
-      (top ? ', and ' + top + ' push back on what you were told.' : '.');
+    var led = turns.length - low;
+    var headline = opts.workshop
+      // Counts of acts, in the rows' own terms: the top two rows are the turns
+      // the person led, the top one the turns that pushed back.
+      ? (led
+          ? 'You led in ' + led + ' of your ' + turns.length + ' turns' +
+            (top ? ', and ' + top + ' pushed back on what you were told.' : '.')
+          : 'Every one of your ' + turns.length + ' turns asked for something or edited what came back.')
+      : (low > turns.length / 2
+          ? 'Most of your turns asked for something or edited what came back.'
+          : 'You spent most of this conversation acting on what the AI gave you.');
+    finding.innerHTML = '<strong>' + headline + '</strong>' +
+      (opts.workshop ? '' : ' ' + low + ' of your ' + turns.length + ' turns sit in the lower two rows' +
+        (top ? ', and ' + top + ' push back on what you were told.' : '.')) +
+      (caved.length
+        ? ' The AI backed off its answer ' + (caved.length === 1 ? 'once' : caved.length + ' times') +
+          ' after you disagreed without giving a reason.'
+        : '');
     host.appendChild(finding);
 
     var row = el('div', 'turnplot-row');
@@ -233,6 +276,42 @@
         inRun ? 'Read as ' + t.label + '. Part of the ' + inRun.name + '.'
               : 'Read as ' + t.label + '.'));
       detail.appendChild(reading);
+
+      if (t.unreasoned) {
+        detail.appendChild(el('p', 'turnplot-detail-teach',
+          'You disputed a claim here without saying why. Giving a reason is how you find out ' +
+          'whether the AI changes its answer because of your point, or just because you pushed.'));
+      }
+    }
+
+    function showAI(m, node) {
+      clearOpen();
+      closeTray(false);
+      node.classList.add('is-open');
+      svg.classList.add('is-selecting');
+      detail.innerHTML = '';
+      detail.appendChild(el('span', 'turnplot-detail-which', 'The AI, after turn ' + m.n));
+
+      var words = el('div', 'turnplot-detail-words');
+      var said = document.createElement('q');
+      said.textContent = turns[m.n - 1].text;
+      words.appendChild(el('span', 'turnplot-detail-who', 'You'));
+      words.appendChild(said);
+      if (m.quote) {
+        var reply = document.createElement('q');
+        reply.textContent = m.quote;
+        words.appendChild(el('span', 'turnplot-detail-who', 'The AI'));
+        words.appendChild(reply);
+      }
+      detail.appendChild(words);
+
+      var reading = el('div', 'turnplot-detail-reading');
+      reading.appendChild(el('span', 'turnplot-detail-band',
+        m.degree === 'dropped' ? 'The AI dropped its answer' : 'The AI softened its answer'));
+      reading.appendChild(el('p', 'turnplot-detail-note',
+        'You disagreed without giving a reason, and it changed its answer anyway. Disagreement ' +
+        'alone moved it — which says nothing about whether its first answer was right.'));
+      detail.appendChild(reading);
     }
 
     var trayOpener = null;
@@ -265,11 +344,27 @@
     // PAD_T carries two rows of run labels above the plot.
     var PAD_L = 96, PAD_R = 20, PAD_T = 44, PAD_B = 46;
     var COL = 19, DOT = 14, ROW = 46, ROWS = 4;
+    // Workshop only: spread the turns across the card. Measured off the plot's
+    // own box (it is already in the page), so it fits whatever pane it sits in.
+    // Never narrower than the live tool's 19px, so a long session scrolls
+    // exactly as it does there; capped at 64px so three turns don't become
+    // three islands. The square grows with its column, up to 24px.
+    var fitWidth = opts.workshop ? wrap.clientWidth : 0;
+    if (fitWidth) {
+      COL = Math.max(19, Math.min(64, Math.floor((fitWidth - PAD_L - PAD_R - 24) / turns.length)));
+      DOT = Math.max(14, Math.min(24, Math.round(COL * 0.4)));
+    }
+    var everyTick = opts.workshop && turns.length <= 12;
+    // Drawn only when there is something in it. An analysis stored before the
+    // pushback trace has no reading of the AI at all, and an empty lane would
+    // claim "we looked and it never backed off" for those.
+    var AI_LANE = caved.length ? 40 : 0;
+    var BASE = PAD_T + ROWS * ROW + AI_LANE;
     var xOf = function (n) { return PAD_L + (n - 1) * COL; };
     var yOf = function (tier) { return PAD_T + (ROWS - tier) * ROW + ROW / 2; };
 
     var width = xOf(turns.length) + COL + PAD_R;
-    var height = PAD_T + ROWS * ROW + PAD_B;
+    var height = BASE + PAD_B;
     svg.setAttribute('width', width);
     svg.setAttribute('height', height);
     svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
@@ -326,9 +421,39 @@
       svg.appendChild(lab);
     });
 
+    if (AI_LANE) {
+      var laneY = PAD_T + ROWS * ROW + AI_LANE / 2;
+      svg.appendChild(svgNode('line', {
+        class: 'tp-grid', x1: PAD_L - 10, x2: width - PAD_R,
+        y1: PAD_T + ROWS * ROW, y2: PAD_T + ROWS * ROW
+      }));
+      var laneLab = svgNode('text', { class: 'tp-row', x: PAD_L - 20, y: laneY + 4 });
+      laneLab.textContent = 'The AI';
+      svg.appendChild(laneLab);
+
+      // Between turn n and n + 1, because the act is the AI's REPLY to turn n.
+      // Outlined, as an AI bubble is in the exchange view; no semantic colour.
+      caved.forEach(function (m) {
+        var cx = xOf(m.n) + DOT / 2 + COL / 2;
+        var g = svgNode('g', { class: 'tp-ai', tabindex: '0', role: 'button' });
+        g.setAttribute('aria-label', 'After turn ' + m.n + ', the AI ' + m.degree + ' its answer');
+        g.appendChild(svgNode('rect', {
+          // 10px square → 14px across rotated, inside one 19px column, so
+          // replies to consecutive turns never touch.
+          x: cx - 5, y: laneY - 5, width: 10, height: 10,
+          transform: 'rotate(45 ' + cx + ' ' + laneY + ')'
+        }));
+        g.addEventListener('click', function () { showAI(m, g); });
+        g.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showAI(m, g); }
+        });
+        svg.appendChild(g);
+      });
+    }
+
     svg.appendChild(svgNode('line', {
       class: 'tp-axis', x1: PAD_L - 10, x2: width - PAD_R,
-      y1: PAD_T + ROWS * ROW, y2: PAD_T + ROWS * ROW
+      y1: BASE, y2: BASE
     }));
 
     turns.forEach(function (t) {
@@ -336,7 +461,7 @@
       g.setAttribute('aria-label', 'Turn ' + t.n + ', ' + t.label + ', ' + TIER_NAME[t.tier]);
       g.appendChild(svgNode('rect', {
         class: 'turnplot-ag-' + t.tier,
-        x: xOf(t.n), y: yOf(t.tier) - 7, width: DOT, height: 14, rx: 3
+        x: xOf(t.n), y: yOf(t.tier) - DOT / 2, width: DOT, height: DOT, rx: DOT > 14 ? 4 : 3
       }));
       g.addEventListener('click', function () { showTurn(t, g); });
       g.addEventListener('keydown', function (e) {
@@ -344,14 +469,14 @@
       });
       svg.appendChild(g);
 
-      if (t.n === 1 || t.n % 5 === 0) {
-        var tick = svgNode('text', { class: 'tp-tick', x: xOf(t.n) + DOT / 2, y: PAD_T + ROWS * ROW + 16 });
+      if (everyTick || t.n === 1 || t.n % 5 === 0) {
+        var tick = svgNode('text', { class: 'tp-tick', x: xOf(t.n) + DOT / 2, y: BASE + 16 });
         tick.textContent = t.n;
         svg.appendChild(tick);
       }
     });
 
-    var cap = svgNode('text', { class: 'tp-caption', x: PAD_L, y: PAD_T + ROWS * ROW + 36 });
+    var cap = svgNode('text', { class: 'tp-caption', x: PAD_L, y: BASE + 36 });
     cap.textContent = 'Your turns, in order';
     svg.appendChild(cap);
 
@@ -365,6 +490,11 @@
         { fill: 'var(--tau-band-2-bg)', label: 'Low-agency run' }
       ]));
     }
+    if (caved.length) {
+      legend.appendChild(legendGroup('The AI', [
+        { swatchClass: 'turnplot-swatch-ai', label: 'Backed off after you disagreed without a reason' }
+      ]));
+    }
     host.appendChild(legend);
 
     document.addEventListener('keydown', function (e) {
@@ -374,6 +504,24 @@
     });
 
     showEmpty();
+
+    // A fitted plot is fitted to the width it was drawn at; redraw when that
+    // changes enough to matter (a rotated tablet, a resized window). One
+    // listener per host — a redraw must not add another.
+    if (fitWidth && !host._turnplotRefit) {
+      host._turnplotRefit = true;
+      var drawnAt = fitWidth, timer = null;
+      window.addEventListener('resize', function () {
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+          var w = host.querySelector('.turnplot-wrap');
+          if (w && Math.abs(w.clientWidth - drawnAt) > 24) {
+            drawnAt = w.clientWidth;
+            renderTurnPlot(host, classified, patterns, aiMoments, opts);
+          }
+        }, 150);
+      });
+    }
   }
 
   function legendGroup(name, items) {
@@ -382,8 +530,8 @@
     var list = el('div', 'turnplot-legend-items');
     items.forEach(function (it) {
       var rowEl = el('span', 'turnplot-legend-item');
-      var sw = el('span', 'turnplot-swatch');
-      sw.style.background = it.fill;
+      var sw = el('span', 'turnplot-swatch' + (it.swatchClass ? ' ' + it.swatchClass : ''));
+      if (it.fill) sw.style.background = it.fill;
       rowEl.appendChild(sw);
       rowEl.appendChild(document.createTextNode(it.label));
       list.appendChild(rowEl);

@@ -564,6 +564,77 @@ The correct rule set is `allow read, write: if false;`. Browsers never touch Fir
 
 ## Session Log
 
+- **2026-10-20 — Workshop results, presented: `workshop-room.html`.** The facilitator's projector
+  view of a room's results, built from a design artifact the stakeholder approved
+  (https://claude.ai/artifact/3cCY2iVzsZb2g4Jcc9D9tz). Reached by **Present results** on each
+  workshop card in `workshop.html`. Full record in `workshop.md`, *Presented results*.
+  - **Three tabs.** *Session patterns* is the real room: a statement (patterns seen, turns,
+    conversations), a bar per pattern with only the top three named, a ring giving the share of
+    turns the person steered, and a card per pattern that opens in place with each conversation's
+    fitted turn plot and a reading pane. *Levels of agency* and *Dimensions* are explainers, not a
+    reading of the room, worked from the real bike maintenance session (`bikeguide`).
+  - **Undecided:** whether the per-person results (facilitator's **Open results**, and the
+    participant's own page) move to this design, for the workshop and the tool. Options in
+    `workshop.md`, open item 0b.
+  - **Data:** new owner-only `GET /api/workshops/:id/room` (`workshops.roomFor`) returns finished
+    conversations with **no names**, freshly shuffled on every read, and patterns as the analysis
+    stored them. Nothing is re-detected in the browser. AI text is capped at 700 characters and its
+    Markdown is stripped for display.
+  - **Design exception:** an M3 tonal surface ramp from the forest hue, spring easing and a
+    display size, page-local in `workshop-room.css`. Recorded in `designsystem.md`, *Workshop
+    surfaces*. Fonts are the design system's.
+  - **Verified:** the page script ran against the real demo-room payload and an empty room in a
+    stub DOM (every pattern opened, a refresh with a pattern open, all four dimensions); access
+    checked signed out (302/401), as a non-owner (404) and as the owner (200). **Not screenshot-checked
+    in a browser yet. Not committed, not deployed.**
+
+- **2026-10-14 — Teacher workshops: a link that lets a room try Tau for five minutes, no
+  accounts.** Built for Emilie's demos. The point of the demo is to show how an ordinary AI chat
+  leads a conversation, so the chat itself is untouched (still unsteered). It ships together with
+  the AI Caved detector (`patterns.md`), which is what the room's reports show.
+  - **Grant:** `workshopLinks` on a teacher, platform admin only, audited, with a checkbox in the
+    admin teacher form. The page is `workshop.html`, reached from the account menu.
+  - **Records:** `server/workshops.js` creates a `workshops` doc (share token, seat cap, expiry), a
+    class marked `workshop`, and a one-draft assignment with the fixed phone-ban task and
+    `workshop.minutes: 5`.
+  - **Guest entry:** `/try/<token>` is public and serves `try.html`. `GET /api/try/:token` only
+    describes the workshop. The account is made by `POST …/start` behind the Start button, because
+    link unfurlers GET every URL they're shown. Guests are `identity: 'guest'` (see `pilotuser.md`),
+    signed in with `startSession()` (auth.js), and the cookie is capped at the workshop's expiry. A
+    returning browser reuses its seat.
+  - **Workspace:** Submit stays shut until five minutes after the session started, with the
+    countdown as the button's own label. There's no reflection (the server accepts
+    `reflectionType: 'none'` for workshops only), paste is the only input, the prompt opens
+    expanded, and the task shows in the empty chat so phones see it.
+  - **Isolation:** workshop classes are dropped inside `teacherScope`, so no dashboard rollup,
+    roster or access check sees them. `canReadSubmission` lets only the workshop's owner read a
+    guest's report. They're also kept out of three places that would otherwise have pulled them in:
+    the class default of `POST /api/assignments`, the Pilot-user grant's stamping loop, and the
+    improvement export. The admin overview filters them too.
+  - **Deletion:** `purgeExpiredWorkshops()` runs at boot and hourly, because Cloud Run scales to
+    zero. The link refuses entry from the moment of expiry, and "Delete now" purges immediately.
+  - **Verified:** 23-check end-to-end run against local Firestore covering the seat cap, unfurler
+    GET, returning guest, no Terms page, dashboard unchanged, owner-only report access, and purge
+    killing the session and the report. Screenshots taken at 1280 and 360. **Not deployed.**
+    Production needs a deploy and then the grant set on Emilie's account.
+  - **2026-10-15 — plot only.** A workshop draft is read for its turn plot alone: `runAnalysis`
+    sees `assignment.workshop` and writes `mode: 'plot'` with `classified`, `patterns` and
+    `aiMoments`, and no `reading`, `tau`, provenance or snapshot. Five minutes is too short for the
+    readings or a level to stand on, and that's about 60% fewer model calls per guest. There's no
+    writing step (Submit is "See my chart"), the report draws only the plot, and the room view shows
+    patterns in place of a level. Platform admins can run workshops without the grant. Guest admission
+    is a Firestore transaction (`col().transact`): with 20 simultaneous Starts against 15 seats, the
+    plain read-then-write gave duplicate seats, guests missing from the roster, and 20 admitted.
+    **A short session rarely trips a run threshold:** in the five-teacher demo room, the passive and
+    the most directive teacher both showed "No pattern detected".
+  - **Workshop chart and pattern guide (2026-10-15).** `renderTurnPlot(…, { workshop: true })` fits
+    turn columns to the card (19–64px), numbers every turn when there are 12 or fewer, and states its
+    headline as counts ("You led in 2 of your 3 turns…"). The live report passes no options and is
+    unchanged. Under the chart, `pattern-guide.js` explains all 14 patterns plus "AI backed off",
+    marking the ones found in this chat with their turns. Its copy is separate from the dashboard's
+    `PATTERN_META`, which is written for class triage, and its names are checked against
+    `patterns-core.js` labels.
+
 - **2026-08-30 — Student reflection at submission: built in `app/`, where it had only ever
   existed in `index.html`.**
   The consumer side had shipped long ago and was starving: the dashboard's reflection arc, the

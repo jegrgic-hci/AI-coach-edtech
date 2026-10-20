@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workshops — Tau Thinking</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<script src="theme.js"></script>
+<style>
+  /* Layout only — every piece of chrome is a components.css component
+     (designsystem.md, Placement: a page sheet lays components out). */
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--tau-bg); color: var(--tau-ink);
+    font-family: var(--tau-font-ui); font-size: var(--tau-text-md); line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .ws-page {
+    max-width: 56rem; margin: 0 auto; padding: var(--tau-s6) var(--tau-s4) 96px;
+    display: flex; flex-direction: column; gap: var(--tau-s5);
+  }
+  #workshopList { display: flex; flex-direction: column; gap: var(--tau-s5); }
+  .ws-intro { font-size: var(--tau-text-md); color: var(--tau-ink-soft); max-width: 40rem; margin: 0; }
+  .ws-form { display: flex; flex-direction: column; gap: var(--tau-s4); }
+  .ws-tasks { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: var(--tau-s2); }
+  .ws-tasks legend { padding: 0; margin-bottom: var(--tau-s2); font-size: var(--tau-text-sm); font-weight: 600; }
+  #wsTasks { display: flex; flex-direction: column; gap: var(--tau-s2); }
+  .ws-task-option {
+    display: flex; gap: var(--tau-s3); align-items: flex-start;
+    background: var(--tau-surface-2); border: 1px solid var(--tau-line); border-radius: var(--tau-r-md);
+    padding: var(--tau-s3) var(--tau-s4);
+  }
+  .ws-task-option:has(input:checked) { border-color: var(--tau-forest); box-shadow: inset 0 0 0 1px var(--tau-forest); }
+  .ws-task-option label { flex: 1; min-width: 0; display: flex; gap: var(--tau-s3); align-items: flex-start; cursor: pointer; }
+  .ws-task-option input { margin: 4px 0 0; accent-color: var(--tau-forest); flex: none; }
+  .ws-task-option strong { display: block; }
+  .ws-task-steps { display: block; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); white-space: pre-line; margin-top: var(--tau-s1); }
+  .ws-task-acts { display: flex; gap: var(--tau-s1); flex: none; }
+  .ws-task-editor {
+    display: flex; flex-direction: column; gap: var(--tau-s3);
+    border: 1px solid var(--tau-line-strong); border-radius: var(--tau-r-md); padding: var(--tau-s4);
+  }
+  .ws-task-editor textarea { min-height: 8rem; resize: vertical; }
+  .ws-acts { display: flex; gap: var(--tau-s3); flex-wrap: wrap; align-items: center; }
+  .ws-acts-end { justify-content: flex-end; }
+  .ws-door {
+    display: flex; gap: var(--tau-s5); align-items: center; flex-wrap: wrap;
+    background: var(--tau-surface-2); border-radius: var(--tau-r-md); padding: var(--tau-s4) var(--tau-s5);
+  }
+  .ws-door-code { display: flex; flex-direction: column; gap: 2px; }
+  .ws-door-code span { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink-soft); }
+  .ws-door-code strong { font-size: var(--tau-text-3xl); line-height: 1.1; letter-spacing: 0.06em;
+                         font-variant-numeric: tabular-nums; color: var(--tau-forest); }
+  .ws-door-how { flex: 1 1 16rem; display: flex; flex-direction: column; gap: var(--tau-s3); margin: 0; }
+  .ws-meta { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); margin: 0; }
+  .ws-finding { margin: 0; font-size: var(--tau-text-md); }
+  .ws-people { display: flex; flex-direction: column; }
+  .ws-people .list-row { cursor: default; padding-left: 0; padding-right: 0; border-top: 1px solid var(--tau-line); }
+  .ws-people .list-row-name { flex: 0 0 10rem; overflow-wrap: anywhere; }
+  .ws-people .ws-cell { flex: 1 1 0; min-width: 0; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+  .ws-people a.list-row-action { text-decoration: none; }
+  .ws-people a.list-row-action:hover { text-decoration: underline; }
+  .ws-empty { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); margin: 0; }
+  .ws-error { font-size: var(--tau-text-sm); color: var(--tau-attention); margin: 0; }
+
+  /* The join screen. Made for a projector across a room: the address and the
+     code are the only things on it that matter, so they are the largest. */
+  .join-screen {
+    min-height: 100vh; padding: var(--tau-s7) var(--tau-s6); position: relative;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: var(--tau-s7); text-align: center; background: var(--tau-surface);
+  }
+  .join-screen-back { position: absolute; top: var(--tau-s4); left: var(--tau-s5);
+                      font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink-soft); text-decoration: none; }
+  .join-screen-back:hover { text-decoration: underline; }
+  .join-screen-name { margin: 0; font-size: var(--tau-text-xl); font-weight: 700; color: var(--tau-forest); }
+  .join-screen h1 { margin: var(--tau-s2) 0 0; font-size: clamp(2.25rem, 5vw, 3.5rem); line-height: 1.1; letter-spacing: -0.02em; }
+  .join-screen-door { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: var(--tau-s6);
+                      width: 100%; max-width: 64rem; }
+  .join-screen-door > div { background: var(--tau-surface-2); border-radius: var(--tau-r-lg); padding: var(--tau-s6);
+                            display: flex; flex-direction: column; gap: var(--tau-s3); }
+  .join-screen-door span { font-size: var(--tau-text-xl); color: var(--tau-ink-soft); }
+  .join-screen-door strong { font-size: clamp(1.75rem, 3.6vw, 2.75rem); color: var(--tau-forest); overflow-wrap: anywhere; }
+  .join-screen-door strong.join-screen-code { font-size: clamp(3rem, 6vw, 4.5rem); line-height: 1; letter-spacing: 0.06em;
+                                              font-variant-numeric: tabular-nums; }
+  .join-screen-count { display: flex; align-items: baseline; gap: var(--tau-s3); margin: 0; font-size: var(--tau-text-xl); color: var(--tau-ink-soft); }
+  .join-screen-count strong { font-size: clamp(2.5rem, 4vw, 3.25rem); color: var(--tau-ink); }
+  body.presenting #tauNav, body.presenting .ws-page { display: none; }
+</style>
+</head>
+<body>
+
+<header class="tau-nav" id="tauNav">
+  <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="Tau" width="391" height="192">Thinking</span>
+  <h1 class="masthead-title">Workshops</h1>
+  <span class="tau-nav-fill"></span>
+  <div class="account-chip" id="accountChip"></div>
+</header>
+
+<main class="ws-page">
+  <p class="ws-intro">A workshop lets a room try Tau with no accounts. Each person joins with their name and a
+    code, has a short conversation with the AI on one task, then sees their results: the conversation mapped
+    turn by turn, the patterns in it, and where the AI backed off. You can open everyone’s results from here.
+    Everything the room writes is deleted a week after the workshop starts.</p>
+
+  <section class="card card-lg">
+    <h2 class="card-title">New workshop</h2>
+    <form class="ws-form" id="createForm" novalidate>
+      <div class="field">
+        <label for="wsName">Name</label>
+        <input id="wsName" required maxlength="80" placeholder="e.g. Staff PD — October 21">
+        <span class="field-help">Teachers see this when they join.</span>
+      </div>
+      <fieldset class="ws-tasks">
+        <legend>Task</legend>
+        <div id="wsTasks"></div>
+        <!-- A div, not a nested form: it sits inside the create form, and
+             forms can't nest. Enter in its fields is caught in the script so it
+             saves the task rather than starting the workshop. -->
+        <div class="ws-task-editor hidden" id="taskEditor" role="group" aria-labelledby="taskEditorTitle">
+          <strong id="taskEditorTitle">New task</strong>
+          <div class="field">
+            <label for="taskTitle">Question</label>
+            <input id="taskTitle" maxlength="200" placeholder="e.g. Should homework be banned?">
+            <span class="field-help">Shown at the top of the chat.</span>
+          </div>
+          <div class="field">
+            <label for="taskDescription">Instructions</label>
+            <textarea id="taskDescription" maxlength="2000"
+              placeholder="What should people do with the AI? e.g. Ask the AI for its view, pick a side, then push back on its answer."></textarea>
+          </div>
+          <p class="ws-error hidden" id="taskError" role="alert"></p>
+          <div class="ws-acts ws-acts-end">
+            <button type="button" class="btn btn-quiet btn-sm" id="taskCancel">Cancel</button>
+            <button type="button" class="btn btn-primary btn-sm" id="taskSave">Save task</button>
+          </div>
+        </div>
+        <div class="ws-acts"><button type="button" class="btn btn-quiet btn-sm" id="taskAdd">Add a task</button></div>
+      </fieldset>
+      <p class="ws-error hidden" id="createError" role="alert"></p>
+      <div class="ws-acts ws-acts-end">
+        <button type="submit" class="btn btn-primary" id="createBtn">Start workshop</button>
+      </div>
+    </form>
+  </section>
+
+  <div id="workshopList" aria-live="polite"></div>
+</main>
+
+<section class="join-screen hidden" id="joinScreen" aria-live="polite">
+  <a class="join-screen-back" href="workshop.html">Back to workshops</a>
+  <div>
+    <p class="join-screen-name" id="jsName"></p>
+    <h1>Join the workshop</h1>
+  </div>
+  <div class="join-screen-door">
+    <div><span>Go to</span><strong id="jsAddress"></strong></div>
+    <div><span>Enter your name and the code</span><strong class="join-screen-code" id="jsCode"></strong></div>
+  </div>
+  <p class="join-screen-count"><strong id="jsCount">0</strong><span id="jsCountLabel">people have joined</span></p>
+</section>
+
+<!-- Irreversible, so the shared confirm dialog, naming every consequence. -->
+<div class="scrim hidden" id="deleteModal">
+  <div class="confirm" role="dialog" aria-modal="true" aria-labelledby="deleteTitle">
+    <h4 id="deleteTitle">Delete this workshop now?</h4>
+    <ul>
+      <li>The code stops working.</li>
+      <li id="deleteCount"></li>
+      <li>This cannot be undone.</li>
+    </ul>
+    <div class="confirm-acts">
+      <button type="button" class="btn btn-quiet" id="deleteCancel">Cancel</button>
+      <button type="button" class="btn btn-danger" id="deleteConfirm">Delete workshop</button>
+    </div>
+  </div>
+</div>
+
+<div class="scrim hidden" id="taskDeleteModal">
+  <div class="confirm" role="dialog" aria-modal="true" aria-labelledby="taskDeleteTitle">
+    <h4 id="taskDeleteTitle">Delete this task?</h4>
+    <ul>
+      <li>It’s removed from your task list.</li>
+      <li>Workshops that already use it keep their copy.</li>
+    </ul>
+    <div class="confirm-acts">
+      <button type="button" class="btn btn-quiet" id="taskDeleteCancel">Cancel</button>
+      <button type="button" class="btn btn-danger" id="taskDeleteConfirm">Delete task</button>
+    </div>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var data = null;
+  var pendingDelete = null;
+  var presenting = new URLSearchParams(location.search).get('show');
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  // The address people type, as this server is reached — tauthinking.com in
+  // production, localhost while testing — so the screen never shows a door
+  // that isn't this one.
+  var JOIN_ADDRESS = location.host + '/join';
+  function spaced(code) { return code ? code.slice(0, 3) + ' ' + code.slice(3) : ''; }
+  function day(iso) {
+    return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+
+  // The patterns the turn plot names, as names only. A workshop is never read
+  // for a level (server/analysis.js), so there is none to show here.
+  function patternsText(patterns) {
+    return patterns.length
+      ? patterns.map(function (p) { return esc(p.label); }).join(' · ')
+      : 'No pattern detected';
+  }
+
+  var STATUS_LINE = {
+    open: function (w, n) { return 'Open · ' + n + ' joined · deleted ' + day(w.expiresAt); },
+    full: function (w, n) { return 'Full · ' + n + ' joined · deleted ' + day(w.expiresAt); },
+    closed: function (w, n) { return 'Ended · ' + n + ' took part · deleted ' + day(w.expiresAt); },
+    expired: function () { return 'Ended · being deleted'; }
+  };
+
+  // The room-level finding. Per-person denominators only: while people are
+  // still working, a composition of the room's levels would be dominated by who
+  // has not finished (designsystem.md: on an incomplete cohort, withhold what
+  // has a per-class denominator). "How many the AI backed off for" is counted
+  // over the people who disputed a claim, since nobody else could have seen it.
+  function findingHTML(people) {
+    var read = people.filter(function (p) { return p.status === 'complete'; });
+    if (!read.length) {
+      return people.length ? '<p class="ws-finding">Results appear here as people end their sessions.</p>' : '';
+    }
+    var disputed = read.filter(function (p) { return p.claimPushbacks > 0; });
+    var caved = disputed.filter(function (p) { return p.aiCaved > 0; });
+    var lead = disputed.length
+      ? '<strong>The AI backed off for ' + caved.length + ' of the ' + disputed.length + ' ' +
+        (disputed.length === 1 ? 'person' : 'people') + ' who disputed one of its claims.</strong> '
+      : '<strong>Nobody has disputed one of the AI’s claims yet.</strong> ';
+    return '<p class="ws-finding">' + lead + read.length + ' of ' + people.length +
+      ' results are ready.</p>';
+  }
+
+  function personHTML(p) {
+    var where = p.status === 'complete' ? patternsText(p.patterns || [])
+      : p.status === 'reading' ? 'Being analyzed'
+      : p.status === 'error' ? 'Analysis failed'
+      : 'Still in their session';
+    var ai = p.status !== 'complete' ? ''
+      : p.aiCaved ? 'AI backed off ' + (p.aiCaved === 1 ? 'once' : p.aiCaved + ' times')
+      : p.aiUpdated ? 'AI changed its answer when given a reason'
+      : p.claimPushbacks ? 'AI held its position'
+      : 'Didn’t dispute a claim';
+    var open = p.submissionId && p.status !== 'working'
+      ? '<a class="list-row-action" href="/report.html?id=' + encodeURIComponent(p.submissionId) +
+        '" target="_blank" rel="noopener">Open results</a>'
+      : '';
+    return '<div class="list-row">' +
+      '<span class="list-row-name">' + esc(p.name) + '</span>' +
+      '<span class="ws-cell">' + where + '</span>' +
+      '<span class="ws-cell">' + ai + '</span>' +
+      open + '</div>';
+  }
+
+  function workshopHTML(w) {
+    var live = w.status === 'open' || w.status === 'full';
+    return '<section class="card card-lg" data-id="' + esc(w.id) + '">' +
+      '<h2 class="card-title">' + esc(w.name) + '</h2>' +
+      '<p class="ws-meta">' + STATUS_LINE[w.status](w, w.people.length) + '</p>' +
+      (live
+        ? '<div class="ws-door">' +
+            '<div class="ws-door-code"><span>Workshop code</span><strong>' + esc(spaced(w.code)) + '</strong></div>' +
+            '<p class="ws-door-how">Teachers join at ' + esc(JOIN_ADDRESS) + ' with their name and this code.' +
+              '<span class="ws-acts"><a class="btn btn-primary btn-sm" href="?show=' + encodeURIComponent(w.id) + '">Show join screen</a></span></p>' +
+          '</div>'
+        : '') +
+      findingHTML(w.people) +
+      (w.people.length
+        ? '<div class="ws-people">' + w.people.map(personHTML).join('') + '</div>'
+        : '<p class="ws-empty">Nobody has joined yet. Names appear here as people join.</p>') +
+      '<div class="ws-acts ws-acts-end">' +
+        // The room's results for the projector: no names, shuffled (workshop-room.html).
+        (w.status !== 'expired' ? '<a class="btn btn-primary btn-sm" href="workshop-room.html?id=' + encodeURIComponent(w.id) + '">Present results</a>' : '') +
+        (live ? '<button type="button" class="btn btn-quiet btn-sm" data-act="close">End workshop</button>' : '') +
+        '<button type="button" class="btn btn-quiet btn-sm" data-act="delete">Delete now</button>' +
+      '</div></section>';
+  }
+
+  // The built-in task first, then the facilitator's own, which alone carry
+  // Edit and Delete. Keeps whichever was picked across a re-render.
+  function renderTasks(selectId) {
+    var current = document.querySelector('input[name="wsTask"]:checked');
+    var picked = selectId || (current && current.value);
+    if (!data.tasks.some(function (t) { return t.id === picked; })) picked = data.tasks[0].id;
+    $('wsTasks').innerHTML = data.tasks.map(function (t) {
+      return '<div class="ws-task-option" data-task="' + esc(t.id) + '">' +
+        '<label><input type="radio" name="wsTask" value="' + esc(t.id) + '"' + (t.id === picked ? ' checked' : '') + '>' +
+        '<span><strong>' + esc(t.title) + '</strong><span class="ws-task-steps">' + esc(t.description) + '</span></span></label>' +
+        (t.builtIn ? '' : '<span class="ws-task-acts">' +
+          '<button type="button" class="btn btn-quiet btn-sm" data-task-act="edit">Edit</button>' +
+          '<button type="button" class="btn btn-quiet btn-sm" data-task-act="delete">Delete</button></span>') +
+        '</div>';
+    }).join('');
+  }
+
+  var editingTaskId = null;
+  var pendingTaskDelete = null;
+
+  function openTaskEditor(task) {
+    editingTaskId = task ? task.id : null;
+    $('taskEditorTitle').textContent = task ? 'Edit task' : 'New task';
+    $('taskSave').textContent = task ? 'Save changes' : 'Save task';
+    $('taskTitle').value = task ? task.title : '';
+    $('taskDescription').value = task ? task.description : '';
+    $('taskError').classList.add('hidden');
+    $('taskEditor').classList.remove('hidden');
+    $('taskAdd').classList.add('hidden');
+    $('taskTitle').focus();
+  }
+  function closeTaskEditor() {
+    editingTaskId = null;
+    $('taskEditor').classList.add('hidden');
+    $('taskAdd').classList.remove('hidden');
+  }
+  async function reloadTasks(selectId) {
+    data = await api('/api/workshops');
+    renderTasks(selectId);
+  }
+
+  $('taskAdd').addEventListener('click', function () { openTaskEditor(null); });
+  $('taskCancel').addEventListener('click', closeTaskEditor);
+  $('taskEditor').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.target.id === 'taskTitle') { e.preventDefault(); $('taskDescription').focus(); }
+    if (e.key === 'Escape') closeTaskEditor();
+  });
+  $('taskSave').addEventListener('click', async function () {
+    var title = $('taskTitle').value.trim();
+    var description = $('taskDescription').value.trim();
+    if (!title || !description) {
+      $('taskError').textContent = !title ? 'Enter the question.' : 'Enter the instructions.';
+      $('taskError').classList.remove('hidden');
+      (!title ? $('taskTitle') : $('taskDescription')).focus();
+      return;
+    }
+    $('taskSave').disabled = true;
+    try {
+      var saved = await api(editingTaskId ? '/api/workshops/tasks/' + editingTaskId + '/edit' : '/api/workshops/tasks',
+        { method: 'POST', body: { title: title, description: description } });
+      closeTaskEditor();
+      await reloadTasks(saved.id);
+    } catch (err) {
+      $('taskError').textContent = err.message;
+      $('taskError').classList.remove('hidden');
+    } finally {
+      $('taskSave').disabled = false;
+    }
+  });
+
+  $('wsTasks').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-task-act]');
+    if (!btn) return;
+    var id = btn.closest('[data-task]').dataset.task;
+    var task = data.tasks.find(function (t) { return t.id === id; });
+    if (btn.dataset.taskAct === 'edit') {
+      openTaskEditor(task);
+    } else {
+      pendingTaskDelete = task;
+      $('taskDeleteModal').classList.remove('hidden');
+      $('taskDeleteCancel').focus();
+    }
+  });
+  $('taskDeleteCancel').addEventListener('click', function () {
+    pendingTaskDelete = null;
+    $('taskDeleteModal').classList.add('hidden');
+  });
+  $('taskDeleteConfirm').addEventListener('click', async function () {
+    if (!pendingTaskDelete) return;
+    $('taskDeleteConfirm').disabled = true;
+    try {
+      await api('/api/workshops/tasks/' + pendingTaskDelete.id + '/delete', { method: 'POST' });
+      if (editingTaskId === pendingTaskDelete.id) closeTaskEditor();
+    } finally {
+      $('taskDeleteConfirm').disabled = false;
+      $('taskDeleteModal').classList.add('hidden');
+      pendingTaskDelete = null;
+      await reloadTasks();
+    }
+  });
+
+  function renderJoinScreen() {
+    var w = data.workshops.find(function (x) { return x.id === presenting; });
+    if (!w) { location.replace('workshop.html'); return; }
+    document.title = w.name + ' — join';
+    $('jsName').textContent = 'Tau Thinking · ' + w.name;
+    $('jsAddress').textContent = JOIN_ADDRESS;
+    $('jsCode').textContent = spaced(w.code);
+    var n = w.people.length;
+    $('jsCount').textContent = n;
+    $('jsCountLabel').textContent = n === 1 ? 'person has joined' : 'people have joined';
+  }
+
+  function render() {
+    if (presenting) { renderJoinScreen(); return; }
+    $('workshopList').innerHTML = data.workshops.map(workshopHTML).join('');
+  }
+
+  async function load() {
+    data = await api('/api/workshops');
+    render();
+  }
+
+  $('workshopList').addEventListener('click', async function (e) {
+    var btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    var id = btn.closest('[data-id]').dataset.id;
+    var w = data.workshops.find(function (x) { return x.id === id; });
+    if (btn.dataset.act === 'close') {
+      await api('/api/workshops/' + id + '/close', { method: 'POST' });
+      await load();
+    } else if (btn.dataset.act === 'delete') {
+      pendingDelete = w;
+      var n = w.people.length;
+      $('deleteCount').textContent = n
+        ? n + (n === 1 ? ' person’s session and results are' : ' people’s sessions and results are') + ' deleted.'
+        : 'Nobody has joined, so no sessions are lost.';
+      $('deleteModal').classList.remove('hidden');
+      $('deleteCancel').focus();
+    }
+  });
+
+  $('deleteCancel').addEventListener('click', function () {
+    pendingDelete = null;
+    $('deleteModal').classList.add('hidden');
+  });
+  $('deleteConfirm').addEventListener('click', async function () {
+    if (!pendingDelete) return;
+    $('deleteConfirm').disabled = true;
+    try {
+      await api('/api/workshops/' + pendingDelete.id + '/delete', { method: 'POST' });
+    } finally {
+      $('deleteConfirm').disabled = false;
+      $('deleteModal').classList.add('hidden');
+      pendingDelete = null;
+      await load();
+    }
+  });
+
+  $('createForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var name = $('wsName').value.trim();
+    if (!name) {
+      $('createError').textContent = 'Give the workshop a name — teachers see it when they join.';
+      $('createError').classList.remove('hidden');
+      $('wsName').focus();
+      return;
+    }
+    var picked = document.querySelector('input[name="wsTask"]:checked');
+    $('createError').classList.add('hidden');
+    $('createBtn').disabled = true;
+    try {
+      var created = await api('/api/workshops', { method: 'POST', body: { name: name, taskId: picked ? picked.value : null } });
+      // Straight to the screen the room needs next: the address and the code.
+      location.href = '?show=' + encodeURIComponent(created.id);
+    } catch (err) {
+      $('createError').textContent = err.message;
+      $('createError').classList.remove('hidden');
+      $('createBtn').disabled = false;
+    }
+  });
+
+  if (presenting) {
+    document.body.classList.add('presenting');
+    $('joinScreen').classList.remove('hidden');
+  } else {
+    mountAccountChip($('accountChip')).catch(function () {});
+  }
+  load().then(function () { if (!presenting) renderTasks(); });
+  // The room is live while the workshop runs; a facilitator watching names and
+  // results arrive should not have to reload. Faster on the join screen, where
+  // the room watches the count. Paused while the tab is hidden.
+  setInterval(function () { if (!document.hidden) load().catch(function () {}); }, presenting ? 4000 : 10000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workshop results — Tau Thinking</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="workshop-room.css">
+</head>
+<body>
+<!-- The facilitator's presented results: what the room's conversations showed, and what the
+     levels of agency mean. Made for a projector. No names anywhere (workshop.md). -->
+<div class="page play" id="page">
+  <header>
+    <a class="back-link" href="workshop.html">← Workshops</a>
+    <div class="eyebrow">Workshop results</div>
+    <h1 id="roomName">&nbsp;</h1>
+    <p class="sub" id="status"></p>
+  </header>
+  <div class="tabs" role="tablist" aria-label="Workshop sections">
+    <button class="tab" role="tab" id="tab-room" aria-controls="view" aria-selected="true" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="16.5" cy="9" r="2.6"/><path d="M15.2 14.2c2.6-.4 4.8 1.2 5.3 4.3"/></svg>
+      Session patterns</button>
+    <button class="tab" role="tab" id="tab-levels" aria-controls="levels-panel" aria-selected="false" type="button" tabindex="-1">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 19.5h4v-4h4v-4h4v-4h5"/><path d="M3.5 19.5h17"/></svg>
+      Levels of agency</button>
+    <button class="tab" role="tab" id="tab-dims" aria-controls="dims-panel" aria-selected="false" type="button" tabindex="-1">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/></svg>
+      Dimensions</button>
+    <span class="tab-ind" aria-hidden="true"></span>
+  </div>
+  <main id="view" role="tabpanel" aria-labelledby="tab-room"></main>
+  <section id="levels-panel" role="tabpanel" aria-labelledby="tab-levels" hidden></section>
+  <section id="dims-panel" role="tabpanel" aria-labelledby="tab-dims" hidden></section>
+</div>
+
+<script src="api.js"></script>
+<script src="pattern-guide.js"></script>
+<script src="workshop-room.js"></script>
+</body>
+</html>

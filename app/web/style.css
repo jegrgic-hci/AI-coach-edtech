@@ -67,6 +67,12 @@ button:hover { border-color: var(--tau-forest); }
    card or here. The rail's own flex gap handles spacing, so no extra
    margin. */
 .ws-prompt { margin: 0; }
+/* A brief's line breaks are the author's structure — a numbered list of steps,
+   a workshop's task — and collapsing them ran three steps into one sentence. */
+#wsPrompt .tray-section-body { white-space: pre-line; }
+/* A workshop's task in the empty chat (app.js). Numbered steps, so read left
+   to right rather than centred like the one-line empty state it replaces. */
+.workshop-task .empty-sub { white-space: pre-line; text-align: left; max-width: 34rem; margin-inline: auto; }
 
 /* Sage, not white, since the rail moved onto --tau-shell (2026-08-22): white
    here is the same lightness step the chat pane takes, so this would tie with

@@ -181,7 +181,13 @@
     // The return leg. Offered only to teachers: a platform admin has no
     // teacher dashboard to go back to — every route behind it is role-gated —
     // so the link would be a 403 wearing a friendly label.
-    if (here('/admin.html') && me.role === 'teacher') {
+    if (me.workshopLinks && !here('/workshop.html')) {
+      out.push({
+        href: '/workshop.html', icon: '⧉', label: 'Workshops',
+        desc: 'Links that let a room try Tau for five minutes',
+      });
+    }
+    if ((here('/admin.html') || here('/workshop.html')) && me.role === 'teacher') {
       out.push({
         href: '/dashboard.html', icon: '←', label: 'Teacher dashboard',
         desc: 'Your classes, assignments, and students',
@@ -494,8 +500,13 @@
   // The page supplies the pane (with a .sheet-close in its header) and the
   // controls that open it; this adds the handle and the scrim, and gives it
   // the drawer's modal behaviour — inert behind, Escape, focus in and back.
-  function mountSheet({ sheet, openers = [] }) {
+  // `alwaysSheet` — a function, asked at the moment of opening — keeps the
+  // pane a sheet at expanded too. Only the workshop report passes it (its CSS
+  // half is `.sessions-as-sheet` in components.css §19b); without it the pane
+  // is a sheet below expanded and a standing pane above, as everywhere else.
+  function mountSheet({ sheet, openers = [], alwaysSheet = null }) {
     if (!sheet) return null;
+    const isSheet = () => SIZE.belowExpanded.matches || (alwaysSheet ? alwaysSheet() : false);
     const handle = el('div', 'sheet-handle');
     handle.setAttribute('aria-hidden', 'true');
     sheet.prepend(handle);
@@ -509,7 +520,7 @@
     const s = {
       get isOpen() { return sheet.classList.contains('open'); },
       open(from) {
-        if (!SIZE.belowExpanded.matches || s.isOpen) return;
+        if (!isSheet() || s.isOpen) return;
         returnTo = from || document.activeElement;
         sheet.classList.add('open');
         scrim.hidden = false;
@@ -530,7 +541,7 @@
     sheet.addEventListener('keydown', (e) => { if (e.key === 'Escape') s.close(); });
     // Growing into expanded puts the pane on screen beside the main one; a
     // modal left open over that would be a sheet over its own content.
-    SIZE.belowExpanded.addEventListener('change', () => { if (!SIZE.belowExpanded.matches) s.close(); });
+    SIZE.belowExpanded.addEventListener('change', () => { if (!isSheet()) s.close(); });
     return s;
   }
 

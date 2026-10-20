@@ -391,6 +391,7 @@ function renderTeachers() {
         ${plural(t.classCount, 'class', 'classes')} · ${plural(t.studentCount, 'student', 'students')}<br>
         ${plural(t.assignmentCount, 'assignment', 'assignments')}
         ${t.codeRoster ? '<br>Pilot user' : ''}
+        ${t.workshopLinks ? '<br>Workshop links' : ''}
         ${t.namedStudentCount
           // A chip, and it earns one on both halves of the salience test
           // (designsystem.md): actionable — a pilot account holding identified
@@ -765,6 +766,8 @@ function openTeacherModal(teacher) {
   $('schoolAdminField').classList.toggle('hidden', !data.viewer?.platformAdmin);
   $('teacherImprovementEligible').checked = teacher ? teacher.improvementEligible === true : false;
   $('improvementEligibleField').classList.toggle('hidden', !data.viewer?.platformAdmin);
+  $('teacherWorkshopLinks').checked = teacher ? teacher.workshopLinks === true : false;
+  $('workshopLinksField').classList.toggle('hidden', !data.viewer?.platformAdmin);
   $('teacherCodeRoster').checked = teacher ? teacher.codeRoster === true : false;
   // Not `platformAdmin` like the two above: this grant can be delegated to a
   // school administrator running pilot onboarding, so the server answers who
@@ -847,16 +850,17 @@ $('teacherSave').onclick = async () => {
   const schoolAdmin = $('teacherSchoolAdmin').checked;
   const improvementEligible = $('teacherImprovementEligible').checked;
   const codeRoster = $('teacherCodeRoster').checked;
+  const workshopLinks = $('teacherWorkshopLinks').checked;
   const err = $('teacherError');
   err.classList.add('hidden');
   $('teacherSave').disabled = true;
   try {
     if (editingId) {
-      await api(`/api/admin/teachers/${editingId}/edit`, { method: 'POST', body: { firstName, lastName, email, schoolAdmin, improvementEligible, codeRoster } });
+      await api(`/api/admin/teachers/${editingId}/edit`, { method: 'POST', body: { firstName, lastName, email, schoolAdmin, improvementEligible, codeRoster, workshopLinks } });
       $('teacherModal').classList.add('hidden');
       await reload();
     } else {
-      const created = await api('/api/admin/teachers', { method: 'POST', body: { firstName, lastName, email, schoolAdmin, improvementEligible, codeRoster } });
+      const created = await api('/api/admin/teachers', { method: 'POST', body: { firstName, lastName, email, schoolAdmin, improvementEligible, codeRoster, workshopLinks } });
       $('teacherModal').classList.add('hidden');
       await reload();
       showSendResult('Invite sent', created.displayName, email, created.invite);

@@ -205,6 +205,24 @@ async function login(email, password, clientIp = null) {
   return { user, token };
 }
 
+// A session for an account that holds no credential at all — a workshop guest
+// (workshops.js). The cookie is the only way back into such an account, which
+// is what makes it disposable: there is nothing to sign in WITH, so nothing to
+// leak, guess or reset. Capped at the guest's own expiry so the cookie can
+// never outlive the data it opens.
+async function startSession(user, expiresAt = null) {
+  const token = crypto.randomBytes(32).toString('hex');
+  const cap = Date.now() + SESSION_DAYS * 86400000;
+  const until = expiresAt ? Math.min(cap, new Date(expiresAt).getTime()) : cap;
+  await col('authSessions').add({
+    userId: user.id,
+    tokenHash: hashToken(token),
+    createdAt: new Date().toISOString(),
+    expiresAt: new Date(until).toISOString(),
+  });
+  return { token, maxAge: Math.max(0, Math.floor((until - Date.now()) / 1000)) };
+}
+
 async function logout(token) {
   // Deleted, not expired in place: a revoked session should stop existing
   // rather than linger as a row someone could un-expire.
@@ -229,8 +247,7 @@ async function authenticate(req) {
 // Secure is conditional because localhost is plain HTTP — setting it
 // unconditionally would silently break dev sign-in, and hard-coding it off
 // would silently ship a cookie that travels in the clear.
-function sessionCookie(token) {
-  const maxAge = SESSION_DAYS * 86400;
+function sessionCookie(token, maxAge = SESSION_DAYS * 86400) {
   return `${COOKIE}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}${SECURE_COOKIES ? '; Secure' : ''}`;
 }
 
@@ -407,6 +424,7 @@ module.exports = {
   isSuspended,
   login,
   logout,
+  startSession,
   setPassword,
   passwordFields,
   newTempPassword,

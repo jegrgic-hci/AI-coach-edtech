@@ -33,7 +33,7 @@ Everything is behind a login. `npm run start:demo` creates a demo class — **pa
 | `jamie@school.dev` | student — American Literature, open assignment complete (all 3 drafts scored) |
 | `elena@school.dev` | student — American Literature, on the open assignment's final draft (in progress) |
 | `marcus@school.dev` | student — American Literature, integrity flags, open assignment complete |
-| `teacher@school.dev` | teacher — dashboard, roster, notes across all 3 classes. **No admin grant** — see below |
+| `teacher@school.dev` | teacher — dashboard, roster, notes across all 3 classes. **No admin grant** — see below. Has **workshop links**: account menu → Workshops starts a workshop with a six-digit code; join it at `/join` in a private window |
 | `newteacher@school.dev` | teacher — **nothing set up**: the new-teacher Home (set-up cards + Learn the tool). Named rosters |
 | `pilotteacher@school.dev` | teacher — the same empty Home, but a **Pilot user** (`codeRoster`), so Add students describes and opens the anonymous count-and-theme form |
 

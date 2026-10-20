@@ -43,6 +43,8 @@ every tier is one of exactly two things: **agency (level + trend)** or **a dimen
 — there is no total, no mean and nothing out of 20 in the measurement. The **student view is the one
 surface not yet rebuilt**, so the retired totals it still emits are stale code, never the model.
 
+**For any work on workshops — `/try/` links, `workshop.html`, guest accounts, plot-only reports, the pattern guide — read `workshop.md` first.** It records what's built, the isolation rules that keep guests out of real data, and what's open. Not committed or deployed as of 2026-10-15.
+
 **For any work on `app/web/dashboard.html` (the teacher triage surface), also read `teacher-dashboard-design.md`** — IA, the flag/signal system, and a session log scoped to that page. Covers `dashboard.html`, which is the whole teacher surface — `teacher.html` was deleted 2026-09-29.
 
 Run it: `npm install` once, then `npm run start:demo` → http://localhost:8787. **Use `start:demo`, not `start`** — the demo seed is opt-in (`SEED_DEMO=1`) as of 2026-08-08, and plain `npm start` seeds nothing because that is what production runs. Everything is behind a login; test accounts are in `app/README.md`. **Requires GCP credentials** (`gcloud auth application-default login`) — the app runs on Vertex and Firestore, not on local files. `app/gcp-setup.md` is the setup walkthrough.

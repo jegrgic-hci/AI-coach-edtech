@@ -2854,6 +2854,41 @@ min-height: 24px;
   .tpl-supporting > .pane-side { height: 90dvh; }
 }
 
+/* A body class, set only by a workshop report (report-boot.js): the side pane
+   stays a sheet at expanded too, so the chart and the pattern guide have the
+   whole width and the transcript is one button away. The declarations repeat
+   the below-expanded block above rather than share it, because a media query
+   cannot be switched on by a class. Pair with mountSheet({ alwaysSheet }). */
+@media (min-width: 840px) {
+  .sessions-as-sheet .tpl-supporting { grid-template-columns: minmax(0, 1fr); }
+  .sessions-as-sheet .tpl-supporting > .pane-side {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 91;
+    margin: 0 auto; max-width: 640px; height: 78dvh;
+    border-radius: var(--tau-r-dialog) var(--tau-r-dialog) 0 0;
+    box-shadow: var(--tau-shadow-lift);
+    visibility: hidden;
+    transform: translateY(100%);
+    transition: transform var(--tau-dur-medium) var(--tau-ease-accelerate),
+                visibility 0s linear var(--tau-dur-medium);
+  }
+  .sessions-as-sheet .tpl-supporting > .pane-side.open {
+    visibility: visible;
+    transform: none;
+    transition: transform var(--tau-dur-medium) var(--tau-ease-decelerate);
+  }
+  .sessions-as-sheet .sheet-toggle:not(.hidden) { display: flex !important; }
+  .sessions-as-sheet .sheet-handle {
+    display: block; flex-shrink: 0;
+    width: 32px; height: 4px; margin: var(--tau-s3) auto var(--tau-s1);
+    border-radius: 2px; background: var(--tau-line-strong);
+  }
+  .sessions-as-sheet .sheet-close {
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    width: var(--tau-target); height: var(--tau-target);
+    border: none; border-radius: var(--tau-r-pill); background: none; color: var(--tau-ink); cursor: pointer;
+  }
+}
+
 /* The modal layer under a sheet. Same construction as .rail-scrim. */
 .tau-scrim { display: none; }
 .tau-scrim:not([hidden]) {

@@ -26,7 +26,7 @@
 (function (root, factory) {
   var api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
-  else { root.getAILabelBefore = api.getAILabelBefore; root.detectPatterns = api.detectPatterns; }
+  else { root.getAILabelBefore = api.getAILabelBefore; root.detectPatterns = api.detectPatterns; root.detectAIMoments = api.detectAIMoments; }
 })(typeof self !== 'undefined' ? self : this, function () {
 
 function getAILabelBefore(studentIdx, classified) {
@@ -218,5 +218,31 @@ function detectPatterns(classified) {
   return patterns;
 }
 
-return { getAILabelBefore: getAILabelBefore, detectPatterns: detectPatterns };
+// ── AI-side moments ─────────────────────────────────────────────────────────
+//
+// The first detectors whose subject is the AI, so they are returned apart from
+// detectPatterns and stored apart (`aiMoments`). They must never count toward
+// the student's agency, in either direction: the pushback turn they key on is
+// already the student's Rejection/Challenge, and patterns.md's shared-evidence
+// rule forbids one event incrementing two measures.
+//
+// AI Caved: the student disputed a CLAIM, gave no reason, and the AI's reply
+// softened or dropped it. Pushback on a choice never qualifies — complying with
+// "make it shorter" is following instructions. Reads `turn.pushback`, which
+// tracePushback (analysis.js) writes; analyses stored before it carry none.
+// Provisional until its hits have been read against real sessions.
+function detectAIMoments(classified) {
+  const student = classified.filter(t => t.role === "student");
+  const moments = [];
+  student.forEach(function (t, i) {
+    const p = t.pushback;
+    if (p && p.target === "claim" && p.reason === false &&
+        (p.aiResponse === "softened" || p.aiResponse === "dropped")) {
+      moments.push({ start: i, end: i, id: "ai-caved", label: "AI Caved", degree: p.aiResponse, quote: p.aiQuote || "" });
+    }
+  });
+  return moments;
+}
+
+return { getAILabelBefore: getAILabelBefore, detectPatterns: detectPatterns, detectAIMoments: detectAIMoments };
 });

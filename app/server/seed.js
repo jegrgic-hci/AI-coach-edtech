@@ -32,7 +32,7 @@ const ts = (daysAgo) => new Date(Date.now() - daysAgo * DAY).toISOString();
 // days ago, tsOffset(3) is 3 days from now.
 const tsOffset = (days) => new Date(Date.now() + days * DAY).toISOString();
 
-async function upsertUser({ email, displayName, role, schoolAdmin = false, codeRoster = false, handle = null }) {
+async function upsertUser({ email, displayName, role, schoolAdmin = false, codeRoster = false, handle = null, workshopLinks = false }) {
   let user = (await col('users').list({ email }))[0];
   if (!user) {
     user = await col('users').add({
@@ -49,6 +49,9 @@ async function upsertUser({ email, displayName, role, schoolAdmin = false, codeR
   // old `admin` role would simply stop being able to sign in anywhere useful.
   if (user.role !== role || user.schoolAdmin !== schoolAdmin) {
     user = await col('users').update(user.id, { role, schoolAdmin });
+  }
+  if ((user.workshopLinks === true) !== workshopLinks) {
+    user = await col('users').update(user.id, { workshopLinks });
   }
   if (!user.passwordHash) user = await setPassword(user, DEV_PASSWORD);
   // Re-applied every seed, like the role above. A seeded account never passes
@@ -347,7 +350,9 @@ async function seed() {
   // shape is worth exercising against a real admin account, not a shared one.
   // The grant costs the demo only the Administration link in the account chip
   // (`canAdmin`, index.js) — nothing about teaching, classes or assignments.
-  const teacher = await upsertUser({ email: TEACHER_EMAIL, displayName: 'Ms. Karim', role: 'teacher', schoolAdmin: false });
+  // workshopLinks so the demo can show workshop.html; the grant is otherwise
+  // platform-admin-only, and the demo seed deliberately has no platform admin.
+  const teacher = await upsertUser({ email: TEACHER_EMAIL, displayName: 'Ms. Karim', role: 'teacher', schoolAdmin: false, workshopLinks: true });
   // The platform-admin account `admin@school.dev` (Dana Okoye) was seeded here
   // and is deleted. `admin.html` is reached with a real platform-admin account;
   // `bootstrap-admin.js` creates the first one on an empty store.

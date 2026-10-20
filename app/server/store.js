@@ -247,6 +247,23 @@ function col(name) {
       return { ...snap.data(), ...patch };
     },
 
+    // Read-modify-write as one transaction: `fn(current)` returns the patch
+    // (or null to write nothing), and Firestore retries it if the document
+    // changed underneath. For counters and lists that many requests touch at
+    // once — a room of people pressing Start on a workshop link together. The
+    // plain get-then-update above loses writes there: two readers see the
+    // same count and both write count + 1.
+    async transact(id, fn) {
+      const docRef = ref().doc(id);
+      return firestore().runTransaction(async (tx) => {
+        const snap = await tx.get(docRef);
+        if (!snap.exists) throw new Error(`${name}/${id} not found`);
+        const patch = fn(snap.data());
+        if (patch) tx.update(docRef, patch);
+        return { ...snap.data(), ...(patch || {}) };
+      });
+    },
+
     // filter: an object of equality constraints (a real query), a predicate
     // function (full collection scan — see the header), or omitted (all docs).
     async list(filter) {

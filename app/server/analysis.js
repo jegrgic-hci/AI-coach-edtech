@@ -10,7 +10,7 @@ const { complete } = require('./llm');
 // Lives under web/ because the student report loads it as a plain <script>
 // and a browser cannot require a server module. Pure, no I/O — see the header
 // there for why there is exactly one copy of it.
-const { detectPatterns } = require('../web/patterns-core');
+const { detectPatterns, detectAIMoments } = require('../web/patterns-core');
 
 const CLASSIFY_CHUNK_SIZE = 20;
 const AI_TURN_MAX_CHARS = 400;
@@ -306,6 +306,149 @@ async function traceProvenance(classified, essayText, meta) {
     }));
   const flags = (parsed.flags || []).filter((f) => f.flag);
   return { concepts, flags };
+}
+
+// ---------- pushback: what it targeted, and what the AI did next ----------
+
+// Sycophancy is only legible against the student's half of the same exchange.
+// "Pushback" is two different acts — disputing whether something is TRUE, and
+// overruling a CHOICE (style, focus, format) — and only the first one owes a
+// reason or makes the AI's retreat mean anything. An AI that shortens a draft
+// because it was told to is following instructions.
+//
+// TWO CALLS, run together, because the two questions need different reading.
+// What the pushback targeted and what the AI did next are about the exchange,
+// so that call sees both AI turns. Whether the student gave a reason is about
+// the student's words alone, and asked inside the exchange it was got wrong:
+// under a long AI turn the model skimmed past "But the office phone covers
+// that" and called it bare disagreement — three runs out of three, with that
+// exact sentence named in the prompt as an example of a reason. Asked of the
+// student's turn with nothing else on the page, there is nothing to skim past.
+//
+// Candidates come from labels the classifier already assigns, so this costs
+// nothing when a student never pushed back.
+const PUSHBACK_LABELS = new Set(['rejection', 'challenge']);
+// Chat answers run long and in markdown; the claim a student disputes can sit
+// well down the AI's turn, and a call that cannot see it misreads the dispute.
+const PUSHBACK_AI_MAX_CHARS = 3000;
+const PUSHBACK_TARGETS = new Set(['claim', 'choice']);
+const AI_RESPONSES = new Set(['kept', 'softened', 'dropped']);
+
+const PUSHBACK_PROMPT = (listed) => `Each item below is one exchange from a student's AI-assisted writing session: what the AI said, the student's pushback, and what the AI replied.
+
+For each item, answer two questions about the ACTS in the exchange. Do NOT judge who is right — whether the AI's claim was true is not your question.
+
+1. "target" — what did the student push back on?
+   - "claim": whether something the AI said is true, accurate, sound or well-supported. Includes asking "are you sure?", "how do you know?", or flatly disagreeing with a statement.
+   - "choice": a direction, style, format, tone, length, focus or choice of example — something that is the student's call to make.
+
+2. "aiResponse" — what did the AI's reply do with the position it took before the pushback?
+   - "kept": it maintained the position. Adding explanation, evidence or nuance while keeping it is still "kept".
+   - "softened": it retreated part of the way — conceded, hedged or qualified in a way that weakens what it first said.
+   - "dropped": it abandoned or reversed the position, or agreed it was wrong.
+   For a "choice" target, report what it did with its earlier choice the same way.
+
+Also return "aiQuote": the shortest verbatim phrase from the AI's REPLY that shows its response (under 25 words).
+
+Exchanges:
+${listed}
+
+Return ONLY a JSON array: [{"item": 0, "target": "claim", "aiResponse": "dropped", "aiQuote": "..."}, ...]`;
+
+const REASON_PROMPT = (listed) => `Each item below is a message in which someone disagrees with, or questions, something they were told.
+
+For each one, copy out the words that say WHY they disagree — exactly as written — or give null if there are none.
+
+A reason can be short and informal. Any statement of why counts: a counter-fact, a counter-example, a consequence, or pointing at something else that answers the point.
+- "Your point about emergencies is the one parents raise. But the office phone covers that." → "But the office phone covers that"
+- "Not true, my students use them to translate." → "my students use them to translate"
+- "I'm not convinced — the 2024 review found no effect on grades." → "the 2024 review found no effect on grades"
+Bare disagreement or a bare question has no reason → null:
+- "I don't think that's right." / "No, I really disagree." / "Are you sure?" / "How do you know?"
+The disagreement itself is never the reason. Whether the reason is any good is not your question.
+
+Messages:
+${listed}
+
+Return ONLY a JSON array: [{"item": 0, "reasonQuote": "..." or null}, ...]`;
+
+// A reason is the student's own words, so a quote is only accepted if it is
+// really in their turn — that check is what stops an invented one counting.
+function normalizeForQuote(s) {
+  return String(s || '').toLowerCase().replace(/[’']/g, "'").replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function quoteIsIn(quote, text) {
+  const q = normalizeForQuote(quote);
+  return q.split(' ').length >= 2 && normalizeForQuote(text).includes(q);
+}
+
+const clip = (text, max) => text.slice(0, max) + (text.length > max ? '…' : '');
+
+// Mutates `classified`: each candidate student turn gains `pushback`. Indexes
+// are positions in `classified`, and the AI turns either side must sit in the
+// same conversation — a reply in the next conversation is not a reply.
+async function tracePushback(classified, meta) {
+  const candidates = [];
+  classified.forEach((t, i) => {
+    if (t.role !== 'student' || !PUSHBACK_LABELS.has(t.label)) return;
+    let before = null;
+    let after = null;
+    for (let j = i - 1; j >= 0 && classified[j].conversationId === t.conversationId; j--) {
+      if (classified[j].role === 'ai') { before = classified[j]; break; }
+    }
+    for (let j = i + 1; j < classified.length && classified[j].conversationId === t.conversationId; j++) {
+      if (classified[j].role === 'ai') { after = classified[j]; break; }
+    }
+    if (before && after) candidates.push({ turn: t, before, after });
+  });
+  if (!candidates.length) return;
+
+  const exchanges = candidates
+    .map(({ turn, before, after }, k) => [
+      `[${k}]`,
+      `AI SAID: ${clip(before.text, PUSHBACK_AI_MAX_CHARS)}`,
+      `STUDENT: ${turn.text}`,
+      `AI REPLIED: ${clip(after.text, PUSHBACK_AI_MAX_CHARS)}`,
+    ].join('\n'))
+    .join('\n\n');
+  const messages = candidates.map(({ turn }, k) => `[${k}] ${turn.text}`).join('\n\n');
+
+  const [rawExchange, rawReasons] = await Promise.all([
+    complete({
+      messages: [{ role: 'user', content: PUSHBACK_PROMPT(exchanges) }],
+      temperature: 0.1, json: true,
+      meta: { ...meta, purpose: 'pushback' },
+      maxTokens: 200 + candidates.length * 80,
+    }),
+    complete({
+      messages: [{ role: 'user', content: REASON_PROMPT(messages) }],
+      temperature: 0.1, json: true,
+      meta: { ...meta, purpose: 'pushback-reason' },
+      maxTokens: 100 + candidates.length * 60,
+    }),
+  ]);
+
+  const reasonQuote = {};
+  for (const item of extractJSON(rawReasons, 'array')) {
+    const c = candidates[item?.item];
+    if (c && typeof item.reasonQuote === 'string' && quoteIsIn(item.reasonQuote, c.turn.text)) {
+      reasonQuote[item.item] = item.reasonQuote.trim();
+    }
+  }
+
+  for (const item of extractJSON(rawExchange, 'array')) {
+    const c = candidates[item?.item];
+    if (!c || !PUSHBACK_TARGETS.has(item.target) || !AI_RESPONSES.has(item.aiResponse)) continue;
+    const isClaim = item.target === 'claim';
+    c.turn.pushback = {
+      target: item.target,
+      reason: isClaim ? item.item in reasonQuote : null,
+      // Kept so a reader can check the call: the words that counted as a reason.
+      reasonQuote: isClaim ? reasonQuote[item.item] || null : null,
+      aiResponse: item.aiResponse,
+      aiQuote: typeof item.aiQuote === 'string' ? item.aiQuote.trim() : '',
+    };
+  }
 }
 
 // ---------- TAU scoring (ported verbatim from CTA scoreTAU) ----------
@@ -675,12 +818,37 @@ async function runAnalysis(submissionId) {
       ? await col('assignments').get(submission.assignmentId).catch(() => null)
       : null;
 
+    // A WORKSHOP IS READ FOR ITS TURN PLOT ALONE. Five minutes is too short a
+    // session for the four readings or a level to stand on — they would be
+    // read off a handful of turns and presented with the same authority as a
+    // term's work — and there is no draft for provenance to trace. What a short
+    // session does support is the sequence: the per-turn labels, the patterns,
+    // and the AI's own moves. `mode: 'plot'` tells the report to draw that and
+    // nothing else; no reading, tau or snapshot is written, so nothing can
+    // render one by accident.
+    if (assignment && assignment.workshop) {
+      await tracePushback(classified, meta).catch((err) => console.error('pushback trace failed:', err.message));
+      await col('analyses').update(analysis.id, {
+        status: 'complete',
+        version: ANALYSIS_VERSION,
+        mode: 'plot',
+        classified,
+        patterns: detectPatterns(classified),
+        aiMoments: detectAIMoments(classified),
+        completedAt: new Date().toISOString(),
+      });
+      return analysis.id;
+    }
+
     // The reading and the provenance trace are independent of each other and
     // both take the whole transcript — run them together rather than paying
     // for two round trips in sequence.
+    // The pushback read is new and provisional (patterns.md, "AI Caved"), so
+    // its failure costs the report its markers, never the whole analysis.
     const [{ concepts, flags }, reading] = await Promise.all([
       traceProvenance(classified, submission.essayText, meta),
       readSession({ classified, essayText: submission.essayText, assignment }, meta),
+      tracePushback(classified, meta).catch((err) => console.error('pushback trace failed:', err.message)),
     ]);
     const tau = scoreTAU(classified, concepts);
 
@@ -689,6 +857,7 @@ async function runAnalysis(submissionId) {
     // students without shipping every transcript to the browser, which is
     // what kept these patterns student-only until now.
     const patterns = detectPatterns(classified);
+    const aiMoments = detectAIMoments(classified);
 
     const snapshot = await generateSnapshot({ classified, tau, meta });
 
@@ -713,6 +882,9 @@ async function runAnalysis(submissionId) {
       // turn modal) display it.
       classified,
       patterns,
+      // Kept apart from `patterns` on purpose: everything that reads that
+      // array treats it as the student's agency, and these are the AI's acts.
+      aiMoments,
       eventCounts,
       completedAt: new Date().toISOString(),
     });
@@ -732,7 +904,7 @@ async function runAnalysis(submissionId) {
 // script that generates the seed's coach labels — the seed itself never calls
 // an LLM, so the labels are produced once and committed as literals.
 module.exports = {
-  runAnalysis, enrich, scoreTAU, detectPatterns,
-  classifyStudentTurns, studentTurnsWithContext,
+  runAnalysis, enrich, scoreTAU, detectPatterns, detectAIMoments,
+  classifyStudentTurns, studentTurnsWithContext, tracePushback,
   ANALYSIS_VERSION, analysisIsStale,
 };

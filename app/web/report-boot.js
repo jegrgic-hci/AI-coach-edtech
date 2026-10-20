@@ -35,9 +35,15 @@
     });
   }
   document.getElementById('convCloseIcon').outerHTML = iconSVG('close');
-  const sessionsSheet = mountSheet({ sheet: document.getElementById('conversationView') });
+  // A workshop report keeps the sessions a sheet at every width
+  // (.sessions-as-sheet, components.css §19b) — the chart and the pattern
+  // guide are what the room is there to read, and a standing transcript beside
+  // them pulled the eye away from both. Set in load() once the submission
+  // says it is a workshop's, which is before anything is drawn.
+  const sessionsAsSheet = () => document.body.classList.contains('sessions-as-sheet');
+  const sessionsSheet = mountSheet({ sheet: document.getElementById('conversationView'), alwaysSheet: sessionsAsSheet });
   TAU_SIZE.belowExpanded.addEventListener('change', ensureSessionsIfShown);
-  function ensureSessionsIfShown() { if (!TAU_SIZE.belowExpanded.matches) ensureSessions(); }
+  function ensureSessionsIfShown() { if (!TAU_SIZE.belowExpanded.matches && !sessionsAsSheet()) ensureSessions(); }
 
   // Below expanded, one button in the masthead's local slot opens the sheet.
   // At expanded the slot is hidden (.sheet-toggle) — nothing to open.
@@ -105,8 +111,14 @@
       { label: `Draft ${submission.cycleIndex + 1}`, current: true },
     ]);
     currentSubmission = submission;
+    if (submission.workshop) document.body.classList.add('sessions-as-sheet');
     setLocalNav();
     ensureSessionsIfShown();
+
+    if (submission.workshop && !reportReady) {
+      document.getElementById('pending').innerHTML =
+        '<div class="spinner"></div>Analyzing your conversation…<br><small>This usually takes under a minute.</small>';
+    }
 
     if (!analysis || analysis.status === 'pending') {
       setTimeout(load, 2500);
@@ -259,7 +271,43 @@
       ${Rulings.agencyFollowup(submissionId)}`;
   }
 
+  // A workshop draft is read for its turn plot alone (server/analysis.js,
+  // mode 'plot'): no readings, no level, no draft to trace. Every other
+  // section is removed rather than left to render its empty state, because
+  // "not enough here" under four headings would read as four verdicts on a
+  // five-minute conversation, which is exactly what the light read avoids.
+  function renderPlotOnly(analysis) {
+    reportReady = true;
+    applyMode();
+    for (const id of ['samrHero', 'teacherNotePanel', 'reportJump', 'summaryPanel', 'tabIdeas', 'growthMovesPanel']) {
+      document.getElementById(id).remove();
+    }
+    const card = document.getElementById('tabTurns');
+    card.querySelector('.report-section-title').textContent = 'Your conversation, turn by turn';
+    const intro = document.createElement('p');
+    intro.className = 'readings-intro';
+    intro.textContent = 'Each square is one thing you said, placed by how much of the steering it did. ' +
+      'Shaded bands are patterns across several turns. A diamond on the bottom row is a moment the AI ' +
+      'backed off its answer. Pick any of them to read the exchange.';
+    card.insertBefore(intro, document.getElementById('turnPlot'));
+    SessionView.renderTurnPlot(document.getElementById('turnPlot'),
+      adaptClassified(analysis.classified || []), analysis.patterns || [], analysis.aiMoments || [],
+      { workshop: true });
+
+    // The workshop is a teaching session, so the chart comes with the key to
+    // everything it can show — the patterns this chat had, marked, and the
+    // ones it didn't, so the room knows what to look for next time.
+    const guide = document.createElement('div');
+    guide.className = 'card card-lg report-section';
+    guide.id = 'patternGuide';
+    guide.innerHTML = '<span class="report-section-title">What the chart looks for</span><div></div>';
+    card.after(guide);
+    PatternGuide.render(guide.lastElementChild, analysis.patterns || [], analysis.aiMoments || []);
+  }
+
   function render(submission, analysis) {
+    if (analysis.mode === 'plot') return renderPlotOnly(analysis);
+
     const reading = analysis.reading;
     const classified = adaptClassified(analysis.classified || []);
 
@@ -280,7 +328,7 @@
     // The conversation on the time axis, and the draft on the authorship axis.
     // Both live in session-view.js because the teacher reads the same two.
     SessionView.renderTurnPlot(
-      document.getElementById('turnPlot'), classified, analysis.patterns || []);
+      document.getElementById('turnPlot'), classified, analysis.patterns || [], analysis.aiMoments || []);
     SessionView.renderIdeaStrip(
       document.getElementById('ideaStrip'), analysis.provenance || [],
       classified, submission.essayText || '');

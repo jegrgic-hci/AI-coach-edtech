@@ -795,6 +795,13 @@ async function openAssignment(id) {
   const wsPrompt = $('wsPrompt');
   wsPrompt.innerHTML = '';
   wsPrompt.append(assignmentBriefBody(data.assignment));
+  // A workshop's prompt IS the task — three steps a guest has never seen —
+  // so it starts open rather than behind the disclosure a term's students
+  // have already read in class.
+  if (isWorkshop()) wsPrompt.closest('details').open = true;
+  document.querySelector('.composer-hint').textContent = isWorkshop()
+    ? 'The facilitator can read this conversation. When you’re done, press End session to see your results.'
+    : 'Your teacher can read this session';
 
   state.closed = Boolean(data.closed);
   applyClosedState();
@@ -803,6 +810,15 @@ async function openAssignment(id) {
   renderSessionList();
   renderConversation();
   loadSubmissions().catch(() => {});
+
+  // A workshop guest has a few minutes and has never seen this app: land them
+  // in a message box, not on "+ New session". Client-side only — nothing is
+  // stored until they send something, exactly as when a student presses it.
+  if (isWorkshop() && state.session && !state.closed
+      && !state.conversations.some((c) => c.cycleIndex === state.session.cycleIndex)) {
+    showPane('detail');
+    startNewSession();
+  }
 }
 
 // ---------- the deadline ----------
@@ -851,14 +867,37 @@ function applyClosedState() {
   }
   banner.classList.toggle('hidden', !state.closed && !!state.session);
 
-  $('btnSubmit').disabled = state.closed || !state.session;
-  $('btnSubmitCompact').disabled = $('btnSubmit').disabled;
+  renderSubmitButtons();
   $('btnNewSession').disabled = state.closed || !state.session;
   if (state.closed) {
     $('composer').classList.add('hidden');
     $('submitModal').classList.add('hidden');
   }
   scheduleDeadlineFlip();
+}
+
+// ---------- workshops ----------
+
+// A workshop guest (server/workshops.js) decides when they are done: there is
+// no timer, and ending the session is what runs the analysis and opens their
+// results.
+function isWorkshop() {
+  return Boolean(state.assignment && state.assignment.workshop);
+}
+
+// Both Submit buttons, in one place.
+function renderSubmitButtons() {
+  // A guest who has said nothing has no conversation to analyze; the old
+  // five-minute timer used to cover this, and nothing else does now.
+  const nothingSaid = isWorkshop() && !(state.turns || []).some((t) => t.role === 'student');
+  const disabled = state.closed || !state.session || nothingSaid;
+  // A workshop submits no draft; what the button does for a guest is end the
+  // conversation, so that is what it says.
+  const label = isWorkshop() ? 'End session' : 'Submit draft';
+  for (const id of ['btnSubmit', 'btnSubmitCompact']) {
+    $(id).disabled = disabled;
+    $(id).textContent = label;
+  }
 }
 
 // A student sitting in the workspace as the deadline passes should watch it
@@ -1048,6 +1087,7 @@ function syncBudgetNotice(budget) {
 
 function renderConversation() {
   renderWorkspaceNav();
+  renderSubmitButtons();
 
   const hasConv = !!state.conv;
   $('convTitle').textContent = hasConv ? state.conv.title : '';
@@ -1072,6 +1112,15 @@ function renderConversation() {
     return;
   }
   for (const t of state.turns) box.appendChild(renderTurn(t));
+  // On a phone the prompt lives in the other pane, so a workshop guest landing
+  // straight in the chat would see a message box and no task. Shown until the
+  // first message, which is the only stretch in which they need it here.
+  if (isWorkshop() && !state.turns.length && !locked) {
+    const task = el('div', 'empty-state workshop-task');
+    task.append(el('p', null, state.assignment.title));
+    task.append(el('p', 'empty-sub', state.assignment.description));
+    box.appendChild(task);
+  }
   updateActionButtons();
   box.scrollTop = box.scrollHeight;
 }
@@ -1434,6 +1483,8 @@ const REFLECT_DELTA = [
 ];
 
 function reflectFields() {
+  // None for a workshop — the server takes none either (index.js, submit).
+  if (isWorkshop()) return [];
   return state.session && state.session.cycleIndex > 0 ? REFLECT_DELTA : REFLECT_FULL;
 }
 
@@ -1505,7 +1556,7 @@ function updateSubmitEnabled() {
   // A disabled button with no reason is the thing to avoid — name what is
   // still outstanding, and say nothing once nothing is.
   const notes = [];
-  if (!draft) notes.push('your draft');
+  if (!draft && !isWorkshop()) notes.push('your draft');
   if (missing) notes.push(`${missing} question${missing === 1 ? '' : 's'}`);
   blocked.textContent = notes.length ? `Still to add: ${notes.join(' and ')}.` : '';
   blocked.classList.toggle('hidden', !notes.length);
@@ -1596,19 +1647,35 @@ $('btnSubmit').onclick = () => {
   const convCount = state.conversations.filter((c) => c.cycleIndex === state.session.cycleIndex).length || 1;
   const warning = $('submitWarning');
   warning.innerHTML = '';
-  warning.append(el('li', null,
-    `All ${convCount} of this draft's session${convCount === 1 ? '' : 's'} lock and go to your teacher with your draft.`));
-  warning.append(el('li', null, `This uses draft ${used + 1} of ${budget}.`));
+  if (isWorkshop()) {
+    warning.append(el('li', null, 'You can’t add to the conversation after this.'));
+    warning.append(el('li', null, 'Tau analyzes it and shows you your results, which takes about a minute.'));
+  } else {
+    warning.append(el('li', null,
+      `All ${convCount} of this draft's session${convCount === 1 ? '' : 's'} lock and go to your teacher with your draft.`));
+    warning.append(el('li', null, `This uses draft ${used + 1} of ${budget}.`));
+  }
   renderReflectBlock();
   resetDraftUpload();
+  // A workshop asks for no draft — it is read for its conversation alone
+  // (server/analysis.js) — so the dialog is the confirmation and nothing else.
+  $('submitTitle').textContent = isWorkshop() ? 'End your session?' : 'Submit draft';
+  $('btnConfirmSubmit').textContent = isWorkshop() ? 'End session' : 'Submit — this ends my session';
+  $('btnCancelSubmit').textContent = isWorkshop() ? 'Keep chatting' : 'Cancel';
+  if (isWorkshop()) {
+    $('draftUpload').classList.add('hidden');
+    $('draftPaste').classList.add('hidden');
+    updateSubmitEnabled();
+  }
   $('submitModal').classList.remove('hidden');
 };
 
 $('btnCancelSubmit').onclick = () => $('submitModal').classList.add('hidden');
 
 $('btnConfirmSubmit').onclick = async () => {
-  const essayText = $('draftPaste').classList.contains('hidden') ? uploadedText : $('essayText').value.trim();
-  if (!essayText) return;
+  const essayText = isWorkshop() ? ''
+    : $('draftPaste').classList.contains('hidden') ? uploadedText : $('essayText').value.trim();
+  if (!essayText && !isWorkshop()) return;
   const reflection = reflectionValues();
   if (reflectFields().some((f) => !reflection[f.key])) return;
   $('btnConfirmSubmit').disabled = true;

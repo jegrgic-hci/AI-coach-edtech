@@ -79,7 +79,9 @@ async function main() {
   }
   console.log(`project: ${projectId}${allowDemo ? '  (--allow-demo)' : ''}`);
 
-  const classes = (await col('classes').list()).filter((c) => c.improvement?.grantedAt);
+  // A workshop class is never stamped (workshops.js), and is refused here too
+  // in case one ever is: demo guests' sessions are not pilot data.
+  const classes = (await col('classes').list()).filter((c) => c.improvement?.grantedAt && !c.workshop);
   if (!classes.length) {
     console.log('\nno class has been marked as contributing to measurement improvement — nothing to export.');
     return;

@@ -436,6 +436,29 @@ not licence to improvise — say so and ask, don't invent.**
   opening the sheet at a turn chosen in the report. The turn plot's classified turns carry no
   conversation id to find it by, and the plot already shows the chosen turn's words in its own
   detail panel.)*
+  **One stated exception, 2026-10-15: a workshop report keeps the sessions a sheet at expanded too**
+  (`body.sessions-as-sheet`, `mountSheet({ alwaysSheet })`), at the product owner's request. It is
+  plot-only (no readings, no level), read by adults who have just finished the conversation, and its
+  job is the chart and the pattern guide. A standing transcript beside them competed with both. The
+  "Sessions" button in the masthead opens it. The ordinary report is unchanged.
+- **Workshop surfaces are tonal — a stated exception, 2026-10-20.** `workshop-room.html` (the
+  facilitator's presented results) uses an **M3 tonal surface ramp built from the forest hue**, and
+  so **inverts "raised is lighter" on purpose**: the page is the lightest tone (`#F5F9F6`), cards sit
+  one step darker (`#E8EEEA`), wells another (`#E1E8E3` / `#DAE2DC`), and only an open panel is
+  white. Selection is a filled tonal container (`#CFE6D8`, text `#0B2E1F`), never an outline; no
+  shadows. The same page also allows **spring easing** (`cubic-bezier(0.34, 1.4, 0.64, 1)`), a
+  **display size** for its headline figures, and choreographed entrances and scroll reveals.
+  Decided by the product owner and a stakeholder from a reviewed artifact: it is projected to a
+  room of teachers, where it read cleaner and used colour better than the shell/white-card system.
+  **Scope is the workshop only** — not the teacher tool, not the student app, not the marketing
+  site, where every constraint above still binds. It lives page-local in `workshop-room.css`, never
+  in `tokens.css`. **Unchanged inside it:** the agency-level and per-turn colours (they are the
+  measurement), the design-system fonts, light theme only, no band numerals, no totals.
+  **One percentage is allowed there, 2026-10-20: the share of the room's turns the person steered**
+  (High agency + Student-led, against Shared + Low agency), in the centre of the turns ring with
+  both shares in its legend, adding to 100. It is a count ratio of how turns were classified, over
+  finished conversations only — never a reading, a level or a score — and the product owner judged
+  it fine for a workshop room. It does not license a percentage anywhere else.
 - **Motion:** `transform`/`opacity` only for movement, never `top`/`left`/`width`/`height`.
   `--tau-dur-short` + `-standard` easing for state changes (hover/press/toggle); `--tau-dur-medium`
   + `-decelerate`/`-accelerate` for anything that moves or resizes.

@@ -100,6 +100,20 @@ Every student account carries `identity`:
 
 A document written before this feature has no `identity` field and is read as `'email'`.
 
+**A third type, `identity: 'guest'` (2026-10-14), is not a student at all.** It is an adult at a
+teacher workshop, created by pressing Join at `/join` with a name and the workshop's six-digit code
+(`server/workshops.js`). It has `email: null`, `username: null` and **no password**, and the session
+cookie is the only way back into it. **It does carry the name the person typed** (`displayName`,
+plus a `seat` number), the one deliberate exception to "the tool never collects personal
+information": these are adults, and the facilitator needs a name to call on someone about their
+results in the room. Decided 2026-10-18. The name is purged with everything else. The sign-in scan's `u.email &&` and `u.username &&` guards mean such an account can never
+be matched there. `termsCoveredBy` points at the teacher who ran the workshop, the same mechanism a
+code account uses. The account, its work and its sessions are deleted when the workshop expires.
+Workshop classes are dropped in `teacherScope`, so guests never appear in a teacher's dashboard, and
+they are never stamped for the measurement-improvement export. **Anything that branches on
+`identity` must not treat "not `'code'`" as meaning `'email'`**. The admin overview does exactly
+that, which is why it filters guests out before mapping.
+
 ---
 
 ## Identity: the username scheme
