@@ -35,15 +35,18 @@
           await t.w().loadDashboardData();
           t.w().render();
           t.w().openAddStudentsModal(cls.id);
-          await t.set('#hdr-addstudent-roster-input', S.roster.map((r) => r.join(', ')).join('\n'));
+          await t.set('#hdr-addstudent-count-input', String(S.pilot.labels.length));
+          await t.set('#hdr-addstudent-theme-input', S.pilot.theme);
+          await t.click('#hdr-addstudent-generate');
+          await t.el('.draft-labels');
         },
         spot: '#add-students-modal-overlay .modal',
-        title: 'Paste the roster',
-        body: 'One student per line, with a school email. Every line is checked before an account is made, and each student is emailed a link to set their own password.',
+        title: 'Add students by number',
+        body: 'No names and no email addresses. Say how many students, pick a naming theme if you like, and check the usernames before saving. Each one gets an access code to hand out.',
       },
       {
         async setup(t) {
-          await t.w().submitRosterAdd('hdr');
+          await t.w().saveRosterDraft('hdr');
           t.w().closeAddStudentsModal();
           t.w().openNewAssignmentModal(['c-1']);
           await t.set('#na-template', S.template.id);

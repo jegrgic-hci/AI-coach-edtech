@@ -31,6 +31,10 @@
       seq: 0, me: TEACHER, classes: [], students: [], assignments: [],
       templates: [{ ...story.template, createdAt: iso(Date.now() - 30 * DAY) }],
       sessions: [], conversations: [], turns: [], submissions: [], replyAt: 0,
+      // A new teacher is a Pilot user, as every teacher signing up now is: the
+      // roster is added by number, not pasted. The finished class keeps named
+      // students, since the chapters after setup are written around them.
+      pilot: scenario === 'teacher-new',
     };
     if (scenario === 'student-assigned' || scenario === 'teacher-reviewing') {
       s.students = story.roster.map(([name, email], i) => ({ id: `s-${i + 1}`, name, email }));
@@ -125,21 +129,43 @@
         requirements: a.requirements, teacherNote: a.teacherNote || null,
       })),
       students: s.students.map((st) => ({
-        id: st.id, name: st.name, email: st.email, identity: 'email', username: null,
+        id: st.id, name: st.name, email: st.email, identity: st.identity || 'email', username: st.username || null,
         initials: st.name.split(' ').map((p) => p[0]).join(''),
       })),
       classes: s.classes.map((c) => ({ id: c.id, name: c.name, studentIds: c.studentIds, improvement: null })),
-      viewer: { improvementEligible: false, codeRoster: false, handle: null },
+      viewer: { improvementEligible: false, codeRoster: !!s.pilot, handle: s.pilot ? story.pilot.handle : null },
       archivedClasses: [], archivedAssignments: [],
       templates: s.templates,
       submissions,
     };
   }
 
+  // Shaped like a real code (codes.js: ten symbols from its alphabet) so the
+  // sheet reads true; nothing signs in with it.
+  function accessCode() {
+    const symbols = '23456789BCDFGHJKMNPQRSTVWXZ';
+    return Array.from({ length: 10 }, () => symbols[Math.floor(Math.random() * symbols.length)]).join('');
+  }
+
   function addStudent(classId, body) {
     const s = state();
     const cls = s.classes.find((c) => c.id === classId);
     if (!cls) return [404, { error: 'class not found' }];
+    // The pilot roster's two calls: Generate asks what the labels would be,
+    // Save creates one code account per label. Same shapes as the server's.
+    if (body.propose) return [200, { labels: story.pilot.labels.slice(0, body.count) }];
+    if (body.labels) {
+      const created = body.labels.map((label) => {
+        const st = {
+          id: nextId('s'), name: label, email: null, identity: 'code',
+          username: `${label.toLowerCase().replace(/[^a-z0-9]/g, '')}@${story.pilot.handle}.tau`,
+        };
+        s.students.push(st);
+        cls.studentIds.push(st.id);
+        return { id: st.id, displayName: label, username: st.username, code: accessCode() };
+      });
+      return [200, { created }];
+    }
     const email = String(body.email || '').toLowerCase();
     let st = s.students.find((x) => x.email === email);
     if (!st) {

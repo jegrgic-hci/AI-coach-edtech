@@ -159,5 +159,14 @@ The most serious objection at our school is the buses, which already make two ru
   // the note box filled, never sent.
   const noteToStudent = 'Answering the bus objection with your own idea was the strongest move in this. Next time, find the Seattle study yourself and say in your words what it found.';
 
-  return { template, cohort, roster, chat, auditor, essay, reflection, labels, provenance, reading, growthMoves, noteToStudent };
+  // The pilot roster: Ms. Rivera adds her class by number, on a naming theme,
+  // so no student's name or address ever enters the product. What Generate
+  // proposes for "Authors"; her handle is the half after the @.
+  const pilot = {
+    handle: 'rivera',
+    theme: 'Authors',
+    labels: ['austen', 'baldwin', 'bronte', 'dickens', 'eliot', 'hughes', 'morrison', 'orwell', 'poe', 'shelley', 'twain', 'woolf'],
+  };
+
+  return { template, cohort, roster, chat, auditor, essay, reflection, labels, provenance, reading, growthMoves, noteToStudent, pilot };
 })();
