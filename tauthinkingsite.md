@@ -1,6 +1,9 @@
 # tauthinking.com — the public marketing site
 
-**Status (2026-08-06):** planned, not built. No repo, no content, no Pages project.
+**Status (2026-10-15):** built and live at https://tauthinking.com. Source is the
+`tauthinking-site` repo (github.com/jegrgic-hci/tauthinking-site), checked out locally beside this
+one at `~/Documents/GitHub/tauthinking-site`; last commit 2026-08-25. The sections below are the
+planning decisions from 2026-08-06 and have not been re-checked against what shipped.
 
 **Not part of this codebase.** Own GitHub repo, own host. This file holds the
 decisions so they aren't re-derived later; nothing here is built from `app/`.
