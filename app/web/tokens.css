@@ -102,6 +102,32 @@
      lightness rise, for the reason the paragraph above gives. */
   --tau-shell:     oklch(0.920 0.014 162);
 
+  /* TONAL SURFACES — M3's surface roles from the forest hue. Added 2026-10-26,
+     when the workshop's tonal look (workshop-room.css) was adopted for the
+     whole product. Surfaces separate by TONE, never by shadow or outline: in
+     light the page is the lightest tone and containers step DOWN from it, and
+     only an open panel or a card on a container is white. Dark keeps M3's dark
+     direction, where containers step up.
+
+     --tau-card is the fill a card takes on whatever ground it sits on. A ground
+     that is itself a container re-points it to the lowest tone, so a card sits
+     one step off its ground without the card knowing what that ground is.
+
+     Not yet consumed in the app: the marketing site is the first surface on
+     it. The app's pages move as components.css is migrated. */
+  --tau-page:              #F5F9F6;
+  --tau-container:         #E8EEEA;
+  --tau-container-high:    #E1E8E3;
+  --tau-container-highest: #DAE2DC;
+  --tau-container-lowest:  #FFFFFF;
+  --tau-card:              var(--tau-container);
+
+  /* Selection is a filled tonal container (M3 secondary-container), never an
+     outline. Its own token rather than a seventh job for forest. */
+  --tau-select:        #CFE6D8;
+  --tau-select-strong: #B9D9C6;
+  --tau-on-select:     #0B2E1F;
+
   --tau-ink:       #16191C;
   --tau-ink-soft:  #545B63;
   /* Darkened from #767D85 on 2026-08-24. The old value cleared 4.5:1 on NO
@@ -502,6 +528,10 @@
     /* Dark's shell is already the darkest thing on screen. */
     --tau-shell:     #16181A;
 
+    --tau-page: #16181A; --tau-container: #232729; --tau-container-high: #2D3134;
+    --tau-container-highest: #373C3F; --tau-container-lowest: #0F1112;
+    --tau-select: #2E4D3E; --tau-select-strong: #3A5E4C; --tau-on-select: #CFE6D8;
+
     --tau-ink:       #E9EBEC;
     --tau-ink-soft:  #A2A9AE;
     /* Lightened from #858C92 for the same reason as light's: 4.86 on
@@ -572,6 +602,8 @@
   color-scheme: dark;
   --tau-forest: #6FBF95; --tau-forest-lift: #8CD1AC; --tau-sage: #4F9973; --tau-on-forest: #12211A;
   --tau-bg: #16181A; --tau-surface: #1C1F21; --tau-surface-2: #232729; --tau-surface-3: #2D3134; --tau-shell: #16181A;
+  --tau-page: #16181A; --tau-container: #232729; --tau-container-high: #2D3134; --tau-container-highest: #373C3F; --tau-container-lowest: #0F1112;
+  --tau-select: #2E4D3E; --tau-select-strong: #3A5E4C; --tau-on-select: #CFE6D8;
   --tau-ink: #E9EBEC; --tau-ink-soft: #A2A9AE; --tau-ink-faint: #8D949A; --tau-ink-label: var(--tau-ink-faint);
   --tau-line: #2D3134; --tau-line-strong: #3E4448;
   --tau-band-1-bg: oklch(0.26 0.030 280); --tau-band-1-fg: oklch(0.82 0.070 280);
@@ -613,6 +645,8 @@
   color-scheme: light;
   --tau-forest: #1F4D3A; --tau-forest-lift: #2A6349; --tau-sage: #3D7A5A; --tau-on-forest: #FFFFFF;
   --tau-bg: oklch(0.992 0.006 162); --tau-surface: #FFFFFF; --tau-surface-2: oklch(0.968 0.008 162); --tau-surface-3: oklch(0.952 0.010 162); --tau-shell: oklch(0.920 0.014 162);
+  --tau-page: #F5F9F6; --tau-container: #E8EEEA; --tau-container-high: #E1E8E3; --tau-container-highest: #DAE2DC; --tau-container-lowest: #FFFFFF;
+  --tau-select: #CFE6D8; --tau-select-strong: #B9D9C6; --tau-on-select: #0B2E1F;
   --tau-ink: #16191C; --tau-ink-soft: #545B63; --tau-ink-faint: #686C71; --tau-ink-label: var(--tau-ink-soft);
   --tau-line: oklch(0.895 0.008 162); --tau-line-strong: oklch(0.815 0.010 162);
   --tau-band-1-bg: oklch(0.951 0.018 280); --tau-band-1-fg: oklch(0.42 0.058 280);
