@@ -129,13 +129,13 @@ button:hover { border-color: var(--tau-forest); }
   margin: 8px 8px 8px 0;
   border-radius: 0 var(--tau-r-xl) var(--tau-r-xl) 0;
   overflow: hidden;
-  background: var(--tau-surface);
+  background: var(--tau-card);
   box-shadow: var(--tau-shadow);
 }
 
 .chat-header {
   padding: 12px 24px;
-  background: var(--tau-surface);
+  background: transparent;
   border-bottom: 1px solid var(--tau-line);
   display: flex;
   align-items: center;
@@ -952,6 +952,10 @@ button:hover { border-color: var(--tau-forest); }
       4.60:1. Not a preference; the old value is not legible here. */
 .dash-rail, .ws-body .pane-list { background: var(--tau-shell); }
 .dash-rail .rail-item.active, .ws-body .pane-list .rail-item.active { background: var(--tau-surface-2); }
+/* Tonal: selection is the tint, as in components.css §20 — restated here
+   because the rule above outranks that one. */
+[data-surface="tonal"] .dash-rail .rail-item.active,
+[data-surface="tonal"] .ws-body .pane-list .rail-item.active { background: var(--tau-select); color: var(--tau-on-select); }
 .dash-rail .rail-item-meta, .ws-body .pane-list .rail-item-meta { color: var(--tau-ink-soft); }
 
 /* Pinned to the bottom by .rail-foot's margin-top:auto — whatever room the
@@ -1272,3 +1276,41 @@ button.draft-chip:hover { border-color: var(--tau-forest); }
   .draft-tile .draft-row-note-flag { order: 1; flex-basis: 100%; }
 }
 
+
+/* ---------- tonal ---------- */
+
+/* The workspace and home on the tonal palette (components.css §20, tokens.css
+   TONAL SCOPE). The tokens move the ground, the cards and the wells; these are
+   the edges and fills that were drawn for a white card on a darker shell. */
+
+/* The composer is the one white object on the chat's container: tone is its
+   edge at rest, and the border appears only as the focus channel. */
+[data-surface="tonal"] .composer-box { border-color: transparent; }
+[data-surface="tonal"] .composer-box:focus-within {
+  border-color: var(--tau-forest);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--tau-forest) 14%, transparent);
+}
+
+/* A rail action on the page tone: a container step, not a frame. */
+[data-surface="tonal"] .new-session-btn { border-color: transparent; background: var(--tau-container); }
+[data-surface="tonal"] .new-session-btn:hover { background: color-mix(in oklab, var(--tau-ink) var(--tau-state-hover), var(--tau-container)); }
+
+/* Inside an assignment card: rows separate by tone, and a submitted draft's
+   tile and a past draft's chip are white on the container. Hover is a state
+   layer on that white, not a forest border. */
+[data-surface="tonal"] .draft-row { border-color: transparent; }
+/* Top, right and bottom only: a past chip's level accent is its left rule
+   (.level-*, components.css), and a shorthand here would erase it. */
+[data-surface="tonal"] .draft-tile,
+[data-surface="tonal"] .draft-chip {
+  border-top-color: transparent; border-right-color: transparent; border-bottom-color: transparent;
+  background: var(--tau-container-lowest);
+}
+[data-surface="tonal"] .draft-tile { border-left-color: transparent; }
+[data-surface="tonal"] button.draft-tile:hover,
+[data-surface="tonal"] button.draft-chip:hover {
+  border-top-color: transparent; border-right-color: transparent; border-bottom-color: transparent;
+  background: color-mix(in oklab, var(--tau-ink) var(--tau-state-hover), var(--tau-container-lowest));
+}
+[data-surface="tonal"] button.draft-tile:hover { border-left-color: transparent; }
+[data-surface="tonal"] .draft-chip:not([class*='level-']) { border-left-color: transparent; }

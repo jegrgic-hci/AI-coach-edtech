@@ -459,6 +459,29 @@ not licence to improvise — say so and ask, don't invent.**
   both shares in its legend, adding to 100. It is a count ratio of how turns were classified, over
   finished conversations only — never a reading, a level or a score — and the product owner judged
   it fine for a workshop room. It does not license a percentage anywhere else.
+- **The whole product is moving onto the tonal palette — decided 2026-10-26, migrating page by
+  page.** Supersedes the workshop bullet's "scope is the workshop only" for every page that has
+  moved. A page opts in with `data-surface="tonal"` on `<html>`; `tokens.css` (*TONAL SCOPE*)
+  re-points ground, card, wells and resting shadow under it, and `components.css` §20 holds the
+  component forms that differ. **Moved so far:** the marketing site (its own repo), the student
+  home and workspace (`index.html`), and `report.html` (which teachers also open). **On a tonal
+  page these rules replace the ones above:** the page and rail are the lightest tone and a card
+  sits ONE STEP OFF ITS GROUND (`--tau-card`: the container on the page, white on a container);
+  surfaces separate by tone, never resting shadow or outline; **selection is `--tau-select`**
+  (its own token, not a seventh forest job) — **greyer than any measurement green, with ink
+  text** (`#CDD6D0`, 2026-10-26): the pale greens belong to the measurement, and dark green on
+  pale green is how a level chip is drawn, so chrome never uses that construction;
+  `--tau-ink-faint` is `#5C6166` there and may carry
+  text on the shell; menus, sheets and dialogs keep `--tau-shadow-lift`. **Unchanged:** every
+  measurement ramp, the semantic and voice colours, fonts. **Not yet tonal:** `dashboard.html`,
+  `admin.html`, the guide pages, sign-in. Until they move, the Hard Constraints above still bind
+  them. When the last page moves, the scope values become the defaults and the attribute goes.
+  **OPEN — the level chips fade on tonal cards.** `--tau-band-N-bg` was tuned as a pale tint for
+  white cards; on the forest container the Transformative chip is ΔE 1.4 from the card (the
+  other three 1.8–2.4), so the reading looks like part of the surface. Deferred 2026-10-26 as a
+  measurement-colour decision, not a palette one. Explored: all four chips one step deeper in the
+  tonal scope only (L 0.89, C 0.06, panel kept pale) — clear of the card, but Passive and
+  Reactive read loud; option A″ in https://claude.ai/artifact/PLBgi61fJUxwme9CDUvpkd (private).
 - **Motion:** `transform`/`opacity` only for movement, never `top`/`left`/`width`/`height`.
   `--tau-dur-short` + `-standard` easing for state changes (hover/press/toggle); `--tau-dur-medium`
   + `-decelerate`/`-accelerate` for anything that moves or resizes.

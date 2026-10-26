@@ -113,20 +113,29 @@
      that is itself a container re-points it to the lowest tone, so a card sits
      one step off its ground without the card knowing what that ground is.
 
-     Not yet consumed in the app: the marketing site is the first surface on
-     it. The app's pages move as components.css is migrated. */
+     A page opts in with data-surface="tonal" on <html> (the TONAL SCOPE block
+     below). Outside it --tau-card is the white card it always was, so a
+     component can read --tau-card without changing an unmigrated page. When
+     every page is tonal the scope's values become these defaults and the
+     attribute goes. */
   --tau-page:              #F5F9F6;
   --tau-container:         #E8EEEA;
   --tau-container-high:    #E1E8E3;
   --tau-container-highest: #DAE2DC;
   --tau-container-lowest:  #FFFFFF;
-  --tau-card:              var(--tau-container);
+  --tau-card:              var(--tau-surface);
 
   /* Selection is a filled tonal container (M3 secondary-container), never an
-     outline. Its own token rather than a seventh job for forest. */
-  --tau-select:        #CFE6D8;
-  --tau-select-strong: #B9D9C6;
-  --tau-on-select:     #0B2E1F;
+     outline. Its own token rather than a seventh job for forest.
+     GREYER THAN ANY MEASUREMENT GREEN, with ink text (2026-10-26). The pale
+     greens are taken — level chips, "your idea" and the meter track at L 0.95,
+     the lowest per-turn agency mark at 0.90 — and dark green on pale green is
+     how a level chip is drawn. This sits in the gap between those and the next
+     agency step (0.75) at chroma 0.013, so a selected row never reads as a
+     reading. A tonal button keeps forest text: interactive text is forest's. */
+  --tau-select:        #CDD6D0;
+  --tau-select-strong: #C2CCC5;
+  --tau-on-select:     #16191C;
 
   --tau-ink:       #16191C;
   --tau-ink-soft:  #545B63;
@@ -646,7 +655,7 @@
   --tau-forest: #1F4D3A; --tau-forest-lift: #2A6349; --tau-sage: #3D7A5A; --tau-on-forest: #FFFFFF;
   --tau-bg: oklch(0.992 0.006 162); --tau-surface: #FFFFFF; --tau-surface-2: oklch(0.968 0.008 162); --tau-surface-3: oklch(0.952 0.010 162); --tau-shell: oklch(0.920 0.014 162);
   --tau-page: #F5F9F6; --tau-container: #E8EEEA; --tau-container-high: #E1E8E3; --tau-container-highest: #DAE2DC; --tau-container-lowest: #FFFFFF;
-  --tau-select: #CFE6D8; --tau-select-strong: #B9D9C6; --tau-on-select: #0B2E1F;
+  --tau-select: #CDD6D0; --tau-select-strong: #C2CCC5; --tau-on-select: #16191C;
   --tau-ink: #16191C; --tau-ink-soft: #545B63; --tau-ink-faint: #686C71; --tau-ink-label: var(--tau-ink-soft);
   --tau-line: oklch(0.895 0.008 162); --tau-line-strong: oklch(0.815 0.010 162);
   --tau-band-1-bg: oklch(0.951 0.018 280); --tau-band-1-fg: oklch(0.42 0.058 280);
@@ -670,6 +679,35 @@
   --tau-scrim: #16191C66;
   --tau-shadow: 0 1px 2px #16191C0F, 0 8px 24px -16px #16191C2E;
   --tau-shadow-lift: 0 2px 4px #16191C14, 0 18px 40px -22px #16191C3D;
+}
+
+/* ===================================================================
+ * TONAL SCOPE — pages on the tonal palette (data-surface="tonal").
+ * Added 2026-10-26; the student home, workspace and report are first.
+ *
+ * Re-points the ground, card, well and shadow tokens so the components a
+ * page already uses go tonal without being edited: the shell and page take
+ * the lightest tone, a card the container, the two recessed steps the
+ * container-high/-highest, and resting elevation goes. --tau-shadow-lift is
+ * kept: menus, sheets and dialogs float over content and still need it.
+ * --tau-surface is NOT re-pointed — it is also the ink on chart fills and the
+ * white seam between chart segments, and an open panel stays white.
+ *
+ * Both themes: the values are references, so dark gets M3's dark tonal ramp
+ * from the blocks above. After those blocks so it wins at equal specificity.
+ * =================================================================== */
+:root[data-surface="tonal"] {
+  --tau-bg:        var(--tau-page);
+  --tau-shell:     var(--tau-page);
+  --tau-card:      var(--tau-container);
+  --tau-surface-2: var(--tau-container-high);
+  --tau-surface-3: var(--tau-container-highest);
+  --tau-shadow:    0 0 #0000;
+}
+/* The workshop's faint ink. #686C71 measures 4.2:1 on --tau-container-high,
+   where tonal puts wells; this clears 4.7 on every tonal step and the tint. */
+:root[data-surface="tonal"][data-theme="light"] {
+  --tau-ink-faint: #5C6166;
 }
 
 /* ===================================================================

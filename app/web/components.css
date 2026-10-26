@@ -436,7 +436,9 @@ details[open] > .acard-disclosure-toggle {
 /* Six card-shaped things existed across the sheets. The differences that
    actually carried meaning were the edge rules; everything else was drift. */
 .card {
-  background: var(--tau-surface);
+  /* --tau-card is white outside the tonal scope (tokens.css), so this reads
+     the same as --tau-surface on an unmigrated page. */
+  background: var(--tau-card);
   border: 1px solid var(--tau-line);
   border-radius: var(--tau-r-md);
   padding: var(--tau-s4) 18px;
@@ -2813,6 +2815,7 @@ min-height: 24px;
      pane — the same treatment as the workspace's chat pane. */
   .tpl-supporting > .pane-side {
     overflow-y: auto;
+    background: var(--tau-card);
     border-radius: var(--tau-r-xl) 0 0 0;
     box-shadow: var(--tau-shadow);
   }
@@ -2908,3 +2911,34 @@ min-height: 24px;
 @container pane (min-width: 720px) {
   .feed-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ---------- 20. tonal scope ---------- */
+
+/* What the tonal palette changes beyond what its tokens re-point (tokens.css,
+   TONAL SCOPE). Each rule here is the tonal form of a component above, scoped
+   to pages that opt in with data-surface="tonal"; when every page has, these
+   fold into the rules they override and the section goes.
+
+   Selection is a filled tonal container (--tau-select), never white-on-sage
+   or an outline, and a surface separates from its ground by tone alone. */
+
+/* The takeaway card keeps its larger corner; the lift goes with the rest. */
+[data-surface="tonal"] .card-hero { box-shadow: none; }
+
+/* The conversation, as the workshop shows it: the AI on the open-panel white,
+   the student on the selection tint. Forest was the student's fill when the
+   chat pane was white; on a container it is the loudest thing in the view,
+   louder than the content it is part of. */
+[data-surface="tonal"] .turn-coach .msg { background: var(--tau-container-lowest); border-color: transparent; }
+[data-surface="tonal"] .turn-student .msg { background: var(--tau-select); color: var(--tau-on-select); }
+
+/* The masthead is ground, the same tone as the shell under it. */
+[data-surface="tonal"] .tau-nav { background: var(--tau-page); }
+[data-surface="tonal"] .tau-nav.scrolled { background: var(--tau-container); }
+
+[data-surface="tonal"] .rail-item.active,
+[data-surface="tonal"] .rail-mini-item.active .rail-mini-pill { background: var(--tau-select); color: var(--tau-on-select); }
+/* Ink, not forest, on the selection fill: a selected row is chrome, and
+   coloured text on a tinted fill is how a level chip is drawn. Weight stays. */
+[data-surface="tonal"] .rail-item.active .rail-item-name,
+[data-surface="tonal"] .rail-item.active .rail-item-meta { color: var(--tau-on-select); }

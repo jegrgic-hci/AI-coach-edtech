@@ -234,7 +234,7 @@
     .report-jump {
       position: sticky; top: 0; z-index: 5;
       display: flex; align-items: stretch; gap: 2px;
-      background: var(--tau-surface); border: 1px solid transparent;
+      background: var(--tau-card); border: 1px solid transparent;
       border-radius: var(--tau-r-lg); padding: 5px;
       box-shadow: var(--tau-shadow);
     }
@@ -412,7 +412,9 @@
     .group-desc { font-size: var(--tau-text-sm); line-height: var(--tau-leading-body); color: var(--tau-ink-soft); margin: 0; }
 
     .turn-list { display: flex; flex-direction: column; gap: var(--tau-s3); }
-    .turn {
+    /* Scoped to its list: bare, it also matched the shared turn shell
+       (components.css) in the sessions pane and boxed every bubble there. */
+    .turn-list .turn {
       display: flex; gap: var(--tau-s3); align-items: flex-start;
       padding: var(--tau-s3) 14px; border-radius: var(--tau-r-sm); background: var(--tau-surface-2);
       border-left: 4px solid var(--tau-line-strong);
@@ -783,7 +785,7 @@
        hover the card by making it see-through. The currentColor form is right
        for a control with no resting background (.rail-item, .conv-view-item);
        for a filled surface the ground is named. */
-    .dim-card:hover { background: color-mix(in oklab, var(--tau-ink) var(--tau-state-hover), var(--tau-surface)); }
+    .dim-card:hover { background: color-mix(in oklab, var(--tau-ink) var(--tau-state-hover), var(--tau-card)); }
     .dim-card:focus-visible { outline: var(--tau-focus-ring); outline-offset: var(--tau-focus-gap); }
     /* The source card of an open transform. Held at reduced opacity rather
        than hidden: M3's container transform reads as one surface moving, and
@@ -1577,3 +1579,11 @@
     /* A passage with no traced idea in it takes no origin — bare ground, not a
        default. Colouring it would assert an attribution the trace never made. */
     .provstrip-seg.origin-none { background: var(--tau-surface-3); }
+
+    /* ---------- tonal ---------- */
+
+    /* The report on the tonal palette (components.css §20, tokens.css TONAL
+       SCOPE). The picked session takes the selection tint rather than white
+       with a shadow, and the turn detail is a well, edged by tone. */
+    [data-surface="tonal"] .conv-view-item.active { background: var(--tau-select); color: var(--tau-on-select); box-shadow: none; }
+    [data-surface="tonal"] .turnplot-detail { border-color: transparent; }
