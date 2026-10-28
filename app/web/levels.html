@@ -102,6 +102,57 @@ hr.rule { border: 0; border-top: 1px solid var(--tau-line-soft, var(--tau-line))
    reads as a step in a sequence where a left edge reads as a status stripe. */
 .levels { display: flex; flex-direction: column; gap: var(--tau-s4); }
 
+/* How Tau decides a level — the workshop results' figure (workshop-room.js
+   buildHow), brought here in its tonal palette: the first piece of the tool's
+   move to tonal (2026-10-26), so its values are scoped to the figure until
+   tokens.css carries them. Wider than the text column on a wide screen, since
+   three columns in 47rem leave the question tiles too narrow to read. */
+.how-fig {
+  --t-card: #E8EEEA; --t-tile: #FFFFFF; --t-tint: #CFE6D8; --t-line: oklch(0.815 0.010 162);
+  --t-ink: #16191C; --t-ink-soft: #545B63; --t-forest: #1F4D3A;
+  --ease-soft: cubic-bezier(0.16, 1, 0.3, 1); --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  margin: var(--tau-s5) calc(50% - min(33rem, 50vw - 16px)) 0;
+  background: var(--t-card); border-radius: 20px; padding: 22px; display: grid; gap: 22px;
+}
+.how-flow { display: grid; grid-template-columns: minmax(0, 1fr) 36px minmax(0, 1.3fr) 36px minmax(0, .9fr); gap: 10px; align-items: center; }
+.how-col { display: grid; gap: 8px; align-content: start; }
+.how-label { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--t-ink-soft); }
+.how-tile { background: var(--t-tile); border-radius: 12px; padding: 12px 14px; display: grid; gap: 3px; font-size: 14px; line-height: 1.45; color: var(--t-ink-soft); }
+.how-tile b { color: var(--t-ink); font-size: 15px; }
+.how-q { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.how-qcell { text-decoration: none; transition: background 150ms cubic-bezier(0.2, 0, 0, 1); }
+.how-qcell span { font-size: 12.5px; }
+.how-qcell:hover { background: var(--t-tint); }
+.how-qcell:focus-visible { outline: 3px solid var(--t-forest); outline-offset: 2px; }
+.how-level { gap: 10px; }
+.how-dots { display: grid; gap: 4px; }
+.how-dots i { display: block; height: 8px; border-radius: 4px; transform-origin: left;
+              background: color-mix(in srgb, var(--lv) 65%, var(--tau-surface)); }
+.how-arrow { color: var(--t-forest); display: grid; place-items: center; }
+.how-arrow svg { width: 26px; height: 26px; }
+.how-arrow path { stroke-dasharray: 1; stroke-dashoffset: 0; }
+.how-rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.how-rules li { display: grid; gap: 3px; font-size: 14px; line-height: 1.45; color: var(--t-ink-soft); padding-top: 12px; border-top: 1.5px solid var(--t-line); }
+.how-rules b { color: var(--t-ink); font-size: 15px; }
+@media (max-width: 900px) {
+  .how-flow { grid-template-columns: minmax(0, 1fr); }
+  .how-arrow { transform: rotate(90deg); height: 28px; }
+}
+/* Builds left to right once, when it scrolls into view (script at the foot). */
+.how-fig.pre .hb { opacity: 0; }
+.how-fig.build .hb { animation: how-up 460ms var(--ease-soft) backwards; animation-delay: calc(var(--b, 0) * 110ms); }
+.how-fig.build .how-qcell { animation-name: how-pop; animation-timing-function: var(--ease-spring); }
+.how-fig.build .how-arrow path { animation: how-draw 420ms var(--ease-soft) backwards; animation-delay: calc(var(--b, 0) * 110ms); }
+.how-fig.build .how-dots i { animation: how-grow 520ms var(--ease-spring) backwards; animation-delay: calc(11.8 * 110ms + 140ms + var(--k) * 90ms); }
+@keyframes how-up { from { opacity: 0; transform: translateY(8px); } }
+@keyframes how-pop { from { opacity: 0; transform: scale(.85); } }
+@keyframes how-draw { from { stroke-dashoffset: 1; } }
+@keyframes how-grow { from { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .how-fig.pre .hb { opacity: 1; }
+  .how-fig.build .hb, .how-fig.build .how-arrow path, .how-fig.build .how-dots i { animation: none; }
+}
+
 .level {
   background: var(--tau-surface);
   border: 1px solid var(--tau-line);
@@ -379,6 +430,48 @@ footer p { max-width: 40rem; }
   <hr class="rule">
 
   <section>
+    <h2>How Tau decides a level</h2>
+    <p>A level is never read from one chat on its own, and never from a single number.</p>
+
+    <figure class="how-fig" aria-label="How Tau decides a level">
+      <div class="how-flow">
+        <div class="how-col">
+          <p class="how-label hb" style="--b:0">Three things, read together</p>
+          <div class="how-tile hb" style="--b:1"><b>The conversation</b><span>What the student asked for, and what they did with each answer.</span></div>
+          <div class="how-tile hb" style="--b:2"><b>The finished work</b><span>What reached it, and whose thinking it carries.</span></div>
+          <div class="how-tile hb" style="--b:3"><b>The assignment</b><span>What was asked for, and whether the way they worked suited it.</span></div>
+        </div>
+        <span class="how-arrow hb" style="--b:4.5" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        <div class="how-col">
+          <p class="how-label hb" style="--b:5.5">Four questions, each asked of all three</p>
+          <div class="how-q">
+            <a class="how-tile how-qcell hb" style="--b:6.2" href="dimensions.html#pq"><b>Did they drive the chat?</b><span>Prompting Quality →</span></a>
+            <a class="how-tile how-qcell hb" style="--b:6.9" href="dimensions.html#oc"><b>Is the thinking theirs?</b><span>Original Contribution →</span></a>
+            <a class="how-tile how-qcell hb" style="--b:7.6" href="dimensions.html#cs"><b>Did they check what they were told?</b><span>Calibrated Skepticism →</span></a>
+            <a class="how-tile how-qcell hb" style="--b:8.3" href="dimensions.html#su"><b>What survived, and why?</b><span>Selective Use →</span></a>
+          </div>
+        </div>
+        <span class="how-arrow hb" style="--b:9.8" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        <div class="how-col">
+          <p class="how-label hb" style="--b:10.8">One level</p>
+          <div class="how-tile how-level hb" style="--b:11.8">
+            <span class="how-dots" aria-hidden="true"><i style="--lv:var(--tau-level-4);width:96%;--k:0"></i><i style="--lv:var(--tau-level-3);width:82%;--k:1"></i><i style="--lv:var(--tau-level-2);width:68%;--k:2"></i><i style="--lv:var(--tau-level-1);width:54%;--k:3"></i></span>
+            <span>Read from the shape of the four answers, what the assignment asked for, and whether the student’s control grew or slipped across the session.</span>
+          </div>
+        </div>
+      </div>
+      <ul class="how-rules">
+        <li class="hb" style="--b:12.8"><b>Never added up</b><span>The four answers are never summed or averaged. A strong reading and a weak one don’t make a middling one.</span></li>
+        <li class="hb" style="--b:13.4"><b>Always shown</b><span>Every reading comes with the moments that support it, quoted, and the one moment that doesn’t.</span></li>
+        <li class="hb" style="--b:14"><b>Not enough here</b><span>When there’s nothing to read, Tau says so, instead of reading it as low.</span></li>
+        <li class="hb" style="--b:14.6"><b>Not a grade</b><span>Quality isn’t on the ladder. Whether the work is any good is the teacher’s call.</span></li>
+      </ul>
+    </figure>
+  </section>
+
+  <hr class="rule">
+
+  <section>
     <h2>Your task may set the ceiling</h2>
     <p>Some assignments cap the level a student can reach, and it is worth knowing which of yours do.</p>
     <p>If you hand students an AI-written argument and ask them to evaluate it, the highest available reading is <strong>reactive</strong> — every contribution is downstream of AI material by design. A student who does that task brilliantly still comes back reactive. That is not them falling short; it is the shape of the task, and a class full of reactive sessions on a task like that is exactly right.</p>
@@ -430,5 +523,21 @@ footer p { max-width: 40rem; }
 </div>
 
 <script src="api.js"></script>
+<script>
+// The figure builds once, when it reaches the reader. Without an observer, or
+// with reduced motion, it is simply there.
+(function () {
+  var fig = document.querySelector('.how-fig');
+  if (!fig || !('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  fig.classList.add('pre');
+  var io = new IntersectionObserver(function (entries) {
+    if (!entries[0].isIntersecting) return;
+    io.disconnect();
+    fig.classList.remove('pre');
+    fig.classList.add('build');
+  }, { threshold: 0.35 });
+  io.observe(fig);
+})();
+</script>
 </body>
 </html>

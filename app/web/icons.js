@@ -108,6 +108,13 @@ const ICONS = {
   checklist:
     '<path d="M10 6.5h9M10 12h9M10 17.5h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'
     + '<path d="M4.5 6.2 6 7.7l2.5-2.8M4.5 11.7 6 13.2l2.5-2.8M4.5 17.2 6 18.7l2.5-2.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+  // grid_view — the report's four readings, which sit in a 2×2 grid. Four
+  // equal squares, not bars: a bar-chart glyph would read as a score.
+  gridView:
+    '<rect x="4" y="4" width="6.5" height="6.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/>'
+    + '<rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/>'
+    + '<rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/>'
+    + '<rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/>',
 };
 
 function iconSVG(name, className = '') {

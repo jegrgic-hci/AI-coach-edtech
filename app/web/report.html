@@ -20,19 +20,17 @@
   <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="Tau" width="391" height="192">Thinking</span>
   <nav class="tau-nav-crumbs" id="navCrumbs"></nav>
   <span class="tau-nav-fill"></span>
-  <!-- Below expanded: the one control that opens the sessions sheet
-       (report-boot.js). At expanded .sheet-toggle hides it — the sessions
-       are on screen beside the report, so there is nothing to open. -->
-  <span class="tau-nav-local sheet-toggle hidden" id="navLocal"></span>
+  <!-- Report / Sessions — the switch between the page's two views
+       (report-boot.js). -->
+  <span class="tau-nav-local hidden" id="navLocal"></span>
   <div class="account-chip" id="accountChip"></div>
   <!-- Appearance lives in the account menu now, on every surface. -->
 </header>
 
-<!-- M3 supporting pane (components.css §19b, designsystem.md Hard Constraints).
-     The report leads; the sessions it was read from support it — beside it at
-     expanded, a bottom sheet below. Replaced the Report/Sessions view swap,
-     which lost the reader's place in the report. -->
-<div class="tpl-supporting report-panes">
+<!-- Two views, one on screen at a time at every width (designsystem.md Hard
+     Constraints, 2026-10-27): the report, and the sessions it was read from.
+     Each keeps its own scroll position across a switch. -->
+<div class="report-views" id="reportViews" data-view="report">
 <main class="pane-main" id="reportMain">
 <div class="results-layout">
   <div id="pending">
@@ -51,29 +49,32 @@
          instead of costing the page a second permanently-visible score. -->
     <nav class="report-jump" id="reportJump" aria-label="Report sections">
       <div class="report-jump-score" id="reportJumpScore"></div>
-      <div class="report-jump-scroll">
-        <button class="report-jump-btn" data-target="summaryPanel"><span class="report-jump-dot"></span>The four readings</button>
-        <button class="report-jump-btn" data-target="tabTurns"><span class="report-jump-dot"></span>Turn by turn</button>
-        <button class="report-jump-btn" data-target="tabIdeas"><span class="report-jump-dot"></span>Whose ideas</button>
-        <button class="report-jump-btn" id="jumpBtnNext" data-target="growthMovesPanel"><span class="report-jump-dot"></span>Next Time</button>
+      <div class="report-jump-track">
+        <span class="report-jump-pill" aria-hidden="true"></span>
+        <button class="report-jump-btn" data-target="summaryPanel" data-icon="gridView"><span class="report-jump-label">The four readings</span><span class="report-jump-short" aria-hidden="true">Readings</span></button>
+        <button class="report-jump-btn" data-target="tabTurns" data-icon="chat"><span class="report-jump-label">Turn by turn</span><span class="report-jump-short" aria-hidden="true">Turns</span></button>
+        <button class="report-jump-btn" data-target="tabIdeas" data-icon="description"><span class="report-jump-label">Whose ideas</span><span class="report-jump-short" aria-hidden="true">Ideas</span></button>
+        <button class="report-jump-btn" id="jumpBtnNext" data-target="growthMovesPanel" data-icon="checklist"><span class="report-jump-label">Next time</span><span class="report-jump-short" aria-hidden="true">Next time</span></button>
       </div>
     </nav>
 
-    <section class="readings report-section" id="summaryPanel">
+    <!-- Sections alternate treatment (designsystem.md, Tonal migration →
+         Decisions 2026-10-27): card, band, open, card, band. -->
+    <section class="readings report-section report-band" id="summaryPanel">
       <span class="report-section-title">The four readings</span>
       <p class="readings-intro">
         Each is read against its own rubric and counted in its own units — parts of the
         conversation, claims, changes, ideas. They are not added up or averaged.
       </p>
-      <div class="dim-cards" id="readingCards"></div>
+      <div class="dim-groups" id="readingCards"></div>
     </section>
 
-    <div class="card card-lg report-section" id="tabTurns">
+    <div class="report-section report-open" id="tabTurns">
       <span class="report-section-title">Your session, turn by turn</span>
       <div id="turnPlot"></div>
     </div>
 
-    <div class="card card-lg report-section" id="tabIdeas">
+    <div class="report-section report-band" id="tabIdeas">
       <span class="report-section-title">Whose ideas ended up in your draft</span>
       <p class="readings-intro">
         Ideas, not sentences. For each idea we could trace back to a moment in your chat, this asks
@@ -82,7 +83,7 @@
       <div id="ideaStrip"></div>
     </div>
 
-    <div class="card card-lg report-section" id="growthMovesPanel">
+    <div class="report-section report-open" id="growthMovesPanel">
       <span class="report-section-title">Try this next time</span>
       <div id="growthMovesContent"></div>
     </div>
@@ -91,17 +92,16 @@
 </main>
 <!-- Static record, not the live AI chat: every session from this draft,
      read-only. -->
-<aside class="pane-side conv-pane" id="conversationView" aria-label="Your sessions">
+<section class="pane-side conv-pane" id="conversationView" aria-label="Your sessions">
   <div class="conv-pane-head">
-    <h2 class="conv-pane-title">Your sessions</h2>
-    <button type="button" class="sheet-close" aria-label="Close sessions"><span id="convCloseIcon"></span></button>
+    <h2 class="conv-pane-title" tabindex="-1">Your sessions</h2>
+    <p class="conv-pane-intro" id="convViewIntro">Loading…</p>
   </div>
-  <p class="conv-pane-intro" id="convViewIntro">Loading…</p>
   <div class="conv-view-body">
     <div class="conv-view-list" id="convViewList"></div>
     <div class="conv-view-transcript" id="convViewTranscript"></div>
   </div>
-</aside>
+</section>
 </div>
 
 

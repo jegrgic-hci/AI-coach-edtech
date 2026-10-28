@@ -1878,10 +1878,10 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    their own multi-hue --tau-level-N: sharing a ramp put Passive and
    "didn't happen" in one colour on side-by-side charts measuring
    different things. See tokens.css. */
-.comp-1 .comp-fill { background: color-mix(in srgb, var(--tau-level-1) 65%, var(--tau-surface)); }
-.comp-2 .comp-fill { background: color-mix(in srgb, var(--tau-level-2) 65%, var(--tau-surface)); }
-.comp-3 .comp-fill { background: color-mix(in srgb, var(--tau-level-3) 65%, var(--tau-surface)); }
-.comp-4 .comp-fill { background: color-mix(in srgb, var(--tau-level-4) 65%, var(--tau-surface)); }
+.comp-1 .comp-fill { background: color-mix(in srgb, var(--tau-level-1) 65%, var(--tau-card)); }
+.comp-2 .comp-fill { background: color-mix(in srgb, var(--tau-level-2) 65%, var(--tau-card)); }
+.comp-3 .comp-fill { background: color-mix(in srgb, var(--tau-level-3) 65%, var(--tau-card)); }
+.comp-4 .comp-fill { background: color-mix(in srgb, var(--tau-level-4) 65%, var(--tau-card)); }
 /* Tabular so four rows read as a column of magnitudes. The unit is
    stated once by the section head; repeating "students" on four rows
    would be noise, which is the one place this departs from the
@@ -2063,7 +2063,7 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 /* The 2px surface gap between stacked segments, per the dataviz skill's
    mark specs. Between segments only — never at an outer end, and never
    at the seam, where the fill butts the axis. */
-.dbar-seg + .dbar-seg { border-left: 2px solid var(--tau-surface); }
+.dbar-seg + .dbar-seg { border-left: 2px solid var(--tau-card); }
 .dbar-seg.s1 { background: var(--tau-scale-1); color: var(--tau-scale-1-ink); }
 .dbar-seg.s2 { background: var(--tau-scale-2); color: var(--tau-scale-2-ink); }
 .dbar-seg.s3 { background: var(--tau-scale-3); color: var(--tau-scale-3-ink); }
@@ -2257,7 +2257,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
    feedback for a row-wide target, and the per-segment tooltip still
    carries the segment-specific reading on hover. */
 .dist-panel {
-  background: var(--tau-surface); border: 1px solid transparent;
+  background: var(--tau-card); border: 1px solid transparent;
   border-radius: var(--tau-r-md); box-shadow: var(--tau-shadow);
 }
 .dist-row { border-bottom: 1px solid var(--tau-line); }
@@ -2426,10 +2426,10 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
   margin: 0; padding: var(--tau-s3) 0;
 }
 
-/* The white card a visualisation sits on, matching .pattern-card's chrome so
-   the chart and the finding cards read as one family. */
+/* The card a visualisation sits on, matching .pattern-card's chrome so the
+   chart and the finding cards read as one family. */
 .viz-card {
-  background: var(--tau-surface); border: 1px solid transparent;
+  background: var(--tau-card); border: 1px solid transparent;
   border-radius: var(--tau-r-md); box-shadow: var(--tau-shadow);
   padding: var(--tau-s4) var(--tau-s5);
 }
@@ -2486,7 +2486,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
    over the card, so a level is one colour on both charts. Change this and
    that mix together. The 1px surface edge is the dataviz ring on
    overlapping marks: where ribbons cross, it keeps them two shapes. */
-.flow-rib { fill-opacity: 0.65; stroke: var(--tau-surface); stroke-width: 1;
+.flow-rib { fill-opacity: 0.65; stroke: var(--tau-card); stroke-width: 1;
             transition: fill-opacity var(--tau-dur-short) var(--tau-ease-standard); }
 /* Highlighting is class-driven, not :hover — the marks that light up are the
    hovered ribbon's students wherever else they appear, which no selector can
@@ -2527,7 +2527,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
  to discover it. Composes .dist-row so the open/closed chrome and the chevron
  rotation are the same component the dimension rows already use. */
 .trend-block { border: 1px solid var(--tau-line); border-radius: var(--tau-r-md);
-             background: var(--tau-surface); box-shadow: var(--tau-shadow); }
+             background: var(--tau-card); box-shadow: var(--tau-shadow); }
 .trend-block > .dist-summary { padding: var(--tau-s4) var(--tau-s5); }
 .trend-cue {
 display: flex; align-items: center; gap: 7px;
@@ -2857,41 +2857,6 @@ min-height: 24px;
   .tpl-supporting > .pane-side { height: 90dvh; }
 }
 
-/* A body class, set only by a workshop report (report-boot.js): the side pane
-   stays a sheet at expanded too, so the chart and the pattern guide have the
-   whole width and the transcript is one button away. The declarations repeat
-   the below-expanded block above rather than share it, because a media query
-   cannot be switched on by a class. Pair with mountSheet({ alwaysSheet }). */
-@media (min-width: 840px) {
-  .sessions-as-sheet .tpl-supporting { grid-template-columns: minmax(0, 1fr); }
-  .sessions-as-sheet .tpl-supporting > .pane-side {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 91;
-    margin: 0 auto; max-width: 640px; height: 78dvh;
-    border-radius: var(--tau-r-dialog) var(--tau-r-dialog) 0 0;
-    box-shadow: var(--tau-shadow-lift);
-    visibility: hidden;
-    transform: translateY(100%);
-    transition: transform var(--tau-dur-medium) var(--tau-ease-accelerate),
-                visibility 0s linear var(--tau-dur-medium);
-  }
-  .sessions-as-sheet .tpl-supporting > .pane-side.open {
-    visibility: visible;
-    transform: none;
-    transition: transform var(--tau-dur-medium) var(--tau-ease-decelerate);
-  }
-  .sessions-as-sheet .sheet-toggle:not(.hidden) { display: flex !important; }
-  .sessions-as-sheet .sheet-handle {
-    display: block; flex-shrink: 0;
-    width: 32px; height: 4px; margin: var(--tau-s3) auto var(--tau-s1);
-    border-radius: 2px; background: var(--tau-line-strong);
-  }
-  .sessions-as-sheet .sheet-close {
-    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-    width: var(--tau-target); height: var(--tau-target);
-    border: none; border-radius: var(--tau-r-pill); background: none; color: var(--tau-ink); cursor: pointer;
-  }
-}
-
 /* The modal layer under a sheet. Same construction as .rail-scrim. */
 .tau-scrim { display: none; }
 .tau-scrim:not([hidden]) {
@@ -2938,6 +2903,13 @@ min-height: 24px;
 
 [data-surface="tonal"] .rail-item.active,
 [data-surface="tonal"] .rail-mini-item.active .rail-mini-pill { background: var(--tau-select); color: var(--tau-on-select); }
+/* The masthead's view switch was white-on-sage with sage TEXT, which the
+   Hard Constraints forbid outright (sage is fill-only). Selection, like the
+   rail's. */
+[data-surface="tonal"] .tau-nav-local-opt.active { background: var(--tau-select); color: var(--tau-on-select); box-shadow: none; }
+/* A trend block is a card: tone is its edge, not a hairline. */
+[data-surface="tonal"] .trend-block { border-color: transparent; }
+
 /* Ink, not forest, on the selection fill: a selected row is chrome, and
    coloured text on a tinted fill is how a level chip is drawn. Weight stays. */
 [data-surface="tonal"] .rail-item.active .rail-item-name,

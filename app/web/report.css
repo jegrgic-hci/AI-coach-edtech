@@ -36,7 +36,23 @@
     }
     @keyframes rspin { to { transform: rotate(360deg); } }
 
-    #results { flex-direction: column; gap: var(--tau-s4); }
+    /* Page-background sections (2026-10-27). With the window to itself the
+       report is a run of full-width strips, white and green alternating, and
+       the strip's background is the section's edge — no card around it. Each
+       strip pads its content into one centred 912px column, so the colour
+       runs edge to edge while the text keeps a measure. Strips touch; the
+       space between sections is their own vertical padding. */
+    #results { flex-direction: column; }
+    #results > * { padding-inline: var(--tau-s4); }
+    #results > .report-section, #samrHero { padding-block: var(--tau-s7); }
+    @container pane (min-width: 600px) {
+      #results > * { padding-inline: max(var(--tau-s6), calc((100% - 912px) / 2)); }
+      #results > .report-section, #samrHero { padding-block: var(--tau-s9); }
+    }
+    .report-hero { display: flex; flex-direction: column; gap: var(--tau-s4); }
+    /* Empty unless the teacher left a note. */
+    #teacherNotePanel:empty { display: none; }
+    #teacherNotePanel { padding-bottom: var(--tau-s6); }
 
     /* ── Hero ──────────────────────────────────────────── */
     /* Layout only. The band chip and the steps bars are components — this
@@ -125,8 +141,10 @@
        foot. Checklist icon replaces the old literal "Next draft:" prefix —
        the card's own eyebrow already says what these are, once, for all of
        them. */
-    .snap-move { display: flex; gap: 10px; align-items: flex-start; }
-    .snap-move + .snap-move { margin-top: var(--tau-s2); }
+    /* Each move is its own card in the Next Time band: row layout over .card's
+       column, and the band's gap spaces them. */
+    .snap-move { flex-direction: row; gap: 10px; align-items: flex-start; padding: var(--tau-s5) var(--tau-s6); }
+    #growthMovesContent { display: flex; flex-direction: column; gap: var(--tau-s4); }
     .snap-move-icon { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; color: var(--tau-forest); }
     .snap-move-text { font-size: var(--tau-text-md); color: var(--tau-ink); line-height: var(--tau-leading-snug); }
 
@@ -231,26 +249,55 @@
        so this scrolls to a section instead of swapping visibility. Sticks
        under the fixed .tau-nav so it's reachable at any scroll depth on a
        report this long. */
+    /* A full-width bar on the page tone, the masthead's second row once it
+       sticks (2026-10-27): a floating green bar vanished against the green
+       bands. Stuck, a hairline separates it from what scrolls under — the
+       masthead's own edge on this page (.tau-nav above). */
     .report-jump {
       position: sticky; top: 0; z-index: 5;
-      display: flex; align-items: stretch; gap: 2px;
-      background: var(--tau-card); border: 1px solid transparent;
-      border-radius: var(--tau-r-lg); padding: 5px;
-      box-shadow: var(--tau-shadow);
+      display: flex; align-items: center; gap: var(--tau-s3);
+      background: var(--tau-page);
+      padding-block: var(--tau-s2);
+      border-bottom: 1px solid transparent;
+      transition: border-color var(--tau-dur-short) var(--tau-ease-standard);
     }
-    .report-jump-scroll { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; }
-    .report-jump-scroll::-webkit-scrollbar { display: none; }
+    .report-jump.is-scrolled { border-bottom-color: var(--tau-line); }
+    /* A segmented pill track, after the tab bar on m3.material.io (2026-10-28,
+       replacing primary tabs and before them small pills): a container-tone
+       track, equal segments of icon and label, and the current one filled
+       edge to edge by ONE pill that slides between them (report-render.js,
+       placePill). The tonal selection construction — --tau-select with ink —
+       so it never reads as a reading.
+       NEVER SCROLLS SIDEWAYS, at any width (designsystem.md, Hard
+       Constraints): the segments share the track, and below 600px each stacks
+       its icon over a short label rather than overflowing. */
+    .report-jump-track {
+      position: relative; flex: 1; min-width: 0;
+      display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+      background: var(--tau-container); border-radius: var(--tau-r-pill);
+    }
+    .report-jump-pill {
+      position: absolute; top: 0; bottom: 0; left: 0;
+      border-radius: var(--tau-r-pill); background: var(--tau-select);
+      opacity: 0;
+      transition: transform var(--tau-dur-medium) var(--tau-ease-decelerate),
+                  opacity var(--tau-dur-short) var(--tau-ease-standard);
+    }
+    .report-jump-pill.is-shown { opacity: 1; }
     .report-jump-btn {
-      display: flex; align-items: center; gap: 7px; flex: 0 0 auto; white-space: nowrap;
-      border: none; background: none; border-radius: var(--tau-r-md);
-      padding: 9px 11px; font: inherit; font-size: var(--tau-text-sm); font-weight: 600;
-      color: var(--tau-ink-faint); cursor: pointer;
+      position: relative; z-index: 1; min-width: 0; min-height: 56px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+      border: none; background: none; border-radius: var(--tau-r-pill); padding: var(--tau-s1);
+      font: inherit; font-size: var(--tau-text-label-md); font-weight: 500;
+      color: var(--tau-ink-soft); cursor: pointer;
       transition: background var(--tau-dur-short) var(--tau-ease-standard), color var(--tau-dur-short) var(--tau-ease-standard);
     }
-    .report-jump-btn:hover { color: var(--tau-ink); background: var(--tau-surface-2); }
-    .report-jump-btn.is-current { color: var(--tau-sage); background: var(--tau-origin-together-bg); }
-    .report-jump-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; background: var(--tau-line-strong); }
-    .report-jump-btn.is-current .report-jump-dot { background: var(--tau-sage); }
+    .report-jump-btn:hover { color: var(--tau-ink); background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
+    .report-jump-btn:focus-visible { outline: var(--tau-focus-ring); outline-offset: -2px; }
+    .report-jump-btn.is-current { color: var(--tau-on-select); font-weight: 600; }
+    .report-jump-icon { width: 20px; height: 20px; flex-shrink: 0; }
+    .report-jump-label { display: none; }
+    .report-jump-short { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
     /* Mini score — the hero's two headline facts (total, verdict) re-said at
        a fraction of the height once the hero itself scrolls out of view.
@@ -280,14 +327,23 @@
     /* Asks its PANE (designsystem.md, Hard Constraints): report.css loads on
        report.html only, and everything it styles sits in .pane-main. Compact-
        first — the narrow form is the base. */
-    @container pane (min-width: 640px) {
-      .report-jump-btn { flex: 1; padding: 9px 13px; }
+    /* Below 600 the mini level leaves the bar: four segments need the width,
+       and the hero it repeats is one scroll up. */
+    @container pane (max-width: 599px) { .report-jump-score { display: none; } }
+    /* Icon beside the full name only where all four fit whole beside the mini
+       level; a truncated section name is worse than a stacked one. */
+    @container pane (min-width: 600px) {
+      .report-jump-short { display: none; }
+      .report-jump-label { display: inline; white-space: nowrap; }
+    }
+    @container pane (min-width: 1000px) {
+      .report-jump-btn { flex-direction: row; gap: var(--tau-s2); font-size: var(--tau-text-md); padding-inline: var(--tau-s3); }
     }
 
     /* ── Report sections ────────────────────────────────────── */
     /* Each former tab is now its own top-level card; scroll-margin-top clears
        the sticky jump nav so a jumped-to section doesn't land underneath it.
-       All five share .card-lg (not plain .card) specifically so the title
+       Every section shares one strip geometry (#results > *) specifically so the title
        sits at the same padding-top in every section — Overview and Next
        Time used to sit on plain .card's 16px top padding while the other
        three sat on .card-lg's 20px, which is the "inconsistent position"
@@ -329,24 +385,37 @@
       border-radius: var(--tau-r-sm); padding: 12px 16px;
     }
 
-    /* ── Sessions: the supporting pane ─────────────────────────────
-       A record, not the live AI chat. The pane is the template's (components.css
-       §19b) — a column beside the report at expanded, a bottom sheet below.
-       Inside it the session list sits above the transcript, each scrolling on
-       its own, since a long list and a long transcript grow at unrelated rates.
-       Stacked rather than side by side: at 380px two columns would leave the
-       transcript ~140px. */
-    .report-panes > .conv-pane { overflow: hidden; }
-    .conv-pane-head {
-      flex: none; display: flex; align-items: center; gap: var(--tau-s2);
-      padding: var(--tau-s4) var(--tau-s3) var(--tau-s1) var(--tau-s5);
+    /* ── Two views: the report, and its sessions ──────────────────
+       One on screen at a time at every width, switched from the masthead
+       (report-boot.js). Replaced the supporting pane (2026-10-27): a student
+       rarely reads their own sessions unprompted — the turn plot quotes the
+       moments worth reading — so a standing transcript cost the report a third
+       of the screen for something mostly unread. */
+    .report-views { flex: 1; min-height: 0; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
+    .report-views > .pane-main { overflow-y: auto; }
+    .report-views[data-view="report"] > .conv-pane,
+    .report-views[data-view="sessions"] > .pane-main { display: none; }
+
+    /* Sessions: a record, not the live AI chat. The list and the transcript
+       each scroll on their own, since a long list and a long transcript grow at
+       unrelated rates — stacked in a narrow pane, side by side in a wide one. */
+    .conv-pane {
+      display: flex; flex-direction: column; gap: var(--tau-s4); min-height: 0;
+      width: 100%; max-width: 1100px; margin: 0 auto; padding: var(--tau-s6) 24px;
     }
-    .conv-pane-title { flex: 1; margin: 0; font: var(--tau-type-title-md); letter-spacing: var(--tau-track-title); }
-    .conv-pane-intro { flex: none; margin: 0; padding: 0 var(--tau-s5) var(--tau-s3); font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+    .conv-pane-head { flex: none; display: flex; flex-direction: column; gap: var(--tau-s1); padding: 0 var(--tau-s1); }
+    .conv-pane-title { margin: 0; font: var(--tau-type-title-lg); letter-spacing: var(--tau-track-title); }
+    .conv-pane-title:focus { outline: none; }
+    .conv-pane-intro { margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
     .conv-view-body {
       flex: 1; min-height: 0;
       display: flex; flex-direction: column;
-      border-top: 1px solid var(--tau-line);
+      background: var(--tau-card); border-radius: var(--tau-r-xl); overflow: hidden;
+    }
+    @container pane (min-width: 720px) {
+      .conv-view-body { flex-direction: row; }
+      .conv-view-body > .conv-view-list { flex: 0 0 260px; max-height: none; border-bottom: none; padding: var(--tau-s3); }
+      .conv-view-body > .conv-view-transcript { padding: var(--tau-s6) var(--tau-s7); }
     }
     .conv-view-list {
       flex: none; max-height: 40%; overflow-y: auto; padding: var(--tau-s2) var(--tau-s3);
@@ -739,7 +808,9 @@
 
     .results-layout {
       display: flex; flex-direction: column; gap: 16px;
-      padding: 16px 24px; max-width: 1400px; margin: 0 auto;
+      /* Full width: the sections below run their colour edge to edge and
+         centre their own content (#results > *). */
+      padding: 0 0 var(--tau-s9);
     }
 
     /* The SAMR hero is gone: a 30px SAMR headline broke "SAMR is a subtitle,
@@ -773,7 +844,7 @@
     .dim-cards {
       display: grid;
       grid-template-columns: 1fr;
-      gap: var(--tau-s4);
+      gap: var(--tau-s5);
       align-items: start;
     }
     .dim-card { display: block; padding: 0; cursor: pointer; }
@@ -793,10 +864,10 @@
     .dim-card.is-source { opacity: 0; }
 
     .dim-card-head {
-      padding: var(--tau-s5);
+      padding: var(--tau-s6);
       display: flex;
       flex-direction: column;
-      gap: var(--tau-s3);
+      gap: var(--tau-s4);
     }
     /* Present in the DOM as the surface's source content, never rendered in
        the grid — the card shows the reading, the transform shows the evidence. */
@@ -909,6 +980,13 @@
       color: var(--tau-ink-faint);
       max-width: 72ch;
     }
+
+    /* The two groups (renderReadings): where each pair was read. Titled at
+       title-medium — "a group of cards on a page" (Hard Constraints, type
+       roles) — so the label outranks the eyebrow naming each card inside it. */
+    .dim-groups { display: flex; flex-direction: column; gap: var(--tau-s7); }
+    .dim-group { display: flex; flex-direction: column; gap: var(--tau-s3); }
+    .dim-group-label { font: var(--tau-type-title-md); letter-spacing: var(--tau-track-title); color: var(--tau-ink); }
 
     /* Two up when the pane holds ~340px a card — the feed-pair threshold. */
     @container pane (min-width: 720px) {
@@ -1061,11 +1139,14 @@
     .level-def {
       margin: 0;
       max-width: 60ch;
-      font-size: var(--tau-text-2xl);
-      line-height: 1.3;
+      /* A headline role since 2026-10-27 (was text-2xl, 24px): the one sentence
+         a student most needs is the page's expressive type moment. */
+      font: var(--tau-type-headline-md);
+      letter-spacing: var(--tau-track-headline);
       color: var(--tau-ink);
       text-wrap: pretty;
     }
+    @container pane (min-width: 720px) { .level-def { font: var(--tau-type-headline-lg); } }
 
     /* The description and the counterexample side by side. Stacked in one
        column they left the panel's right half empty and made the counterexample
@@ -1298,6 +1379,13 @@
        in this chat is marked by its "In your chat" line AND a recessed fill —
        neutral, never a tier colour, because a found low-agency pattern is not
        an alert and a found high-agency one is not a prize. */
+    /* A long AI reply in an exchange opens at three lines (session-view.js clampReply). */
+    .div-ai-text.is-clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .reply-more { margin-top: var(--tau-s1); font-size: var(--tau-text-sm); }
+
+    .pguide-part { margin-top: var(--tau-s6); }
+    .pguide-part-title { margin: 0; font: var(--tau-type-title-md); letter-spacing: var(--tau-track-title); color: var(--tau-ink); }
+    .pguide-part .pguide-group:first-of-type { margin-top: var(--tau-s3); }
     .pguide-group { display: flex; flex-direction: column; gap: var(--tau-s2); margin-top: var(--tau-s5); }
     .pguide-title { margin: 0; font: var(--tau-type-title-sm); letter-spacing: var(--tau-track-title); color: var(--tau-ink); }
     .pguide-intro { margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
@@ -1570,9 +1658,9 @@
 
     /* The section wrapper for the four readings, and the one-line statement
        of what a reading is. */
-    .readings { display: flex; flex-direction: column; gap: var(--tau-s3); }
+    .readings { display: flex; flex-direction: column; gap: var(--tau-s4); }
     .readings-intro {
-      margin: 0 0 var(--tau-s2); font-size: var(--tau-text-md);
+      margin: 0 0 var(--tau-s3); font-size: var(--tau-text-md);
       color: var(--tau-ink-soft); max-width: 72ch;
     }
 
@@ -1587,3 +1675,88 @@
        with a shadow, and the turn detail is a well, edged by tone. */
     [data-surface="tonal"] .conv-view-item.active { background: var(--tau-select); color: var(--tau-on-select); box-shadow: none; }
     [data-surface="tonal"] .turnplot-detail { border-color: transparent; }
+    /* An open panel is white on tonal, and edged by that tone alone; the run
+       tray is a sheet, which keeps its lift. */
+    [data-surface="tonal"] .provstrip-evidence { border-color: transparent; }
+    [data-surface="tonal"] .div-pat-sidebar { border-left-color: transparent; }
+
+    /* Section rhythm (designsystem.md, Tonal migration → Decisions 2026-10-27):
+       white page and green band alternate — hero, Turn by turn and Next Time
+       on the page; the four readings and Whose ideas on a band. The strip
+       geometry is #results > * above. The reading cards on a band take white;
+       set on the cards, never the band, which would recolour the band — and
+       not on Whose ideas, whose chart is drawn on the band itself. */
+    .report-band, .report-open { display: flex; flex-direction: column; gap: var(--tau-s4); }
+    .report-band { background: var(--tau-container); }
+    .report-band .dim-cards > * { --tau-card: var(--tau-container-lowest); }
+
+    /* Draw-in — mountDrawIn() in report-render.js (designsystem.md, Motion).
+       Marks are hidden only while a section is "pending": the script has run
+       and is waiting for it to scroll into view. A report the script never
+       reaches, or a printout, shows everything. Keyframes with a backwards
+       fill rather than transitions, so a mark's own transitions (selection
+       dimming) are untouched once the draw has played. */
+    [data-drawn="pending"] :is(i.on, .provstrip-seg, .tp-turn rect, .tp-ai) { opacity: 0; }
+    [data-drawn="in"] :is(i.on, .provstrip-seg) {
+      transform-origin: left center;
+      animation: tau-draw-x var(--tau-dur-long) var(--tau-ease-decelerate) var(--draw-delay, 0ms) backwards;
+    }
+    [data-drawn="in"] .tp-turn rect {
+      transform-box: fill-box; transform-origin: center;
+      animation: tau-draw-pop var(--tau-dur-medium) var(--tau-ease-decelerate) var(--draw-delay, 0ms) backwards;
+    }
+    /* The diamond carries its rotation as an attribute, which a CSS transform
+       would replace — so it fades and does not scale. */
+    [data-drawn="in"] .tp-ai {
+      animation: tau-draw-fade var(--tau-dur-medium) var(--tau-ease-decelerate) var(--draw-delay, 0ms) backwards;
+    }
+    /* The hero: the statement enters FROM the level it states. The names rise,
+       then the panel grows out of the marked one's side — sideways where they
+       sit side by side, down where the panel stacks under them — and only then
+       does its text rise inside it. One sequence for every level. */
+    .level-block[data-drawn="pending"] :is(.level-name, .level-statement) { opacity: 0; }
+    .level-block[data-drawn="in"] .level-name {
+      animation: tau-draw-rise var(--tau-dur-medium) var(--tau-ease-decelerate) backwards;
+    }
+    .level-block[data-drawn="in"] .level-name:nth-child(2) { animation-delay: 50ms; }
+    .level-block[data-drawn="in"] .level-name:nth-child(3) { animation-delay: 100ms; }
+    .level-block[data-drawn="in"] .level-name:nth-child(4) { animation-delay: 150ms; }
+    .level-block[data-drawn="in"] .level-statement {
+      transform-origin: top center;
+      animation: tau-grow-y var(--tau-dur-long) var(--tau-ease-decelerate) 250ms backwards;
+    }
+    .level-block[data-drawn="in"] .level-statement > * {
+      animation: tau-draw-rise var(--tau-dur-medium) var(--tau-ease-decelerate) 600ms backwards;
+    }
+    .level-block[data-drawn="in"] .level-statement > :nth-child(2) { animation-delay: 720ms; }
+    /* The same threshold .level-block puts the panel beside the names at. */
+    @container pane (min-width: 640px) {
+      .level-block[data-drawn="in"] .level-statement { transform-origin: left center; animation-name: tau-grow-x; }
+    }
+    /* A reading group: label, then both cards together, then both meters side
+       by side (--draw-delay per pip), then each sentence comes DOWN out of its
+       meter (--draw-after per card, report-render.js). */
+    .dim-group[data-drawn="pending"] :is(.dim-group-label, .dim-card) { opacity: 0; }
+    .dim-group[data-drawn="in"] .dim-group-label {
+      animation: tau-draw-rise var(--tau-dur-medium) var(--tau-ease-decelerate) backwards;
+    }
+    .dim-group[data-drawn="in"] .dim-card {
+      animation: tau-draw-rise var(--tau-dur-medium) var(--tau-ease-decelerate) 160ms backwards;
+    }
+    .dim-group[data-drawn="in"] .dim-quad-callout {
+      animation: tau-draw-drop var(--tau-dur-medium) var(--tau-ease-decelerate) var(--draw-after, 0ms) backwards;
+    }
+    .dim-group[data-drawn="in"] .dim-card-more {
+      animation: tau-draw-fade var(--tau-dur-medium) var(--tau-ease-decelerate) calc(var(--draw-after, 0ms) + 90ms) backwards;
+    }
+    @keyframes tau-draw-drop { from { opacity: 0; transform: translateY(-8px); } }
+    @keyframes tau-grow-x    { from { opacity: 0; transform: scaleX(0.15); } }
+    @keyframes tau-grow-y    { from { opacity: 0; transform: scaleY(0.15); } }
+    @keyframes tau-draw-rise { from { opacity: 0; transform: translateY(8px); } }
+    @keyframes tau-draw-x    { from { opacity: 0; transform: scaleX(0); } }
+    @keyframes tau-draw-pop  { from { opacity: 0; transform: scale(0.4); } }
+    @keyframes tau-draw-fade { from { opacity: 0; } }
+    /* The global reduced-motion rule shortens durations but not delays, which
+       would leave marks appearing one by one with no motion between. */
+    @media (prefers-reduced-motion: reduce) { [data-drawn] * { animation: none !important; } }
+    @media print { [data-drawn="pending"] * { opacity: 1 !important; } }

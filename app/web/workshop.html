@@ -68,16 +68,29 @@
   .ws-error { font-size: var(--tau-text-sm); color: var(--tau-attention); margin: 0; }
 
   /* The join screen. Made for a projector across a room: the address and the
-     code are the only things on it that matter, so they are the largest. */
+     code are the only things on it that matter, so they are the largest.
+     The brand is join.html's hero, so the screen and the page a guest opens on
+     their phone read as the same place. Above the door rather than beside it:
+     beside it, half the width wrapped the address onto two lines. Its rules are
+     copied from style.css's .login-hero rather than loading style.css, which
+     would restyle the rest of this page. */
   .join-screen {
-    min-height: 100vh; padding: var(--tau-s7) var(--tau-s6); position: relative;
+    min-height: 100vh; position: relative; padding: var(--tau-s8) var(--tau-s6);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: var(--tau-s7); text-align: center; background: var(--tau-surface);
+    gap: var(--tau-s8); text-align: center; background: var(--tau-surface);
   }
+  .join-screen-brand, .join-screen-main {
+    width: 100%; display: flex; flex-direction: column; align-items: center;
+  }
+  .join-screen-brand { gap: var(--tau-s3); }
+  .join-screen-brand img { height: 64px; width: auto; }
+  .join-screen-brand-title { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; }
+  .join-screen-brand-sub { margin: 0; font-size: clamp(15px, 1.4vw, 18px); color: var(--tau-ink-soft); max-width: 48ch; text-wrap: balance; }
+  .join-screen-main { gap: var(--tau-s7); }
   .join-screen-back { position: absolute; top: var(--tau-s4); left: var(--tau-s5);
                       font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink-soft); text-decoration: none; }
   .join-screen-back:hover { text-decoration: underline; }
-  .join-screen-name { margin: 0; font-size: var(--tau-text-xl); font-weight: 700; color: var(--tau-forest); }
+  .join-screen-eyebrow { margin: 0; font-size: var(--tau-text-xl); font-weight: 700; color: var(--tau-forest); }
   .join-screen h1 { margin: var(--tau-s2) 0 0; font-size: clamp(2.25rem, 5vw, 3.5rem); line-height: 1.1; letter-spacing: -0.02em; }
   .join-screen-door { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: var(--tau-s6);
                       width: 100%; max-width: 64rem; }
@@ -153,15 +166,22 @@
 
 <section class="join-screen hidden" id="joinScreen" aria-live="polite">
   <a class="join-screen-back" href="workshop.html">Back to workshops</a>
-  <div>
-    <p class="join-screen-name" id="jsName"></p>
-    <h1>Join the workshop</h1>
+  <div class="join-screen-brand">
+    <img src="assets/logo-mark.png" alt="Tau" width="391" height="192">
+    <p class="join-screen-brand-title">Develop your thinking.</p>
+    <p class="join-screen-brand-sub">A short conversation with an AI, then a picture of how it went.</p>
   </div>
-  <div class="join-screen-door">
-    <div><span>Go to</span><strong id="jsAddress"></strong></div>
-    <div><span>Enter your name and the code</span><strong class="join-screen-code" id="jsCode"></strong></div>
+  <div class="join-screen-main">
+    <div>
+      <p class="join-screen-eyebrow">Join the workshop</p>
+      <h1 id="jsName"></h1>
+    </div>
+    <div class="join-screen-door">
+      <div><span>Go to</span><strong id="jsAddress"></strong></div>
+      <div><span>Enter your name and the code</span><strong class="join-screen-code" id="jsCode"></strong></div>
+    </div>
+    <p class="join-screen-count"><strong id="jsCount">0</strong><span id="jsCountLabel">people have joined</span></p>
   </div>
-  <p class="join-screen-count"><strong id="jsCount">0</strong><span id="jsCountLabel">people have joined</span></p>
 </section>
 
 <!-- Irreversible, so the shared confirm dialog, naming every consequence. -->
@@ -402,7 +422,7 @@
     var w = data.workshops.find(function (x) { return x.id === presenting; });
     if (!w) { location.replace('workshop.html'); return; }
     document.title = w.name + ' — join';
-    $('jsName').textContent = 'Tau Thinking · ' + w.name;
+    $('jsName').textContent = w.name;
     $('jsAddress').textContent = JOIN_ADDRESS;
     $('jsCode').textContent = spaced(w.code);
     var n = w.people.length;

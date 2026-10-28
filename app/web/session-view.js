@@ -67,13 +67,33 @@
   // never compete for weight. Three channels — side, fill, and the label above
   // — so it survives greyscale and a reader who never notices colour.
 
-  function aiBubble(text, isOrigin) {
+  function aiBubble(text, isOrigin, clamp) {
     var side = el('div', 'div-ai-side' + (isOrigin ? ' is-origin' : ''));
     var row = el('div', 'div-ai-row');
     row.appendChild(el('span', 'div-role-tag', isOrigin ? 'AI · where it appears' : 'AI'));
     side.appendChild(row);
-    side.appendChild(el('div', 'div-ai-text', text));
+    var body = el('div', 'div-ai-text', text);
+    side.appendChild(body);
+    if (clamp) clampReply(side, body, text);
     return side;
+  }
+
+  // In an exchange the student's turn is the point and the AI's reply is the
+  // context for it, so a long reply opens at three lines. Never in an origin
+  // pair, where the idea being traced may sit anywhere in the reply.
+  var CLAMP_CHARS = 240;
+  function clampReply(parent, body, text) {
+    if (!text || text.length <= CLAMP_CHARS) return;
+    body.classList.add('is-clamped');
+    var more = el('button', 'link-btn reply-more', 'Show the whole reply');
+    more.type = 'button';
+    more.setAttribute('aria-expanded', 'false');
+    more.onclick = function () {
+      var open = body.classList.toggle('is-clamped') === false;
+      more.textContent = open ? 'Show less' : 'Show the whole reply';
+      more.setAttribute('aria-expanded', String(open));
+    };
+    parent.appendChild(more);
   }
 
   function studentBubble(turn, n, isOrigin) {
@@ -111,7 +131,7 @@
 
       var block = el('div');
       var before = ctx.ai.before[n - 1];
-      if (before) block.appendChild(aiBubble(before, false));
+      if (before) block.appendChild(aiBubble(before, false, true));
       block.appendChild(studentBubble(turn, n, false));
       container.appendChild(block);
     });
@@ -142,6 +162,24 @@
     extraction: 1, validation: 1, stuck: 1
   };
   var TIER_NAME = { 4: 'High agency', 3: 'Student-led', 2: 'Shared', 1: 'Low agency' };
+  // Plain-language versions of the classifier's definitions (analysis.js CLASSIFY_PROMPT);
+  // kept in step with workshop-room.js.
+  var LABEL_MEANING = {
+    claim: 'stated their own position',
+    conceptual: 'asked how or why something works, to understand it',
+    extraction: 'asked the AI to write or do the work',
+    validation: 'agreed with or approved what the AI gave',
+    stuck: 'said they were confused or asked for help',
+    feedback: 'asked the AI to review their work',
+    narrative: 'gave background or context',
+    rejection: 'disagreed with something the AI said',
+    refinement: 'kept the AI’s answer but narrowed or redirected it',
+    challenge: 'asked the AI for its evidence or reasoning',
+    pivot: 'moved to a new topic'
+  };
+  function readAs(label) {
+    return 'Read as ' + label + (LABEL_MEANING[label] ? ': ' + LABEL_MEANING[label] : '') + '.';
+  }
 
   // A claim disputed with no reason given — the student's half of the
   // AI-caved exchange, shown as a teaching note on the turn, never as a lower
@@ -242,6 +280,36 @@
         'Pick any turn to read what you said there, and how it was read.'));
     }
 
+    // opts.grow (the student report only): the detail grows out of the mark
+    // that was picked — starting at its position, size and colour — so the
+    // words read as coming from that turn rather than appearing beside it
+    // (designsystem.md, Motion). Feedback, not an entrance, so it plays on
+    // every pick. WAAPI is not reached by the global reduced-motion rule, so
+    // that preference is checked here.
+    function growFrom(node) {
+      if (!opts.grow || !detail.animate) return;
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      var a = node.getBoundingClientRect();
+      var b = detail.getBoundingClientRect();
+      if (!b.width || !b.height) return;
+      detail.getAnimations().forEach(function (x) { x.cancel(); });
+      var mark = node.querySelector('rect');
+      var start = {
+        transformOrigin: '0 0',
+        transform: 'translate(' + (a.left - b.left) + 'px, ' + (a.top - b.top) + 'px) ' +
+                   'scale(' + (a.width / b.width) + ', ' + (a.height / b.height) + ')'
+      };
+      if (mark) start.backgroundColor = getComputedStyle(mark).fill;
+      var root = getComputedStyle(document.documentElement);
+      var ease = root.getPropertyValue('--tau-ease-decelerate').trim() || 'ease-out';
+      detail.animate([start, { transformOrigin: '0 0', transform: 'none' }],
+        { duration: parseFloat(root.getPropertyValue('--tau-dur-long')) || 500, easing: ease });
+      Array.prototype.forEach.call(detail.children, function (child) {
+        child.animate([{ opacity: 0 }, { opacity: 1 }],
+          { duration: parseFloat(root.getPropertyValue('--tau-dur-medium')) || 300, delay: 220, fill: 'backwards', easing: ease });
+      });
+    }
+
     function clearOpen() {
       var open = svg.querySelectorAll('.is-open');
       for (var i = 0; i < open.length; i++) open[i].classList.remove('is-open');
@@ -273,8 +341,8 @@
       band.appendChild(document.createTextNode(TIER_NAME[t.tier]));
       reading.appendChild(band);
       reading.appendChild(el('p', 'turnplot-detail-note',
-        inRun ? 'Read as ' + t.label + '. Part of the ' + inRun.name + '.'
-              : 'Read as ' + t.label + '.'));
+        inRun ? readAs(t.label) + ' Part of the ' + inRun.name + '.'
+              : readAs(t.label)));
       detail.appendChild(reading);
 
       if (t.unreasoned) {
@@ -282,6 +350,7 @@
           'You disputed a claim here without saying why. Giving a reason is how you find out ' +
           'whether the AI changes its answer because of your point, or just because you pushed.'));
       }
+      growFrom(node);
     }
 
     function showAI(m, node) {
@@ -312,6 +381,7 @@
         'You disagreed without giving a reason, and it changed its answer anyway. Disagreement ' +
         'alone moved it — which says nothing about whether its first answer was right.'));
       detail.appendChild(reading);
+      growFrom(node);
     }
 
     var trayOpener = null;

@@ -382,6 +382,12 @@ not licence to improvise — say so and ask, don't invent.**
 - **At phone width the page never scrolls sideways.** A wide *object* may scroll inside its own card
   (a flow, a conversation map — see *Conversation map encoding*); the document never does. A row
   that does not fit **reflows** (the name above its readings), it does not scroll.
+- **Tabs never scroll sideways, at any width — not on a phone either.** Added 2026-10-28 by the
+  product owner. A set of tabs is a choice the reader has to see whole; a scrolling row hides some of
+  the options and makes the reader hunt for the current one. Where the labels don't fit, the
+  segments share the width and **stack an icon over a shorter label**, with the full name kept as the
+  accessible name — never overflow, and never a truncated name. The report's jump nav is the first
+  instance (*Tonal migration → Decisions*, 2026-10-28).
 - **A table is not a wide object: it never scrolls sideways, inside its card or anywhere.** Added
   2026-09-29. Below the width its columns need, a `table.roster` renders as **M3 list items** —
   headline, supporting text, trailing content — with each cell placed in the slot that already says
@@ -427,20 +433,20 @@ not licence to improvise — say so and ask, don't invent.**
   the list is shown instead when no conversation is open, since then it is the only thing to act on.
   **Submit draft is a required action and is visible from both panes** — in the conversation's header
   and at the list's foot — never behind a step.
-- **The report is supporting-pane: the report leads, the sessions it was read from support it.**
-  Added 2026-09-29. *Expanded*: side by side, each scrolling on its own, and the Report / Sessions
-  toggle is retired there because nothing is hidden for it to switch. *Medium and compact*: the
-  sessions open as an **M3 modal bottom sheet** over the report (capped at 640px wide), so the reader
-  keeps their place — a whole-view swap lost it. The opener is the one button in the masthead's local
-  slot ("Sessions"), since it must be reachable while the report is still being read. *(Not built:
-  opening the sheet at a turn chosen in the report. The turn plot's classified turns carry no
-  conversation id to find it by, and the plot already shows the chosen turn's words in its own
-  detail panel.)*
-  **One stated exception, 2026-10-15: a workshop report keeps the sessions a sheet at expanded too**
-  (`body.sessions-as-sheet`, `mountSheet({ alwaysSheet })`), at the product owner's request. It is
-  plot-only (no readings, no level), read by adults who have just finished the conversation, and its
-  job is the chart and the pattern guide. A standing transcript beside them competed with both. The
-  "Sessions" button in the masthead opens it. The ordinary report is unchanged.
+- **The report and its sessions are two views, one on screen at a time, at every width.** Revised
+  2026-10-27 (was supporting-pane, 2026-09-29: sessions beside the report at expanded, a bottom sheet
+  below). A student rarely reads their own sessions unprompted — **the turn plot is what points them
+  at specifics**, quoting the chosen turn's words in its detail panel — so a standing transcript cost
+  the report a third of the screen for something mostly unread, and the sheet treated a destination
+  as an overlay. The switch is **Report / Sessions in the masthead's local slot** (`.tau-nav-local`,
+  a destination switch). **Each view keeps its own scroll position** across a switch — losing the
+  reader's place is what retired the first swap, and restoring it is the condition this rests on.
+  The view is in the URL (`#sessions`), so Back returns to the report. With the window to itself the
+  report takes a **960px measure**, centred; the sessions view puts the list beside the transcript
+  in one container once its pane reaches 720px, stacked below that. **One layout for every report**:
+  the workshop's sheet-at-expanded exception (2026-10-15) is gone, since two views already keep the
+  transcript away from its chart and pattern guide. *(Still not built: opening the sessions at a turn
+  chosen in the report — the turn plot's classified turns carry no conversation id.)*
 - **Workshop surfaces are tonal — a stated exception, 2026-10-20.** `workshop-room.html` (the
   facilitator's presented results) uses an **M3 tonal surface ramp built from the forest hue**, and
   so **inverts "raised is lighter" on purpose**: the page is the lightest tone (`#F5F9F6`), cards sit
@@ -463,9 +469,14 @@ not licence to improvise — say so and ask, don't invent.**
   page.** Supersedes the workshop bullet's "scope is the workshop only" for every page that has
   moved. A page opts in with `data-surface="tonal"` on `<html>`; `tokens.css` (*TONAL SCOPE*)
   re-points ground, card, wells and resting shadow under it, and `components.css` §20 holds the
-  component forms that differ. **Moved so far:** the marketing site (its own repo), the student
-  home and workspace (`index.html`), and `report.html` (which teachers also open). **On a tonal
-  page these rules replace the ones above:** the page and rail are the lightest tone and a card
+  component forms that differ. **Which pages have moved, the decisions behind these values, and
+  what's open: *Implementation plan → Tonal migration*.** **Every card-like block reads `--tau-card`**, never
+  `--tau-surface`, and so do the chart seams and the 65% level mixes that were drawn to match the
+  card under them; a container whose children are cards (`.home-band`, `.overview-card`,
+  `.tl-card`) hands them white by setting `--tau-card` on its children, never on itself. **On a tonal
+  page these rules replace the ones above:** the page and rail are the lightest tone
+  (`#FAFCFB`, 2026-10-27: the forest hue made light enough to read as white, CIE whiteness 96
+  against the workshop's mint `#F5F9F6` at 89, so the green cards are the coloured surface) and a card
   sits ONE STEP OFF ITS GROUND (`--tau-card`: the container on the page, white on a container);
   surfaces separate by tone, never resting shadow or outline; **selection is `--tau-select`**
   (its own token, not a seventh forest job) — **greyer than any measurement green, with ink
@@ -473,15 +484,8 @@ not licence to improvise — say so and ask, don't invent.**
   pale green is how a level chip is drawn, so chrome never uses that construction;
   `--tau-ink-faint` is `#5C6166` there and may carry
   text on the shell; menus, sheets and dialogs keep `--tau-shadow-lift`. **Unchanged:** every
-  measurement ramp, the semantic and voice colours, fonts. **Not yet tonal:** `dashboard.html`,
-  `admin.html`, the guide pages, sign-in. Until they move, the Hard Constraints above still bind
-  them. When the last page moves, the scope values become the defaults and the attribute goes.
-  **OPEN — the level chips fade on tonal cards.** `--tau-band-N-bg` was tuned as a pale tint for
-  white cards; on the forest container the Transformative chip is ΔE 1.4 from the card (the
-  other three 1.8–2.4), so the reading looks like part of the surface. Deferred 2026-10-26 as a
-  measurement-colour decision, not a palette one. Explored: all four chips one step deeper in the
-  tonal scope only (L 0.89, C 0.06, panel kept pale) — clear of the card, but Passive and
-  Reactive read loud; option A″ in https://claude.ai/artifact/PLBgi61fJUxwme9CDUvpkd (private).
+  measurement ramp, the semantic and voice colours, fonts. **A page not yet tonal is still bound
+  by the Hard Constraints above.**
 - **Motion:** `transform`/`opacity` only for movement, never `top`/`left`/`width`/`height`.
   `--tau-dur-short` + `-standard` easing for state changes (hover/press/toggle); `--tau-dur-medium`
   + `-decelerate`/`-accelerate` for anything that moves or resizes.
@@ -1051,7 +1055,8 @@ something faster than it.
 
 We take two rungs of M3's four-tier ladder (`short`, `medium`, `long`, `extra-long`) — `short` and
 `medium` — because this system has no large-surface or expressive transitions (page transforms,
-shared-element hero motion) for `long`/`extra-long` to serve. An unused rung is just a third value
+shared-element hero motion) for `long`/`extra-long` to serve. *(Since 2026-10-27 the report's draw-in uses
+`long2`; see the expressive block below the rules.)* An unused rung is just a third value
 someone reaches for out of habit later.
 
 | Token | Value | M3 source | Use for |
@@ -1079,6 +1084,53 @@ single-property use M3's own CSS token guidance recommends.
 - `prefers-reduced-motion` is already enforced globally (baseline block, `tokens.css`) — collapses
   every `transition`/`animation` to near-zero. New motion never needs its own reduced-motion
   override; the blanket rule already covers it.
+
+**Expressive motion on the report — added 2026-10-27**, the first outside the workshop, after the
+product owner asked for M3 Expressive's feel "without being a distraction". Two pieces, and the
+rules that keep them from becoming decoration:
+- **A headline role** (`--tau-type-headline-md` 26px / `-lg` 32px, 500, `tokens.css`) for the report
+  hero's level sentence — the one line a student most needs. Not a title role: it is a statement
+  read as a sentence, so it takes 500, not 700.
+- **Draw-in** (`mountDrawIn()`, `report-render.js`; CSS in `report.css`): each chart draws its marks
+  once, the first time **the chart itself** is on screen — 60% of it above a line a quarter of the
+  way up from the bottom (per chart, not per section: a section trigger played the draw while the
+  chart was still below the fold) — **in the order the marks already mean** — a
+  meter fills left to right, the turn plot appears in turn order, the idea strip sweeps in draft
+  order. Staggered across `--tau-dur-long` (500ms, M3 `long2`, added for this) whatever the mark
+  count. Marks are hidden only once the script has marked a section pending, so a report the
+  script never reaches, or a printout, shows everything. **This rung is not for interaction
+  feedback**, which stays on short/medium.
+- **Never by level.** The motion is identical for every reading; a high level arriving with more
+  flourish than a low one grades the student through motion (*Semantic colour never touches a
+  student's own score*, applied to time).
+- **Never a figure counting up** (a "4/4" ticking up reads as a score tallied), **never a loop,
+  parallax, or a replay on every scroll pass.**
+- **Reduced motion turns it off entirely**, not just shorter: the blanket rule shortens durations
+  but not delays, which would leave marks popping in one by one. `report.css` sets `animation:
+  none` under it.
+- **A derived piece enters from what it derives from** — its position and direction, never from
+  nowhere (after vraifrench.com's hero, where the score builds inside the exercise card and the
+  detail tiles rise out beside it). Two places, both 2026-10-27: **the hero's statement panel grows
+  out of the marked level** (sideways from the chip where they sit side by side, down where it
+  stacks; its text rises only once the panel has landed — `.level-block`, `report.css`), and **the
+  turn plot's detail grows out of the picked mark**, starting at that mark's position, size and
+  colour (`growFrom()`, `session-view.js`, opt-in via `opts.grow` so the teacher's view is
+  unchanged). The second is feedback, not an entrance, so it plays on every pick. It is WAAPI, which
+  the global reduced-motion rule cannot reach, so it checks the preference itself. Proposed and not
+  built: the idea strip's passage labels rising from their segments.
+- **The four readings arrive by group** (2026-10-28, option C of
+  https://claude.ai/artifact/7JKCHeC8zioE4Q1aMXhxqH, private). They are two groups by where they
+  were read — **"In your chat"** (Prompting Quality, Calibrated Skepticism) and **"In your
+  draft"** (Selective Use, Original Contribution), the measurement grid's two columns; Original
+  Contribution is wholly the draft's, since the chat only decides whose an idea is. Each group is
+  one draw-in figure: its label rises, both cards arrive together, both meters fill side by side,
+  then each card's sentence comes **down out of its meter**. The group label takes
+  **title-medium** ("a group of cards on a page"), so it outranks the eyebrow naming each card.
+  Grouped by the readings' keys, not their order (`READING_GROUPS`, `report-render.js`), and a
+  reading under a key no group names is still shown.
+- Not yet adopted: spring easing (the workshop's `cubic-bezier(0.34, 1.4, 0.64, 1)`) for sliding
+  indicators and opening cards, and expressive shape on the hero panel — proposed the same day,
+  not built.
 
 ### Accessibility floor
 Shipped in the baseline block of `tokens.css`: global `:focus-visible`, `prefers-reduced-motion`,
@@ -1454,6 +1506,128 @@ Order, each step verified at 360 / 768 / 1280 before the next:
 see CLAUDE.md, not to be restyled, to be deleted with the student-view rebuild); the guide pages'
 long-form scale; `.hero-greeting`, `.login-hero-title`, `.samr-hero .samr-level`; `.dim-card-q`
 (serif question); `.level-name` (a selectable row, not a heading); `.title-field` (an input).
+
+### Tonal migration — CURRENT, started 2026-10-26
+
+The rules are the tonal bullet in *Hard Constraints*; this section tracks the work: where each
+surface stands, what was decided and against what, and what is open. Same workstream in two repos:
+this one and `tauthinking-site` (the marketing site, which carries its own copies of `tokens.css`
+and `components.css`).
+
+**How a page moves.** Add `data-surface="tonal"` to its `<html>`. `tokens.css` (*TONAL SCOPE*)
+re-points `--tau-bg`, `--tau-shell`, `--tau-card`, `--tau-surface-2/3` and `--tau-shadow` under it;
+`components.css` §20 holds the component forms that differ. Then fix what the tokens can't reach:
+any card-like block hard-coded to `--tau-surface` becomes `--tau-card` (white outside the scope,
+so unmigrated pages don't change), and a container whose children are cards hands them white by
+setting `--tau-card` on its children. Verify with screenshots, signed in, before calling it done.
+
+#### Status
+
+| Surface | State | Where |
+|---|---|---|
+| Marketing site (tauthinking.com) | Tonal | `tauthinking-site` branch `tonal`: `2e03422` (nav tabs), `a06d23b`, `a0de1d1` |
+| Student home + workspace (`index.html`) | Tonal | `tonal`: `6ed219d` (tokens), `16c2c48` |
+| Report (`report.html`, students and teachers) | Tonal | `16c2c48` |
+| Teacher dashboard (`dashboard.html`) | Tonal, **uncommitted** | `dashboard.html`, `components.css` |
+| Page tone `#FAFCFB` | Applied, **uncommitted** | both `tokens.css` |
+| Workshop room (`workshop-room.*`) | Tonal on its own page-local palette (still mint `#F5F9F6`) | open item 4 |
+| `admin.html` | Not started | |
+| Guide pages (`levels`, `signals`, `dimensions`) | Not started | `levels.html` and `dimensions.html` carry uncommitted workshop edits |
+| Sign-in (`login`, `join`, `set-password`, `agreement`) | Not started | |
+
+Neither repo's `tonal` branch is pushed. The app's was cut from `m3-adaptive-layout`, so merging it
+to `main` ships that branch's commits too; preview on `staging` first. The site's `main` deploys
+straight to tauthinking.com.
+
+#### Decisions
+
+- **2026-10-26 — the whole product goes tonal**, from the workshop's look (see the workshop
+  bullet in *Hard Constraints*). Opt-in per page rather than a flag day, so each page is verified
+  as it moves and the teacher side kept working while the student side moved.
+- **2026-10-26 — forest stays the ground.** Compared on
+  https://claude.ai/artifact/PLBgi61fJUxwme9CDUvpkd (private): **neutral** and **slate** grounds
+  had no colour collisions but dropped the brand; **vraifrench's blue** (`#F8F9FF` / `#EEF1FA` /
+  `#D6E3FA`) read cleanest on its own but moved the collision from green to blue, between Directive
+  (242) and Passive (280) and beside the dimension bands. Kept forest.
+- **2026-10-26 — selection `#CDD6D0` with ink text** (option A′ on the same page). The first
+  selection, `#CFE6D8` with dark-green text, sat ΔE 1.7 from the lowest per-turn agency mark and
+  was drawn exactly like a Transformative chip. The pale greens (L 0.90–0.95) all belong to the
+  measurement, so the selection moved into the gap below them, greyer (C 0.013). Tonal buttons keep
+  forest text.
+- **2026-10-26 — the student's own message takes the selection fill**, not solid forest: on a
+  tonal chat, forest was the loudest thing in the view. The AI's message is white.
+- **2026-10-26 — faint ink is `#5C6166` on tonal pages.** `#686C71` measured 4.2:1 on wells.
+- **2026-10-27 — the dashboard's cards, tables and charts read `--tau-card`**, including the flow
+  ribbons' seams, the bar segments' seams and the agency bars' 65% mix, all of which had been
+  drawn to match a white card.
+- **2026-10-27 — page `#FAFCFB`**, the forest hue made light enough to read as white (CIE
+  whiteness 96; the workshop's `#F5F9F6` scored 89 and read as mint). Compared on
+  https://claude.ai/artifact/1nmrSpqSovWCzb9RhZ2GXB (private) against a **cool white `#F7F9FB`**
+  (whiteness 100, a faint blue lean) and an earlier **lighter card + white nesting** shift
+  (vraifrench's structure). Chosen because it keeps one colour family across the screen while the
+  green cards read as the coloured surface; it also widens the page–card step from 0.035 to 0.047.
+- **2026-10-27 — the report is page-background sections, white and green alternating**, after
+  vraifrench. Built in three passes on one day; this is where it landed. With the sessions in their
+  own view (*Hard Constraints*) the report owns the window, so each section is a **full-width
+  strip** whose background is its edge — no card around it — and pads its content into one centred
+  **912px column** (`#results > *`, `report.css`). Order: **hero** (white), **the four readings**
+  (green band, `.report-band`, its four cards white), **turn by turn** (white, `.report-open`, the
+  turn detail the one green block), **whose ideas** (green band, the chart drawn on the band, so its
+  seams match it), **try this next time** (white, each move a green card). Strips touch; the space
+  between sections is their own padding — **56px** top and bottom (`--tau-s9`), 32px below a 600px
+  pane, with 16px gutters there. The **jump nav is a full-width bar on the page tone**, the
+  masthead's second row once it sticks, with a hairline only when stuck: a floating green bar
+  vanished against the bands. **Why not cards:** the 40px gaps and titles already separated the
+  sections, a card around each was a second boundary that read as cramped, and the measurement
+  colours were tuned for white — the selected level chip, which fades on a tonal card (open item 1),
+  sits on white again in the hero. Superseded the same day: a card / band / open rhythm inside a
+  960px column, and `.card-xl` (deleted). **New in the system: a full-bleed section** — every other
+  rule assumes content sits in a card.
+
+- **2026-10-28 — report chrome sweep, from a rendered audit** (every visible element drawing a
+  `--tau-line` edge, a white fill, sage text or an origin fill, with a turn, a reading card and a
+  passage open; the source grep hit mostly dead CSS). Four fixed: the masthead's **view switch**
+  (`.tau-nav-local-opt.active`, white with sage text → `--tau-select` with ink, in `components.css`
+  §20, so every tonal page with the switch gets it) and the **jump nav's current section** (sage text
+  on `--tau-origin-together-bg`, an authorship colour used as chrome → the same selection) — both
+  broke *sage is fill-only*; the **idea strip's open passage** and the **run tray** lost their
+  outlines (an open panel is white, edged by tone; the tray keeps its lift). Left as intended: the
+  masthead's and stuck jump bar's hairlines, dividers inside panels, the account chip (item 5).
+- **2026-10-28 — the report's jump nav is a segmented pill track**, after the tab bar on
+  m3.material.io (the product owner's reference). The same morning it became M3 primary tabs
+  (48px, underline indicator), which scrolled sideways on a phone — **superseded the same day**, and
+  the reason for the *Tabs never scroll sideways* constraint. Now: a `--tau-container` pill track of
+  equal segments, each an icon and its name, and the current one filled edge to edge by **one pill
+  that slides between them** (`--tau-select`, ink text, weight 600 — the tonal selection, so it never
+  reads as a reading; `placePill()` measures the button, so it stays right when Next time is
+  withdrawn). **Icon beside the full name at a 1000px pane and up; icon over the full name from
+  600; icon over a short name below 600** ("Readings", "Turns", "Ideas", "Next time"), where the mini
+  level also leaves the bar. Measured at 360, 768 and 1280: nothing overflows, no name truncates.
+  New icon: `gridView`, for the four readings — four equal squares, not bars, which would read as a
+  score. The dots of the original pills stay gone.
+
+#### Open, in rough order
+
+1. **Level chips fade on tonal cards.** `--tau-band-N-bg` was tuned as a pale tint for white
+   cards; on the forest container the Transformative chip is ΔE 1.4 from the card (the other three
+   1.8–2.4), so the reading looks like part of the surface. Deferred as a measurement-colour
+   decision, not a palette one. Explored: all four chips one step deeper in the tonal scope only (L
+   0.89, C 0.06, the report's level panel kept pale), option A″ on the first comparison page — clear
+   of the card, but Passive and Reactive read loud.
+2. **The remaining pages:** sign-in and `admin.html` first (no conflicting edits), then the guide
+   pages once the workshop edits in `levels.html` / `dimensions.html` are committed.
+3. **Dark-theme selection** is still a green container (`#2E4D3E`). Fold into item 1's pass.
+4. **The workshop room** keeps its own page-local palette in `workshop-room.css`, including the
+   old mint page. Move it onto the tokens once its uncommitted edits land.
+5. **Outlined white controls** on tonal cards (filter chips, "View full assignment", "Assignment
+   prompt", the account chip): they read fine, but could become tonal buttons to match the site.
+6. **The forest drop shadow** on "Continue Draft" and "Submit draft" (`style.css`, a literal, not
+   `--tau-shadow`), which tonal's no-resting-shadow rule says should go.
+7. **The site's copies of `tokens.css` and `components.css`** were two months behind the app before
+   this work. Re-copy from the app once its components are fully tonal, rather than reconciling.
+8. **When the last page moves:** the scope values become the `:root` defaults, `data-surface` and
+   `components.css` §20 are deleted, and the tonal rule replaces the elevation rules it overrides in
+   *Hard Constraints*.
 
 ---
 

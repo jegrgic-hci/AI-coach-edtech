@@ -118,7 +118,10 @@
      component can read --tau-card without changing an unmigrated page. When
      every page is tonal the scope's values become these defaults and the
      attribute goes. */
-  --tau-page:              #F5F9F6;
+  /* #FAFCFB, not the workshop's #F5F9F6 (2026-10-27). Same green hue, lighter
+     and less coloured (L 0.990, C 0.003): CIE whiteness 89 → 96, so the page
+     reads as white and the green cards read as the coloured surface. */
+  --tau-page:              #FAFCFB;
   --tau-container:         #E8EEEA;
   --tau-container-high:    #E1E8E3;
   --tau-container-highest: #DAE2DC;
@@ -397,6 +400,14 @@
   --tau-type-title-sm: 700 var(--tau-text-md)/1.35 var(--tau-font-ui);
   --tau-track-title:   -0.01em;
 
+  /* HEADLINE ROLES, added 2026-10-27 — M3's headline-medium/-large on this
+     ramp. Not titles: a headline is a statement read as a sentence (the
+     report hero's level line), so it is set in 500, not 700 — at this size
+     bold reads as shouting. Medium is the compact form, large the wide. */
+  --tau-type-headline-md: 500 26px/1.25 var(--tau-font-ui);
+  --tau-type-headline-lg: 500 32px/1.2 var(--tau-font-ui);
+  --tau-track-headline:   -0.015em;
+
   /* ---------------------------------------------------------------
    * 8. SPACE / SHAPE
    * --------------------------------------------------------------- */
@@ -512,6 +523,10 @@
    * --------------------------------------------------------------- */
   --tau-dur-short:  150ms;  /* M3 short3 */
   --tau-dur-medium: 300ms;  /* M3 medium2 */
+  /* Added 2026-10-27 for the report's draw-in, the first expressive motion
+     outside the workshop: the window a chart's marks are staggered across,
+     and the length of a meter's fill. Not for interaction feedback. */
+  --tau-dur-long:   500ms;  /* M3 long2 */
 
   --tau-ease-standard:    cubic-bezier(0.2, 0, 0, 1);       /* M3 standard */
   --tau-ease-decelerate:  cubic-bezier(0.05, 0.7, 0.1, 1);  /* M3 emphasized-decelerate */
@@ -654,7 +669,7 @@
   color-scheme: light;
   --tau-forest: #1F4D3A; --tau-forest-lift: #2A6349; --tau-sage: #3D7A5A; --tau-on-forest: #FFFFFF;
   --tau-bg: oklch(0.992 0.006 162); --tau-surface: #FFFFFF; --tau-surface-2: oklch(0.968 0.008 162); --tau-surface-3: oklch(0.952 0.010 162); --tau-shell: oklch(0.920 0.014 162);
-  --tau-page: #F5F9F6; --tau-container: #E8EEEA; --tau-container-high: #E1E8E3; --tau-container-highest: #DAE2DC; --tau-container-lowest: #FFFFFF;
+  --tau-page: #FAFCFB; --tau-container: #E8EEEA; --tau-container-high: #E1E8E3; --tau-container-highest: #DAE2DC; --tau-container-lowest: #FFFFFF;
   --tau-select: #CDD6D0; --tau-select-strong: #C2CCC5; --tau-on-select: #16191C;
   --tau-ink: #16191C; --tau-ink-soft: #545B63; --tau-ink-faint: #686C71; --tau-ink-label: var(--tau-ink-soft);
   --tau-line: oklch(0.895 0.008 162); --tau-line-strong: oklch(0.815 0.010 162);

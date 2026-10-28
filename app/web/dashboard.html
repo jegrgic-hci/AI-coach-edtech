@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="light" data-surface="tonal">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -694,7 +694,7 @@ header.scrolled { background: var(--tau-surface-2); }
    instead of a flag. */
 /* Elevated (m3-lab §8) — one channel, not two. Same change as .card in
    components.css; see its comment for the reasoning. */
-.tbl-wrap { overflow-x: auto; border: 1px solid transparent; border-radius: var(--tau-r-md); background: var(--tau-surface); box-shadow: var(--tau-shadow); }
+.tbl-wrap { overflow-x: auto; border: 1px solid transparent; border-radius: var(--tau-r-md); background: var(--tau-card); box-shadow: var(--tau-shadow); }
 table.roster { width: 100%; border-collapse: collapse; font-size: var(--tau-text-sm); }
 table.roster th, table.roster td {
   text-align: left; padding: 10px var(--tau-s4);
@@ -745,7 +745,7 @@ table.roster tbody tr.row-clickable:hover { background: color-mix(in oklab, curr
    different plane the way a rail row can — so it needs its own second
    channel (an edge marker on the row, most likely) before the tint comes
    off. Left as-is rather than changed blind; not part of the rail work. */
-table.roster tbody tr.expanded-row { background: color-mix(in oklab, var(--tau-forest) 7%, var(--tau-surface)); }
+table.roster tbody tr.expanded-row { background: color-mix(in oklab, var(--tau-forest) 7%, var(--tau-card)); }
 table.roster tbody tr.drill-row { cursor: default; }
 table.roster tbody tr.drill-row:hover { background: transparent; }
 table.roster td.n { font-variant-numeric: tabular-nums; }
@@ -780,7 +780,7 @@ table.roster td.n { font-variant-numeric: tabular-nums; }
   table.roster thead tr {
     display: flex; flex-wrap: wrap; align-items: center; gap: var(--tau-s2);
     padding: var(--tau-s3) var(--tau-s4);
-    background: var(--tau-surface); border-bottom: 1px solid var(--tau-line);
+    background: var(--tau-card); border-bottom: 1px solid var(--tau-line);
   }
   table.roster thead th { display: none; }
   table.roster thead th.sortable {
@@ -808,7 +808,7 @@ table.roster td.n { font-variant-numeric: tabular-nums; }
   table.roster .group-row td { padding: var(--tau-s3) var(--tau-s4) 6px; }
 }
 table.roster .group-row { pointer-events: none; }
-table.roster .group-row td { padding: var(--tau-s3) var(--tau-s4) 6px; background: var(--tau-surface); border-bottom: none; }
+table.roster .group-row td { padding: var(--tau-s3) var(--tau-s4) 6px; background: var(--tau-card); border-bottom: none; }
 /* A second group (e.g. Closed following Open) gets a rule above it so the
    status chip reads as a real section break, not a label floating between
    rows that already look continuous. The first group needs none — the
@@ -831,7 +831,7 @@ table.roster tbody tr.group-row:not(:first-child) td { border-top: 1px solid var
    is surface-2), so it reads as the panel's headline rather than as one more row
    in the log below it. */
 .drill-trace {
-  background: var(--tau-surface); border: 1px solid transparent;
+  background: var(--tau-card); border: 1px solid transparent;
   border-radius: var(--tau-r-md); box-shadow: var(--tau-shadow);
   padding: var(--tau-s4) var(--tau-s5); margin-bottom: var(--tau-s4);
 }
@@ -895,7 +895,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .dim-head .c-trend  { width: 150px; flex-shrink: 0; }
 .dim-head .c-note  { flex: 1; }
 
-.dim-panel { border: 1px solid transparent; border-radius: var(--tau-r-md); background: var(--tau-surface); box-shadow: var(--tau-shadow); padding: 4px var(--tau-s4); }
+.dim-panel { border: 1px solid transparent; border-radius: var(--tau-r-md); background: var(--tau-card); box-shadow: var(--tau-shadow); padding: 4px var(--tau-s4); }
 .dim-row { display: flex; align-items: flex-start; gap: var(--tau-s3); padding: 11px 0; border-bottom: 1px solid var(--tau-line); }
 .dim-row:last-child { border-bottom: none; }
 .dim-name { width: 172px; flex-shrink: 0; font-size: var(--tau-text-sm); font-weight: 600; padding-top: 2px; }
@@ -987,7 +987,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    now). See teacher-dashboard-design.md, "Assignment Detail — a timeline,
    not a roster." Two top-level cards (goal, overview) share `.overview-card`
    chrome; the timeline below them is its own rail. */
-.overview-card { border: 1px solid transparent; border-radius: var(--tau-r-md); background: var(--tau-surface); box-shadow: var(--tau-shadow); padding: var(--tau-s4) var(--tau-s5); margin-bottom: var(--tau-s6); }
+.overview-card { border: 1px solid transparent; border-radius: var(--tau-r-md); background: var(--tau-card); box-shadow: var(--tau-shadow); padding: var(--tau-s4) var(--tau-s5); margin-bottom: var(--tau-s6); }
 .overview-eyebrow { font-size: var(--tau-text-label-md); font-weight: 700; color: var(--tau-ink-faint); margin-bottom: var(--tau-s4); }
 /* Names a run of cards rather than the inside of one, so it sits on the shell
    with the cards beneath it — the construction "How we got here — a timeline"
@@ -1031,7 +1031,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .tl-node.done   { border: 2px solid var(--tau-forest); color: var(--tau-forest); }
 .tl-node.live   { border: 2px solid var(--tau-caution); color: var(--tau-caution); }
 .tl-node.future { border: 2px dashed var(--tau-line-strong); color: var(--tau-ink-faint); }
-.tl-card { border: 1px solid transparent; border-radius: var(--tau-r-md); background: var(--tau-surface); box-shadow: var(--tau-shadow); padding: var(--tau-s4) var(--tau-s5); }
+.tl-card { border: 1px solid transparent; border-radius: var(--tau-r-md); background: var(--tau-card); box-shadow: var(--tau-shadow); padding: var(--tau-s4) var(--tau-s5); }
 .tl-card.future { box-shadow: none; border-style: dashed; color: var(--tau-ink-faint); }
 .tl-card.live { border-color: color-mix(in oklab, var(--tau-caution) 35%, var(--tau-line)); }
 .tl-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--tau-s3); margin-bottom: var(--tau-s3); flex-wrap: wrap; }
@@ -1333,7 +1333,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 /* Elevated on the shell; inside a .home-band the shadow is stripped below and
    the tint carries the edge instead, so the band case is the FILLED variant
    and needs no border either. */
-.pattern-card { background: var(--tau-surface); border: 1px solid transparent; border-radius: var(--tau-r-md); box-shadow: var(--tau-shadow); overflow: hidden; }
+.pattern-card { background: var(--tau-card); border: 1px solid transparent; border-radius: var(--tau-r-md); box-shadow: var(--tau-shadow); overflow: hidden; }
 .finding-summary {
   display: flex; align-items: center; gap: 14px;
   padding: var(--tau-s3) var(--tau-s5); min-height: var(--tau-target);
@@ -1621,7 +1621,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    (--tau-r-sm here vs. --tau-r-md everywhere else this exact chrome
    appears). */
 .reflection-arc {
-  background: var(--tau-surface);
+  background: var(--tau-card);
   border: 1px solid transparent;
   border-radius: var(--tau-r-md);
   padding: 10px var(--tau-s4);
@@ -1686,6 +1686,20 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
     margin: var(--tau-s6) 0 var(--tau-s1); padding-top: var(--tau-s4);
     border-top: 1px solid var(--tau-line);
   }
+
+/* ── Tonal ──
+   This page on the tonal palette (tokens.css TONAL SCOPE, components.css §20).
+   The tokens move the ground, the wells and the resting shadow, and every card
+   here reads --tau-card. What is left is the masthead, the home bands, and the
+   cards that sit inside another card. */
+[data-surface="tonal"] header { background: var(--tau-page); }
+[data-surface="tonal"] header.scrolled { background: var(--tau-container); }
+/* A band is a container on the page, like any card; the pattern cards and
+   charts inside it step up to white. */
+[data-surface="tonal"] .home-band { background: var(--tau-container); border-radius: var(--tau-r-xl); }
+/* A card inside a container is white. Set on the children: --tau-card set on
+   the container itself would recolour the container too. */
+[data-surface="tonal"] :is(.home-band, .overview-card, .tl-card) > * { --tau-card: var(--tau-container-lowest); }
 
 </style>
 </head>

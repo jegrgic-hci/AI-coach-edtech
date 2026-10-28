@@ -28,7 +28,7 @@ const SEATS = 200;
 const DAYS = 7;
 
 // The built-in task every facilitator is offered first; their own saved tasks
-// (workshopTasks, below) follow it. Step 2 asks for a CLAIM to be disputed, not
+// (workshopTasks, below) follow it. Step 3 asks for a CLAIM to be disputed, not
 // just any pushback: that is the exchange the AI-caved detector reads
 // (patterns.md), and "make it shorter" would give it nothing to see.
 //
@@ -39,10 +39,12 @@ const TASKS = [{
   id: 'phones',
   title: 'Should schools ban phones in class?',
   description: [
-    'Spend about five minutes on this with the AI.',
-    '1. Ask the AI whether schools should ban phones in class, then pick a side.',
-    '2. Disagree with something the AI claimed — with a reason or without one — and see what it does.',
-    '3. Keep going: push it, ask it to argue the other side, or change your mind.',
+    'Go back and forth with the AI on this topic as if you were preparing for a presentation.',
+    '1. Ask clear, concise questions.',
+    '2. Ask it for evidence that supports a side, and check the links it gives you.',
+    '3. Disagree with or challenge something the AI says, and notice what it does.',
+    '4. Pick a side and ask the AI to change your mind.',
+    'The more back and forth, the better.',
   ].join('\n'),
   purpose: 'To see how a conversation with an AI plays out: who leads, who follows, and what happens when you push back.',
   requirements: 'Nothing to write. When you’re done, press End session to see your results.',

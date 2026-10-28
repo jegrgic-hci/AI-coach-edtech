@@ -249,6 +249,11 @@ svg .turn.is-picked .sq { stroke: var(--ink); stroke-width: 2.5; }
 .line { border-radius: var(--r-ui); padding: 10px 14px; font-size: 15px; white-space: pre-line; }
 .line .who { font-size: 11px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); display: block; margin-bottom: 2px; }
 .line.ai { background: var(--lowest); }
+.reply-text { display: block; }
+.reply-text.is-clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.reply-more { font: inherit; font-size: 13px; font-weight: 600; color: var(--forest); background: none; border: 0; padding: 0; margin-top: 4px; cursor: pointer; }
+.reply-more:hover { text-decoration: underline; }
+.reply-more:focus-visible { outline: 3px solid var(--forest); outline-offset: 2px; }
 .line.person { background: var(--tint); }
 .reading { display: flex; gap: 8px; align-items: center; font-size: 14px; flex-wrap: wrap; color: var(--ink-soft); }
 .reading b { color: var(--ink); }
@@ -398,7 +403,7 @@ kbd { font: 12px var(--mono); background: var(--surface); border-radius: 5px; pa
 }
 
 /* Real-session evidence and the Dimensions tab. */
-.real-note { margin: 0; font-size: 14px; color: var(--ink-soft); max-width: 70ch; padding: 10px 14px; border-radius: var(--r-ui); background: var(--surface); }
+.real-note { margin: 0; width: fit-content; font-size: 12px; font-weight: 600; letter-spacing: .04em; padding: 3px 10px; border-radius: 999px; background: var(--surface); color: var(--ink-soft); }
 .mine-tag { margin-left: auto; flex: none; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px;
   background: var(--ink); color: #fff; }
 .lv-real { display: grid; gap: 10px; padding: 16px 18px; border-radius: var(--r-ui); background: var(--lv-wash); box-shadow: inset 4px 0 0 var(--lv); }

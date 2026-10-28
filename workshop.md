@@ -251,10 +251,10 @@ of the task when created, so editing `TASKS` affects only new workshops.
 | `app/web/pattern-guide.js` | **New.** The guide's copy (all 14 patterns plus "AI backed off") and its renderer. |
 | `app/web/patterns-core.js` | `detectAIMoments()`, the AI Caved detector. |
 | `app/web/session-view.js` | `renderTurnPlot(…, aiMoments, { workshop })`: AI lane, teaching note, fitted width, count headline. |
-| `app/web/report-boot.js` | `renderPlotOnly()`; `sessions-as-sheet` body class. |
+| `app/web/report-boot.js` | `renderPlotOnly()`. |
 | `app/web/app.js`, `index.html`, `style.css` | Workspace workshop branch: End session (no timer), auto-opened chat, task in chat, no-draft submit. |
-| `app/web/api.js` | Workshops menu item; `mountSheet({ alwaysSheet })`. |
-| `app/web/components.css`, `report.css` | `.sessions-as-sheet`, `.pguide-*`, AI lane styles. |
+| `app/web/api.js` | Workshops menu item. |
+| `app/web/components.css`, `report.css` | `.pguide-*`, AI lane styles. |
 | `app/web/admin.html`, `admin.js` | **Workshop links** checkbox and roster label. |
 
 ---
@@ -327,8 +327,10 @@ reset on every attempt. Re-tested twice: exactly 15 admitted, unique seats, all 
 - The AI moment is shown as **"AI backed off"**, matching the chart legend and room view, rather
   than the internal id `ai-caved`.
 
-**Sessions as a sheet.** The standing transcript beside the chart competed with the chart and the
-guide. It's recorded as a workshop-only exception to the supporting-pane rule in `designsystem.md`.
+**Sessions in their own view.** The standing transcript beside the chart competed with the chart and
+the guide, so the workshop report first kept the sessions a sheet at every width. Since 2026-10-27
+every report puts them in a separate Report / Sessions view (`designsystem.md`, Hard Constraints),
+so the exception and its `sessions-as-sheet` code are gone.
 
 ---
 

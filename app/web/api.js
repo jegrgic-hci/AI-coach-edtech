@@ -500,13 +500,9 @@
   // The page supplies the pane (with a .sheet-close in its header) and the
   // controls that open it; this adds the handle and the scrim, and gives it
   // the drawer's modal behaviour — inert behind, Escape, focus in and back.
-  // `alwaysSheet` — a function, asked at the moment of opening — keeps the
-  // pane a sheet at expanded too. Only the workshop report passes it (its CSS
-  // half is `.sessions-as-sheet` in components.css §19b); without it the pane
-  // is a sheet below expanded and a standing pane above, as everywhere else.
-  function mountSheet({ sheet, openers = [], alwaysSheet = null }) {
+  function mountSheet({ sheet, openers = [] }) {
     if (!sheet) return null;
-    const isSheet = () => SIZE.belowExpanded.matches || (alwaysSheet ? alwaysSheet() : false);
+    const isSheet = () => SIZE.belowExpanded.matches;
     const handle = el('div', 'sheet-handle');
     handle.setAttribute('aria-hidden', 'true');
     sheet.prepend(handle);

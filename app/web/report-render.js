@@ -116,7 +116,7 @@ function renderReportHero(reading, submission) {
 
   if (!reading || !reading.level) {
     return `
-      <div class="card card-lg card-hero report-hero">
+      <div class="report-hero">
         ${heroHead}
         <p class="readings-intro">There wasn't enough in this chat to tell yet.</p>
       </div>`;
@@ -151,7 +151,7 @@ function renderReportHero(reading, submission) {
     : '';
 
   return `
-    <div class="card card-lg card-hero report-hero">
+    <div class="report-hero">
       ${heroHead}
       <!-- Was "How much you led", which framed the level as a quantity — the
            axis-switch defect the 2026-08-21 rename removed. The reading does
@@ -184,54 +184,136 @@ function renderReportHero(reading, submission) {
            on the surfaces, not on a band fill. Permanent and undismissable, per
            the voice rule that a reading is never a verdict. No link:
            levels.html is teacher-only. -->
-      <p class="hero-level-foot">This is about how the work got made, not how good it is. Your teacher marks the essay.</p>
+      <p class="hero-level-foot">This is not a grade.</p>
     </div>`;
 }
 
 // One reading, one card. The counterexample has a fixed slot precisely so it
 // cannot be quietly dropped when a session goes well — it is what makes this
 // feedback rather than praise.
+// The four sit in two groups by where they were read — the measurement model's
+// grid (tau-dimensions.md, "The grid"): PQ and CS in the conversation, SU and
+// OC in the essay. OC is wholly the draft's: the chat only says whose an idea
+// is, and an essay idea never discussed still counts. Each group matches a
+// section below it (turn by turn; whose ideas).
+const READING_GROUPS = [
+  { label: 'In your chat', keys: ['PQ', 'CS'] },
+  { label: 'In your draft', keys: ['SU', 'OC'] },
+];
 function renderReadings(reading) {
   const dims = (reading && reading.dimensions) || [];
   if (!dims.length) return '';
-
-  return dims.map((d) => {
-    const pips = d.band
-      ? [1, 2, 3, 4].map((i) => `<i class="${i <= d.band ? 'on' : ''}"></i>`).join('')
-      : '';
-    const score = d.band
-      ? `<div class="dim-quad-score">
-           <span class="dim-quad-score-n"><span class="n">${d.band}</span><span class="of">/4</span></span>
-           <span class="steps dim-quad-steps">${pips}</span>
-         </div>`
-      : `<div class="dim-quad-score"><span class="dim-quad-score-n">Not enough here</span></div>`;
-
-    const moments = (d.moments || []).map((m) =>
-      `<q>${esc(m.quote)}</q>${m.note ? ' — ' + esc(m.note) + ' ' : ' '}`).join('');
-
-    const body = (d.band && (moments || d.counterexample))
-      ? `<div class="dim-card-body">
-           ${moments ? `<p class="dim-card-moments">${moments}</p>` : ''}
-           ${d.counterexample ? `
-             <div class="aside">
-               <span class="eyebrow">Where it didn't hold</span>
-               <p>${esc(d.counterexample)}</p>
-             </div>` : ''}
-         </div>`
-      : '';
-
-    return `
-      <div class="card dim-card"${body ? ' role="button" tabindex="0"' : ''}>
-        <div class="dim-card-head">
-          <span class="eyebrow">${esc(d.name)}</span>
-          <span class="dim-card-q">${esc(d.question)}</span>
-          ${score}
-          <p class="dim-quad-callout">${d.count ? `<span class="dim-evidence">${esc(d.count)}</span> ` : ''}${esc(d.claim)}</p>
-          ${body ? '<span class="dim-card-more">The moments behind this<i class="dim-card-chev" aria-hidden="true"></i></span>' : ''}
-        </div>
-        ${body}
+  const cards = new Map(dims.map((d) => [d.key, readingCard(d)]));
+  const grouped = READING_GROUPS.map((g) => {
+    const inGroup = g.keys.filter((k) => cards.has(k));
+    if (!inGroup.length) return '';
+    return `<div class="dim-group">
+        <span class="dim-group-label">${g.label}</span>
+        <div class="dim-cards">${inGroup.map((k) => cards.get(k)).join('')}</div>
       </div>`;
   }).join('');
+  // A reading under a key the groups don't name is still shown, never dropped.
+  const known = new Set(READING_GROUPS.flatMap((g) => g.keys));
+  const rest = dims.filter((d) => !known.has(d.key)).map(readingCard).join('');
+  return grouped + (rest ? `<div class="dim-cards">${rest}</div>` : '');
+}
+
+function readingCard(d) {
+  const pips = d.band
+    ? [1, 2, 3, 4].map((i) => `<i class="${i <= d.band ? 'on' : ''}"></i>`).join('')
+    : '';
+  const score = d.band
+    ? `<div class="dim-quad-score">
+         <span class="dim-quad-score-n"><span class="n">${d.band}</span><span class="of">/4</span></span>
+         <span class="steps dim-quad-steps">${pips}</span>
+       </div>`
+    : `<div class="dim-quad-score"><span class="dim-quad-score-n">Not enough here</span></div>`;
+
+  const moments = (d.moments || []).map((m) =>
+    `<q>${esc(m.quote)}</q>${m.note ? ' — ' + esc(m.note) + ' ' : ' '}`).join('');
+
+  const body = (d.band && (moments || d.counterexample))
+    ? `<div class="dim-card-body">
+         ${moments ? `<p class="dim-card-moments">${moments}</p>` : ''}
+         ${d.counterexample ? `
+           <div class="aside">
+             <span class="eyebrow">Where it didn't hold</span>
+             <p>${esc(d.counterexample)}</p>
+           </div>` : ''}
+       </div>`
+    : '';
+
+  return `
+    <div class="card dim-card"${body ? ' role="button" tabindex="0"' : ''}>
+      <div class="dim-card-head">
+        <span class="eyebrow">${esc(d.name)}</span>
+        <span class="dim-card-q">${esc(d.question)}</span>
+        ${score}
+        <p class="dim-quad-callout">${d.count ? `<span class="dim-evidence">${esc(d.count)}</span> ` : ''}${esc(d.claim)}</p>
+        ${body ? '<span class="dim-card-more">The moments behind this<i class="dim-card-chev" aria-hidden="true"></i></span>' : ''}
+      </div>
+      ${body}
+    </div>`;
+}
+
+// Draw-in (designsystem.md, Motion). Each chart draws its marks once, the
+// first time IT is on screen, in the order the marks already mean: a meter
+// fills left to right, the turn plot in turn order, the idea strip in draft
+// order — so the motion is the reading being drawn. Identical for every
+// reading: a high level never arrives with more flourish than a low one,
+// which would grade the student through motion. CSS half in report.css.
+//
+// Per chart, not per section (2026-10-27): every chart sits under its
+// section's title and finding, so a section-level trigger played the draw
+// while the chart was still below the fold.
+// The hero's .level-block is one of them: its statement grows out of the
+// marked level (designsystem.md, Motion — "enters from what it derives
+// from"), so its one mark is that level's name.
+// A reading group (.dim-group) is one figure, not four meters: its label
+// rises, its two cards arrive together, their meters fill side by side, and
+// each sentence comes out of its meter (2026-10-28, option C of the
+// readings-entrance comparison). Timings are per card, not one sequence across
+// the group, so the pair fills in parallel.
+const DRAW_FIGURES = '.level-block, .dim-group, svg.turnplot, .provstrip-figure';
+const PAIR_FILL_AT = 330;     // after the cards have risen
+const PIP_STEP = 70;
+const DRAW_MARKS = '.level-name.is-here, i.on, .tp-turn rect, .tp-ai, .provstrip-seg';
+function mountDrawIn(root) {
+  if (!('IntersectionObserver' in window)) return;
+  // Starts once 60% of the chart is above a line a quarter of the way up from
+  // the bottom — or, for a chart taller than that could ever be, once it fills
+  // half of that. Without the line a 9px meter counted as seen the moment it
+  // crossed the bottom edge, which is not where anyone is looking.
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const seen = entry.intersectionRatio >= 0.6 ||
+        (entry.rootBounds && entry.intersectionRect.height >= entry.rootBounds.height / 2);
+      if (!seen) return;
+      io.unobserve(entry.target);
+      entry.target.dataset.drawn = 'in';
+    });
+  }, { rootMargin: '0px 0px -25% 0px', threshold: [0, 0.25, 0.5, 0.6, 0.75, 1] });
+  root.querySelectorAll(DRAW_FIGURES).forEach((figure) => {
+    if (figure.dataset.drawn) return;
+    if (figure.matches('.dim-group')) {
+      figure.querySelectorAll('.dim-card').forEach((card) => {
+        const pips = card.querySelectorAll('i.on');
+        pips.forEach((p, n) => p.style.setProperty('--draw-delay', `${PAIR_FILL_AT + n * PIP_STEP}ms`));
+        card.style.setProperty('--draw-after', `${PAIR_FILL_AT + pips.length * PIP_STEP + 220}ms`);
+      });
+      figure.dataset.drawn = 'pending';
+      io.observe(figure);
+      return;
+    }
+    const marks = figure.querySelectorAll(DRAW_MARKS);
+    if (!marks.length) return;
+    // Spread across one long duration whatever the count, so a forty-turn
+    // session draws no slower than a seven-turn one.
+    const step = Math.min(60, 500 / marks.length);
+    marks.forEach((m, i) => m.style.setProperty('--draw-delay', `${Math.round(i * step)}ms`));
+    figure.dataset.drawn = 'pending';
+    io.observe(figure);
+  });
 }
 
 // Bottom-of-report card — the one piece of Snapshot that's genuinely
@@ -239,7 +321,7 @@ function renderReadings(reading) {
 function renderGrowthMoves(growthMoves) {
   if (!growthMoves || !growthMoves.length) return "";
   return growthMoves.map((g) => `
-    <div class="snap-move">
+    <div class="snap-move card">
       ${iconSVG('checklist', 'snap-move-icon')}
       <p class="snap-move-text">${esc(g)}</p>
     </div>`).join('');
@@ -439,7 +521,13 @@ function renderJumpScore(reading) {
   };
 
   const buttons = Array.from(jump.querySelectorAll(".report-jump-btn"));
+  const track = jump.querySelector(".report-jump-track");
+  const pill = jump.querySelector(".report-jump-pill");
   buttons.forEach(btn => {
+    // The full name is the button's name everywhere: a phone shows a shorter
+    // visible label (.report-jump-short), never a shorter accessible one.
+    btn.setAttribute("aria-label", btn.querySelector(".report-jump-label").textContent);
+    btn.insertAdjacentHTML("afterbegin", iconSVG(btn.dataset.icon, "report-jump-icon"));
     btn.addEventListener("click", () => {
       const area = USAGE_AREA_BY_TARGET[btn.dataset.target];
       if (area) logUse("report", area);
@@ -453,11 +541,27 @@ function renderJumpScore(reading) {
       if (!entry.isIntersecting) return;
       const idx = sections.indexOf(entry.target);
       if (idx === -1) return;
-      buttons.forEach(b => b.classList.remove("is-current"));
+      buttons.forEach(b => { b.classList.remove("is-current"); b.removeAttribute("aria-current"); });
       buttons[idx].classList.add("is-current");
+      buttons[idx].setAttribute("aria-current", "true");
+      placePill();
     });
   }, { rootMargin: "-96px 0px -70% 0px", threshold: 0 });
   sections.forEach(s => spy.observe(s));
+
+  // One pill slides under the current segment (transform only). It measures
+  // the button rather than assuming equal quarters, so it stays right when
+  // Next time is withdrawn (render()) or the track resizes.
+  function placePill() {
+    const current = buttons.find(b => b.classList.contains("is-current"));
+    if (!current || !current.offsetWidth) { pill.classList.remove("is-shown"); return; }
+    pill.style.width = current.offsetWidth + "px";
+    pill.style.transform = `translateX(${current.offsetLeft}px)`;
+    // Placed before it is shown, so the first appearance does not slide in
+    // from the left edge.
+    requestAnimationFrame(() => pill.classList.add("is-shown"));
+  }
+  if ("ResizeObserver" in window) new ResizeObserver(placePill).observe(track);
 
   const heroWatch = new IntersectionObserver(([entry]) => {
     jump.classList.toggle("is-scrolled", !entry.isIntersecting && entry.boundingClientRect.top < 0);

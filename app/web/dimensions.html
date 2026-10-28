@@ -83,6 +83,7 @@ hr.rule { border: 0; border-top: 1px solid var(--tau-line); }
 .dims { display: flex; flex-direction: column; gap: var(--tau-s4); }
 
 .dim {
+  scroll-margin-top: var(--tau-s9);
   background: var(--tau-surface);
   border: 1px solid var(--tau-line);
   border-radius: var(--tau-r-md);
@@ -208,7 +209,7 @@ footer p { max-width: 40rem; }
 
     <div class="dims" style="margin-top:var(--tau-s4)">
 
-      <article class="dim">
+      <article class="dim" id="pq">
         <span class="dim-q">Did you drive the chat?</span>
         <span class="dim-name">Prompting Quality</span>
         <div class="panels">
@@ -227,7 +228,7 @@ footer p { max-width: 40rem; }
         </div>
       </article>
 
-      <article class="dim">
+      <article class="dim" id="cs">
         <span class="dim-q">Did you check what you were told?</span>
         <span class="dim-name">Calibrated Skepticism</span>
         <div class="panels">
@@ -246,7 +247,7 @@ footer p { max-width: 40rem; }
         </div>
       </article>
 
-      <article class="dim">
+      <article class="dim" id="su">
         <span class="dim-q">What survived?</span>
         <span class="dim-name">Selective Use</span>
         <div class="panels">
@@ -265,7 +266,7 @@ footer p { max-width: 40rem; }
         </div>
       </article>
 
-      <article class="dim">
+      <article class="dim" id="oc">
         <span class="dim-q">Is the thinking yours?</span>
         <span class="dim-name">Original Contribution</span>
         <div class="panels">

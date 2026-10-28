@@ -126,25 +126,38 @@
       'conversation usually shows only a few. The rest are what to watch for in longer ones.'));
     host.appendChild(lead);
 
+    // Found first, on its own, so the reader sees their chat's patterns without
+    // scanning fourteen cards for the marked ones. Each part keeps the groups,
+    // because high or low agency is half of what a pattern means.
+    if (found.length) renderPart(host, 'In your chat', by, true);
+    renderPart(host, found.length ? 'Not in your chat' : 'All the patterns', by, false);
+  }
+
+  function renderPart(host, title, by, wantFound) {
+    var part = el('section', 'pguide-part');
+    part.appendChild(el('h3', 'pguide-part-title', title));
     GROUPS.forEach(function (g) {
+      var items = g.items.filter(function (it) { return !!by[it.id] === wantFound; });
+      if (!items.length) return;
       var section = el('section', 'pguide-group');
-      section.appendChild(el('h3', 'pguide-title', g.title));
+      section.appendChild(el('h4', 'pguide-title', g.title));
       section.appendChild(el('p', 'pguide-intro', g.intro));
       var list = el('div', 'pguide-list');
-      g.items.forEach(function (it) {
+      items.forEach(function (it) {
         var spans = by[it.id];
         var item = el('div', 'pguide-item' + (spans ? ' is-found' : ''));
         var head = el('div', 'pguide-head');
         head.appendChild(el('span', 'pguide-name', it.name));
-        if (spans) head.appendChild(el('span', 'pguide-found', 'In your chat · ' + turnsText(spans)));
+        if (spans) head.appendChild(el('span', 'pguide-found', turnsText(spans).replace(/^t/, 'T')));
         item.appendChild(head);
         item.appendChild(el('p', 'pguide-what', it.what));
         item.appendChild(el('p', 'pguide-why', it.why));
         list.appendChild(item);
       });
       section.appendChild(list);
-      host.appendChild(section);
+      part.appendChild(section);
     });
+    host.appendChild(part);
   }
 
   root.PatternGuide = { render: renderPatternGuide, GROUPS: GROUPS };

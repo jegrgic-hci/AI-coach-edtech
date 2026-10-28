@@ -15,6 +15,8 @@
   // session-view.js's per-turn tiers and names, so a square here reads the same as on a guest's plot.
   var TIER = { challenge: 4, rejection: 4, claim: 3, conceptual: 3, pivot: 3, refinement: 2, feedback: 2, narrative: 2, extraction: 1, validation: 1, stuck: 1 };
   var TIER_NAME = { 4: 'High agency', 3: 'Student-led', 2: 'Shared', 1: 'Low agency' };
+  // Kept in step with session-view.js's LABEL_MEANING.
+  var LABEL_MEANING = { claim: 'stated their own position', conceptual: 'asked how or why something works, to understand it', extraction: 'asked the AI to write or do the work', validation: 'agreed with or approved what the AI gave', stuck: 'said they were confused or asked for help', feedback: 'asked the AI to review their work', narrative: 'gave background or context', rejection: 'disagreed with something the AI said', refinement: 'kept the AI’s answer but narrowed or redirected it', challenge: 'asked the AI for its evidence or reasoning', pivot: 'moved to a new topic' };
   var TIER_MEANING = { 4: 'Challenged or turned down what the AI said.', 3: 'Brought their own claim, idea or direction.', 2: 'Shaped what the AI made: refined it, or added to it.', 1: 'Took what the AI gave: asked for it, agreed, or got stuck.' };
 
   var WORKSHOP_ID = new URLSearchParams(location.search).get('id');
@@ -578,9 +580,27 @@
     }
   }
 
+  // The teacher's turn is the point; the AI's reply before it is context, so a long one opens at three lines (as session-view.js does).
+  function clampedReply(text) {
+    var wrap = el('span', { class: 'reply' });
+    var body = el('span', { class: 'reply-text' }, text);
+    wrap.appendChild(body);
+    if (text.length > 240) {
+      body.classList.add('is-clamped');
+      var more = el('button', { class: 'reply-more', type: 'button', 'aria-expanded': 'false' }, 'Show the whole reply');
+      more.onclick = function () {
+        var open = body.classList.toggle('is-clamped') === false;
+        more.textContent = open ? 'Show less' : 'Show the whole reply';
+        more.setAttribute('aria-expanded', String(open));
+      };
+      wrap.appendChild(more);
+    }
+    return wrap;
+  }
+
   function appendTurn(list, p, ti, withPatterns) {
     var t = p.turnsOut[ti];
-    if (t.ai) { var a = el('div', { class: 'line ai' }); a.appendChild(el('span', { class: 'who' }, 'The AI')); a.appendChild(document.createTextNode(t.ai)); list.appendChild(a); }
+    if (t.ai) { var a = el('div', { class: 'line ai' }); a.appendChild(el('span', { class: 'who' }, 'The AI')); a.appendChild(clampedReply(t.ai)); list.appendChild(a); }
     var me = el('div', { class: 'line person' });
     var who = el('span', { class: 'who' });
     who.appendChild(document.createTextNode('The teacher · turn ' + t.n));
@@ -591,6 +611,7 @@
     me.appendChild(who);
     me.appendChild(document.createTextNode(t.text));
     list.appendChild(me);
+    if (LABEL_MEANING[t.label]) list.appendChild(el('p', { class: 'reader-sub' }, 'Read as ' + t.label + ': ' + LABEL_MEANING[t.label] + '.'));
     if (t.push && t.push.reply) { var r = el('div', { class: 'line ai' }); r.appendChild(el('span', { class: 'who' }, 'The AI replied')); r.appendChild(document.createTextNode(t.push.reply)); list.appendChild(r); }
     if (t.push && t.push.target === 'claim' && t.push.reason === false) {
       list.appendChild(el('p', { class: 'teach' }, 'They disputed a claim here without saying why, and the AI changed its answer anyway.'));
@@ -911,9 +932,7 @@
   }
 
   function provenanceNote() {
-    return el('p', { class: 'real-note' },
-      'The examples come from a real session: an adult co-writing a bicycle maintenance guide with Claude.ai, not school work. ' +
-      'Their words are as written; the AI’s are shortened. It was read by hand against Tau’s schemes, not computed by today’s tool.');
+    return el('p', { class: 'real-note' }, 'From a real session');
   }
 
   function dimDetail(body, d) {
