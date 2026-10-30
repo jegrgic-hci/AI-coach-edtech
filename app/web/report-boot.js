@@ -6,6 +6,7 @@
   const submissionId = params.get('id');
   if (!submissionId) {
     document.getElementById('pending').textContent = 'No submission specified.';
+    holdPage();
     return;
   }
 
@@ -81,6 +82,7 @@
        <button id="retryBtn" class="btn btn-quiet" type="button">${actionLabel}</button>`;
     document.getElementById('retryBtn').onclick = async () => {
       pending.innerHTML = `<div class="spinner"></div>${working}`;
+      homeCache.clear();
       const res = await fetch(`/api/submissions/${submissionId}/reanalyze`, { method: 'POST' });
       // 409 means someone else already started this one — the poll below picks
       // that run up, so it is not an error to report. Anything else is.
@@ -90,6 +92,21 @@
       }
       setTimeout(load, 2500);
     };
+  }
+
+  // The report GET marks this draft's teacher note read on the server. The
+  // home's cached copy is patched to match, so going back doesn't flash an
+  // "unread note" the student has just read.
+  function markNoteReadInHomeCache(id) {
+    const home = homeCache.read();
+    if (!home) return;
+    const now = new Date().toISOString();
+    for (const a of [...home.current, ...home.past]) {
+      for (const d of a.drafts) {
+        if (d.submissionId === id && d.teacherNote) d.teacherNoteReadAt = now;
+      }
+    }
+    homeCache.write(home);
   }
 
   async function load() {
@@ -112,11 +129,12 @@
     }
     const { submission, analysis, stale, sample, rulings: r } = await res.json();
     rulings = r || null;
+    markNoteReadInHomeCache(submission.id);
 
     if (sample) renderSampleNotice();
 
     renderNavCrumbs(document.getElementById('navCrumbs'), [
-      { label: 'All assignments', href: '/' },
+      { label: 'Home', href: '/' },
       { label: submission.assignmentTitle || 'Assignment' },
       { label: `Draft ${submission.cycleIndex + 1}`, current: true },
     ]);
@@ -359,12 +377,14 @@
   // load() is async, so anything it throws became an unhandled rejection and
   // vanished — which is how a broken renderer could silently blank three tabs
   // while the top of the report looked perfectly fine. Failures are loud now.
-  load().catch((err) => {
+  const firstLoad = load().catch((err) => {
     console.error('report render failed', err);
     const pending = document.getElementById('pending');
     pending.style.display = '';
     pending.textContent = 'Something went wrong drawing this report. Your work is safe — reload to try again.';
   });
 
-  mountAccountChip(document.getElementById('accountChip')).catch(() => {});
+  // Released after the first response, whatever it says: a report still
+  // being analysed shows its own pending line, which is the page's answer.
+  holdPage(Promise.all([firstLoad, mountAccountChip(document.getElementById('accountChip')).catch(() => {})]));
 })();

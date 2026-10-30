@@ -919,16 +919,17 @@ button:hover { border-color: var(--tau-forest); }
    defined per theme in tokens.css, so the dark overrides this rule used to
    carry are gone with it. */
 .dash-main { flex: 1; overflow-y: auto; padding: 26px 32px 72px; background: var(--tau-shell); }
-.dash-main > .chunk { max-width: 880px; }
+.dash-main > .chunk, .dash-main > .hero { max-width: 880px; }
 
-/* This rail scrolls as one column rather than scrolling its body against a
-   fixed foot: the body (a few current assignments) is always short and the
-   foot (four meters plus guidance) is the tall part, so pinning the foot
-   would be the thing that clips. Layout only — the regions keep their
-   component roles, .rail-foot's margin-top:auto still settles the progress
-   panel at the bottom whenever there's room to spare. */
+/* One scroller for the rail: the class list is short, and a scrolling body
+   inside a scrolling column would clip it twice. */
 .dash-rail { overflow-y: auto; }
 .dash-rail .rail-body { overflow: visible; flex: 0 0 auto; }
+/* Home carries an icon, which sets it apart from the class list under it;
+   class names wrap rather than truncate, since a cut name identifies nothing. */
+.dash-rail .rail-item .tau-icon { width: 20px; height: 20px; flex-shrink: 0; color: var(--tau-ink-soft); }
+.dash-rail .rail-item.active .tau-icon { color: currentColor; }
+.dash-rail .rail-item-name, .dash-rail .rail-item-sub { white-space: normal; }
 
 /* ── Both student rails, on the shell ──
    Overrides of components.css §13, NOT edits to it: .rail is shared with
@@ -958,47 +959,55 @@ button:hover { border-color: var(--tau-forest); }
 [data-surface="tonal"] .ws-body .pane-list .rail-item.active { background: var(--tau-select); color: var(--tau-on-select); }
 .dash-rail .rail-item-meta, .ws-body .pane-list .rail-item-meta { color: var(--tau-ink-soft); }
 
-/* Pinned to the bottom by .rail-foot's margin-top:auto — whatever room the
-   assignment list doesn't use, this claims, so guidance reads as the rail's
-   settled-at-the-bottom conclusion rather than just more stacked content. */
-/* --tau-line is LIGHTER than --tau-shell, so on the shell it inverts into an
-   embossed hairline instead of a rule. This and the collapsed rail's
-   border-bottom are the only two dividers in this sheet drawn on the ground
-   itself; every other --tau-line here sits inside a card and is unaffected. */
-.rail-progress { padding-top: 16px; border-top: 1px solid var(--tau-line-strong); }
-/* The heading is inside .rail-block, not a sibling of it — renderRail()
-   builds it that way so a second block can carry its own. .eyebrow is an
-   inline span by default; a block heading needs the line to itself. */
-.rail-block > .eyebrow { display: block; margin-bottom: 12px; }
-.rail-block + .rail-block { margin-top: 26px; }
-.rail-progress .rail-empty { padding: 0; line-height: 1.55; }
-
-.meters { display: flex; flex-direction: column; gap: 18px; }
-.meter-name { font-size: var(--tau-text-label-md); color: var(--tau-ink-soft); margin-bottom: 5px; display: block; }
-/* Same slot the old ▲/▼ delta line and the bar underneath it used to fill —
-   a sentence carries more than either did on its own, so it replaces both
-   rather than sitting alongside them. */
-.meter-guidance { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.5; }
-
 /* ---------- hero ---------- */
 
-/* Type on the shell, with no fill and no border of its own. Raised is
+/* Type on the page, with no fill and no border of its own. Raised is
    reserved for content (designsystem.md's shell rule), so a filled bar here
-   would out-pop the assignment cards it introduces — and what was wrong with
-   the name in the rail was its 13px, not its container. It spans the rail as
-   well as the content pane, so it sits outside .dash and doesn't scroll:
-   about 90px held permanently, bought by the rail head it replaces. */
+   would out-pop the assignment cards it introduces. It heads the content
+   column and scrolls with it (2026-10-28: it used to span the rail too, which
+   left the rail starting a third of the way down and not reading as one). */
 .hero {
-  flex: none;
   display: flex; align-items: flex-end; gap: var(--tau-s5); flex-wrap: wrap;
-  padding: var(--tau-s6) var(--tau-s7) var(--tau-s5);
-  background: var(--tau-shell);
+  padding: var(--tau-s2) 0 var(--tau-s6);
 }
 .hero-text { min-width: 0; }
 .hero-greeting {
   font-size: var(--tau-text-3xl); line-height: 1.15; letter-spacing: -0.015em;
   margin: 0 0 var(--tau-s1); text-wrap: balance;
 }
+/* THE BUILD — the home page assembling once its data is in. Runs only when
+   the loader showed (holdPage's `build`, api.js); a fast load and reduced
+   motion skip it and the page simply fades in. The masthead is not part of
+   it: it is data-instant, there from the first frame, so a student is never
+   somewhere unrecognisable while the rest loads. Times run from the leaf
+   starting to fade (300ms), in reading order. Every visible piece below the
+   masthead must be named here: anything left out appears at 0ms, alone.
+   Plays once; nothing waits on it, so the page is usable throughout. */
+[data-loading="build"] body > :not(.tau-loader) { transition: none; }
+[data-loading="build"] .dash-rail {
+  animation: tau-build-fade var(--tau-dur-medium) var(--tau-ease-decelerate) 100ms both;
+}
+[data-loading="build"] .hero-greeting {
+  animation: tau-build-rise var(--tau-dur-medium) var(--tau-ease-decelerate) 150ms both;
+}
+[data-loading="build"] :is(.hero-state, .hero-news) {
+  animation: tau-build-rise var(--tau-dur-medium) var(--tau-ease-decelerate) 250ms both;
+}
+[data-loading="build"] #secCurrent > :not(#currentList) {
+  animation: tau-build-rise var(--tau-dur-medium) var(--tau-ease-decelerate) 300ms both;
+}
+[data-loading="build"] #currentList > * {
+  animation: tau-build-rise var(--tau-dur-medium) var(--tau-ease-decelerate) 350ms both;
+}
+[data-loading="build"] #currentList > :nth-child(2) { animation-delay: 410ms; }
+[data-loading="build"] #currentList > :nth-child(3) { animation-delay: 470ms; }
+/* Capped at four: a fifth card would only make the student wait longer. */
+[data-loading="build"] #currentList > :nth-child(n+4) { animation-delay: 530ms; }
+[data-loading="build"] .dash-main > :not(.hero, #secCurrent) {
+  animation: tau-build-rise var(--tau-dur-medium) var(--tau-ease-decelerate) 530ms both;
+}
+@keyframes tau-build-fade { from { opacity: 0; } }
+@keyframes tau-build-rise { from { opacity: 0; transform: translateY(12px); } }
 /* One segment per live fact, each rendered only when non-zero — bare text,
    since a count is the common case and fails the enclosure test's rare half. */
 .hero-state {
@@ -1028,88 +1037,44 @@ button:hover { border-color: var(--tau-forest); }
 /* ---------- content chunks ---------- */
 
 .chunk { margin-bottom: 38px; }
-.chunk-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.chunk-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
 .chunk-head h2 { font: var(--tau-type-title-md); letter-spacing: var(--tau-track-title); }
 .chunk-count { font-size: var(--tau-text-label-md); color: var(--tau-ink-soft); }
-.chunk-note { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); margin-bottom: 14px; }
-.chunk-head + #currentList { margin-top: 14px; }
 .home-empty { color: var(--tau-ink-soft); font-size: var(--tau-text-md); }
 
-/* ---------- current assignment card ---------- */
+/* ---------- open assignment card ---------- */
 
-/* Chrome (background/border/radius/padding) comes from components.css's
-   .card + .card-lg — this card's own values were an exact, independently-
-   arrived-at match for .card-lg, so it composes rather than redeclares.
-   Urgency reuses .card-edge-caution/.card-edge-attention for the same
-   reason: a recoloured card would make an ordinary deadline look like an
-   error state, and that edge rule already exists once in components.css. */
-.acard { margin-bottom: 14px; transition: outline-color var(--tau-dur-short) var(--tau-ease-standard); outline: var(--tau-focus-ring); outline-color: transparent; outline-offset: var(--tau-focus-gap); }
-.acard-jumped { outline-color: var(--tau-forest); }
+/* Chrome is components.css's .card — .card-lg for a draft in progress, the
+   base size for one not started, which is the whole of the size difference.
+   Laid out as a row: the text column, then the one action on the right, with
+   the submitted drafts wrapping underneath at full width. */
+.ocard { flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--tau-s3) var(--tau-s5); margin-bottom: 14px; }
+.ocard-text { flex: 1 1 320px; min-width: 0; display: grid; gap: 8px; }
+/* Pinned to the card's top, not centred on the text column: the button stays
+   where it is however tall the card's text runs. */
+.ocard > .btn { flex-shrink: 0; align-self: flex-start; }
 
-.acard-due { font-size: var(--tau-text-label-sm); font-weight: 700; }
-.acard-due-calm { color: var(--tau-ink-soft); }
-.acard-due-soon { color: var(--tau-caution); }
-.acard-due-late { color: var(--tau-attention); }
-.acard-class { font-size: var(--tau-text-label-sm); font-weight: 700; color: var(--tau-ink-soft); }
-.acard-sep { color: var(--tau-line-strong); font-size: var(--tau-text-label-sm); }
-.acard-title-row { display: flex; align-items: center; justify-content: space-between; gap: var(--tau-s3); margin-top: 5px; }
+/* The two scan keys, due date and state, at body-small in full ink — a step up
+   from the 11.5px grey eyebrow they replaced, and still under the title. */
+.ocard-top {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 7px;
+  font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink);
+}
+.ocard-top .tau-icon { width: 17px; height: 17px; flex-shrink: 0; }
+.ocard-sep { color: var(--tau-ink-soft); font-weight: 400; }
+.ocard-due-soon { color: var(--tau-caution); }
+.ocard-due-late { color: var(--tau-attention); }
+.ocard-state-quiet { color: var(--tau-ink-soft); }
 .acard-title { font: var(--tau-type-title-lg); letter-spacing: var(--tau-track-title); }
-.acard-rubric-btn { flex-shrink: 0; }
-
-/* ---------- draft rows (home card) ---------- */
-
-/* One row per draft slot, always in budget order — the single place a
-   student reads "where does draft 2 stand," independent of whatever the
-   assignment as a whole is doing. The workspace sidebar only ever shows the
-   current draft's sessions, so this is also the only cross-draft view. */
-.draft-rows {
-  display: flex; flex-direction: column; gap: 8px;
-  margin: 15px 0;
+.ocard-sub { margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+.ocard-instructions { justify-self: start; }
+/* An unread class-wide note: the draft tile's note icon and hue, filled, on
+   the button that opens it. Back to the plain quiet button once opened. */
+.btn.ocard-instructions-note {
+  background: var(--tau-auditor-bg); color: var(--tau-auditor); border-color: transparent;
 }
-.draft-row {
-  display: flex; flex-direction: column; gap: 10px; padding: 13px 15px;
-  font-size: var(--tau-text-sm);
-  border: 1px solid var(--tau-line);
-  border-radius: var(--tau-r-md);
-}
-/* Line 1 — identity: which draft, and when it's due. */
-.draft-row-id { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.draft-row-num { font-weight: 600; }
-.draft-row-sep { color: var(--tau-line-strong); }
-.draft-row-final-badge {
-  font-size: var(--tau-text-label-sm); font-weight: 700;
-  color: var(--tau-ink-soft); border: 1px solid var(--tau-line); border-radius: var(--tau-r-pill);
-  padding: 2px 8px; margin-left: 2px;
-}
-.draft-row-due { font-size: var(--tau-text-label-sm); font-weight: 700; }
-
-/* Line 2 — state: the status word and, where there is one, the detail that
-   carries it ("In progress · 2 sessions · last worked today"). One sentence
-   about where this draft stands, so line 3 is the action and nothing else. */
-.draft-row-state { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.draft-row-detail { color: var(--tau-ink-soft); }
-
-/* Line 3 — functionality: the one button this row offers. */
-.draft-row-body { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-
-/* draft-row-in-progress/-not-started only ever apply to the current cycle's
-   row (see draftRowStatus) — the ledger's "you are here" row, anchored so a
-   student scanning down from the button lands on it without re-reading every
-   row's label. Sized up (padding, gap) beyond the other rows too — it's the
-   one row a returning student actually needs to act on, so it gets to be the
-   biggest thing in the ledger, not the same size as an inert past row. */
-.draft-row-in-progress, .draft-row-not-started {
-  padding: 18px 16px; gap: 14px; border-radius: var(--tau-r-lg);
-  background: var(--tau-surface-2);
-  border-color: transparent;
-}
-
-/* Status vocabulary shared with the workspace's draft sections — one color
-   per state so the same word always reads the same way everywhere. */
-.status-submitted { color: var(--tau-ink-soft); }
-.status-not-started { color: var(--tau-ink-soft); font-style: italic; }
-.status-in-progress { color: var(--tau-forest); font-weight: 600; }
-.status-locked { color: var(--tau-ink-faint); }
+.btn.ocard-instructions-note:hover { background: var(--tau-auditor-bg); filter: brightness(0.97); }
+.ocard-tiles { flex-basis: 100%; display: grid; gap: 8px; }
 
 /* A submitted draft's only move is to point at its report, so the whole row
    is the control — one line instead of three, and a 44px target (--tau-target)
@@ -1141,107 +1106,65 @@ button.draft-tile:hover {
   background: color-mix(in oklab, var(--tau-ink) var(--tau-state-hover), var(--tau-surface));
 }
 
-/* An upcoming draft is neither actionable nor rare, so it takes weight and
-   colour and never a filled boundary (designsystem.md's enclosure test).
-   Padding matches the tiles' horizontal inset so every draft's number starts
-   on the same vertical line down the ledger. */
-.draft-upcoming {
-  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
-  padding: 3px 15px; font-size: var(--tau-text-sm); color: var(--tau-ink-faint);
-}
-.draft-upcoming-num { font-weight: 600; }
-
 /* A teacher note on a submitted draft is never guaranteed and never the
    point of the row — it's a quiet flag, not a block, riding along on the
    tile's one line next to the draft it belongs to. The note itself only ever
-   reads in the report, same place the flag's icon (✉) already means "teacher
-   note" on the past-assignment chips. */
+   reads in the report. */
 .draft-row-note-flag {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: var(--tau-text-label-md); font-weight: 600; color: var(--tau-auditor);
 }
 .draft-row-note-flag .tau-icon { width: 13px; height: 13px; }
 
-/* Lives inside the current draft's row now, not a card-level footer — sized
-   down slightly (13px vs 14px) since it's one element among several in a
-   row rather than the card's sole point of action. */
-.acard-btn, .draft-row-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: var(--tau-forest); border-color: var(--tau-forest); color: var(--tau-on-forest);
-  font-weight: 600; border-radius: var(--tau-r-pill);
-  box-shadow: 0 3px 8px -3px color-mix(in oklab, var(--tau-forest) 45%, transparent);
-  transition: background var(--tau-dur-short) var(--tau-ease-standard), border-color var(--tau-dur-short) var(--tau-ease-standard), transform var(--tau-dur-short) var(--tau-ease-standard);
-}
-.acard-btn { font-size: var(--tau-text-md); padding: 11px 20px; }
-.draft-row-btn { font-size: var(--tau-text-sm); padding: 9px 16px; }
-.draft-row-action-detail { color: var(--tau-ink-soft); font-size: var(--tau-text-sm); }
-.acard-btn:hover, .draft-row-btn:hover { background: var(--tau-forest-lift); border-color: var(--tau-forest-lift); }
-.acard-btn:active, .draft-row-btn:active { transform: scale(0.97); }
-
 /* .acard-disclosure* moved to components.css section 3c — report.html
    needed the same disclosure component and doesn't load style.css. */
 
-/* ---------- past assignment card ---------- */
+/* ---------- closed assignments ---------- */
 
-/* Chrome comes from components.css's .card — this card's own radius/padding
-   (12px, 15/18px) were organic drift from an independent implementation, not
-   an intentional size; they're within a couple of px of .card's own values,
-   so this composes onto .card exactly rather than keeping a third value. */
-.pcard { margin-bottom: 10px; }
-.pcard-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-.pcard-head h3 { font: var(--tau-type-title-md); letter-spacing: var(--tau-track-title); flex: 1; min-width: 200px; }
-.pcard-outcome { display: flex; align-items: baseline; gap: 9px; }
-.pcard-band { font-size: var(--tau-text-sm); font-weight: 600; padding-left: 8px; border-left-width: 3px; border-left-style: solid; }
-.pcard-meta { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); margin: 3px 0 11px; }
+/* No card: rows on the page, divided by --tau-line-strong (the divider that
+   holds on the ground). Finished work recedes to the page while open work
+   stays raised. */
+.closed-list { border-top: 1px solid var(--tau-line-strong); }
+.closed-row {
+  display: flex; align-items: center; gap: var(--tau-s4); flex-wrap: wrap;
+  padding: 14px 4px; border-bottom: 1px solid var(--tau-line-strong);
+}
+.closed-row-text { flex: 1 1 220px; min-width: 0; }
+.closed-row-title { font: var(--tau-type-title-sm); letter-spacing: var(--tau-track-title); }
+.closed-row-meta { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); margin: 2px 0 0; }
 
 /* ---------- draft chips ---------- */
 
+/* A closed row's drafts take their own line under the title, so a long title
+   never wraps against them and every row lines up the same. Each is the
+   level chip (.band, components.css §4) with "Draft N" ahead of the level. */
+.closed-row .chip-row { flex-basis: 100%; }
 .chip-row { display: flex; gap: 8px; flex-wrap: wrap; }
+/* M3 chip metrics: 32px tall, 16px trailing padding, 8px before a leading
+   icon (here the pip, given an icon's 18px slot) and 8px between chips. */
 .draft-chip {
-  display: flex; align-items: baseline; gap: 7px;
-  padding: 6px 11px; border-radius: 9px;
-  border: 1px solid var(--tau-line); background: var(--tau-surface); font-size: var(--tau-text-sm);
+  min-height: 32px; padding: 0 16px 0 8px; gap: 8px;
+  font: inherit; font-size: var(--tau-text-sm); font-weight: 600; border: none;
 }
-.draft-chip .chip-cycle { color: var(--tau-ink-soft); font-size: var(--tau-text-label-md); }
-.draft-chip .chip-samr { font-weight: 600; }
+.draft-chip .band-pip { width: 8px; height: 8px; margin: 0 5px; }.draft-chip .chip-cycle { font-weight: 500; opacity: 0.8; }
 .draft-chip .chip-note { color: var(--tau-auditor); display: inline-flex; }
 .draft-chip .chip-note .tau-icon { width: 13px; height: 13px; }
-button.draft-chip { cursor: pointer; transition: border-color var(--tau-dur-short) var(--tau-ease-standard); }
-button.draft-chip:hover { border-color: var(--tau-forest); }
-.draft-chip-pending { color: var(--tau-ink-soft); }
-.draft-chip-pending .chip-status { font-size: var(--tau-text-label-md); }
-
-/* The .level-* colour mapping itself lives in components.css, next to
-   .band-1..4 (same ramp, applied as a border accent) — this is just the
-   width/padding this particular chip needs from it. */
-.draft-chip[class*='level-'] { border-left-width: 5px; padding-left: 10px; }
+button.draft-chip { cursor: pointer; transition: filter var(--tau-dur-short) var(--tau-ease-standard); }
+button.draft-chip:hover { filter: brightness(0.96); }
+.draft-chip-pending {
+  display: inline-flex; align-items: center; padding-left: 16px;
+  border-radius: var(--tau-r-pill);
+  background: var(--tau-container); color: var(--tau-ink-soft);
+}
+.draft-chip-pending .chip-status { font-weight: 500; }
 
 /* Below expanded (designsystem.md Hard Constraints, size classes — was 760px
-   until 2026-09-29, 900px before that). The home view's rail is standing
-   guidance, not navigation, so it has no mini form: below expanded it is a
-   band under the cards, which at 768 is a full-width column of work rather
-   than 272px of rail beside 496px of cards. */
+   until 2026-09-29, 900px before that). The home rail is navigation since
+   2026-10-28 and becomes the drawer (components.css §13b) — two destinations
+   are too few for a navigation rail. Nothing here moves it; only the content
+   pane's gutter narrows. */
 @media (max-width: 839px) {
-  /* The view scrolls, not .dash inside it, so the hero goes with the content
-     rather than holding a quarter of the screen above it. */
-  #viewAssignments { overflow-y: auto; }
-  #viewAssignments > .hero { flex-shrink: 0; }
-  .dash { flex-direction: column; flex: none; overflow: visible; }
-  /* Layout only — the rail stops being a column and becomes a band. Its
-     chrome (ground, row shape, active state) is untouched.
-     BELOW the assignments, not above: this rail is standing, not navigation —
-     guidance and a jump list to cards that are already on the page — and above
-     them it pushed a student's work off the first screen. flex-shrink:0
-     because as a shrinkable flex child of a scrolling column it was being
-     squeezed to 41px, which hid the guidance outright. */
-  /* line-strong, not line: drawn on --tau-shell, where --tau-line inverts. */
-  .dash-rail { order: 1; flex-shrink: 0; width: 100%; min-width: 0; border-top: 1px solid var(--tau-line-strong); overflow: visible; padding: 24px var(--tau-s4); }
-  .dash-main { overflow: visible; padding: 24px var(--tau-s4) 40px; flex-shrink: 0; }
-  /* Collapsed, the rail is a band: the three blocks run side by side so the
-     meters keep a sane width instead of stretching the full page. */
-  .rail-progress { display: flex; flex-wrap: wrap; gap: 30px 40px; align-items: flex-start; }
-  .rail-block { flex: 1 1 240px; max-width: 340px; }
-  .rail-block + .rail-block { margin-top: 0; }
+  .dash-main { padding: 20px var(--tau-s4) 40px; }
 
   /* 16px is not a ramp step, it is iOS Safari's threshold: a focused field
      under it zooms the whole page, on every tap into the composer. Below
@@ -1266,9 +1189,6 @@ button.draft-chip:hover { border-color: var(--tau-forest); }
   .messages { padding: var(--tau-s4); }
   .composer-notice-close { width: var(--tau-target); height: var(--tau-target); margin: -11px -8px -11px 0; }
 
-  /* Assignment card: the title takes the width and the prompt button drops
-     under it — side by side, a four-word title was wrapping to five lines. */
-  .acard-title-row { flex-wrap: wrap; }
   /* A submitted draft's tile keeps "Draft 2 · Submitted … View report" on
      its one line; the note flag, when there is one, drops to a second. */
   .draft-tile { flex-wrap: wrap; row-gap: var(--tau-s1); }
@@ -1295,22 +1215,11 @@ button.draft-chip:hover { border-color: var(--tau-forest); }
 [data-surface="tonal"] .new-session-btn { border-color: transparent; background: var(--tau-container); }
 [data-surface="tonal"] .new-session-btn:hover { background: color-mix(in oklab, var(--tau-ink) var(--tau-state-hover), var(--tau-container)); }
 
-/* Inside an assignment card: rows separate by tone, and a submitted draft's
-   tile and a past draft's chip are white on the container. Hover is a state
-   layer on that white, not a forest border. */
-[data-surface="tonal"] .draft-row { border-color: transparent; }
-/* Top, right and bottom only: a past chip's level accent is its left rule
-   (.level-*, components.css), and a shorthand here would erase it. */
-[data-surface="tonal"] .draft-tile,
-[data-surface="tonal"] .draft-chip {
-  border-top-color: transparent; border-right-color: transparent; border-bottom-color: transparent;
-  background: var(--tau-container-lowest);
-}
-[data-surface="tonal"] .draft-tile { border-left-color: transparent; }
-[data-surface="tonal"] button.draft-tile:hover,
-[data-surface="tonal"] button.draft-chip:hover {
-  border-top-color: transparent; border-right-color: transparent; border-bottom-color: transparent;
+/* Inside an assignment card a submitted draft's tile is white on the
+   container. Hover is a state layer on that white, not a forest border. */
+[data-surface="tonal"] .draft-tile { border-color: transparent; background: var(--tau-container-lowest); }
+[data-surface="tonal"] button.draft-tile:hover {
+  border-color: transparent;
   background: color-mix(in oklab, var(--tau-ink) var(--tau-state-hover), var(--tau-container-lowest));
 }
-[data-surface="tonal"] button.draft-tile:hover { border-left-color: transparent; }
-[data-surface="tonal"] .draft-chip:not([class*='level-']) { border-left-color: transparent; }
+

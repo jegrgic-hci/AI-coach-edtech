@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light" data-surface="tonal">
+<html lang="en" data-theme="light" data-surface="tonal" data-loading="hold">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,7 +19,7 @@
      identity. Lives outside both views on purpose — index.html's home and
      workspace views, and report.html, all fill the same shell rather than
      each inventing their own header. -->
-<header class="tau-nav" id="tauNav">
+<header class="tau-nav" id="tauNav" data-instant>
   <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="Tau" width="391" height="192">Thinking</span>
   <nav class="tau-nav-crumbs" id="navCrumbs"></nav>
   <span class="tau-nav-fill"></span>
@@ -30,46 +30,45 @@
 
 <!-- View 1: student home -->
 <div id="viewAssignments" class="view">
-  <!-- The hero runs the full width, above the rail as well as the content: a
-       student's own name was a 13px label in the quietest column of their own
-       dashboard. It is type on the shell with no fill of its own — only
-       content is raised off the shell, and a filled bar here would out-pop the
-       assignment cards it introduces. -->
-  <header class="hero">
-    <div class="hero-text">
-      <h1 class="hero-greeting" id="heroGreeting"></h1>
-      <p class="hero-state" id="heroState"></p>
-    </div>
-    <div class="hero-news" id="heroNews"></div>
-  </header>
-
-  <!-- The rail is the dashboard's fixed ground: where you stand and what's
-       open. Content scrolls beside it. -->
+  <!-- The rail is navigation: Home, and one entry per class when there is
+       more than one. Standing at expanded, the drawer below it
+       (mountRailDrawer, components.css §13b). Built by renderRailNav. -->
   <div class="dash">
-    <aside class="rail dash-rail">
+    <aside class="rail dash-rail" id="homeRail" aria-label="Navigation">
       <div class="rail-body" id="railNav"></div>
-      <div class="rail-foot rail-progress" id="railProgress"></div>
     </aside>
 
     <main class="dash-main" id="home">
+      <!-- Type on the page with no fill of its own: only content is raised,
+           and a filled bar here would out-pop the cards it introduces. It
+           names the page — the student's greeting on Home, the class on a
+           class page. -->
+      <header class="hero">
+        <div class="hero-text">
+          <h1 class="hero-greeting" id="heroGreeting"></h1>
+          <p class="hero-state" id="heroState"></p>
+        </div>
+        <div class="hero-news" id="heroNews"></div>
+      </header>
+
       <section class="chunk" id="secCurrent">
         <div class="chunk-head">
-          <h2>Current assignments</h2>
+          <h2>Open</h2>
           <span class="chunk-count" id="currentCount"></span>
         </div>
+        <div class="card-tabs hidden" id="openFilter" role="tablist" aria-label="Show"></div>
         <div id="currentList"></div>
       </section>
 
       <section class="chunk hidden" id="secPast">
         <div class="chunk-head">
-          <h2>Past assignments</h2>
+          <h2>Closed</h2>
           <span class="chunk-count" id="pastCount"></span>
         </div>
-        <p class="chunk-note">Closed — open any draft to review its report.</p>
-        <div id="pastList"></div>
+        <div class="closed-list" id="pastList"></div>
       </section>
 
-      <p class="home-empty hidden" id="homeEmpty">No assignments yet. When your teacher sets one, it will show up here.</p>
+      <p class="home-empty hidden" id="homeEmpty"></p>
     </main>
   </div>
 </div>
@@ -87,7 +86,7 @@
         <details class="acard-disclosure acard-disclosure-prompt ws-prompt">
           <summary class="acard-disclosure-toggle">
             <svg class="acard-disclosure-icon" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Assignment prompt
+            Instructions
           </summary>
           <div id="wsPrompt"></div>
         </details>

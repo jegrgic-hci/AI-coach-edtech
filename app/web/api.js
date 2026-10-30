@@ -19,7 +19,30 @@
     }
   }
 
+  // The student home's last payload, so coming back from a report paints at
+  // once while the fresh one loads. Per tab (sessionStorage), and dropped on
+  // any page outside the student's own two: login, set-password, agreement
+  // and workshop pages are where a different account can sign in on the same
+  // tab, and the client has no user id to tell one student's cache from
+  // another's before the home call returns.
+  const HOME_CACHE = 'tau.studentHome';
+  const homeCache = {
+    read() {
+      try { return JSON.parse(sessionStorage.getItem(HOME_CACHE)); } catch (e) { return null; }
+    },
+    write(home) {
+      try { sessionStorage.setItem(HOME_CACHE, JSON.stringify(home)); } catch (e) { /* quota: no cache, no harm */ }
+    },
+    clear() {
+      try { sessionStorage.removeItem(HOME_CACHE); } catch (e) { /* nothing to clear */ }
+    },
+  };
+  if (!['/', '/index.html', '/report.html'].includes(location.pathname)) homeCache.clear();
+
   async function api(path, opts = {}) {
+    // Any write may change what the home shows (a submission, a new
+    // conversation, a note read), so the cached copy stops being safe to paint.
+    if (opts.method && opts.method !== 'GET') homeCache.clear();
     const res = await fetch(path, {
       headers: { 'Content-Type': 'application/json' },
       ...opts,
@@ -55,6 +78,7 @@
   }
 
   async function logout() {
+    homeCache.clear();
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     location.href = '/login.html';
   }
@@ -568,8 +592,60 @@
     return LEGACY_LEVEL_NAMES[level] || level || null;
   }
 
+  // A page that paints before its data arrives shows chrome with holes in it,
+  // filled piece by piece. A held page (data-loading="hold" on <html>, see
+  // components.css §20) stays on bare ground until `work` settles, then
+  // arrives whole. The leaf shows only past 400ms so a fast load never
+  // flashes it, and once shown stays 500ms so it never flickers. Settles
+  // either way: a failure has to be visible to be reported.
+  const LEAF_D = 'M124.705 136.99C104.454 145.919 90.965 153.597 74.3924 168.266C50.4512 189.457 41.6618 207.126 30.8785 237.616C20.4574 267.082 20 319.204 20 319.204C20 319.204 59.4345 256.245 120.626 221.298C177.771 188.663 248.448 184.584 248.448 184.584C248.448 184.584 174.795 212.614 135.584 243.055C101.157 269.782 59.4345 324.644 59.4345 324.644C59.4345 324.644 202.215 353.552 286.523 277.05C381.951 190.458 378.99 69 378.99 69C378.99 69 341.304 94.1467 309.64 104.355C264.68 118.849 232.13 115.233 181.817 122.032C158.177 125.227 136.707 131.699 124.705 136.99Z';
+  function holdPage(work, { build = false } = {}) {
+    const root = document.documentElement;
+    if (root.dataset.loading === 'hold') root.dataset.loading = 'wait';
+    const loader = document.createElement('div');
+    loader.className = 'tau-loader';
+    loader.setAttribute('role', 'status');
+    loader.innerHTML =
+      `<svg viewBox="0 0 400 400" aria-hidden="true">
+         <path class="leaf-ghost" d="${LEAF_D}"/>
+         <path class="leaf-fill" d="${LEAF_D}"/>
+         <path class="leaf-line" d="${LEAF_D}" pathLength="1"/>
+       </svg><span class="tau-loader-label">Loading</span>`;
+    document.body.prepend(loader);
+
+    let shownAt = null;
+    const showTimer = setTimeout(() => {
+      loader.classList.add('is-on');
+      shownAt = performance.now();
+    }, 400);
+
+    // The fade rule sits on every child of <body>, and the tray and modals
+    // live there with transitions of their own — it goes once the page is in.
+    function finish() { root.removeAttribute('data-loading'); loader.remove(); }
+
+    // With `build`, a load slow enough to have shown the leaf ends with the
+    // page's own sheet assembling it under data-loading="build" (style.css,
+    // THE BUILD), and the attribute stays until that has played. Otherwise
+    // the page fades in as a whole.
+    function release() {
+      clearTimeout(showTimer);
+      const wait = shownAt === null ? 0 : Math.max(0, 500 - (performance.now() - shownAt));
+      setTimeout(() => {
+        loader.classList.remove('is-on');
+        const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const assemble = build && shownAt !== null && !still;
+        root.dataset.loading = assemble ? 'build' : 'done';
+        setTimeout(finish, assemble ? 900 : 300);
+      }, wait);
+    }
+
+    return Promise.resolve(work).finally(release);
+  }
+
   window.levelName = levelName;
+  window.holdPage = holdPage;
   window.api = api;
+  window.homeCache = homeCache;
   window.logUse = logUse;
   window.logout = logout;
   window.mountAccountChip = mountAccountChip;

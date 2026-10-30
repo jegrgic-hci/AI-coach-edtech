@@ -956,7 +956,7 @@ mountRailDrawer({
   identity: $('accountChip'),
 });
 
-(async function init() {
+holdPage((async function init() {
   try {
     await mountAccountChip($('accountChip'));
     view = viewFromHash();
@@ -967,4 +967,4 @@ mountRailDrawer({
     // wrong, say so on the page rather than only in the console.
     $('adminMain').innerHTML = `<p class="section-note">This page could not load: ${esc(ex.message)}</p>`;
   }
-})();
+})());

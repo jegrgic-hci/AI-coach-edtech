@@ -564,6 +564,40 @@ The correct rule set is `allow read, write: if false;`. Browsers never touch Fir
 
 ## Session Log
 
+- **2026-10-30 — Student home: the Progress page removed.** It held the AI use guidance moved out of
+  the rail on 10-28, and that guidance is instruction ("next session, pick one thing the AI says and
+  ask why"), which `tau-dimensions.md` assigns to the teacher. Descriptive progress was considered
+  and deferred: quoted past moments were judged not useful to a student, and movement needs two
+  readable drafts of one assignment, which most students won't have for a while — unmeasured, since
+  the real data (Emilie's classes) is in prod. **Count drafts-with-a-reading per student per
+  assignment there before designing it again.** Removed with it: the guidance tiers, `dimensionMeters`,
+  `scoredDrafts` and the `.meters` styles (all in `HEAD` before this change). With two destinations
+  left the student rail has no navigation-rail form; the drawer runs below expanded.
+- **2026-10-28 — Student home: navigation by class, and the assignment card rebuilt.** Designed on
+  https://claude.ai/artifact/6K5JKm77k35hTGrQPJ4z9e (private) with the product owner. The rail was
+  a jump list repeating the cards' titles, so it never read as a sidebar, and nothing accounted for a
+  student in several classes. **Home is now one page in three scopes**, by hash: `#` every class,
+  `#class-<id>` one class, `#progress`. The rail lists **Home, Progress, then one entry per class
+  with its open count** — classes only from two up (a group of one offers no choice), archived
+  classes left out. It takes the teacher rail's forms: standing at expanded, the navigation rail at
+  medium when there are three destinations, the drawer otherwise. The **AI use guidance moved to the
+  Progress page unchanged** (it still runs the retired tiers; that is the student-view rebuild's
+  job). **Open work sorts by the next draft's due date, whatever its state** — a not-started draft
+  due in a week outranks one under way and due in two; it sorted on the assignment's date before,
+  which disagreed with the hero's own count. State is carried by the card's form, not its position:
+  in progress is `.card-lg` with a filled Continue, not started the base card with a quiet Start, and
+  the type is identical. The card leads with due date · "Draft N of M" · state at body-small in full
+  ink with a calendar icon; urgency colour only where the words say it ("Due in 2 days, 30 Oct",
+  "Overdue, was due …"), and the old caution/attention edge rule went, since the due line already
+  carries it. Submitted drafts stay on the open card as the existing "View report" rows; future
+  drafts lost their rows ("of M" states the budget). **Closed work is rows on the page, no card.** An
+  All / In progress / Not started `.card-tabs` filter appears from four open assignments. Server:
+  `/api/student/home` returns `classes` and a `classId` per assignment, and `className` now names
+  the student's own class rather than `classIds[0]`. Breadcrumbs read "Home" (workspace, report).
+  **Rejected in the session:** colour alone for in progress vs not started (container steps 0.019
+  apart are invisible side by side); grouping Open by state; a "pick up where you left off" line and
+  a sort control (feature creep, the owner's call); status and due as chips (fail the enclosure
+  test). **Not done:** the class in the workspace's and report's breadcrumb.
 - **2026-10-20 — Workshop results, presented: `workshop-room.html`.** The facilitator's projector
   view of a room's results, built from a design artifact the stakeholder approved
   (https://claude.ai/artifact/3cCY2iVzsZb2g4Jcc9D9tz). Reached by **Present results** on each

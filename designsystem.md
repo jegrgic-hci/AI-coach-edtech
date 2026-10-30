@@ -271,8 +271,10 @@ not licence to improvise — say so and ask, don't invent.**
   these levels describe **agency**, not task transformation as Puentedura published them.
 - **Semantic colour (positive/caution/attention) never touches a student's own score.** A level is
   a position on a path, not a verdict.
-- Forest has exactly **six jobs** (interactive text, primary fills, meter fills, system-message
-  rule, light-theme ground wash, score numerals) **and no others** — no forest-tinted surface fill
+- Forest has exactly **seven jobs** (interactive text, primary fills, meter fills, system-message
+  rule, light-theme ground wash, score numerals, **the brand mark** — the leaf, wherever it is drawn:
+  the page loader and the AI-thinking leaf; added 2026-10-30, when both had been using it
+  unwritten) **and no others** — no forest-tinted surface fill
   beyond `--tau-meter-track`. **Sage is fill-only**, never text.
 - **`--tau-tool-info` (blue) is a voice, not a severity tier** — it marks the tool explaining
   itself (context, synthesis, "here's what you're looking at and why"), orthogonal to the
@@ -433,6 +435,27 @@ not licence to improvise — say so and ask, don't invent.**
   the list is shown instead when no conversation is open, since then it is the only thing to act on.
   **Submit draft is a required action and is visible from both panes** — in the conversation's header
   and at the list's foot — never behind a step.
+- **The student home rail is navigation, and adapts to the student.** Added 2026-10-28 by the
+  product owner. **Home, then one entry per class with its open count** ("2 open", "Nothing open")
+  — never the assignments themselves, so the rail is the same length however much work there is.
+  **The class group appears only from two classes**: with one, Home is that class and a group of one
+  is not a choice. Home and a class page are one page in two scopes. Standing at expanded, **the
+  drawer below it** — Home and Classes are two destinations, under the three M3's navigation rail
+  starts at. **No Progress destination until there is something worth showing** (removed
+  2026-10-30, owner's call): the guidance it held was instruction, which is the teacher's register
+  (`tau-dimensions.md`, *The report describes; the teacher teaches*), and descriptive progress needs
+  more readable drafts per student than a term is likely to give.
+- **An open assignment's place is its next draft's due date; its state is its form.** Added
+  2026-10-28. One list, soonest next-draft due first, whatever the state — a draft not started and
+  due in a week outranks one in progress and due in two. In progress is `.card-lg` with the filled
+  button, not started the base card with the quiet one, **same type sizes either way**. The card
+  leads with due date · "Draft N of M" · state as **plain text at body-small in full ink** with a
+  calendar icon — not chips: neither is actionable, and both are on every card. Urgency colour only
+  where the words state it ("Due in 2 days, 30 Oct", "Overdue, was due 27 Oct"). **Closed work is
+  rows on the page, no card**, each row's drafts on their own line under the title as level chips
+  (`.band band-N` with pip, "Draft N" before the level), each opening its report — enclosed on
+  every row by the owner's call (2026-10-30), an exception to *actionable AND rare*. A filter (`.card-tabs`: All / In progress / Not started) appears from
+  four open assignments; there is no sort control.
 - **The report and its sessions are two views, one on screen at a time, at every width.** Revised
   2026-10-27 (was supporting-pane, 2026-09-29: sessions beside the report at expanded, a bottom sheet
   below). A student rarely reads their own sessions unprompted — **the turn plot is what points them
@@ -925,7 +948,7 @@ in `report.html` and `teacher.html` beyond the two checked above should be
 assumed unaudited, not assumed correct because it predates this rule.
 
 ### Colour
-- **Forest gets six jobs and no others:** interactive text, primary fills, meter fills, the rule marking a system message, the light-theme ground wash (2026-07-21), and — new the same day — a student's own score numerals (`.report-total-n`, `.dim-val .n`).
+- **Forest gets seven jobs and no others:** interactive text, primary fills, meter fills, the rule marking a system message, the light-theme ground wash (2026-07-21), — new the same day — a student's own score numerals (`.report-total-n`, `.dim-val .n`), and the brand mark (the leaf; 2026-10-30, see Hard Constraints).
 - **Sage is fill-only.** It fails contrast as text.
 - **Neutrals stay neutral past the ground wash.** The page background (`--tau-bg`/`--tau-surface-2`/`--tau-surface-3`) carries a whisper of forest; card surfaces (`--tau-surface`), shadows, and panel fills do not. The wash is one deliberate, quiet exception — it is not licence to tint greys generally.
 - **Forest on a score numeral is brand identity, not a verdict, because it never varies with the value.** The lowest and the highest reading render in the exact same colour and weight — this is the one place a value-keyed rule could look like it's being broken, so it's worth stating why it isn't: *semantic* colour (positive/caution/attention) still never touches a score. This is a fixed brand treatment applied uniformly regardless of the number, same category as the SAMR band pip.
@@ -1081,6 +1104,28 @@ single-property use M3's own CSS token guidance recommends.
   between — pick the nearer rung.
 - Loading spinners (`@keyframes spin`/`rspin`) are a different category — continuous indicators,
   not interaction feedback — and stay outside this token set.
+- **A page that waits on data is held, not painted in pieces** (2026-10-30, option A of
+  https://claude.ai/artifact/Gnw324GpCWP2X5Mki32T99, private). `data-loading="hold"` on `<html>` in
+  the markup keeps first paint on bare page ground; `holdPage(promise)` (`api.js`) releases it when
+  the page's first fetch and the account menu have settled, and the page arrives whole in one
+  medium fade. A direct child of `<body>` marked `data-instant` is never held. The leaf
+  (`.tau-loader`, `components.css` §20, forest) traces its outline, then fills stem to tip; it
+  shows only past 400ms and stays at least 500ms once up. Held today: student home, teacher
+  dashboard, report, admin. It is a different motion from the AI-thinking leaf's breathe on
+  purpose: "the page is loading" and "the AI is working" are different waits. Reduced motion shows
+  the leaf still and filled — §20 overrides the global rule, which would stop the loop on its last,
+  invisible frame.
+- **The student home keeps its masthead and builds the rest** (2026-10-30). The masthead is
+  `data-instant`, there from the first frame, so a student signing in or coming back is never on an
+  unrecognisable screen. When a load was slow enough to show the leaf, the leaf fades and the page
+  assembles in reading order (`holdPage`'s `build`, *THE BUILD* in `style.css`): rail at 100ms,
+  greeting 150, state line 250, the Open heading 300, the cards from 350 at a 60ms stagger capped
+  at four, the rest at 530 — settled by ~0.85s. Plays once, never blocks input; a fast load and
+  reduced motion fade the page in instead. Every visible piece below the masthead must be named in
+  that block; one left out appears at 0ms, alone. **Tried the same day and dropped as too
+  complicated:** the leaf flying into a leaf before the greeting, and a thread unravelling from the
+  loader to trace it. A sage-bodied leaf with a forest edge was tried too — it reads as a loader
+  but not as a static icon.
 - `prefers-reduced-motion` is already enforced globally (baseline block, `tokens.css`) — collapses
   every `transition`/`animation` to near-zero. New motion never needs its own reduced-motion
   override; the blanket rule already covers it.

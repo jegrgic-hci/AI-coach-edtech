@@ -978,6 +978,19 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
   margin-bottom: 6px;
 }
 .tray-section-body { font-size: var(--tau-text-md); color: var(--tau-ink); line-height: 1.6; }
+/* Sections usually arrive in one wrapper (the instructions body), where
+   .tray-body's gap can't reach them — so a section spaces itself from the
+   one before. */
+.tray-section-body + .tray-section-label { margin-top: var(--tau-s5); }
+/* The teacher's class-wide note, set apart from the authored instructions in
+   the note's own hue — the same one that flags it on the card. */
+.tray-note {
+  background: var(--tau-auditor-bg);
+  border-radius: var(--tau-r-md);
+  padding: var(--tau-s3) var(--tau-s4);
+  margin-bottom: var(--tau-s5);
+}
+.tray-note .tray-section-label { color: var(--tau-auditor); }
 .tray-steps { display: flex; flex-direction: column; gap: var(--tau-s2); margin-top: 0; padding: 0; list-style: none; }
 .tray-steps li { display: flex; gap: var(--tau-s3); font-size: var(--tau-text-md); color: var(--tau-ink); line-height: 1.5; }
 .tray-step-num {
@@ -1145,6 +1158,15 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
     padding: 0 var(--tau-s4);
   }
   .tau-nav-mark { grid-area: mark; height: 56px; }
+  /* A page with a drawer (the student home) puts its menu button at the start
+     of the bar, ahead of the mark — Hard Constraints, "on a phone the rail is
+     a drawer, opened from a menu button at the start of the masthead". Only
+     while the button is live; elsewhere the bar keeps its three columns. */
+  .tau-nav:has(> .rail-toggle.is-live:not(.hidden)) {
+    grid-template-columns: auto auto 1fr auto;
+    grid-template-areas: "toggle mark . chip" "crumbs crumbs crumbs local";
+  }
+  .tau-nav > .rail-toggle { grid-area: toggle; }
   .tau-nav > .account-chip { grid-area: chip; justify-self: end; }
   .tau-nav-fill { display: none; }
   .tau-nav-crumbs { grid-area: crumbs; min-height: var(--tau-target); }
@@ -2914,3 +2936,84 @@ min-height: 24px;
    coloured text on a tinted fill is how a level chip is drawn. Weight stays. */
 [data-surface="tonal"] .rail-item.active .rail-item-name,
 [data-surface="tonal"] .rail-item.active .rail-item-meta { color: var(--tau-on-select); }
+
+/* ============================================================================
+ * §20  PAGE LOADER — the leaf a page shows while its first data loads.
+ * Added 2026-10-30, option A of https://claude.ai/artifact/Gnw324GpCWP2X5Mki32T99.
+ *
+ * A held page carries data-loading="hold" on <html> in its markup, so its
+ * first paint is the bare page ground rather than chrome with holes in it.
+ * holdPage() (api.js) shows the leaf only once the load passes 400ms, keeps it
+ * at least 500ms so it never flickers, then sets "done" and the page arrives
+ * whole in one medium fade. The attribute is removed once the fade ends.
+ *
+ * A direct child of <body> marked data-instant is never held: the masthead,
+ * on a page where it should be there from the first frame so the student
+ * knows where they are while the rest loads.
+ *
+ * The loop sits outside the motion tokens, as the spinners do: a continuous
+ * indicator, not interaction feedback (designsystem.md, Motion).
+ * ========================================================================== */
+[data-loading] body > :not(.tau-loader, [data-instant]) {
+  transition: opacity var(--tau-dur-medium) var(--tau-ease-decelerate), visibility 0s;
+}
+/* visibility, not just opacity: a held page must not take focus or be read
+   out while nobody can see it. "hold" is the markup's state, "wait" is
+   holdPage() having taken over. The delayed animation on "hold" alone is the
+   safety net — a script that dies before holdPage() runs reveals the page
+   after 10s instead of leaving it blank; once it runs, it owns the reveal. */
+:is([data-loading="hold"], [data-loading="wait"]) body > :not(.tau-loader, [data-instant]) {
+  opacity: 0;
+  visibility: hidden;
+}
+[data-loading="hold"] body > :not(.tau-loader, [data-instant]) { animation: tau-unhold 0s 10s forwards; }
+@keyframes tau-unhold { to { opacity: 1; visibility: visible; } }
+
+.tau-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--tau-dur-medium) var(--tau-ease-standard);
+}
+.tau-loader.is-on { opacity: 1; }
+.tau-loader svg { width: 88px; height: 88px; overflow: visible; }
+.tau-loader .leaf-ghost { fill: color-mix(in oklab, var(--tau-forest) 16%, transparent); }
+.tau-loader .leaf-fill { fill: var(--tau-forest); animation: tau-leaf-fill 3.4s cubic-bezier(0.2,0,0,1) infinite; }
+.tau-loader .leaf-line {
+  fill: none;
+  stroke: var(--tau-forest);
+  stroke-width: 10;
+  stroke-linejoin: round;
+  stroke-dasharray: 1 1;
+  animation: tau-leaf-line 3.4s cubic-bezier(0.2,0,0,1) infinite;
+}
+.tau-loader-label {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* The outline draws from the stem, then colour climbs the same way, stem to
+   tip, on a diagonal — the line the leaf grows along. */
+@keyframes tau-leaf-line {
+  0%   { stroke-dashoffset: 1; opacity: 1; }
+  40%  { stroke-dashoffset: 0; opacity: 1; }
+  82%  { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes tau-leaf-fill {
+  0%, 40% { clip-path: polygon(0 100%, 0 100%, 0 100%); opacity: 1; }
+  70%, 82% { clip-path: polygon(0 100%, 0 -100%, 200% 100%); opacity: 1; }
+  100%    { clip-path: polygon(0 100%, 0 -100%, 200% 100%); opacity: 0; }
+}
+/* The global reduced-motion rule would run each loop once and stop on its
+   last frame, which is an invisible leaf. A still, filled leaf instead. */
+@media (prefers-reduced-motion: reduce) {
+  .tau-loader .leaf-fill { animation: none; clip-path: none; opacity: 1; }
+  .tau-loader .leaf-line { display: none; }
+}

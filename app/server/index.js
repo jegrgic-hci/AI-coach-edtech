@@ -1527,10 +1527,11 @@ async function handleApi(req, res, user, route) {
     const myClasses = await col('classes').list((c) => c.studentIds.includes(user.id));
     const myClassIds = new Set(myClasses.map((c) => c.id));
     const classNameById = new Map(myClasses.map((c) => [c.id, c.name]));
-    const classNameFor = (a) => {
-      if (!a.classIds || !a.classIds.length) return null;
-      return classNameById.get(a.classIds[0]) || null;
-    };
+    // The student's own class among the assignment's classes, not classIds[0]:
+    // an assignment set to two sections names the one this student sits in,
+    // and the home's class pages group by it.
+    const classIdFor = (a) => (a.classIds || []).find((id) => myClassIds.has(id)) || null;
+    const classNameFor = (a) => classNameById.get(classIdFor(a)) || null;
 
     for (const a of await col('assignments')
       .list((a) => !a.classIds || !a.classIds.length || a.classIds.some((id) => myClassIds.has(id)))) {
@@ -1593,7 +1594,7 @@ async function handleApi(req, res, user, route) {
 
       if (done || closed) {
         past.push({
-          id: a.id, title: a.title, className: classNameFor(a), dueDate: dueISO(a.dueDate),
+          id: a.id, title: a.title, classId: classIdFor(a), className: classNameFor(a), dueDate: dueISO(a.dueDate),
           draftDueDates: (a.draftDueDates || []).map(dueISO), draftBudget: a.draftBudget, drafts,
         });
       } else {
@@ -1620,6 +1621,7 @@ async function handleApi(req, res, user, route) {
         current.push({
           id: a.id,
           title: a.title,
+          classId: classIdFor(a),
           className: classNameFor(a),
           description: a.description,
           purpose: a.purpose,
@@ -1637,6 +1639,8 @@ async function handleApi(req, res, user, route) {
           // Assignment-wide, not tied to any one draft's report — a teacher
           // note about the drafting process itself, not about a submission.
           teacherNote: a.teacherNote || null,
+          teacherNoteAt: a.teacherNote ? a.teacherNoteAt || null : null,
+          teacherNoteReadAt: user.assignmentNoteReads?.[a.id] || null,
         });
       }
     }
@@ -1645,6 +1649,9 @@ async function handleApi(req, res, user, route) {
     const budget = await checkChatBudget(user.id);
     return json(res, 200, {
       student: { displayName: user.displayName, email: user.email },
+      // The home rail's class list. An archived class is a finished term, so it
+      // leaves the rail; its work stays on Home with everything else.
+      classes: myClasses.filter((c) => !c.archived).map((c) => ({ id: c.id, name: c.name })),
       current,
       past,
       trend,
@@ -1684,6 +1691,25 @@ async function handleApi(req, res, user, route) {
       });
     }
     return json(res, 200, assignments);
+  }
+
+  // POST /api/assignments/:id/note-read — the student opened Instructions
+  // with the class-wide note in it. Kept on the student, not the assignment:
+  // one note is read by a whole class, each at their own time. Same rule as a
+  // draft note: a later edit stamps a newer teacherNoteAt and it is unread again.
+  if (req.method === 'POST' && seg1 === 'assignments' && seg3 === 'note-read') {
+    const assignment = await col('assignments').get(seg2);
+    if (!assignment) return json(res, 404, { error: 'assignment not found' });
+    if (assignment.classIds && assignment.classIds.length) {
+      const inClass = (await col('classes').list((c) => c.studentIds.includes(user.id)))
+        .some((c) => assignment.classIds.includes(c.id));
+      if (!inClass) return json(res, 403, { error: 'not your class' });
+    }
+    const readAt = now();
+    await col('users').update(user.id, {
+      assignmentNoteReads: { ...(user.assignmentNoteReads || {}), [assignment.id]: readAt },
+    });
+    return json(res, 200, { teacherNoteReadAt: readAt });
   }
 
   // POST /api/assignments/:id/open — get-or-create the active session (cycle)
@@ -1756,6 +1782,7 @@ async function handleApi(req, res, user, route) {
         ...assignment,
         dueDate: dueISO(assignment.dueDate),
         draftDueDates: (assignment.draftDueDates || []).map(dueISO),
+        teacherNoteReadAt: user.assignmentNoteReads?.[assignment.id] || null,
       },
       session: session || null,
       conversations,

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light" data-surface="tonal">
+<html lang="en" data-theme="light" data-surface="tonal" data-loading="hold">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8178,7 +8178,7 @@ document.getElementById('add-students-close-btn').innerHTML = iconSVG('close');
 // Ordered by how much of the product each explains: the level is on every
 // report, the four dimensions sit under every level, a signal is on some
 // students only. Most general first.
-mountAccountChip(document.getElementById('accountChip'), {
+const chipReady = mountAccountChip(document.getElementById('accountChip'), {
   // All three open in a new tab — the same reason the New here block does. A
   // teacher reaches for one of these while looking at a student, and comes
   // back to that student, not to a reloaded dashboard.
@@ -8211,10 +8211,10 @@ mountAccountChip(document.getElementById('accountChip'), {
   }],
 }).catch(() => {});
 
-loadDashboardData().then(render).catch((err) => {
+holdPage(Promise.all([chipReady, loadDashboardData().then(render).catch((err) => {
   document.body.insertAdjacentHTML('afterbegin',
     `<div style="padding:20px;color:var(--tau-attention);font-family:var(--tau-font-ui)">Could not load dashboard data: ${err.message}</div>`);
-});
+})]));
 </script>
 </body>
 </html>

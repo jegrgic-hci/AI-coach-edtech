@@ -117,86 +117,6 @@ async function readSSE(res, { onToken, onNotice }) {
 
 // ---------- student home ----------
 
-// Fixed dimension names — designsystem.md Hard Constraints: "No synonyms, no
-// rewording per surface." Same names the report page uses (report-render.js),
-// so a student's own vocabulary doesn't change between the rail and their report.
-const DIMENSION_NAMES = {
-  PQ: 'Prompting Quality',
-  SU: 'Selective Use',
-  CS: 'Calibrated Skepticism',
-  OC: 'Original Contribution',
-};
-
-// What each dimension actually tracks — shown before there's any history to
-// compare a draft against. One-time orientation, not a definition a student
-// needs repeated once they know the system.
-const DIMENSION_EXPLAIN = {
-  PQ: "Whether you ask questions that push back or go deeper, not just ones that ask for more.",
-  SU: 'What you do after getting an answer — build on it, or take it and move on.',
-  CS: "Whether you push back when something doesn't sit right, rather than accepting it.",
-  OC: "How much of the essay's thinking started with you, not the session.",
-};
-
-// A forward-looking nudge for a dimension that isn't trending up yet.
-// Coach-voice: what to try, never what went wrong.
-const DIMENSION_TIPS = {
-  PQ: "Try asking a question that challenges what you're told, not just one that asks for more.",
-  SU: 'When you get an answer, try pushing it further yourself before you move on.',
-  CS: "It's fine to disagree — say so, and ask for something different.",
-  OC: "Make sure some of the essay's ideas start with you, not just the session.",
-};
-
-// Named growth for a dimension that's genuinely climbing. Only used when
-// that dimension's own trend actually supports it — see dimensionTier below.
-const DIMENSION_WINS = {
-  PQ: 'asking sharper questions than a few drafts ago',
-  SU: 'doing more with what you get back, instead of stopping there',
-  CS: 'pushing back more than you used to',
-  OC: 'bringing more of your own thinking into the draft',
-};
-
-// The floor tier: a dimension that's stayed low for a stretch of drafts
-// needs more than a one-line nudge (DIMENSION_TIPS assumes the student
-// already gets the idea and just needs a reminder). This teaches the move
-// itself, with a concrete next step — not what went wrong on any one draft.
-const DIMENSION_EDUCATION = {
-  PQ: "A challenge question pushes back on something specific — \"Why does this argument assume X?\" — instead of just asking for more. Next session, pick one thing the AI says and ask why it's true, not what else you can add.",
-  SU: "Getting an answer isn't the finish line, it's the start of the next move. When the AI hands you something, restate it in your own words, test it against your own argument, or ask a follow-up before you use it — carrying it forward as-is is the pattern this dimension is catching.",
-  CS: "Disagreeing with the AI isn't a risk, it's the point. If something doesn't sit right, say so directly: \"I don't think that's right because...\" or \"Can you give me something different?\" The AI can only revise what you push back on.",
-  OC: "This dimension checks where the essay's ideas actually came from. Before you write a paragraph, work out what you think first — then use the AI to test or sharpen it, not to generate it. An idea you had before the session started counts as yours even if the AI agreed with it.",
-};
-
-// Below this, on average, a dimension counts as "consistently low" rather
-// than just a rough draft — see dimensionTier.
-const LOW_TIER_THRESHOLD = 2.5;
-// Averaged over the most recent drafts, not the whole history — an early
-// bad draft shouldn't keep weighing on the average once a student improves.
-const LOW_TIER_WINDOW = 3;
-
-function recentAverage(scored, key) {
-  const recent = scored.slice(-LOW_TIER_WINDOW);
-  return recent.reduce((sum, d) => sum + d.tau[key], 0) / recent.length;
-}
-
-// Each dimension gets its own tier, independent of how the other three are
-// doing — a student can be climbing on Selective Use and still need the tip
-// on Calibrated Skepticism; averaging that into one line would hide it.
-// educational (orientation): nothing to compare against yet (first scored draft).
-// affirmative: this dimension specifically is trending up — checked first,
-//   so a student climbing out of a low patch gets the win, not a lecture.
-// educational (floor): stayed low across recent drafts and isn't currently
-//   climbing — needs to learn the move, not just be reminded of it.
-// helpful: default — a tip on this dimension.
-// Never assumes every draft involved the AI; that's its own signal in the
-// numbers, not something the copy needs to presuppose.
-function dimensionTier(key, tau, priorAvg, scored) {
-  if (!priorAvg) return DIMENSION_EXPLAIN[key];
-  const delta = tau[key] - priorAvg[key];
-  if (delta >= 0.75) return `You're ${DIMENSION_WINS[key]}.`;
-  if (recentAverage(scored, key) < LOW_TIER_THRESHOLD) return DIMENSION_EDUCATION[key];
-  return DIMENSION_TIPS[key];
-}
-
 function fmtDate(iso) {
   if (!iso) return null;
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -212,15 +132,6 @@ function dueInfo(iso) {
   if (days === 1) return { text: 'Due tomorrow', tone: 'soon', days };
   if (days <= 3)  return { text: `Due in ${days} days`, tone: 'soon', days };
   return { text: `Due ${fmtDate(iso)}`, tone: 'calm', days };
-}
-
-// The eyebrow is about the deadline only — never progress. "In progress" /
-// "not started" describe a specific draft (see draftRowStatus below); saying
-// them here too, about the assignment as a whole, is exactly the collision
-// that made it unclear which draft was actually being talked about.
-function statusEyebrow(a) {
-  const due = dueInfo(a.dueDate);
-  return due.text ? due : { text: 'No due date', tone: 'calm' };
 }
 
 // Single vocabulary for what a draft's state means — used by the home card's
@@ -248,70 +159,6 @@ function draftRowStatus(cycleIndex, { currentCycle, hasActivity, submission }) {
     key: 'locked', label: 'Not available yet',
     detail: `Opens after Draft ${cycleIndex} is submitted`,
   };
-}
-
-// One row per draft slot 1..budget — every draft is shown, whether or not it
-// exists yet, so a locked future draft reads as "not yours yet" rather than
-// silently missing. Everything that belongs to a specific draft (its action
-// button, its teacher note, its score) renders inside that draft's own row —
-// there is no assignment-level footer duplicating what a row already owns.
-//
-// A submitted draft never shows its score or SAMR band here — a number
-// invites reading it as a grade, and the ledger isn't where a student should
-// be forming their read of a draft. That's the report's job; this row's
-// only move is to point there.
-//
-// A slot gets vertical space in proportion to what it offers. The current
-// draft is the only destination in the ledger and keeps all three lines;
-// a submitted draft is one clickable row that points at its report; an
-// upcoming draft is one muted line stating when it opens. Every slot is
-// still listed with its own status — this is density, not concealment.
-function draftRow(cycleIndex, status, opts = {}) {
-  if (status.key === 'locked') return upcomingDraftLine(cycleIndex, status, opts);
-  if (status.key === 'submitted') return submittedDraftTile(cycleIndex, status, opts);
-  return currentDraftRow(cycleIndex, status, opts);
-}
-
-// The current draft. Line 1 identity, line 2 state, line 3 the one action.
-// The activity detail ("2 sessions · last worked today") sits with the
-// status rather than beside the button: the two facts describing where this
-// draft stands read as one sentence, and the button gets a line to itself so
-// it reads as the single thing this row is for.
-function currentDraftRow(cycleIndex, status, opts) {
-  const row = el('div', `draft-row draft-row-${status.key}`);
-
-  const id = el('div', 'draft-row-id');
-  id.append(el('span', 'draft-row-num', `Draft ${cycleIndex + 1}`));
-  if (opts.dueDate) {
-    const due = dueInfo(opts.dueDate);
-    if (due.text) {
-      id.append(el('span', 'draft-row-sep', '·'));
-      id.append(el('span', `draft-row-due acard-due-${due.tone}`, due.text));
-    }
-  }
-  // Marks the last draft slot as the one with nowhere further to revise to —
-  // purely derived from draftBudget, not a flag a teacher sets separately.
-  if (opts.isFinal) id.append(el('span', 'draft-row-final-badge', 'Final draft'));
-  row.append(id);
-
-  const state = el('div', 'draft-row-state');
-  state.append(el('span', `draft-row-status status-${status.key}`, status.label));
-  if (status.detail) {
-    state.append(el('span', 'draft-row-sep', '·'));
-    state.append(el('span', 'draft-row-detail', status.detail));
-  }
-  row.append(state);
-
-  // The one action a student can take lives in the row of the draft it
-  // moves forward — not in a card-level footer that repeats "Draft N".
-  const body = el('div', 'draft-row-body');
-  const go = el('button', 'acard-btn draft-row-btn');
-  go.innerHTML = `${status.key === 'in-progress' ? 'Continue' : 'Start'} Draft ${cycleIndex + 1} ${iconSVG('arrowForward')}`;
-  go.onclick = () => openAssignment(opts.assignmentId);
-  body.append(go);
-  row.append(body);
-
-  return row;
 }
 
 // A submitted draft's only move is to point at its report, so the whole row
@@ -352,26 +199,6 @@ function submittedDraftTile(cycleIndex, status, opts) {
   return tile;
 }
 
-// An upcoming draft is neither actionable nor rare, so it gets weight and
-// colour, never a filled boundary (designsystem.md's enclosure test). It
-// also drops "Not available yet": "Opens after Draft 2 is submitted" states
-// the same fact and states the useful half. Still one line per slot, so the
-// budget stays as explicit as every other row.
-function upcomingDraftLine(cycleIndex, status, opts) {
-  const line = el('div', 'draft-upcoming');
-  line.append(el('span', 'draft-upcoming-num', `Draft ${cycleIndex + 1}`));
-
-  // Lowercased because it runs on after a separator here rather than opening
-  // its own line, the way it does everywhere else draftRowStatus is read.
-  const opens = status.detail.charAt(0).toLowerCase() + status.detail.slice(1);
-  const rest = [];
-  const due = opts.dueDate ? dueInfo(opts.dueDate) : null;
-  if (due?.text) rest.push(due.text);
-  rest.push(opts.isFinal ? `Final · ${opens}` : opens);
-  line.append(el('span', null, rest.join(' · ')));
-  return line;
-}
-
 function relTime(iso) {
   if (!iso) return null;
   const days = Math.floor((new Date() - new Date(iso)) / 86400000);
@@ -381,16 +208,10 @@ function relTime(iso) {
   return fmtDate(iso);
 }
 
-function allDrafts(home) {
-  return [...home.current, ...home.past].flatMap((a) => a.drafts);
-}
-
-function scoredDrafts(home) {
-  return allDrafts(home)
-    .filter((d) => d.tau)
-    .sort((a, b) => String(a.submittedAt).localeCompare(String(b.submittedAt)));
-}
-
+// A closed assignment's draft, as the level chip the report and dashboard
+// draw: the level's own band fill and pip, "Draft N" before it. A chip, not
+// plain text, by the owner's call (2026-10-30) — it opens the draft's report.
+const LEVEL_ORDER = ['Passive', 'Reactive', 'Directive', 'Transformative'];
 function draftChip(draft) {
   if (draft.analysisStatus !== 'complete' || !draft.tau) {
     const pending = el('span', 'draft-chip draft-chip-pending');
@@ -399,7 +220,9 @@ function draftChip(draft) {
     return pending;
   }
   const draftLevel = levelName(draft.tau.SAMR);
-  const chip = el('button', `draft-chip level-${draftLevel.toLowerCase()}`);
+  const chip = el('button', `draft-chip band band-${LEVEL_ORDER.indexOf(draftLevel) + 1}`);
+  chip.type = 'button';
+  chip.append(el('span', 'band-pip'));
   chip.append(el('span', 'chip-cycle', `Draft ${draft.cycleIndex + 1}`));
   chip.append(el('span', 'chip-samr', draftLevel));
   if (draft.hasTeacherNote) {
@@ -424,9 +247,9 @@ function missingDraftChip(cycleIndex) {
   return chip;
 }
 
-// budget is passed only by pastCard, where the assignment is closed and the
+// budget is passed only by closedRow, where the assignment is closed and the
 // unfilled slots are final. An open assignment's unfilled slots are still
-// live work and belong to the draft ledger on its own card, not here.
+// live work, stated on its own card as "Draft N of M".
 function draftChipRow(drafts, budget) {
   const row = el('div', 'chip-row');
   for (const d of drafts) row.append(draftChip(d));
@@ -435,66 +258,110 @@ function draftChipRow(drafts, budget) {
 }
 
 
-// One block per dimension: name, current score, and a guidance line tiered
-// to that dimension's own trend (see dimensionTier) — no bar, the number and
-// the sentence carry it.
-//
-// Compared against priorAvg — the mean of every earlier scored draft, not
-// just the immediately previous one — because the dimensions are the one
-// figure that's actually comparable across different assignments (they
-// measure a behaviour, not an outcome graded against that assignment's own
-// rubric). A same-assignment-only comparison sat empty for any student who
-// submits one draft per assignment; the average has something to compare
-// against from a student's second scored draft on, full stop.
-function dimensionMeters(tau, priorAvg, scored) {
-  const grid = el('div', 'meters');
-  for (const [key, name] of Object.entries(DIMENSION_NAMES)) {
-    const row = el('div', 'meter-row');
-    row.append(el('span', 'meter-name', name));
-    row.append(el('p', 'meter-guidance', dimensionTier(key, tau, priorAvg, scored)));
-    grid.append(row);
-  }
-  return grid;
+// The date a student is actually working to: the open draft's own due date,
+// falling back to the assignment's. An assignment due 20 Nov with Draft 2 due
+// 1 Nov is a 1 Nov job, and the list, the hero and the card all read this one.
+function nextDraftDue(a) {
+  return a.draftDueDates?.[a.draftsUsed] || a.dueDate;
 }
 
-// Same order the main list renders in (soonest due date first) so a rail
-// row and its card never disagree about position — one sort, read twice.
+// Soonest next-draft due date first, whatever the draft's state: a draft not
+// started and due in a week comes before one under way and due in two.
 function sortedCurrent(home) {
-  return [...home.current].sort((a, b) => dueInfo(a.dueDate).days - dueInfo(b.dueDate).days);
+  return [...home.current].sort((a, b) => dueInfo(nextDraftDue(a)).days - dueInfo(nextDraftDue(b)).days);
 }
 
-function renderRailNav(home) {
+// ---------- home routes ----------
+
+// Home is one page in two scopes: every class (#) and one class
+// (#class-<id>). The hash keeps Back working and a reload in place. A class
+// page exists only for a student with two or more classes — with one, Home
+// already is that class, and a group of one offers no choice.
+let lastHome = null;
+let homeFilter = 'all';
+
+function homeRoute(home) {
+  const h = location.hash.slice(1);
+  if (h.startsWith('class-') && home.classes.length > 1) {
+    const cls = home.classes.find((c) => c.id === h.slice(6));
+    if (cls) return { page: 'class', cls };
+  }
+  return { page: 'home' };
+}
+
+// pushState, not location.hash: it fires no popstate of its own, so the page
+// renders once, and Home leaves no bare '#' in the bar.
+function goHome(hash) {
+  if (location.hash.slice(1) === hash) return;
+  history.pushState(null, '', location.pathname + location.search + (hash ? `#${hash}` : ''));
+  if (lastHome) renderHome(lastHome);
+}
+
+window.addEventListener('popstate', () => {
+  if (lastHome && !$('viewAssignments').classList.contains('hidden')) renderHome(lastHome);
+});
+
+// ---------- rail ----------
+
+const openCount = (n) => (n ? `${n} open` : 'Nothing open');
+
+function railItem({ name, sub, icon, active, onClick }) {
+  const row = el('button', `rail-item${active ? ' active' : ''}`);
+  row.type = 'button';
+  if (active) row.setAttribute('aria-current', 'page');
+  if (icon) row.insertAdjacentHTML('afterbegin', iconSVG(icon));
+  const text = el('span', 'rail-item-text');
+  text.append(el('span', 'rail-item-name', name));
+  if (sub) text.append(el('span', 'rail-item-sub', sub));
+  row.append(text);
+  row.addEventListener('click', onClick);
+  return row;
+}
+
+// Destinations only. Under each class, how many of its assignments are open —
+// never the assignments themselves, so the rail is the same length however
+// much work a student has.
+function renderRailNav(home, route) {
   const host = $('railNav');
   host.innerHTML = '';
-  const current = sortedCurrent(home);
-  host.classList.toggle('hidden', current.length === 0);
-  if (!current.length) return;
 
-  // "Current assignments", not the old "Jump to" — a label names the content
-  // it stands over, never the action the reader is about to take on it
-  // (Morville & Rosenfeld's labeling rule; see the product-design-review
-  // skill's information-architecture reference). It deliberately repeats the
-  // heading of the section it indexes, which is what makes it an index.
-  const group = el('div', 'rail-group');
-  group.append(el('span', 'eyebrow', 'Current assignments'));
-  for (const a of current) {
-    const eyebrow = statusEyebrow(a);
-    const row = el('button', 'rail-item');
-    row.type = 'button';
-    const text = el('span', 'rail-item-text');
-    text.append(el('span', 'rail-item-name', a.title));
-    text.append(el('span', `rail-item-sub acard-due-${eyebrow.tone}`, eyebrow.text));
-    row.append(text);
-    row.addEventListener('click', () => {
-      const card = $(`card-${a.id}`);
-      if (!card) return;
-      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      card.classList.add('acard-jumped');
-      setTimeout(() => card.classList.remove('acard-jumped'), 1200);
-    });
-    group.append(row);
+  const top = el('div', 'rail-group');
+  top.append(railItem({ name: 'Home', sub: openCount(home.current.length), icon: 'home',
+    active: route.page === 'home', onClick: () => goHome('') }));
+  host.append(top);
+
+  if (home.classes.length > 1) {
+    const group = el('div', 'rail-group');
+    group.append(el('span', 'eyebrow', 'Classes'));
+    for (const c of home.classes) {
+      group.append(railItem({
+        name: c.name,
+        sub: openCount(home.current.filter((a) => a.classId === c.id).length),
+        active: route.page === 'class' && route.cls.id === c.id,
+        onClick: () => goHome(`class-${c.id}`),
+      }));
+    }
+    host.append(group);
   }
-  host.append(group);
+}
+
+// No navigation rail at medium: Home and Classes are two destinations, under
+// the three M3's navigation rail starts at, so the drawer runs the whole way
+// below expanded (as admin.html's does). Mounted once, on the first payload.
+// The account chip stays in the masthead: the workspace shares this bar and
+// has no drawer of its own to hold it.
+let railMounted = false;
+function mountHomeRail() {
+  if (railMounted) return;
+  railMounted = true;
+  mountRailDrawer({ rail: $('homeRail'), slot: $('tauNav') });
+}
+
+// The masthead's menu button opens the home rail, which only exists on the
+// home view.
+function setRailToggle(visible) {
+  const toggle = document.querySelector('#tauNav .rail-toggle');
+  if (toggle) toggle.classList.toggle('hidden', !visible);
 }
 
 // A note is unread until the student opens that draft's report, and a note
@@ -509,113 +376,89 @@ function unreadNotes(home) {
     .sort((x, y) => (x.teacherNoteAt < y.teacherNoteAt ? -1 : 1));
 }
 
-// The hero states who you are and what's true right now. Every segment is a
-// count of something live and renders only when it's non-zero, so a quiet
-// week is one segment and no dangling separators. Bare text, never chips: a
-// count is the common case, which is the half of the enclosure test a chip
-// has to clear.
-function renderHero(home) {
-  const first = home.student.displayName.split(' ')[0];
-  const open = home.current.length;
-  $('heroGreeting').textContent = open ? `Welcome back, ${first}` : `Welcome, ${first}`;
-
+// The hero names the page. On Home it states who you are and what's true
+// right now: every segment is a count of something live and renders only when
+// it's non-zero, so a quiet week is one segment and no dangling separators.
+// Bare text, never chips: a count is the common case, which is the half of the
+// enclosure test a chip has to clear.
+function renderHero(home, route) {
   const state = $('heroState');
   state.innerHTML = '';
-  const segs = [];
-  if (open) {
-    segs.push({ text: `${open} assignment${open === 1 ? '' : 's'} open` });
-    // Counts the draft a student would actually sit down to — the open slot
-    // on each assignment — not every dated slot in every budget.
-    const due = home.current.map((a) => dueInfo(a.draftDueDates?.[a.draftsUsed] || a.dueDate));
-    const today = due.filter((d) => d.days === 0).length;
-    const late = due.filter((d) => d.days < 0).length;
-    if (today) segs.push({ text: `${today} draft${today === 1 ? '' : 's'} due today` });
-    // Colour AND the word — "overdue" states it on its own for anyone the
-    // attention tone doesn't reach.
-    if (late) segs.push({ text: `${late} overdue`, cls: 'hero-state-late' });
-  }
-
-  if (!segs.length) {
-    state.append(el('span', 'hero-state-quiet',
-      'No assignments yet — when your teacher sets one, it lands here.'));
-  } else {
-    segs.forEach((seg, i) => {
-      if (i) state.append(el('span', 'hero-sep', '·'));
-      state.append(el('span', seg.cls || null, seg.text));
-    });
-  }
-
-  // The one enclosed thing in the hero, and only while a note is unread:
-  // actionable and rare, which is both halves of the enclosure test. Reading
-  // it is what clears it — the ✉ on the draft's own tile stays either way,
-  // because the note remains a property of that draft.
   const news = $('heroNews');
   news.innerHTML = '';
-  const unread = unreadNotes(home);
-  if (!unread.length) return;
-  const newest = unread[unread.length - 1];
-  const chip = el('button', 'hero-news-chip');
-  chip.type = 'button';
-  chip.innerHTML = `${iconSVG('chat')} ${unread.length === 1
-    ? 'Note from your teacher'
-    : `${unread.length} notes from your teacher`}`;
-  chip.onclick = () => { logUse('student-home', 'hero-note'); showReport(newest.submissionId); };
-  news.append(chip);
-}
+  const segs = [];
 
-function renderRail(home) {
-  const first = home.student.displayName.split(' ')[0];
+  // The leaf greets; a class name is a page title, so it goes without.
+  if (route.page === 'class') {
+    $('heroGreeting').textContent = route.cls.name;
+    const open = home.current.filter((a) => a.classId === route.cls.id).length;
+    const closed = home.past.filter((a) => a.classId === route.cls.id).length;
+    segs.push({ text: openCount(open) });
+    segs.push({ text: `${closed} closed` });
+  } else {
+    const first = home.student.displayName.split(' ')[0];
+    const open = home.current.length;
+    $('heroGreeting').textContent = open ? `Welcome back, ${first}` : `Welcome, ${first}`;
+    if (open) {
+      segs.push({ text: `${open} assignment${open === 1 ? '' : 's'} open` });
+      // Counts the draft a student would actually sit down to — the open slot
+      // on each assignment — not every dated slot in every budget.
+      const due = home.current.map((a) => dueInfo(nextDraftDue(a)));
+      const today = due.filter((d) => d.days === 0).length;
+      const late = due.filter((d) => d.days < 0).length;
+      if (today) segs.push({ text: `${today} draft${today === 1 ? '' : 's'} due today` });
+      // Colour AND the word — "overdue" states it on its own for anyone the
+      // attention tone doesn't reach.
+      if (late) segs.push({ text: `${late} overdue`, cls: 'hero-state-late' });
+    } else if (home.past.length) {
+      segs.push({ text: 'Nothing open right now', cls: 'hero-state-quiet' });
+    } else {
+      segs.push({ text: 'No assignments yet — when your teacher sets one, it lands here.', cls: 'hero-state-quiet' });
+    }
+    if (home.classes.length > 1) segs.push({ text: `${home.classes.length} classes` });
+    else if (home.classes.length === 1) segs.push({ text: home.classes[0].name });
 
-  renderRailNav(home);
-
-  const scored = scoredDrafts(home);
-  const host = $('railProgress');
-  host.innerHTML = '';
-
-  if (!scored.length) {
-    host.append(el('p', 'rail-empty',
-      `Submit your first draft, ${first}, and this is where you'll see how you're working with the AI.`));
-    return;
-  }
-
-  const last = scored[scored.length - 1];
-  const earlier = scored.slice(0, -1);
-
-  // The dimensions are the one figure on this dashboard that's actually
-  // comparable across different assignments — they measure a behaviour
-  // (do you push back, do you follow up), not an outcome graded against
-  // that assignment's own rubric. Compared against the mean of every
-  // earlier scored draft, not gated to same-assignment pairs.
-  let priorAvg = null;
-  if (earlier.length) {
-    priorAvg = {};
-    for (const key of Object.keys(DIMENSION_NAMES)) {
-      priorAvg[key] = earlier.reduce((sum, d) => sum + d.tau[key], 0) / earlier.length;
+    // The one enclosed thing in the hero, and only while a note is unread:
+    // actionable and rare, which is both halves of the enclosure test. Reading
+    // it is what clears it — the note flag on the draft's own row stays either
+    // way, because the note remains a property of that draft.
+    const unread = unreadNotes(home);
+    if (unread.length) {
+      const newest = unread[unread.length - 1];
+      const chip = el('button', 'hero-news-chip');
+      chip.type = 'button';
+      chip.innerHTML = `${iconSVG('chat')} ${unread.length === 1
+        ? 'Note from your teacher'
+        : `${unread.length} notes from your teacher`}`;
+      chip.onclick = () => { logUse('student-home', 'hero-note'); showReport(newest.submissionId); };
+      news.append(chip);
     }
   }
 
-  const block = el('div', 'rail-block');
-  block.append(el('h3', 'eyebrow', 'AI use guidance'));
-  block.append(dimensionMeters(last.tau, priorAvg, scored));
-  host.append(block);
+  segs.forEach((seg, i) => {
+    if (i) state.append(el('span', 'hero-sep', '·'));
+    state.append(el('span', seg.cls || null, seg.text));
+  });
 }
 
-// Current assignment. Reading order is the order a student needs it in:
-// when is it due → what is it → where every draft stands → what changes →
-// what to do.
-// Chrome is the shared .card molecule (+.card-lg, the size this card's own
-// radius/padding independently matched); urgency reuses .card-edge-caution/
-// .card-edge-attention from the same layer rather than a private edge rule.
-const CARD_EDGE_CLASS = { soon: 'card-edge-caution', late: 'card-edge-attention' };
-// A plain chevron, not a text-content ::after trick — "we need an icon to
-// denote the interaction" was explicit feedback, not a nice-to-have. Shared
-// by both disclosures below (the prompt and the assignment-wide note).
-const CHEVRON_SVG = '<svg class="acard-disclosure-icon" viewBox="0 0 12 12" fill="none" aria-hidden="true">'
-  + '<path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+// The class-wide note is unread until the student opens Instructions, and
+// unread again when the teacher edits it — the same rule as a draft's note.
+function noteUnread(a) {
+  return Boolean(a.teacherNote && a.teacherNoteAt && (!a.teacherNoteReadAt || a.teacherNoteReadAt < a.teacherNoteAt));
+}
 
-// Three teacher-authored fields, shown as labeled sections rather than one
-// wall of text — matches how they're authored (separate fields) and read
-// (what/why/must-haves), not the single "prompt" blob this used to be.
+async function markNoteRead(a) {
+  if (!noteUnread(a)) return;
+  try {
+    const r = await api(`/api/assignments/${a.id}/note-read`, { method: 'POST' });
+    a.teacherNoteReadAt = r.teacherNoteReadAt;
+  } catch {}
+}
+
+// The assignment's instructions: the teacher's class-wide note first, when
+// there is one, then the three authored fields as labeled sections — matches
+// how they're authored (separate fields) and read (what/why/must-haves). One
+// body for the home card's tray and the workspace's disclosure.
 function assignmentBriefBody(a) {
   const wrap = el('div', null);
   const section = (label, text) => {
@@ -623,110 +466,109 @@ function assignmentBriefBody(a) {
     wrap.append(el('div', 'tray-section-label', label));
     wrap.append(el('p', 'tray-section-body', text));
   };
+  if (a.teacherNote) {
+    const note = el('div', 'tray-note');
+    note.append(el('div', 'tray-section-label', 'Note from your teacher'));
+    note.append(el('p', 'tray-section-body', a.teacherNote));
+    wrap.append(note);
+  }
   section('Description', a.description);
   section('Purpose', a.purpose);
   section('Requirements', a.requirements);
   return wrap;
 }
 
-function currentCard(a) {
-  // card-hero (the same lift/radius step as the report's score panel) is
-  // reserved for the one surface per screen that's the actual takeaway — a
-  // student can have several open assignment cards at once, and giving all
-  // of them hero elevation would mean none of them reads as more important
-  // than the others. Plain card-lg keeps them at content-unit elevation.
-  const card = el('article', 'card card-lg acard');
+// The card's due date. Relative where it is close ("Due in 2 days") and always
+// with the date itself, and urgency colour only where the words state it —
+// an alert colour must match what its label says (designsystem.md).
+function cardDue(a) {
+  const iso = nextDraftDue(a);
+  const due = dueInfo(iso);
+  if (!due.text) return { text: 'No due date', tone: 'calm' };
+  if (due.tone === 'late') return { text: `Overdue, was due ${fmtDate(iso)}`, tone: 'late' };
+  if (due.tone === 'soon') return { text: `${due.text}, ${fmtDate(iso)}`, tone: 'soon' };
+  return due;
+}
+
+// An open assignment. The two things a student scans the list for — when the
+// next draft is due and where it stands — lead the card at body-small in full
+// ink; the class drops under the title. In progress is the larger card with
+// the filled button, not started the smaller one with the quiet button, and
+// both sit in the same due-date order. Same type sizes either way.
+//
+// The card carries the deadline's urgency once, in the due line's colour and
+// words — no edge rule on top (a surface carries a severity signal once).
+function openCard(a, showClass) {
+  const inProgress = a.hasActivity;
+  const draft = a.draftsUsed + 1;
+  const card = el('article', `card ocard ${inProgress ? 'card-lg ocard-in-progress' : 'ocard-not-started'}`);
   card.id = `card-${a.id}`;
-  const eyebrow = statusEyebrow(a);
-  if (CARD_EDGE_CLASS[eyebrow.tone]) card.classList.add(CARD_EDGE_CLASS[eyebrow.tone]);
 
-  const top = el('div', 'acard-top');
-  // Null for an assignment predating the classes model (visible to everyone) —
-  // nothing to name in that case.
-  if (a.className) {
-    top.append(el('span', 'acard-class', a.className));
-    top.append(el('span', 'acard-sep', '·'));
-  }
-  top.append(el('span', `acard-due acard-due-${eyebrow.tone}`, eyebrow.text));
-  const titleRow = el('div', 'acard-title-row');
-  titleRow.append(el('h3', 'acard-title', a.title));
-  // The prompt + rubric is genuinely long — usually the whole grading
-  // criteria, not a sentence — so it earns its own scrollable surface
-  // instead of an inline block that pushes every other card element down
-  // every time a student has it open. A button, not a disclosure: there's
-  // nothing to preview, it's either open in the tray or it isn't.
-  const rubricBtn = el('button', 'btn btn-quiet btn-sm acard-rubric-btn');
-  rubricBtn.innerHTML = `${iconSVG('checklist')} Assignment prompt`;
-  rubricBtn.type = 'button';
-  rubricBtn.onclick = () => openTray({
-    title: 'Assignment prompt',
-    subtitle: a.title,
-    body: assignmentBriefBody(a),
-  });
-  titleRow.append(rubricBtn);
-  top.append(titleRow);
-  card.append(top);
+  const text = el('div', 'ocard-text');
+  const due = cardDue(a);
+  const top = el('div', 'ocard-top');
+  top.insertAdjacentHTML('afterbegin', iconSVG('calendar'));
+  top.append(el('span', `ocard-due-${due.tone}`, due.text));
+  top.append(el('span', 'ocard-sep', '·'));
+  // "of N" keeps the draft budget stated now that future drafts have no row.
+  top.append(el('span', null, `Draft ${draft} of ${a.draftBudget}`));
+  top.append(el('span', 'ocard-sep', '·'));
+  top.append(el('span', inProgress ? 'ocard-state' : 'ocard-state ocard-state-quiet', inProgress ? 'In progress' : 'Not started'));
+  text.append(top);
+  text.append(el('h3', 'acard-title', a.title));
 
-  // An assignment-wide teacher note (not tied to any one draft) is never
-  // guaranteed — most assignments won't have one — so it stays a small,
-  // click-to-expand disclosure rather than a block that would read as a
-  // permanent part of the card. It's the one thing left inline (unlike the
-  // rubric, above, now in the tray): short enough that its own vertical
-  // space is worth spending. The chip itself carries the auditor tint even
-  // closed, not just the text — colour is the "carries weight" signal here.
-  if (a.teacherNote) {
-    const noteDetails = el('details', 'acard-disclosure acard-disclosure-note');
-    const noteSummary = el('summary', 'acard-disclosure-toggle');
-    noteSummary.innerHTML = `${CHEVRON_SVG}${iconSVG('chat')} Teacher's note`;
-    noteDetails.append(noteSummary);
-    noteDetails.append(el('p', null, a.teacherNote));
-    card.append(noteDetails);
-  }
+  const sub = [showClass && a.className, inProgress && a.lastActiveAt && `last worked ${relTime(a.lastActiveAt)}`].filter(Boolean);
+  if (sub.length) text.append(el('p', 'ocard-sub', sub.join(' · ')));
 
-  // Every draft slot gets its own row and its own status — an assignment
-  // being "underway" says nothing about whether draft 2 specifically has
-  // been started, so that has to be read off its own row, not inferred.
-  // Locked rows stay one-per-draft (a collapsed "N more drafts" line was
-  // tried and read as vague — the budget itself, draft 3 of 4 etc., should
-  // be as explicit as every other row) but are visually inert: no bold, no
-  // status color, the row reads as unavailable at a glance. The current
-  // draft's action button and any teacher note live inside that same row —
-  // content maps to the specific draft it belongs to, not to the card as a
-  // whole.
-  // Newest slot first — final, then back down to draft 1 — so the current
-  // draft and what's still ahead sit above the drafts already handed in,
-  // rather than under a growing stack of finished work.
-  const currentCycle = a.draftsUsed;
-  const rows = el('div', 'draft-rows');
-  for (let i = a.draftBudget - 1; i >= 0; i--) {
-    const submission = a.drafts.find((d) => d.cycleIndex === i);
-    const status = draftRowStatus(i, { currentCycle, hasActivity: a.hasActivity, submission });
-    if (status.key === 'in-progress') {
-      status.detail = `${a.conversationCount} session${a.conversationCount === 1 ? '' : 's'} · last worked ${relTime(a.lastActiveAt)}`;
+  // "Instructions", and no more: it sits under the assignment's title, which
+  // says whose. Long — usually the whole grading criteria, with the class-wide
+  // note at the top — so it opens in the tray rather than growing the card,
+  // which would also move the button beside it. While the note is unread the
+  // button takes the draft tile's note icon and hue — one kind of thing at two
+  // scopes — and goes back to plain once it has been opened.
+  const instructions = el('button', 'btn btn-quiet btn-sm ocard-instructions');
+  instructions.type = 'button';
+  const label = () => {
+    const unread = noteUnread(a);
+    instructions.innerHTML = `${iconSVG(unread ? 'chat' : 'checklist')} Instructions`;
+    instructions.classList.toggle('ocard-instructions-note', unread);
+    if (unread) instructions.setAttribute('aria-label', 'Instructions, new note from your teacher');
+    else instructions.removeAttribute('aria-label');
+  };
+  label();
+  instructions.onclick = () => {
+    openTray({ title: 'Instructions', subtitle: a.title, body: assignmentBriefBody(a) });
+    markNoteRead(a).then(label);
+  };
+  text.append(instructions);
+  card.append(text);
+
+  const go = el('button', `btn ${inProgress ? 'btn-primary' : 'btn-quiet'}`, `${inProgress ? 'Continue' : 'Start'} Draft ${draft}`);
+  go.type = 'button';
+  go.onclick = () => openAssignment(a.id);
+  card.append(go);
+
+  // Every draft already handed in, newest first, each opening its report —
+  // the way back to Draft 1's report and note while writing Draft 2.
+  if (a.drafts.length) {
+    const tiles = el('div', 'ocard-tiles');
+    for (let i = a.draftsUsed - 1; i >= 0; i--) {
+      const submission = a.drafts.find((d) => d.cycleIndex === i);
+      if (!submission) continue;
+      tiles.append(submittedDraftTile(i, draftRowStatus(i, { submission }), { submission }));
     }
-    rows.append(draftRow(i, status, {
-      submission, assignmentId: a.id,
-      dueDate: a.draftDueDates?.[i], isFinal: i === a.draftBudget - 1,
-    }));
+    card.append(tiles);
   }
-  card.append(rows);
-
   return card;
 }
 
-// Past assignments are review-only: no action, no coaching state — just the
-// outcome and a way back into the reports.
-function pastCard(a) {
-  const card = el('article', 'card pcard');
-  const head = el('div', 'pcard-head');
-  head.append(el('h3', null, a.title));
-  const final = [...a.drafts].reverse().find((d) => d.tau);
-  if (final) {
-    const outcome = el('span', 'pcard-outcome');
-    outcome.append(el('span', `pcard-band level-${levelName(final.tau.SAMR).toLowerCase()}`, levelName(final.tau.SAMR)));
-    head.append(outcome);
-  }
-  card.append(head);
+// A closed assignment is review-only: one row on the page, no card, so
+// finished work recedes to the ground while open work stays raised. The chips
+// open each draft's report.
+function closedRow(a, showClass) {
+  const row = el('div', 'closed-row');
+  const text = el('div', 'closed-row-text');
+  text.append(el('h3', 'closed-row-title', a.title));
   // An assignment that closed with drafts still outstanding states the
   // denominator: "1 of 3 drafts submitted" is the fact, and "1 draft
   // submitted" would quietly read as a finished one-draft assignment.
@@ -734,43 +576,101 @@ function pastCard(a) {
   const counted = a.drafts.length < budget
     ? `${a.drafts.length} of ${budget} drafts submitted`
     : `${a.drafts.length} draft${a.drafts.length === 1 ? '' : 's'} submitted`;
-  card.append(el('p', 'pcard-meta', a.className ? `${a.className} · ${counted}` : counted));
+  text.append(el('p', 'closed-row-meta', showClass && a.className ? `${a.className} · ${counted}` : counted));
+  row.append(text);
+  row.append(draftChipRow(a.drafts, budget));
+  return row;
+}
 
-  // A note's presence is the chip's own ✉ marker (draftChip) — the chip
-  // already opens the report on click, which is where the note itself reads.
-  card.append(draftChipRow(a.drafts, budget));
-  return card;
+// All / In progress / Not started, over the open list. Only once the list is
+// long enough to need it: below four a student reads it whole.
+const FILTER_FROM = 4;
+function renderOpenFilter(current) {
+  const host = $('openFilter');
+  host.innerHTML = '';
+  const show = current.length >= FILTER_FROM;
+  host.classList.toggle('hidden', !show);
+  if (!show) { homeFilter = 'all'; return current; }
+  const inProgress = current.filter((a) => a.hasActivity).length;
+  for (const [key, label, n] of [['all', 'All', current.length], ['in-progress', 'In progress', inProgress], ['not-started', 'Not started', current.length - inProgress]]) {
+    const tab = el('button', `card-tab${homeFilter === key ? ' active' : ''}`, label);
+    tab.type = 'button';
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', String(homeFilter === key));
+    tab.append(el('span', 'tab-count', String(n)));
+    tab.onclick = () => { homeFilter = key; renderHome(lastHome); };
+    host.append(tab);
+  }
+  if (homeFilter === 'all') return current;
+  return current.filter((a) => (homeFilter === 'in-progress') === Boolean(a.hasActivity));
+}
+
+function renderHome(home) {
+  const route = homeRoute(home);
+  const multi = home.classes.length > 1;
+  renderRailNav(home, route);
+  renderHero(home, route);
+
+  const crumbs = route.page === 'home'
+    ? [{ label: 'Home', current: true }]
+    : [{ label: 'Home', onClick: () => goHome('') }, { label: route.cls.name, current: true }];
+  renderNavCrumbs($('navCrumbs'), crumbs);
+  renderNavLocal($('navLocal'), []);
+
+  const inScope = (a) => route.page !== 'class' || a.classId === route.cls.id;
+  // A class page doesn't repeat its own name on every card.
+  const showClass = multi && route.page !== 'class';
+
+  const current = sortedCurrent(home).filter(inScope);
+  const list = $('currentList');
+  list.innerHTML = '';
+  const shown = renderOpenFilter(current);
+  for (const a of shown) list.append(openCard(a, showClass));
+  if (route.page === 'class' && !current.length) list.append(el('p', 'home-empty', 'Nothing open in this class right now.'));
+  $('secCurrent').classList.toggle('hidden', (!current.length && route.page !== 'class'));
+  $('currentCount').textContent = current.length ? String(current.length) : '';
+
+  const past = home.past.filter(inScope);
+  const pastList = $('pastList');
+  pastList.innerHTML = '';
+  for (const a of past) pastList.append(closedRow(a, showClass));
+  $('secPast').classList.toggle('hidden', !past.length);
+  $('pastCount').textContent = past.length ? String(past.length) : '';
+
+  const empty = route.page === 'home' && !home.current.length && !home.past.length;
+  $('homeEmpty').textContent = 'No assignments yet. When your teacher sets one, it will show up here.';
+  $('homeEmpty').classList.toggle('hidden', !empty);
+
+  $('home').scrollTop = 0;
 }
 
 async function showAssignments() {
   $('viewWorkspace').classList.add('hidden');
   $('viewAssignments').classList.remove('hidden');
+  setRailToggle(true);
 
-  const home = await api('/api/student/home');
-  // Reload must not clear a warning the student was already shown — the stream
-  // only re-raises it on the next reply, which is one reply too late.
-  syncBudgetNotice(home.budget);
+  const paint = (home) => {
+    lastHome = home;
+    // Reload must not clear a warning the student was already shown — the stream
+    // only re-raises it on the next reply, which is one reply too late.
+    syncBudgetNotice(home.budget);
+    mountHomeRail();
+    renderHome(home);
+  };
 
-  renderHero(home);
-  renderRail(home);
-  renderNavCrumbs($('navCrumbs'), [{ label: 'All assignments', current: true }]);
-  renderNavLocal($('navLocal'), []);
-
-  // Soonest deadline first — the only ordering a student can predict.
-  const current = sortedCurrent(home);
-  const list = $('currentList');
-  list.innerHTML = '';
-  for (const a of current) list.append(currentCard(a));
-  $('secCurrent').classList.toggle('hidden', current.length === 0);
-  $('currentCount').textContent = current.length ? `${current.length} open` : '';
-
-  const past = $('pastList');
-  past.innerHTML = '';
-  for (const a of home.past) past.append(pastCard(a));
-  $('secPast').classList.toggle('hidden', home.past.length === 0);
-  $('pastCount').textContent = home.past.length ? `${home.past.length} closed` : '';
-
-  $('homeEmpty').classList.toggle('hidden', home.current.length + home.past.length > 0);
+  // Back from a report is a full page load; the cached home paints now and the
+  // page is released, and the fresh one replaces it only if anything changed —
+  // re-rendering identical data would reset the scroll the student is reading.
+  const cached = homeCache.read();
+  const fresh = api('/api/student/home').then((home) => {
+    homeCache.write(home);
+    const stillHome = !$('viewAssignments').classList.contains('hidden');
+    if (stillHome && JSON.stringify(home) !== JSON.stringify(cached)) paint(home);
+    else if (!stillHome) lastHome = home;
+  });
+  if (!cached) return fresh;
+  paint(cached);
+  fresh.catch(() => {});
 }
 
 // ---------- workspace ----------
@@ -789,12 +689,16 @@ async function openAssignment(id) {
 
   $('viewAssignments').classList.add('hidden');
   $('viewWorkspace').classList.remove('hidden');
+  setRailToggle(false);
   // The bar's scrolled state belongs to the home pane, which is now hidden —
   // left set, it would tint the bar over a workspace that never scrolls it.
   $('tauNav').classList.remove('scrolled');
   const wsPrompt = $('wsPrompt');
   wsPrompt.innerHTML = '';
   wsPrompt.append(assignmentBriefBody(data.assignment));
+  // Reading the note here counts as reading it, so the home card's icon
+  // doesn't announce a note the student has already seen.
+  wsPrompt.closest('details').ontoggle = (e) => { if (e.target.open) markNoteRead(state.assignment); };
   // A workshop's prompt IS the task — three steps a guest has never seen —
   // so it starts open rather than behind the disclosure a term's students
   // have already read in class.
@@ -927,7 +831,9 @@ function renderWorkspaceNav() {
     : state.session ? state.session.cycleIndex + 1
     : null;
   const crumbs = [
-    { label: 'All assignments', onClick: showAssignments },
+    // Home means Home: a class page the student came from is cleared, so the
+    // crumb lands where it says.
+    { label: 'Home', onClick: () => { history.replaceState(null, '', location.pathname); showAssignments(); } },
     { label: state.assignment.title },
   ];
   if (draftNum != null) crumbs.push({ label: `Draft ${draftNum}`, current: true });
@@ -1255,6 +1161,7 @@ async function streamAction(path, body, role) {
   };
 
   try {
+    homeCache.clear();
     const res = await fetch(path, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1717,16 +1624,18 @@ $('btnConfirmSubmit').onclick = async () => {
   }
 }
 
-mountAccountChip($('accountChip')).catch(() => {});
+const chipReady = mountAccountChip($('accountChip')).catch(() => {});
 
 // A report page's "Session" toggle lands here as ?open=<assignmentId>
 // &cycle=<cycleIndex> rather than a plain visit to the assignment list.
 const bootParams = new URLSearchParams(location.search);
 const openAssignmentId = bootParams.get('open');
 const openCycle = bootParams.get('cycle');
+let firstView;
 if (openAssignmentId && openCycle !== null && openCycle !== '') {
   history.replaceState(null, '', '/index.html');
-  openFromReportLink(openAssignmentId, Number(openCycle)).catch(() => showAssignments());
+  firstView = openFromReportLink(openAssignmentId, Number(openCycle)).catch(() => showAssignments());
 } else {
-  showAssignments();
+  firstView = showAssignments();
 }
+holdPage(Promise.all([chipReady, firstView]), { build: true });
