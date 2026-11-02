@@ -177,9 +177,6 @@
     challenge: 'asked the AI for its evidence or reasoning',
     pivot: 'moved to a new topic'
   };
-  function readAs(label) {
-    return 'Read as ' + label + (LABEL_MEANING[label] ? ': ' + LABEL_MEANING[label] : '') + '.';
-  }
 
   // A claim disputed with no reason given — the student's half of the
   // AI-caved exchange, shown as a teaching note on the turn, never as a lower
@@ -340,9 +337,17 @@
       band.appendChild(sw);
       band.appendChild(document.createTextNode(TIER_NAME[t.tier]));
       reading.appendChild(band);
-      reading.appendChild(el('p', 'turnplot-detail-note',
-        inRun ? readAs(t.label) + ' Part of the ' + inRun.name + '.'
-              : readAs(t.label)));
+      var note = el('p', 'turnplot-detail-note');
+      note.appendChild(document.createTextNode('Read as '));
+      note.appendChild(el('strong', null, t.label));
+      note.appendChild(document.createTextNode(
+        (LABEL_MEANING[t.label] ? ': ' + LABEL_MEANING[t.label] : '') + '.' +
+        (inRun ? ' Part of the ' + inRun.name + '.' : '') + ' '));
+      var all = el('button', 'turnplot-labels-link', 'See all turn labels');
+      all.type = 'button';
+      all.addEventListener('click', function () { showLabels(t.label, all); });
+      note.appendChild(all);
+      reading.appendChild(note);
       detail.appendChild(reading);
 
       if (t.unreasoned) {
@@ -407,6 +412,35 @@
       for (var n = r.from; n <= r.to; n++) nums.push(n);
       renderExchange(tray.body, nums, ctx);
       tray.el.classList.add('open');
+    }
+
+    // Every label the chart can give a turn, under the row it puts the turn
+    // on — so the list also says why a turn sits where it does. The label the
+    // reader came from takes the selection fill, so it is found at a glance.
+    function showLabels(current, opener) {
+      trayOpener = opener;
+      tray.title.textContent = 'All turn labels';
+      tray.body.innerHTML = '';
+      [4, 3, 2, 1].forEach(function (tier) {
+        var group = el('section', 'turnplot-labels-group');
+        var head = el('h3', 'turnplot-detail-band');
+        var sw = el('span', 'turnplot-swatch');
+        sw.style.background = 'var(--tau-agency-' + tier + ')';
+        head.appendChild(sw);
+        head.appendChild(document.createTextNode(TIER_NAME[tier]));
+        group.appendChild(head);
+        var list = el('dl', 'turnplot-labels-list');
+        Object.keys(TIER).filter(function (l) { return TIER[l] === tier; }).forEach(function (l) {
+          var row = el('div', 'turnplot-labels-row' + (l === current ? ' is-current' : ''));
+          row.appendChild(el('dt', null, l));
+          row.appendChild(el('dd', null, LABEL_MEANING[l] || ''));
+          list.appendChild(row);
+        });
+        group.appendChild(list);
+        tray.body.appendChild(group);
+      });
+      tray.el.classList.add('open');
+      tray.close.focus();
     }
 
     tray.close.onclick = function () { closeTray(true); };
@@ -911,5 +945,5 @@
     });
   }
 
-  root.SessionView = { renderTurnPlot: renderTurnPlot, renderIdeaStrip: renderIdeaStrip };
+  root.SessionView = { renderTurnPlot: renderTurnPlot, renderIdeaStrip: renderIdeaStrip, TIER: TIER };
 })(typeof window !== 'undefined' ? window : this);

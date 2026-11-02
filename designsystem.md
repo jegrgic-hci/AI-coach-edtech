@@ -273,8 +273,10 @@ not licence to improvise — say so and ask, don't invent.**
   a position on a path, not a verdict.
 - Forest has exactly **seven jobs** (interactive text, primary fills, meter fills, system-message
   rule, light-theme ground wash, score numerals, **the brand mark** — the leaf, wherever it is drawn:
-  the page loader and the AI-thinking leaf; added 2026-10-30, when both had been using it
-  unwritten) **and no others** — no forest-tinted surface fill
+  the page loader, the AI-thinking leaf, step 3 of the workshop room's *How Tau decides a level*, and
+  the title of its *Levels of agency* tab; added 2026-10-30, when both had been using it unwritten; the
+  figure and the title 2026-11-02 — a level-coloured leaf per level was proposed and declined, since it
+  would make the brand mark mean "a level") **and no others** — no forest-tinted surface fill
   beyond `--tau-meter-track`. **Sage is fill-only**, never text.
 - **`--tau-tool-info` (blue) is a voice, not a severity tier** — it marks the tool explaining
   itself (context, synthesis, "here's what you're looking at and why"), orthogonal to the
@@ -1650,6 +1652,41 @@ straight to tauthinking.com.
   level also leaves the bar. Measured at 360, 768 and 1280: nothing overflows, no name truncates.
   New icon: `gridView`, for the four readings — four equal squares, not bars, which would read as a
   score. The dots of the original pills stay gone.
+
+- **2026-10-30 — the workshop report's pattern guide goes tonal** (`report.css` `.pguide-*`,
+  `pattern-guide.js`). Pattern cards were transparent with a 1px outline on the green band, and the
+  found one sat on `--tau-surface-2`, a third green: every card now takes `--tau-card` set white on
+  the list (the container-hands-children-white rule), no outline. Each card leads with the pattern's
+  **shape in the turn plot's own marks**, so the guide teaches the chart rather than restating it.
+  **One new mark, scoped to these illustrations:** the AI's act (argued, corrected, asserted) as a
+  small outlined circle in the AI lane — the live chart's lane only carries the diamond. It is never
+  drawn on the live chart and never carries data. Found patterns crop the reader's real chart instead.
+  Superseded the same day: a hairline list (read as a document, not a guide).
+- **2026-10-30 — the turn card names its label and offers the rest.** The label is bold in
+  "Read as …", and **See all turn labels** (an inline text link, not a button shape — it extends the
+  sentence) opens the existing run sheet with all eleven labels under the chart's four rows, each
+  row's agency swatch beside it, the reader's own label on `--tau-select`. Reuses the sheet rather
+  than adding a dialog. Applies to every report, not only the workshop's.
+- **2026-11-02 — the workshop room's *How Tau decides a level* is four steps across**
+  (`workshop-room.js` `buildHow`, `workshop-room.css` `.tf-*`; page-local, under the workshop
+  exception). ① inputs → ② four dimensions → ③ **Read together** → ④ one level, from
+  https://claude.ai/artifact/3ByUyHucwq4zJAa3jK5nbT after a long comparison (flowchart lines,
+  layered cards, workflow pills, vertical). What it settles, for any future process figure:
+  - **The figure carries the model, not just the order.** Step 1 runs *under* step 2 straight into
+    step 3, because the level is read from the whole session as well as the four and never calculated
+    from them. A figure that only chains 1 → 2 → 3 draws a pipeline the measurement model rules out.
+  - **Step 3 is an act, so it is one mark — the brand leaf — not more cards.** Repeating step 1's
+    inputs there read as a third list; the arrows converging on the leaf say "taken together".
+  - **Connections are wide arrows in the colour of the step they leave**, never thin connector lines
+    (rejected as a wiring diagram) or text labels on arrows.
+  - **Step surfaces deepen toward the result** (`--surface`, `#DCE7E0`, `#C9DCCF`, forest — the two
+    middle tones page-local) and **each level is its own card**, the read one on the page's
+    selection fill.
+  - **Motion: each step builds in full, then holds, before the next** — one entrance per piece, one
+    easing, arrows invisible until their moment and growing out of their step; the leaf draws once
+    and rests filled. Earlier versions that moved everything at once read as choppy.
+  - **No explainer text on the figure.** The four rules it used to carry (never added up, always
+    shown, not enough here, not a grade) are spoken by the facilitator for now (`workshop.md`).
 
 #### Open, in rough order
 

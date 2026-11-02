@@ -425,10 +425,21 @@ to *they came with the idea and it changed in the making*:
 
 | Level | What it says |
 |---|---|
-| **Passive** | The student asked the AI for the answers and used them almost unchanged. |
-| **Reactive** | The AI gave the student the ideas; they made them into work of their own. |
-| **Directive** | The student led with their own ideas and used the AI to develop them. |
-| **Transformative** | The student led the AI to investigate and challenge their ideas, developing new ones that changed the work. |
+| **Passive** | The student asked the AI for answers and used them with little change. |
+| **Reactive** | The AI supplied the ideas, and the student developed them into their own work. |
+| **Directive** | The student brought their own ideas and used the AI to develop them. |
+| **Transformative** | The student asked the AI to test their ideas, and the ideas changed as a result. |
+
+**Tightened 2026-11-02** (from the workshop, applied to every surface that prints them: `levels.html`,
+`report-render.js` `LEVEL_DEF`, `viz.js` `LEVEL_GLOSS`, `workshop-room.js`). Shorter, no semicolons,
+American English, and *brought* for *led with* so Directive and Transformative no longer share a verb.
+The rules below still hold: told apart by the ask, the student acts (Reactive alone opens on the AI),
+*with little change* is the only hedge, and Transformative still requires the change. **The model's
+prompt (`analysis.js`, PART 2) was deliberately left on the old wording**: it is the coding rubric, not
+display copy, and rewording it could move readings with no validation behind the change. Was:
+*asked the AI for the answers and used them almost unchanged / The AI gave the student the ideas; they
+made them into work of their own / led with their own ideas and used the AI to develop them / led the
+AI to investigate and challenge their ideas, developing new ones that changed the work.*
 
 #### Definition and instance — the hero's two registers, settled 2026-08-22
 

@@ -685,6 +685,10 @@
   --tau-level-2: #0f6d76; --tau-level-2-ink: var(--tau-surface);
   --tau-level-3: #198ed2; --tau-level-3-ink: var(--tau-ink);
   --tau-level-4: #7fbe9f; --tau-level-4-ink: var(--tau-ink);
+  --tau-agency-1: #D8E2DB; --tau-agency-1-ink: var(--tau-ink);
+  --tau-agency-2: #96B7A5; --tau-agency-2-ink: var(--tau-ink);
+  --tau-agency-3: #4F8468; --tau-agency-3-ink: #FFFFFF;
+  --tau-agency-4: #1F4D3A; --tau-agency-4-ink: #FFFFFF;
   --tau-positive: oklch(0.50 0.10 158); --tau-caution: oklch(0.52 0.11 68); --tau-attention: oklch(0.48 0.10 18);
   --tau-positive-bg: oklch(0.96 0.022 158); --tau-caution-bg: oklch(0.96 0.024 72); --tau-attention-bg: oklch(0.96 0.022 18);
   --tau-auditor: oklch(0.42 0.09 300); --tau-auditor-bg: oklch(0.965 0.015 300);

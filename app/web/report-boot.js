@@ -316,8 +316,9 @@
       'Shaded bands are patterns across several turns. A diamond on the bottom row is a moment the AI ' +
       'backed off its answer. Pick any of them to read the exchange.';
     card.insertBefore(intro, document.getElementById('turnPlot'));
-    SessionView.renderTurnPlot(document.getElementById('turnPlot'),
-      adaptClassified(analysis.classified || []), analysis.patterns || [], analysis.aiMoments || [],
+    const classified = adaptClassified(analysis.classified || []);
+    const plot = document.getElementById('turnPlot');
+    SessionView.renderTurnPlot(plot, classified, analysis.patterns || [], analysis.aiMoments || [],
       { workshop: true, grow: true });
 
     // The workshop is a teaching session, so the chart comes with the key to
@@ -328,7 +329,24 @@
     guide.id = 'patternGuide';
     guide.innerHTML = '<span class="report-section-title">What the chart looks for</span><div></div>';
     card.after(guide);
-    PatternGuide.render(guide.lastElementChild, analysis.patterns || [], analysis.aiMoments || []);
+    PatternGuide.render(guide.lastElementChild, analysis.patterns || [], analysis.aiMoments || [], {
+      tiers: classified.filter((t) => t.role === 'student').map((t) => SessionView.TIER[t.label] || 2),
+      // Opens the pattern on the chart the way picking it there does, so the
+      // card and the chart are one thing seen twice.
+      onShow(item, span) {
+        const marks = item.id === 'ai-caved'
+          ? [...plot.querySelectorAll('.tp-ai')].filter((g) =>
+              g.getAttribute('aria-label').startsWith('After turn ' + (span.start + 1) + ','))
+          : [...plot.querySelectorAll('.tp-run')].filter((g) =>
+              g.getAttribute('aria-label').endsWith(', turns ' + (span.start + 1) + ' to ' + (span.end + 1)));
+        const mark = marks[0];
+        const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        plot.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'center' });
+        if (!mark) return;
+        mark.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        mark.focus({ preventScroll: true });
+      },
+    });
     mountDrawIn(document.getElementById('results'));
   }
 

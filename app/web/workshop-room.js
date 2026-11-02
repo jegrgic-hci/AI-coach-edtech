@@ -79,14 +79,13 @@
     });
     ranked = order.filter(function (id) { return byPattern[id]; })
       .sort(function (a, b) { return byPattern[b].people.length - byPattern[a].people.length || order.indexOf(a) - order.indexOf(b); });
-    // Walkthrough order, as the cards show them: every pattern, each group's detected ones first by count,
-    // then the ones nobody showed. A live room will miss many patterns, and the facilitator still explains them.
+    // Walkthrough order, as the cards show them: the patterns the room showed, by group and by count
+    // within it, then the ones nobody showed, by group. A live room will miss many patterns, and the
+    // facilitator still explains them.
     seen = []; all = [];
     GROUPS.forEach(function (g) { ranked.forEach(function (id) { if (META[id].group === g.title) seen.push(id); }); });
-    GROUPS.forEach(function (g) {
-      seen.forEach(function (id) { if (META[id].group === g.title) all.push(id); });
-      g.items.forEach(function (it) { if (!byPattern[it.id]) all.push(it.id); });
-    });
+    all = seen.slice();
+    GROUPS.forEach(function (g) { g.items.forEach(function (it) { if (!byPattern[it.id]) all.push(it.id); }); });
     turnsAll = [];
     done.forEach(function (p) { p.turnsOut.forEach(function (t) { turnsAll.push(t); }); });
   }
@@ -302,34 +301,53 @@
 
   // ── Pattern cards ─────────────────────────────────────────────────────────
   var grid, unseenEl, panel = null, cards = {};
+  // Two parts, as the report's pattern guide has: the patterns this room showed, then the rest.
+  // Each part keeps the groups, because high or low agency is half of what a pattern means. One list
+  // throughout, so an opened card's panel can sit under its row in either part.
   function buildCards() {
     var sec = el('section', { style: 'display:grid;gap:14px', 'aria-label': 'Patterns in the room' });
     sec.appendChild(el('h2', { class: 'section-title reveal' }, 'Patterns in the room'));
     grid = el('ul', { class: 'pgrid' });
-    GROUPS.forEach(function (g) {
-      var ids = all.filter(function (id) { return META[id].group === g.title; });
-      if (!ids.length) return;
-      var gli = el('li', { class: 'group-li reveal' });
-      gli.appendChild(el('h3', { class: 'group-title' }, g.title));
-      gli.appendChild(el('p', { class: 'group-intro' }, g.intro));
-      grid.appendChild(gli);
-      ids.forEach(function (id) {
-        var li = el('li', { class: 'pcard-li reveal', 'data-id': id });
-        var card = el('button', { class: 'pcard' + (byPattern[id] ? '' : ' is-unseen'), type: 'button', 'aria-expanded': 'false' });
-        var top = el('span', { class: 'pcard-top' });
-        top.appendChild(el('span', { class: 'pcard-name' }, META[id].name));
-        top.appendChild(el('span', { class: 'sw ' + TONE[g.title], 'aria-hidden': 'true' }));
-        card.appendChild(top);
-        card.appendChild(el('p', { class: 'pcard-what' }, META[id].what));
-        if (!byPattern[id]) card.appendChild(el('span', { class: 'pcard-flag' }, 'Not seen today'));
-        card.addEventListener('click', function () { select(state.pattern === id ? null : id); });
-        li.appendChild(card);
-        cards[id] = li;
-        grid.appendChild(li);
+    var parts = seen.length
+      ? [['Seen in this room', function (id) { return !!byPattern[id]; }], ['Not seen today', function (id) { return !byPattern[id]; }]]
+      : [['All the patterns', function () { return true; }]];
+    parts.forEach(function (part, p) {
+      grid.appendChild(el('li', { class: 'part-li reveal' + (p ? '' : ' is-first') }, part[0]));
+      GROUPS.forEach(function (g) {
+        var ids = all.filter(function (id) { return META[id].group === g.title && part[1](id); });
+        if (!ids.length) return;
+        var gli = el('li', { class: 'group-li reveal' });
+        gli.appendChild(el('h3', { class: 'group-title' }, g.title));
+        gli.appendChild(el('p', { class: 'group-intro' }, g.intro));
+        grid.appendChild(gli);
+        ids.forEach(function (id) { grid.appendChild(card(id, g)); });
       });
     });
     sec.appendChild(grid);
     return sec;
+  }
+
+  function card(id, g) {
+    var isSeen = !!byPattern[id];
+    var li = el('li', { class: 'pcard-li reveal' + (isSeen ? ' is-seen' : ''), 'data-id': id });
+    var c = el('button', { class: 'pcard' + (isSeen ? ' is-seen' : ' is-unseen'), type: 'button', 'aria-expanded': 'false' });
+    // Led by the pattern's shape in the turn plot's own marks, as on the report's pattern guide,
+    // so the room learns to spot it on a chart. An illustration of the pattern, never this room's data.
+    if (META[id].shape && window.PatternGuide.shapePlot) {
+      var shape = el('span', { class: 'pcard-shape' });
+      // A seen pattern is the larger card, as a found one is on the report.
+      shape.appendChild(window.PatternGuide.shapePlot(META[id].shape, g.tier, isSeen ? { col: 30, dot: 18, row: 24 } : { col: 20, dot: 12, row: 16 }));
+      c.appendChild(shape);
+    }
+    var top = el('span', { class: 'pcard-top' });
+    top.appendChild(el('span', { class: 'pcard-name' }, META[id].name));
+    top.appendChild(el('span', { class: 'sw ' + TONE[g.title], 'aria-hidden': 'true' }));
+    c.appendChild(top);
+    c.appendChild(el('p', { class: 'pcard-what' }, META[id].what));
+    c.addEventListener('click', function () { select(state.pattern === id ? null : id); });
+    li.appendChild(c);
+    cards[id] = li;
+    return li;
   }
 
   // Reveal on scroll, staggered within each batch. Anything already on screen at load shows at once,
@@ -404,7 +422,7 @@
   // buildPanel makes the frame; fillPanel draws plots and reader once the panel is in the page,
   // because the plots are fitted to the width they actually get.
   function buildPanel(id) {
-    var m = META[id], b = byPattern[id], idx = all.indexOf(id);
+    var m = META[id], b = byPattern[id];
     var box = el('li', { class: 'ppanel', 'aria-label': m.name + ' in this room' });
 
     var why = el('div');
@@ -425,9 +443,6 @@
     phl.appendChild(el('strong', null, 'In ' + b.people.length + ' of ' + done.length + ' conversations,'));
     phl.appendChild(document.createTextNode(' each in its own turn order.'));
     ph.appendChild(phl);
-    var replay = el('button', { class: 'link', type: 'button' }, 'Replay');
-    replay.addEventListener('click', function () { state.turn = null; fillPanel(panel, true); });
-    ph.appendChild(replay);
     box.appendChild(ph);
 
     var body = el('div', { class: 'p-body' });
@@ -455,20 +470,7 @@
     var close = el('button', { class: 'link', type: 'button' }, 'Close');
     close.addEventListener('click', function () { var id0 = state.pattern; select(null); cards[id0].firstChild.focus({ preventScroll: true }); });
     foot.appendChild(close);
-    var steps = el('div', { class: 'nav-steps' });
-    var prev = el('button', { class: 'btn', type: 'button', 'aria-label': 'Previous pattern' }, '←');
-    var next = el('button', { class: 'btn btn-primary', type: 'button' }, idx < all.length - 1 ? 'Next pattern →' : 'Finish');
-    if (idx === 0) prev.setAttribute('disabled', '');
-    prev.addEventListener('click', function () { step(-1); });
-    next.addEventListener('click', function () { step(1); });
-    steps.appendChild(prev);
-    steps.appendChild(el('span', { class: 'step-count num' }, (idx + 1) + ' / ' + all.length));
-    steps.appendChild(next);
-    foot.appendChild(steps);
     box.appendChild(foot);
-    var hint = el('p', { class: 'hint' });
-    hint.innerHTML = '<kbd>←</kbd> <kbd>→</kbd> move between patterns · <kbd>Esc</kbd> close';
-    box.appendChild(hint);
     return box;
   }
 
@@ -625,37 +627,38 @@
   // ── Levels of agency: an explainer, not a reading of this room ────────────
   // Definitions are tau-dimensions.md's agency ladder, verbatim. The levels are told apart by the ask
   // (answers taken → ideas developed → own ideas led with → own ideas challenged and changed).
-  // `not` is levels.html's "What it doesn't mean", verbatim. Each card leads with the definition and
+  // `look` is what a teacher would see in the chat and the work, drawn from levels.html's "What you'll
+  // see"; it never restates the definition. `not` is levels.html's "What it doesn't mean", verbatim. Each card leads with the definition and
   // the rationale; the chat follows as an illustration, scripted and labelled so, with the turns
   // that decide the level noted (`keys`, by turn index). Weakest first, left to right.
   var LEVELS = [
     { id: 'passive', name: 'Passive', n: 1, ask: 'Answers taken',
-      def: 'The student asked the AI for the answers and used them almost unchanged.',
-      look: 'The ask is for the finished thing, and the finished thing is what reaches the work.',
+      def: 'The student asked the AI for answers and used them with little change.',
+      look: 'The first message asks for the finished piece. Later turns are short (“ok,” “make it longer”), and the AI’s wording appears in the work.',
       not: 'It is not a cheating finding. A student who didn’t know where to start, or who read the task as beyond them, produces this same session. Passive tells you the thinking isn’t in the work; it does not tell you whether it exists.',
       illo: [['you', 'Write me a paragraph on whether schools should ban phones.'],
              ['ai', 'Schools should ban phones in class. They divide attention, fuel bullying and take time from learning…'],
              ['you', 'Great, thanks.']],
       keys: { 0: 'Asks for the finished thing' } },
     { id: 'reactive', name: 'Reactive', n: 2, ask: 'Ideas developed',
-      def: 'The AI gave the student the ideas; they made them into work of their own.',
-      look: 'The AI got there first, and the student did real work on what it offered.',
+      def: 'The AI supplied the ideas, and the student developed them into their own work.',
+      look: 'The AI raises each idea first. The student questions, chooses, and rewrites, but every idea in the work traces back to an AI turn.',
       not: 'It is not low effort. Reactive sessions are often the hardest-working ones on the list — a student can spend forty turns rigorously interrogating material and still never have set the terms of it.',
       illo: [['ai', 'Three arguments for a ban: attention, cyberbullying, and more face-to-face time at break.'],
              ['you', 'I’ll use the attention one. Can you explain it more?'],
              ['you', 'Ok. I’ll put it in my own words, with an example from my class.']],
       keys: { 0: 'The AI gets there first', 2: 'Real work on what it offered' } },
     { id: 'directive', name: 'Directive', n: 3, ask: 'Own ideas led with',
-      def: 'The student led with their own ideas and used the AI to develop them.',
-      look: 'The student arrives with a position, and the AI is sent to fetch, sort and sharpen.',
+      def: 'The student brought their own ideas and used the AI to develop them.',
+      look: 'The student states a position or plan before the AI suggests one. The AI’s turns answer the student’s requests, and the work follows the student’s plan.',
       not: 'It does not mean the work is good. A student can direct a session confidently toward a thin, incurious answer and still read directive. The level says the thinking was theirs, not that it was right.',
       illo: [['you', 'A ban is too blunt. I want to argue for teaching phone habits instead. Find me schools that tried that.'],
              ['ai', 'Several schools in Victoria piloted structured use before the state ban…'],
              ['you', 'Just the secondary schools. They fit my point.']],
       keys: { 0: 'Arrives with a position', 2: 'Sorts what comes back by it' } },
     { id: 'transformative', name: 'Transformative', n: 4, ask: 'Own ideas challenged and changed',
-      def: 'The student led the AI to investigate and challenge their ideas, developing new ones that changed the work.',
-      look: 'Directive, plus a change: the student goes looking for the case against their own idea, and the idea moves.',
+      def: 'The student asked the AI to test their ideas, and the ideas changed as a result.',
+      look: 'The student asks the AI to argue against their idea. Later turns show the idea shifting, and the work argues something the student didn’t start with.',
       not: 'It is not “argued with the AI a lot.” Pushback that changes nothing is still directive. This level requires that the thinking actually moved — and moved because of work the student did, not because the AI talked them into something.',
       illo: [['you', 'My view: teach habits, don’t ban. What’s the strongest case against me?'],
              ['ai', 'Impulse control is still developing in younger teens, so a habits-based rule may fail where it matters most.'],
@@ -723,13 +726,19 @@
 
   // ── 1. The levels: four cards across, weakest first; the picked one opens below, like a tab ──
   // The cards stay as they are so the four definitions can always be compared. Picking one marks it
-  // and opens its panel underneath, full width: the definition across the top, then the rationale and
-  // the chat side by side, built in that order so the chat never leads. Facilitator-led: nothing is
+  // and opens its panel underneath, full width: the definition as the headline, what to look for
+  // beside the common misreading, then the example chat, built in that order so the chat never leads. Facilitator-led: nothing is
   // picked until they pick. Built from https://claude.ai/artifact/XEes8N76De6BwZoPTUkkkW, 2026-11-02.
   function buildLevelCards() {
     var sec = el('section', { class: 'lv-sec', 'aria-label': 'The four levels of agency' });
     var head = el('div', { class: 'lv-sec-head' });
-    head.appendChild(el('h2', { class: 'section-title' }, 'The four levels of agency'));
+    var title = el('div', { class: 'title-leaf' });
+    var leaf = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    leaf.setAttribute('viewBox', '0 0 400 400'); leaf.setAttribute('aria-hidden', 'true');
+    leaf.innerHTML = '<path d="' + LEAF_D + '"/>';
+    title.appendChild(leaf);
+    title.appendChild(el('h2', { class: 'section-title' }, 'The four levels of agency'));
+    head.appendChild(title);
     head.appendChild(el('p', { class: 'levels-intro' },
       'A pattern is a moment in a conversation. A level is a reading of a whole piece of work: where the student’s thinking entered it. ' +
       'Today’s chats aren’t read for a level, because five minutes is too short for one to stand on.'));
@@ -761,6 +770,7 @@
     function show(i) {
       if (i === open) return;
       open = i;
+      row.classList.add('has-pick');
       cards.forEach(function (c, k) {
         c.setAttribute('aria-selected', String(k === i));
         c.tabIndex = k === i ? 0 : -1;
@@ -775,32 +785,32 @@
       panel.style.cssText = '--lv:var(--lv-' + lv.n + ');--chip:var(--lv-' + lv.n + '-chip);--chip-ink:var(--lv-' + lv.n + '-chip-ink)';
       function at(node, ms) { node.classList.add('lvc-t'); node.style.setProperty('--t', ms + 'ms'); return node; }
 
-      // Three steps: the definition, the rationale, the chat.
+      // The definition as the headline, then what to look for beside the common misreading, then the
+      // example chat under a rule: built in that order so the chat never leads.
       var top = at(el('div', { class: 'lvc-head' }), 0);
       var tl = el('div', { class: 'lv-top' });
-      tl.appendChild(el('span', { class: 'lv-chip', style: 'background:var(--chip);color:var(--chip-ink)' }, lv.name));
+      tl.appendChild(el('span', { class: 'lv-chip' }, lv.name));
       tl.appendChild(el('span', { class: 'lv-ask' }, 'The ask: ' + lv.ask.toLowerCase()));
       top.appendChild(tl);
       top.appendChild(el('p', { class: 'lv-def' }, lv.def));
       panel.appendChild(top);
 
-      var cols = el('div', { class: 'lvc-cols' });
       var why = at(el('div', { class: 'lvc-why' }), 380);
-      [['How it’s told apart', lv.look], ['What it doesn’t mean', lv.not]].forEach(function (p) {
+      [['What to look for', lv.look], ['Common misreading', lv.not]].forEach(function (p) {
         var d = el('div', { class: 'lvc-why-panel' });
         d.appendChild(el('p', { class: 'why-label' }, p[0]));
         d.appendChild(el('p', null, p[1]));
         why.appendChild(d);
       });
-      cols.appendChild(why);
+      panel.appendChild(why);
 
       var look = at(el('div', { class: 'lvc-look' }), 760);
       var lh = el('div', { class: 'lvc-look-head' });
       var ic = el('span', { class: 'lvc-ic', 'aria-hidden': 'true' });
       ic.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + HOW_ICONS.chat + '</svg>';
       lh.appendChild(ic);
-      lh.appendChild(el('p', { class: 'why-label' }, 'What it looks like in a chat'));
-      lh.appendChild(el('span', { class: 'lvc-chip' }, 'Illustration'));
+      lh.appendChild(el('p', { class: 'why-label' }, 'Example chat'));
+      lh.appendChild(el('span', { class: 'lvc-chip' }, 'Scripted'));
       look.appendChild(lh);
       // A deciding turn carries a note in the gutter beside it, joined by a tick, so it reads as
       // commentary on that turn rather than as a selected state.
@@ -820,8 +830,7 @@
         chat.appendChild(turn);
       });
       look.appendChild(chat);
-      cols.appendChild(look);
-      panel.appendChild(cols);
+      panel.appendChild(look);
     }
     return sec;
   }
@@ -1083,16 +1092,10 @@
     return mini;
   }
 
-  function step(d) {
-    var i = all.indexOf(state.pattern) + d;
-    if (i < 0) return;
-    select(i >= all.length ? null : all[i]);
-  }
+  // An open pattern is presented, not stepped through: the facilitator picks the next card themselves.
   document.addEventListener('keydown', function (e) {
-    if (!state.pattern || (typeof currentTab !== 'undefined' && currentTab !== 0) || (e.target && e.target.getAttribute && e.target.getAttribute('role') === 'tab')) return;
-    if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
-    else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
-    else if (e.key === 'Escape') { select(null); }
+    if (!state.pattern || (typeof currentTab !== 'undefined' && currentTab !== 0)) return;
+    if (e.key === 'Escape') select(null);
   });
   var rt;
   window.addEventListener('resize', function () {

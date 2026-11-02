@@ -1373,10 +1373,32 @@
                             font-size: var(--tau-text-md); font-weight: 600; }
     .turnplot-detail-band .turnplot-swatch { width: 12px; height: 12px; }
     .turnplot-detail-note { margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+    .turnplot-detail-note strong { color: var(--tau-ink); font-weight: 600; }
+    /* A text link inline in the sentence, not a button shape: it reads as
+       part of the note it extends. */
+    .turnplot-labels-link {
+      background: none; border: 0; padding: 0; font: inherit; font-weight: 600;
+      color: var(--tau-forest); text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
+    }
+    .turnplot-labels-link:hover { text-decoration-thickness: 2px; }
+    /* All turn labels, in the run sheet (session-view.js showLabels). */
+    .turnplot-labels-group { display: flex; flex-direction: column; gap: var(--tau-s2); }
+    .turnplot-labels-group + .turnplot-labels-group { margin-top: var(--tau-s5); }
+    .turnplot-labels-group h3 { margin: 0; }
+    .turnplot-labels-list { margin: 0; display: flex; flex-direction: column; gap: 2px; }
+    .turnplot-labels-row {
+      display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: var(--tau-s3);
+      padding: var(--tau-s2) var(--tau-s3); border-radius: var(--tau-r-md);
+      font-size: var(--tau-text-sm); line-height: 1.45;
+    }
+    .turnplot-labels-row dt { font-weight: 600; color: var(--tau-ink); }
+    .turnplot-labels-row dd { margin: 0; color: var(--tau-ink-soft); }
+    .turnplot-labels-row.is-current { background: var(--tau-select); }
+    .turnplot-labels-row.is-current dd { color: var(--tau-ink); }
     /* --- .pguide — the pattern guide under a workshop chart (pattern-guide.js).
        Headings take the small title role (Hard Constraints: a heading takes a
        title role); every sentence is text-sm or larger. A pattern that showed
-       in this chat is marked by its "In your chat" line AND a recessed fill —
+       in this chat is marked by its "In your chat" line AND a white card —
        neutral, never a tier colour, because a found low-agency pattern is not
        an alert and a found high-agency one is not a prize. */
     /* A long AI reply in an exchange opens at three lines (session-view.js clampReply). */
@@ -1389,18 +1411,61 @@
     .pguide-group { display: flex; flex-direction: column; gap: var(--tau-s2); margin-top: var(--tau-s5); }
     .pguide-title { margin: 0; font: var(--tau-type-title-sm); letter-spacing: var(--tau-track-title); color: var(--tau-ink); }
     .pguide-intro { margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
-    .pguide-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--tau-s2); margin-top: var(--tau-s2); }
-    @container pane (min-width: 720px) {
-      .pguide-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    /* Every pattern is a card led by its shape — the turn plot's own marks,
+       so the room learns to spot it on the chart above (pattern-guide.js
+       shapePlot). White on the band (Hard Constraints, tonal: a container
+       hands its child cards white via --tau-card; surfaces separate by tone,
+       never outline). A found pattern is the full-width card, its shape a crop
+       of the reader's own chart; the rest tile one, two, then three across. */
+    .pguide-list {
+      --tau-card: var(--tau-container-lowest);
+      display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--tau-s3); margin-top: var(--tau-s2);
+    }
+    @container pane (min-width: 600px) {
+      .pguide-list:not(:has(.is-found)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @container pane (min-width: 840px) {
+      .pguide-list:not(:has(.is-found)) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     .pguide-item {
-      border: 1px solid var(--tau-line); border-radius: var(--tau-r-md);
-      padding: var(--tau-s3) var(--tau-s4); display: flex; flex-direction: column; gap: var(--tau-s1);
+      background: var(--tau-card); border-radius: var(--tau-r-lg);
+      padding: var(--tau-s4) var(--tau-s4) var(--tau-s5);
+      display: flex; flex-direction: column; gap: var(--tau-s3);
     }
-    .pguide-item.is-found { background: var(--tau-surface-2); border-color: var(--tau-line-strong); }
+    .pguide-text { display: flex; flex-direction: column; gap: var(--tau-s1); min-width: 0; }
+    .pguide-shape { min-height: 84px; display: flex; align-items: flex-end; }
+    .pguide-item.is-found { padding: var(--tau-s5); gap: var(--tau-s5); }
+    .pguide-item.is-found .pguide-shape { min-height: 0; overflow-x: auto; }
+    @container pane (min-width: 720px) {
+      .pguide-item.is-found { flex-direction: row; align-items: center; padding: var(--tau-s6) var(--tau-s7); }
+      .pguide-item.is-found .pguide-shape { flex: none; max-width: 60%; }
+    }
+    .pguide-item.is-found .pguide-name { font: var(--tau-type-title-md); letter-spacing: var(--tau-track-title); }
+    /* A tonal button, one step off the white card (designsystem.md, Tonal
+       migration, open item 5: tonal buttons rather than outlined white). */
+    .pguide-show {
+      align-self: flex-start; margin-top: var(--tau-s2);
+      background: var(--tau-container); color: var(--tau-ink);
+    }
+    .pguide-show:hover { background: var(--tau-container-high); }
+
+    .pguide-plot { display: block; overflow: visible; }
+    .pguide-plot .pg-rule { stroke: var(--tau-line); stroke-width: 1; }
+    .pguide-plot .pg-row  { font-size: var(--tau-text-xs); fill: var(--tau-ink-soft); text-anchor: end; }
+    .pguide-plot .pg-tick { font-size: var(--tau-text-xs); fill: var(--tau-ink-faint); text-anchor: middle;
+                            font-family: var(--tau-font-mono); }
+    /* Outlined and neutral, as the chart's AI lane is: the AI's acts are never
+       filled with the agency ramp. */
+    .pguide-plot .pg-ai { fill: var(--tau-surface); stroke: var(--tau-ink-soft); stroke-width: 1.5; }
     .pguide-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--tau-s1) var(--tau-s3); }
     .pguide-name { font-size: var(--tau-text-md); font-weight: 600; color: var(--tau-ink); }
-    .pguide-found { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink-soft); }
+    /* The turns, in the colours of the run band they name on the chart. */
+    .pguide-found {
+      font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink-soft);
+      padding: 2px var(--tau-s2); border-radius: var(--tau-r-pill); background: var(--tau-container);
+    }
+    .pguide-found-high { background: var(--tau-band-4-bg); color: var(--tau-band-4-fg); }
+    .pguide-found-low  { background: var(--tau-band-2-bg); color: var(--tau-band-2-fg); }
     .pguide-what { margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink); line-height: 1.5; }
     .pguide-why { margin: 0; font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.5; }
 
@@ -1696,7 +1761,15 @@
        reaches, or a printout, shows everything. Keyframes with a backwards
        fill rather than transitions, so a mark's own transitions (selection
        dimming) are untouched once the draw has played. */
-    [data-drawn="pending"] :is(i.on, .provstrip-seg, .tp-turn rect, .tp-ai) { opacity: 0; }
+    [data-drawn="pending"] :is(i.on, .provstrip-seg, .tp-turn rect, .tp-ai, .pg-run, .pg-mark, .pg-ai) { opacity: 0; }
+    [data-drawn="in"] :is(.pg-mark, .pg-run) {
+      transform-box: fill-box; transform-origin: center bottom;
+      animation: tau-draw-pop var(--tau-dur-medium) var(--tau-ease-decelerate) var(--draw-delay, 0ms) backwards;
+    }
+    [data-drawn="in"] .pg-run { animation-name: tau-grow-y; }
+    [data-drawn="in"] .pg-ai {
+      animation: tau-draw-fade var(--tau-dur-medium) var(--tau-ease-decelerate) var(--draw-delay, 0ms) backwards;
+    }
     [data-drawn="in"] :is(i.on, .provstrip-seg) {
       transform-origin: left center;
       animation: tau-draw-x var(--tau-dur-long) var(--tau-ease-decelerate) var(--draw-delay, 0ms) backwards;

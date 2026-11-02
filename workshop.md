@@ -122,26 +122,42 @@ they double as the section label (`#room`, `#levels`, `#how-tau-works` open each
     ratio, allowed as a workshop exception
     (`designsystem.md`). Finished conversations only, so it doesn't shift with who's still typing.
   - **Pattern cards**, grouped as the guide groups them, detected first, then the ones nobody showed
-    ("Not seen today", still openable for their definition). A card opens in place: why it matters,
+    ("Not seen today", still openable for their definition). **Each card leads with the pattern's shape
+    (2026-11-02)**, matching the report's pattern guide: a small turn plot in the chart's own marks
+    (`pattern-guide.js` `shapePlot`, shared, with the `shape` data there), on a white well. An
+    illustration of the pattern, never this room's data, so seen and unseen cards both carry it. The
+    report's crop of the reader's own chart and its turn pill stay off: a room has no one chat to crop.
+    **Split in two, as the report's guide is (2026-11-02):** *Seen in this room* first, then *Not seen
+    today* (or *All the patterns* before anyone has finished), each part keeping the High/Low agency
+    and AI groups. A seen pattern is the larger card — two columns, its shape larger and beside the
+    text — as a found pattern is on the report; the per-card "Not seen today" flag went, since the
+    part heading says it. A card opens in place: why it matters,
     each conversation that showed it as a turn plot fitted to the width (never scrolls sideways),
     the pattern's turns tinted and the rest faded, and a reading pane with the exchange as text.
-    Next/previous and arrow keys walk all 15.
+    No next/previous and no replay (removed 2026-11-02): the facilitator picks the next card themselves; Close, Esc or the card again closes it.
 - **Levels of agency — an explainer, not a reading of the room.** Today's chats are never read for a
   level (five minutes is too short), and the page says so.
   - **The four levels as cards across, working as tabs, rebuilt 2026-11-02** from
     https://claude.ai/artifact/XEes8N76De6BwZoPTUkkkW (replaced the sidebar ladder, which took too
     much width). Weakest first, left to right; each card shows its name, the ask and the definition
     (`tau-dimensions.md`, verbatim), and stays that way so the four can always be compared.
-    Facilitator-led: nothing is picked until they pick. The picked card turns white with a thicker
-    stripe and its panel opens underneath, full width; ← → move between cards (tab pattern). An
+    Facilitator-led: nothing is picked until they pick. The picked card's panel opens underneath, full width; ← → move between cards (tab pattern).
+    **Drawn as the report draws a level (2026-11-02):** each card is its level's band fill with the name
+    in the band's ink, no rail and no dots (`report.css` `.level-block`); the picked card keeps its band
+    and its panel takes the same fill, while the other three step back to the neutral surface. The
+    section title carries the brand leaf, forest only (`designsystem.md`, Hard Constraints). An
     earlier version grew the picked card across the row and narrowed the rest to strips; replaced once
     the levels had a tab of their own, because a panel below has the room to lay the content out.
-  - **The panel leads with the definition and the rationale, then shows the chat.** Three steps,
-    0.38s apart: ① the definition across the top; ② on the left, *How it's told apart* (the level's
-    distinguishing line) over *What it doesn't mean* (`levels.html`, verbatim); ③ on the right, *What
-    it looks like in a chat*, a scripted three-turn exchange on one shared topic (phone bans),
-    labelled *Illustration*, arriving as one piece. The turns that decide the level carry a note in
-    the gutter beside them, joined by a tick — commentary, not a selection outline.
+  - **The panel: the definition, what to look for and the common misreading, then an example chat
+    (2026-11-02).** Three steps, 0.38s apart: ⓪ the definition as the headline, with the level's chip
+    and the ask; ① *What to look for* (the level's distinguishing line) beside *Common
+    misreading* (`levels.html`'s "What it doesn't mean", verbatim); ② under a rule, *Example chat*,
+    chipped *Scripted*: a written three-turn exchange on one shared topic (phone bans), full width,
+    arriving as one piece. The turns that decide the level carry a note beside the bubble, joined by a
+    tick. The definition stays as the panel's headline even though the picked card above shows it too:
+    dropping it was tried and lost the panel its lead. Labels
+    renamed the same day to name their content plainly (were *How it's told apart*, *What it doesn't
+    mean*, *What it looks like in a chat*, *Illustration*).
   - **No real session and no "This session" tag on the levels any more.** A workshop has only the
     chat, and a level needs the work and the assignment too, so tagging a level "This session" read as
     a reading of the room. The bike guide's per-level verdicts and a "what reached the work" line were

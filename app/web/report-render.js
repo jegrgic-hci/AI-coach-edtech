@@ -88,18 +88,21 @@ const LEVEL_ORDER = ["Passive", "Reactive", "Directive", "Transformative"];
 // wording rhyming.
 //
 // Then run through Strunk: coordination replaced by subordination (rule 18),
-// and the qualifiers cut EXCEPT the two doing measurement work — "almost
-// unchanged" and, in Transformative, "developing new ones that changed your
-// work", which is what stops the level being awarded for pushback that moved
-// nothing.
+// and the qualifiers cut EXCEPT the two doing measurement work — "with little
+// change" and, in Transformative, "your ideas changed as a result", which is
+// what stops the level being awarded for pushback that moved nothing.
+//
+// Tightened 2026-11-02 for the workshop and applied everywhere the four are
+// printed (tau-dimensions.md owns the wording): shorter, no semicolons, and
+// "brought" for "led with" so Directive and Transformative don't share a verb.
 //
 // No absolutes: "with little change" is the only hedge, on the only line that
 // would otherwise overclaim. The rest name acts, and an act is not a quantity.
 const LEVEL_DEF = {
-  Passive: "You asked the AI for the answers and used them almost unchanged.",
-  Reactive: "The AI gave you the ideas; you made them into your own work.",
-  Directive: "You led with your own ideas and used the AI to develop them.",
-  Transformative: "You led the AI to investigate and challenge your ideas, developing new ones that changed your work.",
+  Passive: "You asked the AI for answers and used them with little change.",
+  Reactive: "The AI supplied the ideas, and you developed them into your own work.",
+  Directive: "You brought your own ideas and used the AI to develop them.",
+  Transformative: "You asked the AI to test your ideas, and your ideas changed as a result.",
 };
 
 function renderReportHero(reading, submission) {
@@ -274,10 +277,10 @@ function readingCard(d) {
 // each sentence comes out of its meter (2026-10-28, option C of the
 // readings-entrance comparison). Timings are per card, not one sequence across
 // the group, so the pair fills in parallel.
-const DRAW_FIGURES = '.level-block, .dim-group, svg.turnplot, .provstrip-figure';
+const DRAW_FIGURES = '.level-block, .dim-group, svg.turnplot, .provstrip-figure, svg.pguide-plot';
 const PAIR_FILL_AT = 330;     // after the cards have risen
 const PIP_STEP = 70;
-const DRAW_MARKS = '.level-name.is-here, i.on, .tp-turn rect, .tp-ai, .provstrip-seg';
+const DRAW_MARKS = '.level-name.is-here, i.on, .tp-turn rect, .tp-ai, .provstrip-seg, .pg-run, .pg-mark, .pg-ai';
 function mountDrawIn(root) {
   if (!('IntersectionObserver' in window)) return;
   // Starts once 60% of the chart is above a line a quarter of the way up from
