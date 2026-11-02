@@ -639,7 +639,8 @@
       illo: [['you', 'Write me a paragraph on whether schools should ban phones.'],
              ['ai', 'Schools should ban phones in class. They divide attention, fuel bullying and take time from learning…'],
              ['you', 'Great, thanks.']],
-      keys: { 0: 'Asks for the finished thing' } },
+      keys: { 0: ['Asks for the finished thing', 'Write me a paragraph'],
+              2: ['Takes it as is', 'Great, thanks.'] } },
     { id: 'reactive', name: 'Reactive', n: 2, ask: 'Ideas developed',
       def: 'The AI supplied the ideas, and the student developed them into their own work.',
       look: 'The AI raises each idea first. The student questions, chooses, and rewrites, but every idea in the work traces back to an AI turn.',
@@ -647,7 +648,8 @@
       illo: [['ai', 'Three arguments for a ban: attention, cyberbullying, and more face-to-face time at break.'],
              ['you', 'I’ll use the attention one. Can you explain it more?'],
              ['you', 'Ok. I’ll put it in my own words, with an example from my class.']],
-      keys: { 0: 'The AI gets there first', 2: 'Real work on what it offered' } },
+      keys: { 0: ['The AI gets there first', 'Three arguments for a ban'],
+              2: ['Real work on what it offered', 'I’ll put it in my own words, with an example from my class.'] } },
     { id: 'directive', name: 'Directive', n: 3, ask: 'Own ideas led with',
       def: 'The student brought their own ideas and used the AI to develop them.',
       look: 'The student states a position or plan before the AI suggests one. The AI’s turns answer the student’s requests, and the work follows the student’s plan.',
@@ -655,7 +657,8 @@
       illo: [['you', 'A ban is too blunt. I want to argue for teaching phone habits instead. Find me schools that tried that.'],
              ['ai', 'Several schools in Victoria piloted structured use before the state ban…'],
              ['you', 'Just the secondary schools. They fit my point.']],
-      keys: { 0: 'Arrives with a position', 2: 'Sorts what comes back by it' } },
+      keys: { 0: ['Arrives with a position', 'A ban is too blunt. I want to argue for teaching phone habits instead.'],
+              2: ['Sorts what comes back by it', 'Just the secondary schools. They fit my point.'] } },
     { id: 'transformative', name: 'Transformative', n: 4, ask: 'Own ideas challenged and changed',
       def: 'The student asked the AI to test their ideas, and the ideas changed as a result.',
       look: 'The student asks the AI to argue against their idea. Later turns show the idea shifting, and the work argues something the student didn’t start with.',
@@ -663,7 +666,8 @@
       illo: [['you', 'My view: teach habits, don’t ban. What’s the strongest case against me?'],
              ['ai', 'Impulse control is still developing in younger teens, so a habits-based rule may fail where it matters most.'],
              ['you', 'That’s real for my Year 7s. So age matters more than the policy.']],
-      keys: { 0: 'Asks for the case against their own idea', 2: 'The idea moves' } }
+      keys: { 0: ['Asks for the case against their own idea', 'What’s the strongest case against me?'],
+              2: ['The idea moves', 'So age matters more than the policy.'] } }
   ];
 
   // The four dimensions: tau-dimensions.md's settled schemes, in plain words. Grid order, read row by row:
@@ -709,7 +713,7 @@
   ];
   var ROWS = ['The student’s own ideas', 'The AI’s ideas'], COLS = ['In the conversation', 'In the finished work'];
 
-  var howReplay = function () {};
+  var howReplay = function () {}, levelsReplay = function () {};
 
   function buildLevels() {
     var wrap = el('div', { class: 'lv-wrap' });
@@ -735,7 +739,7 @@
     var title = el('div', { class: 'title-leaf' });
     var leaf = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     leaf.setAttribute('viewBox', '0 0 400 400'); leaf.setAttribute('aria-hidden', 'true');
-    leaf.innerHTML = '<path d="' + LEAF_D + '"/>';
+    leaf.innerHTML = '<path class="leaf-fill" d="' + LEAF_D + '"/><path class="leaf-line" d="' + LEAF_D + '" pathLength="1"/>';
     title.appendChild(leaf);
     title.appendChild(el('h2', { class: 'section-title' }, 'The four levels of agency'));
     head.appendChild(title);
@@ -767,6 +771,22 @@
     sec.appendChild(row);
     sec.appendChild(panel);
 
+    // The opening build, each time the tab opens: the leaf draws as it does in How Tau works, then the
+    // four cards rise in order, weakest first. Order only: the cards stay one size, because a taller
+    // card would read as more agency, and a level is a position, never an amount.
+    cards.forEach(function (c, k) { c.style.setProperty('--k', k); });
+    // Transformative opens by default, as the build's last step: the workshop is about AI use in the
+    // classroom, and transformative use is what it argues for. Only the first time; a level the
+    // facilitator picks stays picked when they come back to the tab.
+    var opened = false;
+    levelsReplay = function () {
+      sec.classList.remove('lvc-build'); void sec.offsetWidth;
+      sec.classList.add('lvc-build');
+      if (opened) return;
+      opened = true;
+      setTimeout(function () { if (open == null) show(LEVELS.length - 1); }, REDUCED ? 0 : 1000);
+    };
+
     function show(i) {
       if (i === open) return;
       open = i;
@@ -783,6 +803,11 @@
       panel.hidden = false;
       panel.innerHTML = '';
       panel.style.cssText = '--lv:var(--lv-' + lv.n + ');--chip:var(--lv-' + lv.n + '-chip);--chip-ink:var(--lv-' + lv.n + '-chip-ink)';
+      // The panel grows down out of the picked card: it starts clipped to the card's width and opens out.
+      var c = cards[lv.n - 1];
+      panel.style.setProperty('--from-l', c.offsetLeft - panel.offsetLeft + 'px');
+      panel.style.setProperty('--from-r', (panel.offsetLeft + panel.offsetWidth) - (c.offsetLeft + c.offsetWidth) + 'px');
+      panel.classList.remove('lvc-grow'); void panel.offsetWidth; panel.classList.add('lvc-grow');
       function at(node, ms) { node.classList.add('lvc-t'); node.style.setProperty('--t', ms + 'ms'); return node; }
 
       // The definition as the headline, then what to look for beside the common misreading, then the
@@ -812,18 +837,24 @@
       lh.appendChild(el('p', { class: 'why-label' }, 'Example chat'));
       lh.appendChild(el('span', { class: 'lvc-chip' }, 'Scripted'));
       look.appendChild(lh);
-      // A deciding turn carries a note in the gutter beside it, joined by a tick, so it reads as
-      // commentary on that turn rather than as a selected state.
+      // The words that carry the level are highlighted inside the turn, and the turn's short label sits
+      // beside the bubble, its tick pointing at them. keys[turn] = [label, the words to highlight].
       var chat = el('div', { class: 'lvc-chat' });
       lv.illo.forEach(function (t, k) {
         var turn = el('div', { class: 'lvc-turn ' + t[0] });
         var bub = el('div', { class: 'lvc-bubble' });
         bub.appendChild(el('span', { class: 'who' }, t[0] === 'you' ? 'The student' : 'The AI'));
-        bub.appendChild(document.createTextNode(t[1]));
+        var key = lv.keys[k], at = key ? t[1].indexOf(key[1]) : -1;
+        if (at < 0) bub.appendChild(document.createTextNode(t[1]));
+        else {
+          bub.appendChild(document.createTextNode(t[1].slice(0, at)));
+          bub.appendChild(el('mark', { class: 'lvc-mark' }, key[1]));
+          bub.appendChild(document.createTextNode(t[1].slice(at + key[1].length)));
+        }
         turn.appendChild(bub);
-        if (lv.keys[k]) {
+        if (key) {
           var note = el('span', { class: 'lvc-note' });
-          note.appendChild(el('span', { class: 'lvc-note-text' }, lv.keys[k]));
+          note.appendChild(el('span', { class: 'lvc-note-text' }, key[0]));
           note.appendChild(el('i', { class: 'lvc-tick', 'aria-hidden': 'true' }));
           turn.appendChild(note);
         }
@@ -1148,6 +1179,7 @@
     tabs.forEach(function (t, k) { t.setAttribute('aria-selected', String(k === i)); t.tabIndex = k === i ? 0 : -1; });
     panels.forEach(function (p, k) { p.hidden = k !== i; p.classList.toggle('tab-in', k === i); });
     moveTabInd();
+    if (i === 1) levelsReplay();
     if (i === 2) howReplay();
     if (focus) tabs[i].focus();
     try { history.replaceState(null, '', HASHES[i]); } catch (e) {}

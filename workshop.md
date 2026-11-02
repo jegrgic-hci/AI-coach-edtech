@@ -141,11 +141,22 @@ they double as the section label (`#room`, `#levels`, `#how-tau-works` open each
     https://claude.ai/artifact/XEes8N76De6BwZoPTUkkkW (replaced the sidebar ladder, which took too
     much width). Weakest first, left to right; each card shows its name, the ask and the definition
     (`tau-dimensions.md`, verbatim), and stays that way so the four can always be compared.
-    Facilitator-led: nothing is picked until they pick. The picked card's panel opens underneath, full width; ← → move between cards (tab pattern).
+    Facilitator-led apart from the default below. The picked card's panel opens underneath, full width; ← → move between cards (tab pattern).
     **Drawn as the report draws a level (2026-11-02):** each card is its level's band fill with the name
     in the band's ink, no rail and no dots (`report.css` `.level-block`); the picked card keeps its band
     and its panel takes the same fill, while the other three step back to the neutral surface. The
-    section title carries the brand leaf, forest only (`designsystem.md`, Hard Constraints). An
+    section title carries the brand leaf, forest only (`designsystem.md`, Hard Constraints).
+    **Opening build (2026-11-02), each time the tab opens:** the leaf draws (line, then fill, as in How
+    Tau works), then the four cards rise in order, weakest first, each band washing in as it lands. Opening
+    a level grows its panel down out of the picked card (clipped to the card's width, then opened out).
+    **The cards stay one size:** different heights per level were proposed and declined, because a taller
+    card reads as more agency (a level is a position, never an amount) and, beside Session patterns' bars,
+    as a count of people at each level.
+    **Transformative opens by default** (2026-11-02), as the build's last step, about a second in: the
+    workshop is about AI use in the classroom and argues for transformative use. First open only; a level
+    the facilitator picks stays picked on return. Raised against it and overruled for this audience:
+    `levels.html` says a task can cap the level at Reactive and that the level measures agency, not
+    quality — the facilitator can make the ceiling point when they reach the other cards. An
     earlier version grew the picked card across the row and narrowed the rest to strips; replaced once
     the levels had a tab of their own, because a panel below has the room to lay the content out.
   - **The panel: the definition, what to look for and the common misreading, then an example chat
@@ -153,8 +164,12 @@ they double as the section label (`#room`, `#levels`, `#how-tau-works` open each
     and the ask; ① *What to look for* (the level's distinguishing line) beside *Common
     misreading* (`levels.html`'s "What it doesn't mean", verbatim); ② under a rule, *Example chat*,
     chipped *Scripted*: a written three-turn exchange on one shared topic (phone bans), full width,
-    arriving as one piece. The turns that decide the level carry a note beside the bubble, joined by a
-    tick. The definition stays as the panel's headline even though the picked card above shows it too:
+    arriving as one piece. **The words that carry the level are marked (2026-11-02):** the chat sits centred at a
+    reading width; in each called-out turn the exact words that make the point are bold and underlined
+    in the level's ink, and the turn's short label sits beside the bubble in the same ink, its tick
+    pointing at it. Passive's "Great, thanks." is called out too. Tried and dropped the same day: a
+    column of explanatory sentences with numbered badges (more text than the chat needs), and a fill
+    in the level's colour (lost on the green student bubbles). The definition stays as the panel's headline even though the picked card above shows it too:
     dropping it was tried and lost the panel its lead. Labels
     renamed the same day to name their content plainly (were *How it's told apart*, *What it doesn't
     mean*, *What it looks like in a chat*, *Illustration*).
