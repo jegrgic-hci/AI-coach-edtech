@@ -25,7 +25,7 @@ owns. The dated build entries are in `built-in-chat-plan.md`'s session log (2026
 
 - **Presented results built (2026-10-20):** `workshop-room.html`, the facilitator's projector view
   of the room, opened by **Present results** on a workshop card. Three tabs: Session patterns,
-  Levels of agency, Dimensions. See *Presented results* below. Checked against the real demo-room
+  Levels of agency, How Tau works (was Dimensions until 2026-11-02). See *Presented results* below. Checked against the real demo-room
   data and for access; **not yet screenshot-checked in a browser.**
 - **Undecided: the per-person results design.** Whether to restyle the individual results, for the
   workshop and for the tool, in the room view's style. See open item 0b.
@@ -50,8 +50,12 @@ owns. The dated build entries are in `built-in-chat-plan.md`'s session log (2026
 - **To reach Emilie:** deploy to prod (`tau-thinking-prod`), then a platform admin ticks **Workshop
   links** on her teacher account in Administration. Platform admins can run workshops without the
   grant.
-- **A demo room exists locally:** "Demo room — 5 teachers", owned by `jegrgic@gmail.com`, with five
-  scripted guests. It expires a week after it was made (around 2026-10-22) and is then purged.
+- **A demo room exists locally:** rebuilt 2026-11-02 under **`teacher@school.dev`** (`coach1234`),
+  code 996290, five scripted guests (Ana, Ben, Chloe, Dev, Elif); expires around 2026-11-09 and is
+  then purged. The earlier room under `jegrgic@gmail.com` expired around 2026-10-22 and is gone. To
+  rebuild, under any account with the grant, with the local server running:
+  `node app/server/workshop-demo.js <email> <password>` — it goes through the real routes, analysis
+  and all.
 
 ---
 
@@ -98,7 +102,8 @@ npm run start:demo          # http://localhost:8787
 The facilitator's projector view, opened by **Present results** on a workshop card (any workshop not
 yet being deleted). Built 2026-10-20 from the approved design artifact
 (https://claude.ai/artifact/3cCY2iVzsZb2g4Jcc9D9tz). Three tabs, styled as a full-width pill bar so
-they double as the section label (`#room`, `#levels`, `#dimensions` open each directly):
+they double as the section label (`#room`, `#levels`, `#how-tau-works` open each directly; the old
+`#dimensions` still lands on How Tau works):
 
 - **Session patterns — the real room.**
   - A centred statement: patterns seen out of the 15, turns typed to the AI, conversations finished,
@@ -123,28 +128,52 @@ they double as the section label (`#room`, `#levels`, `#dimensions` open each di
     Next/previous and arrow keys walk all 15.
 - **Levels of agency — an explainer, not a reading of the room.** Today's chats are never read for a
   level (five minutes is too short), and the page says so.
-  - The four levels as a ladder (the sidebar is the only navigation; no next/previous) with the
-    selected level's definition (`tau-dimensions.md`, verbatim).
-  - **Worked from the one real session**, the bike maintenance guide (`seed-data.js` `bikeguide`,
-    the same session `sample.js` serves as the teacher sample report). One session can't illustrate
-    four levels, so each level says where *that* session falls and why, from its authored reading:
-    Not Passive, Not Reactive, **Reads Directive** (tagged "This session" on the ladder), Not
-    Transformative. A note at the top says it's real, adult and not school work, that the writer's
-    words are verbatim and the AI's shortened, and that it was read by hand against Tau's schemes,
-    not computed by today's tool.
-  - **How Tau decides a level:** three sources → four questions → one level, building in order as it
-    comes into view, with the four rules (never added up, always shown, not enough here, not a grade).
-    Each of the four questions opens the Dimensions tab at that dimension.
-- **Dimensions — its own tab since 2026-10-20**, because each dimension carries as much as a level.
-  Same layout as the levels card: the four questions down the left, grouped by whose ideas, each
-  told on the right as a story, most important first:
-  1. the question and what it means;
-  2. why it matters;
-  3. how Tau reads it (the scheme's three codes);
-  4. **in the real session**: the bike guide's count, a moment that counted and the one that didn't
-     (its authored counterexample);
-  5. what a reading says, the band labels strongest first with the session's marked (no numerals);
-  6. background, set quieter but visible: the research and citation, what it counts, where it sits.
+  - **The four levels as cards across, working as tabs, rebuilt 2026-11-02** from
+    https://claude.ai/artifact/XEes8N76De6BwZoPTUkkkW (replaced the sidebar ladder, which took too
+    much width). Weakest first, left to right; each card shows its name, the ask and the definition
+    (`tau-dimensions.md`, verbatim), and stays that way so the four can always be compared.
+    Facilitator-led: nothing is picked until they pick. The picked card turns white with a thicker
+    stripe and its panel opens underneath, full width; ← → move between cards (tab pattern). An
+    earlier version grew the picked card across the row and narrowed the rest to strips; replaced once
+    the levels had a tab of their own, because a panel below has the room to lay the content out.
+  - **The panel leads with the definition and the rationale, then shows the chat.** Three steps,
+    0.38s apart: ① the definition across the top; ② on the left, *How it's told apart* (the level's
+    distinguishing line) over *What it doesn't mean* (`levels.html`, verbatim); ③ on the right, *What
+    it looks like in a chat*, a scripted three-turn exchange on one shared topic (phone bans),
+    labelled *Illustration*, arriving as one piece. The turns that decide the level carry a note in
+    the gutter beside them, joined by a tick — commentary, not a selection outline.
+  - **No real session and no "This session" tag on the levels any more.** A workshop has only the
+    chat, and a level needs the work and the assignment too, so tagging a level "This session" read as
+    a reading of the room. The bike guide's per-level verdicts and a "what reached the work" line were
+    tried in the cards and removed: two examples (one invented, one real) on one card confused, and the
+    finished work can't show a level on its own — only the chat beside it can.
+- **How Tau works — replaced the Dimensions tab 2026-11-02.** The Levels tab now holds only the
+  level cards; the figure moved here, and the dimensions moved from a tab of their own into overlays
+  opened from it.
+  - **How Tau decides a level — four steps across, rebuilt 2026-11-02** from
+    https://claude.ai/artifact/3ByUyHucwq4zJAa3jK5nbT ("Four across"). ① What Tau analyzes (the three
+    inputs) → ② Four dimensions (conversation pair, finished-work pair) → ③ **Read together**, the page
+    loader's leaf and nothing else → ④ One level of agency, each level its own card, Directive selected
+    (the bike guide's reading — which nothing on the tab now explains; open). Step 1 also runs **under
+    step 2 straight into step 3**: the level is read from the whole session as well as the four, never
+    calculated from them. Wide arrows in the colour of the step they leave; each step builds in full
+    before the next; the leaf draws once while the arrows land. Plays when it comes into view, replays
+    when the tab reopens. **The four rules (never added up, always shown, not enough here, not a grade)
+    are no longer on the figure** — removed in the redesign. Decided 2026-11-02: the facilitator says
+    them for now; adding them back to the page is open.
+  - **Each dimension opens an overlay on how it's measured** (a modal `<dialog>`; a + on the card says
+    it opens; ×, Esc or the backdrop closes it and focus returns to the card). The overlay tells the
+    dimension as a story, most important first:
+    1. the question and what it means;
+    2. why it matters;
+    3. how Tau reads it (the scheme's three codes);
+    4. **in the bike guide session**: its count, a moment that counted and the one that didn't
+       (its authored counterexample);
+    5. what a reading says, the band labels strongest first with the bike guide's marked (tagged
+       *Bike guide*, never *This session* — a workshop has no reading of its own; no numerals);
+    6. background, set quieter but visible: the research and citation, what it counts, where it sits.
+  - The Dimensions tab's intro (*"A level is read from four questions. Each owns one corner of the
+    same grid…"*) went with the tab; the overlay's mini-grid and *Where it sits* still carry the grid.
 
   **This describes the settled model, which is specified but not built** (`tau-dimensions.md`); a
   facilitator should present it as how Tau reads work, not as what today's reports compute.
@@ -176,7 +205,18 @@ they double as the section label (`#room`, `#levels`, `#dimensions` open each di
 - **The results, as built today** (`report.html`, plot-only mode):
   - Only "Your conversation, turn by turn", with a one-line key.
   - A plot fitted to the conversation's size, and a headline stated as counts.
-  - **"What the chart looks for"**: the pattern guide, with this chat's patterns marked.
+  - **"What the chart looks for"**: the pattern guide (rebuilt 2026-10-30, tonal):
+    - Every pattern is a white card on the report band, led by its **shape**: a small turn plot in
+      the chart's own marks (four rows, squares on the agency ramp, the run band, the AI's act as an
+      outlined mark in the lane below), so the room learns to spot it on the chart. An
+      illustration, never data: small and unlabelled.
+    - A pattern this chat showed is a full-width card whose shape is **a crop of the reader's own
+      chart** (one turn either side, row names, real turn numbers), with **Show on my chart**, which
+      scrolls up and opens that run (or the diamond, for "AI backed off").
+    - Shapes draw in when they scroll into view (the report's `mountDrawIn`).
+  - **The turn card** bolds the label and ends with **See all turn labels**, which opens the run sheet
+    listing all eleven labels under the chart's four rows, the current one selected. Shared with the
+    live student report.
   - Sessions sit behind a **Sessions** button as a sheet, not a side panel.
 
 ### The results page — redesign (canvas screen 9, not built)
@@ -245,7 +285,7 @@ of the task when created, so editing `TASKS` affects only new workshops.
 | `app/server/seed.js` | Gives `teacher@school.dev` the `workshopLinks` grant. |
 | `app/server/export-improvement.js` | Refuses workshop classes. |
 | `app/web/workshop.html` | **New.** Facilitator page: create, workshop cards, room view, and the projector join screen (`?show=<id>`). **Present results** links to the presented view. |
-| `app/web/workshop-room.html`, `.js`, `.css` | **New 2026-10-20.** Presented results: Session patterns and Levels of agency tabs, tonal palette. |
+| `app/web/workshop-room.html`, `.js`, `.css` | **New 2026-10-20.** Presented results: Session patterns, Levels of agency and How Tau works tabs, tonal palette. |
 | `app/server/workshops.js` `roomFor()` | **New 2026-10-20.** The presented view's data: finished conversations, no names, shuffled. Route `GET /api/workshops/:id/room`; page gated like `workshop.html` (`canRunWorkshops`). |
 | `app/web/join.html` | **New.** Name + code entry page (replaced `try.html` 2026-10-18). |
 | `app/web/pattern-guide.js` | **New.** The guide's copy (all 14 patterns plus "AI backed off") and its renderer. |
@@ -388,7 +428,7 @@ concurrent-Start load test, the pushback smoke cases, and the five-persona demo-
    results, in the older style. Two options were set out:
    - **A facilitator-only page**, `workshop-result.html?id=<submission>`, sharing
      `workshop-room.css` and its components: the person's name and task in the header; tabs *Their
-     conversation* | Levels of agency | Dimensions (the explainer tabs reused); the whole
+     conversation* | Levels of agency | How Tau works (the explainer tabs reused); the whole
      conversation as one fitted turn plot with a reading pane; their patterns as cards that tint
      their turns; the patterns not seen as a quieter row; "AI backed off" with the AI's reply. No new
      route: the report endpoint already returns `classified`, `patterns` and `aiMoments` and already

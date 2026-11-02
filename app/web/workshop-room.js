@@ -625,36 +625,42 @@
   // ── Levels of agency: an explainer, not a reading of this room ────────────
   // Definitions are tau-dimensions.md's agency ladder, verbatim. The levels are told apart by the ask
   // (answers taken → ideas developed → own ideas led with → own ideas challenged and changed).
-  // Illustrations are scripted and say so. Strongest reading at the top of the ladder.
+  // `not` is levels.html's "What it doesn't mean", verbatim. Each card leads with the definition and
+  // the rationale; the chat follows as an illustration, scripted and labelled so, with the turns
+  // that decide the level noted (`keys`, by turn index). Weakest first, left to right.
   var LEVELS = [
-    { id: 'passive', name: 'Passive', n: 1, real: { verdict: 'Not Passive', text: 'Most of what the writer asked for changed what the guide says: 11 of the 14 changes they directed. They also wrote their own introduction and had the AI put it in.', quote: 'Change the introduction to the following after checking the spelling…' }, ask: 'Answers taken',
+    { id: 'passive', name: 'Passive', n: 1, ask: 'Answers taken',
       def: 'The student asked the AI for the answers and used them almost unchanged.',
       look: 'The ask is for the finished thing, and the finished thing is what reaches the work.',
+      not: 'It is not a cheating finding. A student who didn’t know where to start, or who read the task as beyond them, produces this same session. Passive tells you the thinking isn’t in the work; it does not tell you whether it exists.',
       illo: [['you', 'Write me a paragraph on whether schools should ban phones.'],
              ['ai', 'Schools should ban phones in class. They divide attention, fuel bullying and take time from learning…'],
              ['you', 'Great, thanks.']],
-      work: 'The paragraph went into the essay almost word for word.' },
-    { id: 'reactive', name: 'Reactive', n: 2, real: { verdict: 'Not Reactive', text: 'The writer led with their own frame, the format, the reader and the reason the guide exists, before the AI had suggested anything.', quote: 'I need to write a 1000 word essay in the format I want about bicycle maintenance… usable for female riders who rely on partners…' }, ask: 'Ideas developed',
+      keys: { 0: 'Asks for the finished thing' } },
+    { id: 'reactive', name: 'Reactive', n: 2, ask: 'Ideas developed',
       def: 'The AI gave the student the ideas; they made them into work of their own.',
       look: 'The AI got there first, and the student did real work on what it offered.',
+      not: 'It is not low effort. Reactive sessions are often the hardest-working ones on the list — a student can spend forty turns rigorously interrogating material and still never have set the terms of it.',
       illo: [['ai', 'Three arguments for a ban: attention, cyberbullying, and more face-to-face time at break.'],
              ['you', 'I’ll use the attention one. Can you explain it more?'],
              ['you', 'Ok. I’ll put it in my own words, with an example from my class.']],
-      work: 'The AI’s argument, rewritten around the student’s own example.' },
-    { id: 'directive', name: 'Directive', n: 3, real: { verdict: 'Reads Directive', text: 'They set the format, the audience and the five systems in their first message, then took the AI through them one at a time. The guide at the end is the one they specified at the start.', quote: 'Let’s break it down by system.' }, ask: 'Own ideas led with',
+      keys: { 0: 'The AI gets there first', 2: 'Real work on what it offered' } },
+    { id: 'directive', name: 'Directive', n: 3, ask: 'Own ideas led with',
       def: 'The student led with their own ideas and used the AI to develop them.',
       look: 'The student arrives with a position, and the AI is sent to fetch, sort and sharpen.',
+      not: 'It does not mean the work is good. A student can direct a session confidently toward a thin, incurious answer and still read directive. The level says the thinking was theirs, not that it was right.',
       illo: [['you', 'A ban is too blunt. I want to argue for teaching phone habits instead. Find me schools that tried that.'],
              ['ai', 'Several schools in Victoria piloted structured use before the state ban…'],
              ['you', 'Just the secondary schools. They fit my point.']],
-      work: 'The student’s argument, supported by material they asked for.' },
-    { id: 'transformative', name: 'Transformative', n: 4, real: { verdict: 'Not Transformative', text: 'Their thinking didn’t change across the session: the five-system structure came from the AI in its first reply and never changed. The level was also held at Directive because the one claim taken unchecked was the replacement reference, moments after that same source had been caught inventing one.', quote: null }, ask: 'Own ideas challenged and changed',
+      keys: { 0: 'Arrives with a position', 2: 'Sorts what comes back by it' } },
+    { id: 'transformative', name: 'Transformative', n: 4, ask: 'Own ideas challenged and changed',
       def: 'The student led the AI to investigate and challenge their ideas, developing new ones that changed the work.',
       look: 'Directive, plus a change: the student goes looking for the case against their own idea, and the idea moves.',
+      not: 'It is not “argued with the AI a lot.” Pushback that changes nothing is still directive. This level requires that the thinking actually moved — and moved because of work the student did, not because the AI talked them into something.',
       illo: [['you', 'My view: teach habits, don’t ban. What’s the strongest case against me?'],
              ['ai', 'Impulse control is still developing in younger teens, so a habits-based rule may fail where it matters most.'],
              ['you', 'That’s real for my Year 7s. So age matters more than the policy.']],
-      work: 'The essay’s claim changed, from “don’t ban” to “it depends on age”.' }
+      keys: { 0: 'Asks for the case against their own idea', 2: 'The idea moves' } }
   ];
 
   // The four dimensions: tau-dimensions.md's settled schemes, in plain words. Grid order, read row by row:
@@ -700,98 +706,139 @@
   ];
   var ROWS = ['The student’s own ideas', 'The AI’s ideas'], COLS = ['In the conversation', 'In the finished work'];
 
-  var levelsRefresh = function () {};
-  var lvStep = 0, howReplay = function () {}, ladderMove = function () {};
+  var howReplay = function () {};
 
-  // Three sections on the Levels of agency tab: the levels, how a level is decided, the four dimensions.
   function buildLevels() {
     var wrap = el('div', { class: 'lv-wrap' });
-    wrap.appendChild(buildLadder());
-    wrap.appendChild(buildHow());
-    levelsRefresh = function () { ladderMove(); howReplay(); };
+    wrap.appendChild(buildLevelCards());
     return wrap;
   }
 
-  // ── 1. The levels: a ladder (strongest at the top) and the picked level's detail ──
-  function buildLadder() {
+  // How Tau works: the four-step figure. Each dimension in it opens an overlay on how it's measured.
+  function buildHowTab() {
+    var wrap = el('div', { class: 'lv-wrap' });
+    wrap.appendChild(buildHow());
+    return wrap;
+  }
+
+  // ── 1. The levels: four cards across, weakest first; the picked one opens below, like a tab ──
+  // The cards stay as they are so the four definitions can always be compared. Picking one marks it
+  // and opens its panel underneath, full width: the definition across the top, then the rationale and
+  // the chat side by side, built in that order so the chat never leads. Facilitator-led: nothing is
+  // picked until they pick. Built from https://claude.ai/artifact/XEes8N76De6BwZoPTUkkkW, 2026-11-02.
+  function buildLevelCards() {
     var sec = el('section', { class: 'lv-sec', 'aria-label': 'The four levels of agency' });
     var head = el('div', { class: 'lv-sec-head' });
     head.appendChild(el('h2', { class: 'section-title' }, 'The four levels of agency'));
     head.appendChild(el('p', { class: 'levels-intro' },
       'A pattern is a moment in a conversation. A level is a reading of a whole piece of work: where the student’s thinking entered it. ' +
       'Today’s chats aren’t read for a level, because five minutes is too short for one to stand on.'));
-    head.appendChild(provenanceNote());
     sec.appendChild(head);
 
-    var card = el('div', { class: 'levels-card' });
-    var ladder = el('nav', { class: 'ladder', 'aria-label': 'Levels' });
-    var ind = el('span', { class: 'ladder-ind', 'aria-hidden': 'true' });
-    ladder.appendChild(ind);
-    var rungs = el('ol', { class: 'rungs' }), btns = [];
-    LEVELS.slice().reverse().forEach(function (lv) {
-      var li = el('li');
-      var b = el('button', { class: 'rung', type: 'button', style: '--lv:var(--lv-' + lv.n + ')' });
-      b.appendChild(el('span', { class: 'rung-dot', 'aria-hidden': 'true' }));
-      var tx = el('span', { class: 'rung-text' });
-      tx.appendChild(el('span', { class: 'rung-name' }, lv.name));
-      tx.appendChild(el('span', { class: 'rung-ask' }, lv.ask));
-      b.appendChild(tx);
-      if (lv.real.verdict.indexOf('Reads') === 0) b.appendChild(el('span', { class: 'mine-tag' }, 'This session'));
-      b.addEventListener('click', function () { go(lv.n - 1); });
-      btns[lv.n - 1] = b;
-      li.appendChild(b); rungs.appendChild(li);
+    var row = el('div', { class: 'lvc-row', role: 'tablist', 'aria-label': 'Levels of agency' });
+    var panel = el('div', { class: 'lvc-panel', role: 'tabpanel', id: 'lvc-panel' });
+    panel.hidden = true;
+    var cards = [], open = null;
+    LEVELS.forEach(function (lv, i) {
+      var c = el('button', { class: 'lvc', type: 'button', role: 'tab', id: 'lvc-' + lv.id, 'aria-selected': 'false', 'aria-controls': 'lvc-panel', tabindex: i ? '-1' : '0',
+        style: '--lv:var(--lv-' + lv.n + ');--chip:var(--lv-' + lv.n + '-chip);--chip-ink:var(--lv-' + lv.n + '-chip-ink)' });
+      c.appendChild(el('span', { class: 'lvc-name' }, lv.name));
+      c.appendChild(el('span', { class: 'lvc-ask' }, lv.ask));
+      c.appendChild(el('span', { class: 'lvc-def' }, lv.def));
+      c.addEventListener('click', function () { show(i); });
+      c.addEventListener('keydown', function (e) {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+        e.preventDefault(); e.stopPropagation();
+        var k = (i + (e.key === 'ArrowRight' ? 1 : LEVELS.length - 1)) % LEVELS.length;
+        cards[k].focus(); show(k);
+      });
+      row.appendChild(c);
+      cards.push(c);
     });
-    ladder.appendChild(rungs);
-    card.appendChild(ladder);
-    var detail = el('div', { class: 'lv-detail', 'aria-live': 'polite' });
-    card.appendChild(detail);
-    sec.appendChild(card);
+    sec.appendChild(row);
+    sec.appendChild(panel);
 
-    function go(i) { lvStep = i; render(true); }
-    function moveInd() {
-      var b = btns[lvStep];
-      if (!b.offsetHeight) return;
-      ind.style.transform = 'translateY(' + b.offsetTop + 'px)';
-      ind.style.height = b.offsetHeight + 'px';
-      ind.style.background = 'var(--lv-' + (lvStep + 1) + '-wash)';
+    function show(i) {
+      if (i === open) return;
+      open = i;
+      cards.forEach(function (c, k) {
+        c.setAttribute('aria-selected', String(k === i));
+        c.tabIndex = k === i ? 0 : -1;
+      });
+      panel.setAttribute('aria-labelledby', 'lvc-' + LEVELS[i].id);
+      build(LEVELS[i]);
     }
-    function render(animate) {
-      btns.forEach(function (b, k) { b.setAttribute('aria-current', k === lvStep ? 'step' : 'false'); });
-      moveInd();
-      detail.innerHTML = '';
-      var body = el('div', { class: 'lv-body' + (animate ? ' lv-anim' : '') });
-      levelBody(body, LEVELS[lvStep]);
-      detail.appendChild(body);
+
+    function build(lv) {
+      panel.hidden = false;
+      panel.innerHTML = '';
+      panel.style.cssText = '--lv:var(--lv-' + lv.n + ');--chip:var(--lv-' + lv.n + '-chip);--chip-ink:var(--lv-' + lv.n + '-chip-ink)';
+      function at(node, ms) { node.classList.add('lvc-t'); node.style.setProperty('--t', ms + 'ms'); return node; }
+
+      // Three steps: the definition, the rationale, the chat.
+      var top = at(el('div', { class: 'lvc-head' }), 0);
+      var tl = el('div', { class: 'lv-top' });
+      tl.appendChild(el('span', { class: 'lv-chip', style: 'background:var(--chip);color:var(--chip-ink)' }, lv.name));
+      tl.appendChild(el('span', { class: 'lv-ask' }, 'The ask: ' + lv.ask.toLowerCase()));
+      top.appendChild(tl);
+      top.appendChild(el('p', { class: 'lv-def' }, lv.def));
+      panel.appendChild(top);
+
+      var cols = el('div', { class: 'lvc-cols' });
+      var why = at(el('div', { class: 'lvc-why' }), 380);
+      [['How it’s told apart', lv.look], ['What it doesn’t mean', lv.not]].forEach(function (p) {
+        var d = el('div', { class: 'lvc-why-panel' });
+        d.appendChild(el('p', { class: 'why-label' }, p[0]));
+        d.appendChild(el('p', null, p[1]));
+        why.appendChild(d);
+      });
+      cols.appendChild(why);
+
+      var look = at(el('div', { class: 'lvc-look' }), 760);
+      var lh = el('div', { class: 'lvc-look-head' });
+      var ic = el('span', { class: 'lvc-ic', 'aria-hidden': 'true' });
+      ic.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + HOW_ICONS.chat + '</svg>';
+      lh.appendChild(ic);
+      lh.appendChild(el('p', { class: 'why-label' }, 'What it looks like in a chat'));
+      lh.appendChild(el('span', { class: 'lvc-chip' }, 'Illustration'));
+      look.appendChild(lh);
+      // A deciding turn carries a note in the gutter beside it, joined by a tick, so it reads as
+      // commentary on that turn rather than as a selected state.
+      var chat = el('div', { class: 'lvc-chat' });
+      lv.illo.forEach(function (t, k) {
+        var turn = el('div', { class: 'lvc-turn ' + t[0] });
+        var bub = el('div', { class: 'lvc-bubble' });
+        bub.appendChild(el('span', { class: 'who' }, t[0] === 'you' ? 'The student' : 'The AI'));
+        bub.appendChild(document.createTextNode(t[1]));
+        turn.appendChild(bub);
+        if (lv.keys[k]) {
+          var note = el('span', { class: 'lvc-note' });
+          note.appendChild(el('span', { class: 'lvc-note-text' }, lv.keys[k]));
+          note.appendChild(el('i', { class: 'lvc-tick', 'aria-hidden': 'true' }));
+          turn.appendChild(note);
+        }
+        chat.appendChild(turn);
+      });
+      look.appendChild(chat);
+      cols.appendChild(look);
+      panel.appendChild(cols);
     }
-    ladderMove = moveInd;
-    window.addEventListener('resize', moveInd);
-    render(false);
     return sec;
   }
 
-  function levelBody(body, lv) {
-    var top = el('div', { class: 'lv-top', style: '--i:0' });
-    top.appendChild(el('span', { class: 'lv-chip', style: 'background:var(--lv-' + lv.n + '-chip);color:var(--lv-' + lv.n + '-chip-ink)' }, lv.name));
-    top.appendChild(el('span', { class: 'lv-ask' }, 'The ask: ' + lv.ask.toLowerCase()));
-    body.appendChild(top);
-    body.appendChild(el('p', { class: 'lv-def', style: '--i:1' }, lv.def));
-    body.appendChild(el('p', { class: 'lv-look', style: '--i:2' }, lv.look));
-    var real = el('div', { class: 'lv-real', style: '--i:3;--lv:var(--lv-' + lv.n + ');--lv-wash:var(--lv-' + lv.n + '-wash)' });
-    var rh = el('div', { class: 'lv-real-head' });
-    rh.appendChild(el('p', { class: 'why-label' }, 'In the real session'));
-    rh.appendChild(el('span', { class: 'lv-verdict' + (lv.real.verdict.indexOf('Reads') === 0 ? ' is-mine' : '') }, lv.real.verdict));
-    real.appendChild(rh);
-    real.appendChild(el('p', { class: 'lv-real-text' }, lv.real.text));
-    if (lv.real.quote) {
-      var q = el('div', { class: 'line person', style: '--i:4' });
-      q.appendChild(el('span', { class: 'who' }, 'The writer'));
-      q.appendChild(document.createTextNode(lv.real.quote));
-      real.appendChild(q);
-    }
-    body.appendChild(real);
-  }
-
-  // ── 2. How a level is decided: builds left to right, sources → questions → level → rules ──
+  // ── 2. How a level is decided: four steps, left to right ──
+  // What Tau analyzes → the four dimensions → read together (the loading leaf: Tau,
+  // thinking) → one level. Step 1 feeds step 2, and also runs under step 2 straight
+  // into step 3, because the level is read from the whole session as well as the four,
+  // never calculated from the four (tau-dimensions.md, What is never done). Built from
+  // https://claude.ai/artifact/3ByUyHucwq4zJAa3jK5nbT ("Four across"), 2026-11-02.
+  // Each step builds in full before the next; arrows grow out of the step they leave.
+  var LEAF_D = 'M124.705 136.99C104.454 145.919 90.965 153.597 74.3924 168.266C50.4512 189.457 41.6618 207.126 30.8785 237.616C20.4574 267.082 20 319.204 20 319.204C20 319.204 59.4345 256.245 120.626 221.298C177.771 188.663 248.448 184.584 248.448 184.584C248.448 184.584 174.795 212.614 135.584 243.055C101.157 269.782 59.4345 324.644 59.4345 324.644C59.4345 324.644 202.215 353.552 286.523 277.05C381.951 190.458 378.99 69 378.99 69C378.99 69 341.304 94.1467 309.64 104.355C264.68 118.849 232.13 115.233 181.817 122.032C158.177 125.227 136.707 131.699 124.705 136.99Z';
+  var HOW_ICONS = {
+    chat: '<path d="M4 5h16v10H9l-5 4z"/>',
+    doc: '<path d="M7 3h7l4 4v14H7z"/><path d="M10 12h6M10 16h6"/>',
+    task: '<path d="M9 4h6v3H9z"/><path d="M7 5H5v16h14V5h-2"/><path d="M9 13l2 2 4-4"/>'
+  };
   function buildHow() {
     var sec = el('section', { class: 'lv-sec', 'aria-label': 'How Tau decides a level' });
     var head = el('div', { class: 'lv-sec-head' });
@@ -799,140 +846,152 @@
     head.appendChild(el('p', { class: 'levels-intro' }, 'A level is never read from one chat on its own, and never from a single number.'));
     sec.appendChild(head);
 
-    var card = el('div', { class: 'how-card' });
-    var flow = el('div', { class: 'how-flow' });
-    var seq = 0; // build order: each element takes the next beat
-    function beat(node, gap) { seq += gap || 1; node.style.setProperty('--b', seq); return node; }
-
-    var srcCol = el('div', { class: 'how-col' });
-    srcCol.appendChild(beat(el('p', { class: 'why-label hb' }, 'Three things, read together'), 0));
-    [['The conversation', 'What the student asked for, and what they did with each answer.'],
-     ['The finished work', 'What reached it, and whose thinking it carries.'],
-     ['The assignment', 'What was asked for, and whether the way they worked suited it.']].forEach(function (x) {
-      var d = el('div', { class: 'how-tile hb' }); d.appendChild(el('b', null, x[0])); d.appendChild(el('span', null, x[1])); srcCol.appendChild(beat(d));
-    });
-    flow.appendChild(srcCol);
-    flow.appendChild(beat(arrow(), 1.5));
-
-    var qCol = el('div', { class: 'how-col' });
-    qCol.appendChild(beat(el('p', { class: 'why-label hb' }, 'Four questions, each asked of all three'), 1));
-    var q = el('div', { class: 'how-q' });
-    DIMS.forEach(function (d, k) {
-      var c = el('button', { class: 'how-tile how-qcell hb', type: 'button' });
-      c.appendChild(el('b', null, d.q));
-      c.appendChild(el('span', null, d.name + ' →'));
-      c.addEventListener('click', function () { showTab(2); dimGo(k); window.scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' }); });
-      q.appendChild(beat(c, 0.7));
-    });
-    qCol.appendChild(q);
-    flow.appendChild(qCol);
-    flow.appendChild(beat(arrow(), 1.5));
-
-    var lCol = el('div', { class: 'how-col' });
-    lCol.appendChild(beat(el('p', { class: 'why-label hb' }, 'One level'), 1));
-    var lv = el('div', { class: 'how-tile how-level hb' });
-    beat(lv);
-    var dots = el('span', { class: 'how-dots', 'aria-hidden': 'true' });
-    [4, 3, 2, 1].forEach(function (n, k) { dots.appendChild(el('i', { style: 'background:var(--lv-' + n + ');width:' + (40 + n * 14) + '%;--k:' + k })); });
-    lv.appendChild(dots);
-    lv.appendChild(el('span', null, 'Read from the shape of the four answers, what the assignment asked for, and whether the student’s control grew or slipped across the session.'));
-    lCol.appendChild(lv);
-    flow.appendChild(lCol);
-    card.appendChild(flow);
-
-    var rules = el('ul', { class: 'how-rules' });
-    seq += 1;
-    [['Never added up', 'The four answers are never summed or averaged. A strong reading and a weak one don’t make a middling one.'],
-     ['Always shown', 'Every reading comes with the moments that support it, quoted, and the one moment that doesn’t.'],
-     ['Not enough here', 'When there’s nothing to read, Tau says so, instead of reading it as low.'],
-     ['Not a grade', 'Quality isn’t on the ladder. Whether the work is any good is the teacher’s call.']].forEach(function (x) {
-      var li = el('li', { class: 'hb' }); li.appendChild(el('b', null, x[0])); li.appendChild(el('span', null, x[1])); rules.appendChild(beat(li, 0.6));
-    });
-    card.appendChild(rules);
-    sec.appendChild(card);
-
-    // Build when the card comes into view; opening the tab again rebuilds it for the room.
-    function play() { card.classList.remove('build'); void card.offsetWidth; card.classList.add('build'); }
-    var armed = true;
-    if (!REDUCED && 'IntersectionObserver' in window) {
-      card.classList.add('pre');
-      var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) { if (e.isIntersecting && armed) { armed = false; card.classList.remove('pre'); play(); } });
-      }, { threshold: 0.35 });
-      io.observe(card);
-      howReplay = function () { armed = true; card.classList.add('pre'); card.classList.remove('build'); io.unobserve(card); io.observe(card); };
+    var row = el('div', { class: 'tf' });
+    var links = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    links.setAttribute('class', 'tf-links'); links.setAttribute('aria-hidden', 'true');
+    row.appendChild(links);
+    function t(node, ms) { node.style.setProperty('--t', ms + 'ms'); node.classList.add('tf-t'); return node; }
+    function step(n, cls, title, ms) {
+      var c = t(el('div', { class: 'tf-col ' + cls }), ms);
+      var h = el('div', { class: 'tf-h' });
+      h.appendChild(el('span', { class: 'tf-n' }, String(n)));
+      if (title) h.appendChild(el('b', null, title));
+      c.appendChild(h);
+      var body = el('div', { class: 'tf-body' });
+      c.appendChild(body);
+      row.appendChild(c);
+      return body;
     }
-    return sec;
-  }
-  function arrow() {
-    var a = el('span', { class: 'how-arrow hb', 'aria-hidden': 'true' });
-    a.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M5 12h14M13 6l6 6-6 6"/></svg>';
-    return a;
-  }
+    function icon(name) {
+      var ic = el('span', { class: 'tf-ic' });
+      ic.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + HOW_ICONS[name] + '</svg>';
+      return ic;
+    }
 
-  // ── Dimensions tab: the four questions a level is read from, one at a time ──
-  // Each dimension is told as a story, most important first: the question, why it matters, how Tau
-  // reads it, a real example, what a reading says. The research and boundaries sit underneath as
-  // background, quieter but still on the page.
-  var dimStep = 0, dimMove = function () {}, dimGo = function () {};
-  function buildDimTab() {
-    var sec = el('section', { class: 'lv-sec', 'aria-label': 'The four dimensions' });
-    var head = el('div', { class: 'lv-sec-head' });
-    head.appendChild(el('h2', { class: 'section-title' }, 'The four dimensions'));
-    head.appendChild(el('p', { class: 'levels-intro' },
-      'A level is read from four questions. Each owns one corner of the same grid: whose ideas, and where they show up. Each is read with a published coding scheme, so what it means was settled by research, not invented for Tau.'));
-    head.appendChild(provenanceNote());
-    sec.appendChild(head);
+    var b1 = step(1, 'tf-c1', 'What Tau analyzes', 0);
+    [['chat', 'The conversation', 'Every turn, theirs and the AI’s'],
+     ['doc', 'The finished work', 'What reached the page'],
+     ['task', 'The assignment', 'What was asked for']].forEach(function (x, i) {
+      var d = t(el('div', { class: 'tf-card tf-in' }), 200 + i * 60);
+      d.appendChild(icon(x[0])); d.appendChild(el('b', null, x[1])); d.appendChild(el('span', null, x[2]));
+      b1.appendChild(d);
+    });
 
-    var card = el('div', { class: 'levels-card dims-card' });
-    var nav = el('nav', { class: 'ladder dim-nav', 'aria-label': 'Dimensions' });
-    var ind = el('span', { class: 'ladder-ind', 'aria-hidden': 'true' });
-    nav.appendChild(ind);
-    var btns = [];
-    ROWS.forEach(function (rname, r) {
-      nav.appendChild(el('p', { class: 'dim-nav-group' }, rname));
+    var b2 = step(2, 'tf-c2', 'Four dimensions', 1300);
+    var at = 1500;
+    COLS.forEach(function (colName, col) {
+      b2.appendChild(t(el('p', { class: 'tf-sub' }, colName), at)); at += 60;
       DIMS.forEach(function (d, k) {
-        if (d.row !== r) return;
-        var b = el('button', { class: 'rung dim-rung', type: 'button' });
-        b.appendChild(miniGrid(d));
-        var tx = el('span', { class: 'rung-text' });
-        tx.appendChild(el('span', { class: 'rung-name' }, d.q));
-        tx.appendChild(el('span', { class: 'rung-ask' }, d.name + ' · ' + COLS[d.col].toLowerCase()));
-        b.appendChild(tx);
-        b.addEventListener('click', function () { go(k); });
-        btns[k] = b;
-        nav.appendChild(b);
+        if (d.col !== col) return;
+        var c = t(el('button', { class: 'tf-card tf-dim', type: 'button', 'aria-haspopup': 'dialog', 'aria-label': d.name + ': how it’s measured' }), at); at += 60;
+        c.appendChild(el('b', null, d.name));
+        c.appendChild(el('span', null, d.q));
+        c.appendChild(el('span', { class: 'tf-dim-open', 'aria-hidden': 'true' }, '+'));
+        c.addEventListener('click', function () { openDim(k, c); });
+        b2.appendChild(c);
       });
     });
-    card.appendChild(nav);
-    var detail = el('div', { class: 'lv-detail', 'aria-live': 'polite' });
-    card.appendChild(detail);
-    sec.appendChild(card);
 
-    function go(k) { dimStep = k; render(true); }
-    function moveInd() {
-      var b = btns[dimStep];
-      if (!b || !b.offsetHeight) return;
-      ind.style.transform = 'translateY(' + b.offsetTop + 'px)';
-      ind.style.height = b.offsetHeight + 'px';
+    var b3 = step(3, 'tf-c3', null, 2450);
+    var readW = t(el('div', { class: 'tf-readw' }), 2600);
+    var read = el('div', { class: 'tf-read' });
+    read.innerHTML = '<svg viewBox="0 0 400 400" aria-hidden="true"><path class="leaf-ghost" d="' + LEAF_D + '"/><path class="leaf-fill" d="' + LEAF_D +
+      '"/><path class="leaf-line" d="' + LEAF_D + '" pathLength="1"/></svg>';
+    readW.appendChild(read);
+    readW.appendChild(el('b', { class: 'tf-read-l' }, 'Read together'));
+    b3.appendChild(readW);
+
+    var b4 = step(4, 'tf-c4', 'One level of agency', 5100);
+    var pick = null;
+    [[4, 'Transformative'], [3, 'Directive'], [2, 'Reactive'], [1, 'Passive']].forEach(function (x, i) {
+      var c = t(el('div', { class: 'tf-card tf-lv' }), 5300 + i * 60);
+      var sw = el('i'); sw.style.background = 'var(--lv-' + x[0] + ')';
+      c.appendChild(sw); c.appendChild(document.createTextNode(x[1]));
+      // The worked session (the bike guide) reads Directive.
+      if (x[0] === 3) pick = c;
+      b4.appendChild(c);
+    });
+    sec.appendChild(row);
+
+    // Wide arrows in the colour of the step they leave, measured from offsets so the
+    // entrance transforms never throw them off.
+    function off(node) { var x = 0, y = 0; while (node && node !== row) { x += node.offsetLeft; y += node.offsetTop; node = node.offsetParent; } return { x: x, y: y }; }
+    function arrow(cls, x0, tip, cy, ms) {
+      var sh = 8, hh = 18, hl = 20;
+      return '<path class="' + cls + '" style="--t:' + ms + 'ms" d="M' + x0 + ' ' + (cy - sh) + ' H' + (tip - hl) + ' V' + (cy - hh) +
+             ' L' + tip + ' ' + cy + ' L' + (tip - hl) + ' ' + (cy + hh) + ' V' + (cy + sh) + ' H' + x0 + ' Z"/>';
     }
-    function render(animate) {
-      btns.forEach(function (b, k) { b.setAttribute('aria-current', k === dimStep ? 'step' : 'false'); });
-      moveInd();
-      detail.innerHTML = '';
-      var body = el('div', { class: 'lv-body dim-story' + (animate ? ' lv-anim' : '') });
-      dimDetail(body, DIMS[dimStep]);
-      detail.appendChild(body);
+    function draw() {
+      var cols = row.querySelectorAll('.tf-col');
+      if (!row.offsetWidth || getComputedStyle(links).display === 'none') { links.innerHTML = ''; return; }
+      var right = function (i) { return cols[i].offsetLeft + cols[i].offsetWidth - 8; };
+      var land = function (i) { return cols[i].offsetLeft + 38; };
+      var cy = function (node) { return Math.round(off(node).y + node.offsetHeight / 2); };
+      // The leaf sits level with the level it gives, so in and out read as one line.
+      readW.style.translate = '';
+      var shift = cy(pick) - cy(read);
+      readW.style.translate = '0 ' + shift + 'px';
+      var ro = off(read), rcy = Math.round(ro.y + shift + read.offsetHeight / 2);
+      var b2o = off(b2), lane = b2o.y + b2.offsetHeight + 34;
+      links.setAttribute('viewBox', '0 0 ' + row.offsetWidth + ' ' + row.offsetHeight);
+      links.innerHTML =
+        arrow('a1', right(0), land(1), cy(b1), 950) +
+        arrow('a2', right(1), ro.x - 6, rcy, 2650) +
+        arrow('a1', right(0), land(2), lane, 2650) +
+        arrow('a3', ro.x + read.offsetWidth + 4, land(3), rcy, 4800);
     }
-    dimMove = moveInd;
-    dimGo = go;
-    window.addEventListener('resize', moveInd);
-    render(false);
+    if ('ResizeObserver' in window) new ResizeObserver(draw).observe(row);
+
+    // Build when the figure comes into view; opening the tab again rebuilds it for the room.
+    var timer = null;
+    function play() {
+      clearTimeout(timer);
+      row.classList.remove('build', 'pre'); void row.offsetWidth;
+      draw();
+      pick.classList.add('is-on');
+      if (REDUCED) return;
+      pick.classList.remove('is-on');
+      row.classList.add('build');
+      timer = setTimeout(function () { pick.classList.add('is-on'); }, 5800);
+    }
+    var armed = true;
+    if (!REDUCED && 'IntersectionObserver' in window) {
+      row.classList.add('pre');
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) { if (e.isIntersecting && armed) { armed = false; play(); } });
+      }, { threshold: 0.35 });
+      io.observe(row);
+      howReplay = function () { armed = true; clearTimeout(timer); row.classList.remove('build'); row.classList.add('pre'); io.unobserve(row); io.observe(row); };
+    } else {
+      setTimeout(play, 0);
+    }
     return sec;
   }
 
-  function provenanceNote() {
-    return el('p', { class: 'real-note' }, 'From a real session');
+  // ── Dimension overlay: how one dimension is measured ──
+  // Opened from a dimension in the How Tau works figure. Each dimension is told as a story, most
+  // important first: the question, why it matters, how Tau reads it, a real example, what a reading
+  // says. The research and boundaries sit underneath as background, quieter but still there.
+  var dimDialog = null, dimReturn = null;
+  function openDim(k, from) {
+    if (!dimDialog) {
+      dimDialog = el('dialog', { class: 'dim-dialog', 'aria-labelledby': 'dim-dialog-title', tabindex: '-1' });
+      dimDialog.addEventListener('click', function (e) { if (e.target === dimDialog) dimDialog.close(); });
+      dimDialog.addEventListener('close', function () { if (dimReturn) dimReturn.focus(); });
+      document.body.appendChild(dimDialog);
+    }
+    dimReturn = from || null;
+    dimDialog.innerHTML = '';
+    var x = el('button', { class: 'lvc-close dim-close', type: 'button', 'aria-label': 'Close' });
+    x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    x.addEventListener('click', function () { dimDialog.close(); });
+    dimDialog.appendChild(x);
+    var body = el('div', { class: 'lv-body dim-story lv-anim' });
+    dimDetail(body, DIMS[k]);
+    dimDialog.appendChild(body);
+    if (!dimDialog.open) dimDialog.showModal();
+    dimDialog.focus();
+    dimDialog.scrollTop = 0;
   }
 
   function dimDetail(body, d) {
@@ -942,7 +1001,7 @@
     top.appendChild(el('span', { class: 'lv-chip dim-chip' }, d.name));
     top.appendChild(el('span', { class: 'lv-ask' }, ROWS[d.row] + ' · ' + COLS[d.col].toLowerCase()));
     body.appendChild(top);
-    body.appendChild(el('h3', { class: 'lv-def', style: '--i:1' }, d.q));
+    body.appendChild(el('h3', { class: 'lv-def', id: 'dim-dialog-title', style: '--i:1' }, d.q));
     body.appendChild(el('p', { class: 'lv-look', style: '--i:2' }, d.short));
 
     // 2. Why it matters.
@@ -961,7 +1020,7 @@
 
     // 4. A real example: the moment that counted, and the one that didn't.
     var ex = el('div', { class: 'story-step', style: '--i:5' });
-    ex.appendChild(el('p', { class: 'why-label' }, 'In the real session · ' + d.ex.count));
+    ex.appendChild(el('p', { class: 'why-label' }, 'In the bike guide session · ' + d.ex.count));
     var pair = el('div', { class: 'dim-pair' });
     var yes = el('div', { class: 'dim-ex yes' });
     yes.appendChild(el('span', { class: 'who' }, 'A moment that counted'));
@@ -975,7 +1034,7 @@
     ex.appendChild(pair);
     body.appendChild(ex);
 
-    // 5. What a reading says, with this session's marked.
+    // 5. What a reading says, with the bike guide's marked.
     var rd = el('div', { class: 'story-step', style: '--i:6' });
     rd.appendChild(el('p', { class: 'why-label' }, 'What a reading says, strongest first'));
     var scale = el('ol', { class: 'dim-scale' });
@@ -983,7 +1042,7 @@
     d.bands.forEach(function (b, j) {
       var li = el('li', { class: j === mine ? 'is-mine' : '', style: '--k:' + (4 - j) });
       li.appendChild(el('span', null, b));
-      if (j === mine) li.appendChild(el('span', { class: 'mine-tag' }, 'This session'));
+      if (j === mine) li.appendChild(el('span', { class: 'mine-tag' }, 'Bike guide'));
       scale.appendChild(li);
     });
     rd.appendChild(scale);
@@ -1008,8 +1067,8 @@
       var li = el('li');
       li.appendChild(el('b', null, o.name));
       li.appendChild(document.createTextNode(o.row === d.row
-        ? ' also reads ' + ROWS[d.row].toLowerCase() + ', ' + COLS[o.col].toLowerCase() + '.'
-        : ' also looks ' + COLS[d.col].toLowerCase() + ', at ' + ROWS[o.row].toLowerCase() + '.'));
+        ? ' also reads ' + ROWS[d.row].charAt(0).toLowerCase() + ROWS[d.row].slice(1) + ', ' + COLS[o.col].toLowerCase() + '.'
+        : ' also looks ' + COLS[d.col].toLowerCase() + ', at ' + ROWS[o.row].charAt(0).toLowerCase() + ROWS[o.row].slice(1) + '.'));
       nbList.appendChild(li);
     });
     c3.appendChild(nbList);
@@ -1068,12 +1127,12 @@
   }
   var levelsPanel = document.getElementById('levels-panel');
   levelsPanel.appendChild(buildLevels());
-  var dimsPanel = document.getElementById('dims-panel');
-  dimsPanel.appendChild(buildDimTab());
+  var howPanel = document.getElementById('how-panel');
+  howPanel.appendChild(buildHowTab());
 
-  // ── Tabs: Session patterns (what these teachers did), then Levels of agency and Dimensions (the model, not this room) ──
-  var HASHES = ['#room', '#levels', '#dimensions'];
-  var tabs = [document.getElementById('tab-room'), document.getElementById('tab-levels'), document.getElementById('tab-dims')], panels = [view, levelsPanel, dimsPanel];
+  // ── Tabs: Session patterns (what these teachers did), then Levels of agency and How Tau works (the model, not this room) ──
+  var HASHES = ['#room', '#levels', '#how-tau-works'];
+  var tabs = [document.getElementById('tab-room'), document.getElementById('tab-levels'), document.getElementById('tab-how')], panels = [view, levelsPanel, howPanel];
   var tabInd = document.querySelector('.tab-ind'), currentTab = 0;
   function moveTabInd() {
     var t = tabs[currentTab];
@@ -1086,8 +1145,7 @@
     tabs.forEach(function (t, k) { t.setAttribute('aria-selected', String(k === i)); t.tabIndex = k === i ? 0 : -1; });
     panels.forEach(function (p, k) { p.hidden = k !== i; p.classList.toggle('tab-in', k === i); });
     moveTabInd();
-    if (i === 1) levelsRefresh();
-    if (i === 2) dimMove();
+    if (i === 2) howReplay();
     if (focus) tabs[i].focus();
     try { history.replaceState(null, '', HASHES[i]); } catch (e) {}
   }
@@ -1101,7 +1159,7 @@
     });
   });
   window.addEventListener('resize', moveTabInd);
-  showTab(Math.max(0, HASHES.indexOf(location.hash)));
+  showTab(location.hash === '#dimensions' ? 2 : Math.max(0, HASHES.indexOf(location.hash)));
 
   function showError(msg) {
     view.innerHTML = '';
@@ -1126,7 +1184,7 @@
       : 'Couldn’t load the results. Check your connection and reload the page.');
   });
   // Live while the room is finishing: new results arrive without a reload. Paused while the tab
-  // is hidden or the facilitator is on Levels of agency, where nothing depends on the room.
+  // is hidden or the facilitator is on another tab, where nothing depends on the room.
   setInterval(function () {
     if (document.hidden || currentTab !== 0 || !lastSig) return;
     load(false).catch(function () {});

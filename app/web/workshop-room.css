@@ -275,7 +275,7 @@ kbd { font: 12px var(--mono); background: var(--surface); border-radius: 5px; pa
 .unseen ul { margin: 8px 0 0; padding-left: 18px; columns: 2 220px; }
 
 
-/* ── The four levels: a ladder (strongest at the top) and a step-through detail ── */
+/* ── The four levels: their colours, used by the level cards and the How Tau works figure ── */
 :root {
   /* The tool's own two treatments, from tokens.css so they can't drift: a mark (dot, bar, edge) is the
      level colour mixed 65% into the surface, as the agency bars and flows draw it (components.css .comp-N);
@@ -292,8 +292,6 @@ kbd { font: 12px var(--mono); background: var(--surface); border-radius: 5px; pa
 .lv-chip { font-weight: 650; font-size: 15px; padding: 5px 14px; border-radius: 999px; }
 .lv-ask { font-size: 14px; color: var(--ink-soft); }
 .lv-look { margin: 0; font-size: 16px; color: var(--ink-soft); max-width: 62ch; }
-.lv-line.ai { background: var(--surface); justify-self: start; }
-.lv-line.you { background: var(--tint); justify-self: end; }
 .lv-sources { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 .lv-sources li { background: var(--surface); border-radius: var(--r-ui); padding: 12px 14px; display: grid; gap: 2px; font-size: 14px; color: var(--ink-soft); }
 .lv-sources b { color: var(--ink); font-size: 15px; }
@@ -301,26 +299,66 @@ kbd { font: 12px var(--mono); background: var(--surface); border-radius: 5px; pa
 .lv-sec { display: grid; gap: 16px; }
 .lv-sec-head { display: grid; gap: 6px; }
 /* How a level is decided: a left-to-right flow. */
-.how-card { background: var(--surface); border-radius: var(--r-card); padding: 22px; display: grid; gap: 22px; }
-.how-flow { display: grid; grid-template-columns: minmax(0, 1fr) 36px minmax(0, 1.3fr) 36px minmax(0, .9fr); gap: 10px; align-items: center; }
-.how-col { display: grid; gap: 8px; align-content: start; }
-.how-col .why-label { margin: 0; }
-.how-tile { background: var(--lowest); border-radius: var(--r-ui); padding: 12px 14px; display: grid; gap: 3px; font-size: 14px; color: var(--ink-soft); }
-.how-tile b { color: var(--ink); font-size: 15px; }
-.how-q { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.how-qcell span { font-size: 12.5px; }
-.how-level { gap: 10px; }
-.how-dots { display: grid; gap: 4px; }
-.how-dots i { display: block; height: 8px; border-radius: 4px; }
-.how-arrow { color: var(--forest); display: grid; place-items: center; }
-.how-arrow svg { width: 26px; height: 26px; }
-@media (max-width: 900px) {
-  .how-flow { grid-template-columns: minmax(0, 1fr); }
-  .how-arrow { transform: rotate(90deg); height: 28px; }
+/* How a level is decided: four steps across (workshop-room.js buildHow). Step colours
+   deepen toward the result; each arrow is the colour of the step it leaves. Built from
+   https://claude.ai/artifact/3ByUyHucwq4zJAa3jK5nbT, 2026-11-02. */
+.tf { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) 132px minmax(0, .95fr); column-gap: 28px; align-items: stretch; container: tf / inline-size; }
+.tf-col { position: relative; z-index: 1; border-radius: 26px; padding: 20px 18px 78px 48px; display: flex; flex-direction: column; gap: 12px; }
+.tf-c1 { background: var(--surface); padding-left: 18px; }
+.tf-c2 { background: #DCE7E0; }
+.tf-c3 { background: #C9DCCF; padding: 20px 14px; align-items: center; }
+.tf-c4 { background: var(--forest); color: #fff; padding-bottom: 20px; }
+.tf-h { display: flex; align-items: center; gap: 10px; }
+.tf-n { flex: none; width: 28px; height: 28px; border-radius: 999px; background: var(--forest); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+.tf-h b { font-size: 16.5px; letter-spacing: -.01em; white-space: nowrap; }
+.tf-c4 .tf-n { background: #fff; color: var(--forest); }
+.tf-body { flex: 1; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+.tf-sub { margin: 4px 0 0; font-size: 13px; font-weight: 650; color: var(--on-tonal); }
+.tf-card { background: var(--lowest); border-radius: 14px; color: var(--ink-soft); }
+.tf-in { display: grid; grid-template-columns: 34px minmax(0, 1fr); column-gap: 10px; align-items: center; padding: 10px 11px; }
+.tf-in b { font-size: 14px; color: var(--ink); } .tf-in span:last-child { font-size: 12.5px; }
+.tf-ic { grid-row: span 2; width: 34px; height: 34px; border-radius: 10px; background: var(--tint); color: var(--forest); display: grid; place-items: center; }
+.tf-ic svg { width: 20px; height: 20px; }
+.tf-dim { font: inherit; text-align: left; border: 0; cursor: pointer; display: grid; gap: 2px; padding: 10px 12px; transition: background var(--dur-short) var(--ease-standard); }
+.tf-dim b { font-size: 14px; color: var(--ink); } .tf-dim span { font-size: 12.5px; }
+.tf-dim:hover { background: var(--tint); }
+.tf-dim:focus-visible { outline: 3px solid var(--forest); outline-offset: 2px; }
+/* Each dimension opens its overlay; the + says so without a line of copy. */
+.tf-dim { position: relative; padding-right: 34px; }
+.tf-dim-open { position: absolute; top: 50%; right: 10px; width: 20px; height: 20px; margin-top: -10px; border-radius: 999px; background: var(--surface);
+  color: var(--forest); font-size: 15px; font-weight: 700; line-height: 20px; text-align: center; transition: background var(--dur-short) var(--ease-standard); }
+.tf-dim:hover .tf-dim-open { background: var(--lowest); }
+/* Each level is its own card; the one read takes the selection fill. */
+.tf-lv { display: flex; align-items: center; gap: 10px; padding: 17px 14px; font-size: 14.5px; font-weight: 600; transition: background 350ms var(--ease-standard), color 350ms; }
+.tf-lv i { flex: none; width: 12px; height: 12px; border-radius: 4px; }
+.tf-lv.is-on { background: var(--tint); color: var(--on-tonal); }
+/* Step 3 is one act, not more things: the page loader's leaf (components.css §20). */
+.tf-readw { display: grid; justify-items: center; gap: 10px; }
+.tf-read { width: 76px; height: 76px; border-radius: 50%; background: var(--lowest); display: grid; place-items: center; }
+.tf-read svg { width: 44px; height: 44px; overflow: visible; }
+.tf-read .leaf-ghost { fill: color-mix(in oklab, var(--forest) 16%, transparent); }
+.tf-read .leaf-fill { fill: var(--forest); }
+.tf-read .leaf-line { fill: none; stroke: var(--forest); stroke-width: 10; stroke-linejoin: round; stroke-dasharray: 1 1; opacity: 0; }
+.tf-read-l { font-size: 14.5px; font-weight: 700; color: var(--on-tonal); text-align: center; line-height: 1.2; }
+.tf-links { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; overflow: visible; }
+.tf-links path { stroke-width: 6; stroke-linejoin: round; }
+.tf-links .a1 { fill: var(--surface); stroke: var(--surface); }
+.tf-links .a2 { fill: #DCE7E0; stroke: #DCE7E0; }
+.tf-links .a3 { fill: #C9DCCF; stroke: #C9DCCF; }
+@container tf (max-width: 940px) {
+  .tf { grid-template-columns: minmax(0, 1fr); row-gap: 14px; }
+  .tf-col { padding: 20px; }
+  .tf-links { display: none; }
 }
-.how-rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-.how-rules li { display: grid; gap: 3px; font-size: 14px; color: var(--ink-soft); padding-top: 12px; border-top: 1.5px solid var(--line-strong); }
-.how-rules b { color: var(--ink); font-size: 15px; }
+/* The build: hidden until the figure is in view (.pre), then each piece at its --t. */
+.tf.pre .tf-t, .tf.pre .tf-links path { opacity: 0; }
+.tf.build .tf-t { animation: fade-up 480ms var(--ease-decelerate) backwards; animation-delay: var(--t); }
+.tf.build .tf-links path { transform-box: fill-box; transform-origin: left center; animation: tf-grow 600ms var(--ease-decelerate) backwards; animation-delay: var(--t); }
+@keyframes tf-grow { 0% { opacity: 0; transform: scaleX(.02); } 12% { opacity: 1; } 100% { opacity: 1; transform: none; } }
+.tf.build .tf-read .leaf-line { animation: tf-leaf-line 2.2s cubic-bezier(.2, 0, 0, 1) backwards; animation-delay: 2650ms; }
+.tf.build .tf-read .leaf-fill { animation: tf-leaf-fill 2.2s cubic-bezier(.2, 0, 0, 1) backwards; animation-delay: 2650ms; }
+@keyframes tf-leaf-line { 0% { stroke-dashoffset: 1; opacity: 1; } 55% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes tf-leaf-fill { 0%, 50% { clip-path: polygon(0 100%, 0 100%, 0 100%); } 100% { clip-path: polygon(0 100%, 0 -100%, 200% 100%); } }
 /* The four dimensions: pattern-card behaviour, two per row. */
 /* Tabs as a full-width tonal bar: equal segments, icon + label, the active one a filled pill that slides. Large enough to read as the section label. */
 .tabs { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); padding: 6px; border-radius: 999px; background: var(--surface); margin-top: -6px; }
@@ -340,7 +378,7 @@ kbd { font: 12px var(--mono); background: var(--surface); border-radius: 5px; pa
    whatever display a rule gives it. */
 [hidden] { display: none !important; }
 #view { display: grid; gap: 28px; }
-#levels-panel, #dims-panel { display: grid; }
+#levels-panel, #how-panel { display: grid; }
 .dim-chip { background: var(--tint); color: var(--on-tonal); }
 .mini-grid { display: grid; grid-template-columns: 12px 12px; gap: 3px; }
 .mini-grid i { width: 12px; height: 12px; border-radius: 3px; background: var(--well-deep); }
@@ -363,68 +401,91 @@ kbd { font: 12px var(--mono); background: var(--surface); border-radius: 5px; pa
   background: linear-gradient(90deg, var(--forest) calc(var(--k) * 25%), var(--well-deep) 0); }
 .lv-anim .dim-pair > *, .lv-anim .dim-scale li { animation: fade-up 380ms var(--ease-soft) backwards; animation-delay: calc(var(--i, 0) * 70ms); }
 
-/* Levels ladder (strongest at the top) and the picked level's detail. */
-.levels-card { background: var(--surface); border-radius: var(--r-card); padding: 18px; display: grid; gap: 18px; grid-template-columns: 270px minmax(0, 1fr); align-items: start; }
-@media (max-width: 860px) { .levels-card { grid-template-columns: minmax(0, 1fr); } }
-.ladder { position: relative; display: grid; gap: 6px; }
-.ladder-ind { position: absolute; left: 0; right: 0; top: 0; border-radius: 14px; background: var(--tint); pointer-events: none;
-  transition: transform 460ms var(--ease-spring), height 300ms var(--ease-soft), background 300ms var(--ease-standard); }
-.rungs { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.rung { position: relative; width: 100%; display: flex; gap: 12px; align-items: center; text-align: left; font: inherit; color: var(--ink); background: none; border: 0;
-  border-radius: 14px; padding: 14px 14px; cursor: pointer; transition: background var(--dur-short) var(--ease-standard); }
-.rung:hover:not([aria-current="step"]) { background: color-mix(in oklab, var(--ink) 5%, transparent); }
-.rung:focus-visible { outline: 3px solid var(--forest); outline-offset: 2px; }
-.rung-dot { width: 14px; height: 14px; border-radius: 5px; background: var(--lv); flex: none; transition: transform 300ms var(--ease-spring); }
-.rung[aria-current="step"] .rung-dot { transform: scale(1.25); }
-.rung-text { display: grid; }
-.rung-name { font-weight: 650; font-size: 17px; }
-.rung-ask { font-size: 13px; color: var(--ink-soft); }
-.lv-detail { background: var(--lowest); border-radius: 16px; padding: 24px; display: grid; gap: 18px; min-width: 0; }
 .lv-body { display: grid; gap: 14px; }
 .lv-def { margin: 0; font-size: clamp(22px, 2.6vw, 28px); line-height: 1.3; font-weight: 600; letter-spacing: -.01em; max-width: 30ch; text-wrap: balance; }
-/* How a level is decided: each element takes a beat (--b) and builds in order. Arrows draw. */
-.how-card.pre .hb { opacity: 0; }
-.how-card.build .hb { animation: fade-up 460ms var(--ease-soft) backwards; animation-delay: calc(var(--b, 0) * 110ms); }
-.how-card.build .how-qcell { animation-name: pop-in; animation-timing-function: var(--ease-spring); }
-@keyframes grow { from { transform: scaleX(0); } }
 @keyframes pop-in { from { opacity: 0; transform: scale(.85); } }
-.how-arrow path { stroke-dasharray: 1; stroke-dashoffset: 0; }
-.how-card.build .how-arrow path { animation: draw-line 420ms var(--ease-soft) backwards; animation-delay: calc(var(--b, 0) * 110ms); }
-@keyframes draw-line { from { stroke-dashoffset: 1; } }
-.how-dots i { transform-origin: left; }
-.how-card.build .how-dots i { animation: grow 520ms var(--ease-spring) backwards; animation-delay: calc(var(--b, 0) * 110ms + 140ms + var(--k) * 90ms); }
 /* Dimension cards and panels, with the added context. */
 .dim-source .why-label, .dim-lead .why-label, .dim-neighbours .why-label { margin: 0 0 2px; }
 .dim-nb-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; color: var(--ink-soft); }
 .dim-nb-list b { color: var(--ink); }
+/* Levels of agency: four cards across, weakest first, working as tabs (workshop-room.js
+   buildLevelCards). The picked card turns white and lifts its stripe; its panel opens underneath,
+   full width. Built from https://claude.ai/artifact/XEes8N76De6BwZoPTUkkkW, 2026-11-02. */
+.lvc-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.lvc { display: grid; align-content: start; gap: 10px; padding: 20px 18px 22px; font: inherit; color: inherit; text-align: left; border: 0; cursor: pointer;
+  border-radius: var(--r-card); background: var(--surface); box-shadow: inset 0 5px 0 var(--lv);
+  transition: background var(--dur-medium) var(--ease-standard), box-shadow var(--dur-medium) var(--ease-standard); }
+.lvc:hover:not([aria-selected="true"]) { background: var(--well); }
+.lvc[aria-selected="true"] { background: var(--lowest); box-shadow: inset 0 8px 0 var(--lv); }
+.lvc:focus-visible { outline: 3px solid var(--forest); outline-offset: 2px; }
+.lvc-name { font-size: 19px; font-weight: 650; letter-spacing: -.01em; }
+.lvc-ask { font-size: 13.5px; font-weight: 600; color: var(--ink-soft); }
+.lvc-def { margin-top: 4px; font-size: 15px; line-height: 1.45; color: var(--ink-soft); }
+.lvc-panel { display: grid; gap: 22px; padding: 26px 28px 28px; border-radius: var(--r-card); background: var(--lowest); }
+.lvc-head { display: grid; gap: 12px; }
+.lvc-head .lv-def { max-width: 40ch; }
+.lvc-t { animation: fade-up 480ms var(--ease-decelerate) backwards; animation-delay: var(--t); }
+/* The rationale on the left, the chat on the right: read left to right, built in that order. */
+.lvc-cols { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 22px; align-items: start; }
+.lvc-why { display: grid; gap: 10px; }
+.lvc-why-panel { display: grid; gap: 6px; align-content: start; padding: 14px 16px; border-radius: var(--r-ui); background: var(--surface); }
+.lvc-why-panel:first-child { background: var(--chip); }
+.lvc-why-panel .why-label { margin: 0; }
+.lvc-why-panel p:last-child { margin: 0; font-size: 15.5px; line-height: 1.5; }
+.lvc-look { display: grid; gap: 12px; }
+.lvc-look-head { display: flex; gap: 12px; align-items: center; }
+.lvc-look-head .why-label { margin: 0; }
+.lvc-ic { width: 34px; height: 34px; border-radius: 10px; background: var(--surface); color: var(--ink-soft); display: grid; place-items: center; flex: none; }
+.lvc-ic svg { width: 20px; height: 20px; }
+.lvc-chip { font-size: 11px; font-weight: 600; letter-spacing: .04em; padding: 2px 9px; border-radius: 999px; background: var(--surface); color: var(--ink-soft); }
+.lvc-chat { display: grid; gap: 8px; padding: 16px; border-radius: var(--r-ui); background: var(--shell); }
+/* Each turn is a full-width row: the bubble on its speaker's side, the note in the free gutter opposite. */
+.lvc-turn { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 64%); align-items: center; }
+.lvc-turn.ai { grid-template-columns: minmax(0, 64%) minmax(0, 1fr); }
+.lvc-bubble { border-radius: var(--r-ui); padding: 10px 14px; font-size: 15px; }
+.lvc-bubble .who { display: block; font-size: 11px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 2px; }
+.lvc-turn.you .lvc-bubble { grid-column: 2; grid-row: 1; justify-self: end; background: var(--tint); }
+.lvc-turn.ai .lvc-bubble { justify-self: start; background: var(--surface); }
+.lvc-note { display: flex; align-items: center; font-size: 14px; font-weight: 650; line-height: 1.3; color: var(--chip-ink); }
+.lvc-turn.you .lvc-note { grid-column: 1; grid-row: 1; justify-self: end; text-align: right; }
+.lvc-turn.ai .lvc-note { flex-direction: row-reverse; }
+.lvc-note-text { padding: 0 10px; max-width: 22ch; text-wrap: balance; }
+.lvc-tick { width: 22px; height: 2px; border-radius: 1px; background: var(--lv); flex: none; }
+/* The overlay's close button. */
+.lvc-close { position: absolute; top: 16px; right: 16px; width: 34px; height: 34px; border-radius: 999px; border: 0; background: var(--surface); color: var(--ink-soft);
+  cursor: pointer; display: grid; place-items: center; }
+.lvc-close:hover { background: var(--well); color: var(--ink); }
+.lvc-close:focus-visible { outline: 3px solid var(--forest); outline-offset: 2px; }
+.lvc-close svg { width: 16px; height: 16px; }
+@media (max-width: 900px) {
+  .lvc-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lvc-cols { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .lvc-row { grid-template-columns: minmax(0, 1fr); }
+  .lvc-turn, .lvc-turn.ai { grid-template-columns: 1fr; gap: 6px; }
+  .lvc-turn.you .lvc-bubble, .lvc-turn.you .lvc-note { grid-column: 1; grid-row: auto; }
+  .lvc-note, .lvc-turn.ai .lvc-note { flex-direction: row; justify-self: start; text-align: left; }
+  .lvc-tick { display: none; }
+}
+
+/* Dimension overlay: how one dimension is measured, over the How Tau works figure. */
+.dim-dialog { width: min(860px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 30px 32px 28px; border: 0; border-radius: var(--r-card);
+  background: var(--lowest); color: var(--ink); overflow-y: auto; }
+.dim-dialog:focus { outline: none; }
+.dim-dialog::backdrop { background: color-mix(in oklab, var(--on-tonal) 38%, transparent); }
+.dim-dialog[open] { animation: dim-in 320ms var(--ease-decelerate); }
+@keyframes dim-in { from { opacity: 0; transform: translateY(14px) scale(.98); } }
+.dim-dialog .lv-top { padding-right: 44px; }
+.dim-close { position: absolute; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; }
   .reveal { opacity: 1; transform: none; }
 }
 
 /* Real-session evidence and the Dimensions tab. */
-.real-note { margin: 0; width: fit-content; font-size: 12px; font-weight: 600; letter-spacing: .04em; padding: 3px 10px; border-radius: 999px; background: var(--surface); color: var(--ink-soft); }
 .mine-tag { margin-left: auto; flex: none; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px;
   background: var(--ink); color: #fff; }
-.lv-real { display: grid; gap: 10px; padding: 16px 18px; border-radius: var(--r-ui); background: var(--lv-wash); box-shadow: inset 4px 0 0 var(--lv); }
-.lv-real-head { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-.lv-real-head .why-label { margin: 0; }
-.lv-verdict { font-size: 13px; font-weight: 700; padding: 3px 11px; border-radius: 999px; background: var(--lowest); color: var(--ink); }
-.lv-verdict.is-mine { background: var(--ink); color: #fff; }
-.lv-real-text { margin: 0; font-size: 16px; line-height: 1.5; max-width: 64ch; }
-.lv-real .line.person { background: var(--lowest); }
-.how-qcell { font: inherit; text-align: left; border: 0; color: inherit; cursor: pointer; transition: background var(--dur-short) var(--ease-standard); }
-.how-qcell:hover { background: var(--tint); }
-.how-qcell:focus-visible { outline: 3px solid var(--forest); outline-offset: 2px; }
-.dims-card { grid-template-columns: 300px minmax(0, 1fr); }
-@media (max-width: 860px) { .dims-card { grid-template-columns: minmax(0, 1fr); } }
-.dim-nav { gap: 4px; align-content: start; }
-.dim-nav-group { position: relative; margin: 10px 14px 2px; font-size: 11px; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-soft); }
-.dim-nav-group:first-of-type { margin-top: 2px; }
-.dim-rung { align-items: flex-start; }
-.dim-rung .mini-grid { margin-top: 4px; }
-.dim-rung .rung-name { font-size: 15px; }
-.dim-rung .rung-ask { font-size: 12.5px; }
 .dim-story { gap: 22px; }
 .story-step { display: grid; gap: 8px; }
 .story-step .why-label { margin: 0; }
