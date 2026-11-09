@@ -564,6 +564,53 @@ The correct rule set is `allow read, write: if false;`. Browsers never touch Fir
 
 ## Session Log
 
+- **2026-11-09 — Workspace: the sessions rail, a collapsing cover, no breadcrumb.** (Owner.)
+  - **The rail is sessions only.** *+ New session* leads, filled forest; then *Previous sessions*
+    (an eyebrow over this draft's list); then, under a rule at the foot, Home and the account chip (`#wsRailFoot`, the same `.rail-foot--pinned` as Home's). `placeAccountChip('workspace')`.
+  - **The start is a cover** on the ground above the chat (`#wsCover`), shown while no session is
+    open. It has a label (*Draft N of M · due …*, or *Closed* / *All drafts submitted* / *Workshop*,
+    kept current by `applyClosedState`), the title in `.page-cover-title` with no arrow, and **the
+    instructions in full** under it (`#wsBrief`: the teacher's note, then description, purpose and
+    requirements). Showing them in full counts as reading the note. The cover ends on **"Start a new
+    session"** and the line saying the AI starts with nothing (`.ws-start`). While a session can be
+    started (`.ws-can-start`), the empty chat card is hidden at 600px and up. When the assignment is
+    closed or every draft is in, the card stays to carry its banner and there is no start line.
+  - **Once a session starts** (a new one, or one picked from the list) the cover folds away
+    (`syncWsCover`: `.ws-collapsed` is `Boolean(state.conv)`). The name moves into the masthead, in
+    line with the chat's own text (no arrow: Home is in the rail), and the instructions shrink to the **Instructions**
+    button at the masthead's right end, which opens the tray with the unread-note state. On a phone
+    the start is the sessions list, so the small title and the button are always shown there.
+  - **No breadcrumb.** The rail's Home is the way back. The Report/Session
+    toggle stays in the masthead. The masthead mirrors the columns under it: in the workspace the
+    mark spans the sessions rail (`.tau-nav.is-workspace`).
+  - **Home** is a tonal button in the rail (container fill, forest text) above the account chip.
+  - **Submit draft is in the masthead**, at the right end after Instructions (owner, same day): it
+    hands in the whole draft, so it is the assignment's action, not the sessions rail's. It is
+    `btn btn-primary btn-sm`, Instructions' size in forest. It shows throughout, including the start,
+    where Instructions waits for the cover to fold. It is one button at every size: the rail-foot
+    copy and the phone-only `#btnSubmitCompact` in the chat header are gone. On a phone,
+    Instructions is its icon alone so the row fits.
+  - A workshop's instructions now show in full on the cover at the start; its task also still shows
+    in the empty chat until the first message.
+  - `.pane-detail` moved from `.chat` to a `.ws-detail` wrapper holding the cover and the chat.
+- **2026-11-09 — Student home takes the teacher dashboard's cover, pills and rail foot.** The hero
+  (3xl greeting, a line of counts, a note chip) is now `.page-cover`. On Home the tracked label is
+  today's date and the title is the greeting; on a class page they are *Class* and the class name.
+  **The count line is gone:** the Open section states its count and the rail lists the classes. What
+  only it carried is now a `.waiting-pill`, and a pill is always a route:
+  - *overdue* (attention) and *due within 7 days* (`--tau-schedule`) each open their assignment; there
+    are three at most, then "+N more", which scrolls to Open
+  - an unread teacher note (auditor violet) opens its report
+  On a class page the pills are scoped to that class. Open now always shows once there is any work,
+  with "Nothing open right now." in place of the count line's message. **The account chip sits at the
+  rail's foot** (`#homeRailFoot`) on Home and class pages and goes back to the masthead for the
+  workspace (`placeAccountChip`), whose column is the sessions list with Submit at its foot. The
+  report page keeps it in the masthead. `.dash-rail` stopped being a scroll container, which was
+  clipping the account menu; `.rail-body` scrolls instead. The cover, pill and rail-foot CSS moved
+  from `dashboard.html` to `components.css` §22, shared by both surfaces. **No breadcrumb on Home
+  or a class page** (owner, same day): the cover says where you are and the rail moves between them,
+  as on the teacher dashboard. `showAssignments` clears it the moment the view switches. The
+  workspace keeps its *Home › assignment › draft* trail, because there it is the way back.
 - **2026-10-30 — Student home: the Progress page removed.** It held the AI use guidance moved out of
   the rail on 10-28, and that guidance is instruction ("next session, pick one thing the AI says and
   ask why"), which `tau-dimensions.md` assigns to the teacher. Descriptive progress was considered

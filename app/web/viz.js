@@ -142,16 +142,21 @@ function renderCompHTML(counts, off) {
   const max = Math.max(...counts);
   const modal = counts.indexOf(max);
   const tie = counts.filter(c => c === max).length > 1;
+  // No track behind the bars (2026-11-04): length against the whole cohort is
+  // the count, and a zero is a dot where the bar would start.
+  const mark = (c, fill) => c
+    ? `<span class="${fill}" style="width:${(c / total * 100).toFixed(1)}%"></span>`
+    : `<span class="comp-zero"></span>`;
   let html = '';
   counts.forEach((c, i) => {
     html += `<div class="comp-row comp-${i + 1}${i === modal && !tie ? ' is-modal' : ''}">
       <div class="viz-row-head"><span class="comp-name">${LEVEL_NAMES[i]}</span><span class="comp-count">${c}</span></div>
-      <div class="viz-plot"><span></span><span class="comp-track"><span class="comp-fill" style="width:${total ? (c / total * 100).toFixed(1) : 0}%"></span></span></div>
+      <div class="viz-plot"><span></span><span class="comp-track">${mark(c, 'comp-fill')}</span></div>
     </div>`;
   });
   html += `<div class="comp-off">
     <div class="viz-row-head"><span class="comp-name">Not enough evidence</span><span class="comp-count">${off}</span></div>
-    <div class="viz-plot"><span></span><span class="comp-off-track"></span></div></div>`;
+    <div class="viz-plot"><span></span><span class="comp-track">${mark(off, 'comp-off-fill')}</span></div></div>`;
   return { html, modal, tie, max, total };
 }
 
@@ -1044,8 +1049,18 @@ function movementEntries(levelFlow, dimFlows) {
 // `title` names the group; with ONE entry there is no chip strip, because a
 // selector offering one choice is not a selector. The tooltip's sentence about
 // the state words then has nothing to describe, so it goes with them.
+// The "How to read this" copy, shared by the head renderMovement draws and by
+// a section head that states it once for several charts (Home's Over time).
+function movementTip(axis, withDimensions) {
+  return `<b>How to read this</b><br>Each column counts every student once, at their latest reading in that ${axis.unit}. A ribbon is a group of students carried from one ${axis.unit} to the next, so a rising ribbon is students holding onto more of their own thinking.<br><br>${axis.note}${withDimensions ? '<br><br>One at a time: the four are measured in different units, so they are read side by side and never added together.' : ''}`;
+}
+
+// opts.inCard (Home, 2026-11-05): the section heading on the page already
+// states the scope and carries the info dot, so the chart's own head shrinks
+// to its name. The chart keeps its own white .viz-card: the ribbon opacities
+// and legend mixes are validated against white, not the tonal card green.
 function renderMovement(scope, entries, summary, axis, opts = {}) {
-  const { title = 'Movement' } = opts;
+  const { title = 'Movement', inCard = false } = opts;
   const showTabs = entries.length > 1;
   const active = entries.find(e => e.key === flowMetric[scope]) || entries[0];
 
@@ -1072,15 +1087,19 @@ function renderMovement(scope, entries, summary, axis, opts = {}) {
   const flow = active.flow;
   const mv = flow ? flowMovement(flow.paths) : null;
 
-  return `<div class="section-head">
+  const head = inCard
+    ? `<h3 class="card-title">${title}</h3>`
+    : `<div class="section-head">
       <div class="head-with-info">
         <div class="card-title">${title}</div>
         <button class="info-dot tip-trigger" type="button" aria-expanded="false"
           aria-label="How to read ${title.toLowerCase()}"
-          data-tip="<b>How to read this</b><br>Each column counts every student once, at their latest reading in that ${axis.unit}. A ribbon is a group of students carried from one ${axis.unit} to the next, so a rising ribbon is students holding onto more of their own thinking.<br><br>${axis.note}${showTabs ? '<br><br>One at a time: the four are measured in different units, so they are read side by side and never added together.' : ''}">i</button>
+          data-tip="${movementTip(axis, showTabs)}">i</button>
       </div>
       <div class="section-summary">${summary}</div>
-    </div>
+    </div>`;
+
+  return `${head}
     ${showTabs ? `<div class="card-tabs card-tabs--secondary" role="tablist" aria-label="Choose a reading">${tabs}</div>` : ''}
     ${flow ? (() => {
       const c = active.copy(flowState(flow.paths, mv), axis.unit, flow.labels);

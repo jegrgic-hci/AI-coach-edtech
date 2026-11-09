@@ -357,6 +357,17 @@ function mountHomeRail() {
   mountRailDrawer({ rail: $('homeRail'), slot: $('tauNav') });
 }
 
+// Who you are sits at the foot of the navigation rail (2026-11-09, as on the
+// teacher dashboard). The workspace has no navigation rail — its column is the
+// sessions list, whose foot is Submit — so there the chip goes back to the
+// masthead. One element moved between the two, so its menu stays bound.
+function placeAccountChip(where) {
+  const chip = $('accountChip');
+  if (where === 'rail') $('homeRailFoot').append(chip);
+  else if (where === 'workspace') $('wsRailFoot').append(chip);
+  else $('tauNav').append(chip);
+}
+
 // The masthead's menu button opens the home rail, which only exists on the
 // home view.
 function setRailToggle(visible) {
@@ -367,78 +378,93 @@ function setRailToggle(visible) {
 // A note is unread until the student opens that draft's report, and a note
 // the teacher edits afterwards goes unread again — its teacherNoteAt moves
 // past the read stamp. Scoped to open assignments: a note on work that's
-// closed has no next draft to apply it to, so announcing it in the hero
-// would leave a chip nothing can act on or clear.
+// closed has no next draft to apply it to, so announcing it on the cover
+// would leave a pill nothing can act on or clear.
 function unreadNotes(home) {
   return home.current
-    .flatMap((a) => a.drafts.map((d) => ({ ...d, assignmentTitle: a.title })))
+    .flatMap((a) => a.drafts.map((d) => ({ ...d, assignmentTitle: a.title, classId: a.classId })))
     .filter((d) => d.teacherNoteAt && (!d.teacherNoteReadAt || d.teacherNoteReadAt < d.teacherNoteAt))
     .sort((x, y) => (x.teacherNoteAt < y.teacherNoteAt ? -1 : 1));
 }
 
-// The hero names the page. On Home it states who you are and what's true
-// right now: every segment is a count of something live and renders only when
-// it's non-zero, so a quiet week is one segment and no dangling separators.
-// Bare text, never chips: a count is the common case, which is the half of the
-// enclosure test a chip has to clear.
+// The cover (2026-11-09, the teacher dashboard's carried over): a tracked
+// label, the page's name very large, and what is waiting as pills. On Home
+// the label is today's date, so every "due Thu" reads against it, and the
+// title is the greeting; on a class page, "Class" and the class's name.
+//
+// No line of counts any more: the Open section states its own count and the
+// rail lists the classes, so the line said both twice. What it carried that
+// nothing else did — overdue, due soon, an unread note — is a pill, and a
+// pill is always a way to the thing it names.
 function renderHero(home, route) {
-  const state = $('heroState');
-  state.innerHTML = '';
-  const news = $('heroNews');
-  news.innerHTML = '';
-  const segs = [];
-
-  // The leaf greets; a class name is a page title, so it goes without.
-  if (route.page === 'class') {
-    $('heroGreeting').textContent = route.cls.name;
-    const open = home.current.filter((a) => a.classId === route.cls.id).length;
-    const closed = home.past.filter((a) => a.classId === route.cls.id).length;
-    segs.push({ text: openCount(open) });
-    segs.push({ text: `${closed} closed` });
+  const cls = route.page === 'class' ? route.cls : null;
+  if (cls) {
+    $('coverLabel').textContent = 'Class';
+    $('heroGreeting').textContent = cls.name;
   } else {
     const first = home.student.displayName.split(' ')[0];
-    const open = home.current.length;
-    $('heroGreeting').textContent = open ? `Welcome back, ${first}` : `Welcome, ${first}`;
-    if (open) {
-      segs.push({ text: `${open} assignment${open === 1 ? '' : 's'} open` });
-      // Counts the draft a student would actually sit down to — the open slot
-      // on each assignment — not every dated slot in every budget.
-      const due = home.current.map((a) => dueInfo(nextDraftDue(a)));
-      const today = due.filter((d) => d.days === 0).length;
-      const late = due.filter((d) => d.days < 0).length;
-      if (today) segs.push({ text: `${today} draft${today === 1 ? '' : 's'} due today` });
-      // Colour AND the word — "overdue" states it on its own for anyone the
-      // attention tone doesn't reach.
-      if (late) segs.push({ text: `${late} overdue`, cls: 'hero-state-late' });
-    } else if (home.past.length) {
-      segs.push({ text: 'Nothing open right now', cls: 'hero-state-quiet' });
-    } else {
-      segs.push({ text: 'No assignments yet — when your teacher sets one, it lands here.', cls: 'hero-state-quiet' });
-    }
-    if (home.classes.length > 1) segs.push({ text: `${home.classes.length} classes` });
-    else if (home.classes.length === 1) segs.push({ text: home.classes[0].name });
-
-    // The one enclosed thing in the hero, and only while a note is unread:
-    // actionable and rare, which is both halves of the enclosure test. Reading
-    // it is what clears it — the note flag on the draft's own row stays either
-    // way, because the note remains a property of that draft.
-    const unread = unreadNotes(home);
-    if (unread.length) {
-      const newest = unread[unread.length - 1];
-      const chip = el('button', 'hero-news-chip');
-      chip.type = 'button';
-      chip.innerHTML = `${iconSVG('chat')} ${unread.length === 1
-        ? 'Note from your teacher'
-        : `${unread.length} notes from your teacher`}`;
-      chip.onclick = () => { logUse('student-home', 'hero-note'); showReport(newest.submissionId); };
-      news.append(chip);
-    }
+    $('coverLabel').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    $('heroGreeting').textContent = home.current.length ? `Welcome back, ${first}` : `Welcome, ${first}`;
   }
 
-  segs.forEach((seg, i) => {
-    if (i) state.append(el('span', 'hero-sep', '·'));
-    state.append(el('span', seg.cls || null, seg.text));
-  });
+  const inScope = (a) => !cls || a.classId === cls.id;
+  // `body` is plain text, then the bold part — built as nodes, since titles
+  // are typed by teachers.
+  const pill = (kind, icon, [text, bold], onclick) => {
+    const b = el('button', `waiting-pill ${kind}`);
+    b.type = 'button';
+    b.insertAdjacentHTML('afterbegin', iconSVG(icon));
+    const body = el('span', null, text);
+    if (bold) body.append(el('b', null, bold));
+    b.append(body, el('span', 'waiting-go', '→'));
+    b.lastChild.setAttribute('aria-hidden', 'true');
+    b.onclick = onclick;
+    return b;
+  };
+  const pills = [];
+
+  // Overdue first, then due within the week, soonest first: the draft a
+  // student would actually sit down to, each opening its assignment. Three at
+  // most, then "+N more", which goes to the Open list holding the rest.
+  const DUE_CAP = 3;
+  const due = sortedCurrent(home).filter(inScope)
+    .map((a) => ({ a, iso: nextDraftDue(a), days: dueInfo(nextDraftDue(a)).days }))
+    .filter((x) => x.days <= 7);
+  for (const { a, iso, days } of due.slice(0, DUE_CAP)) {
+    // A weekday alone only within six days: at seven, "due Thu" on a
+    // Thursday reads as today.
+    const when = days < 0 ? 'overdue' : days === 0 ? 'due today' : days === 1 ? 'due tomorrow'
+      : `due ${days === 7 ? 'next ' : ''}${new Date(iso).toLocaleDateString('en-US', { weekday: 'short' })}`;
+    pills.push(pill(days < 0 ? 'is-missing' : 'is-due', 'calendar',
+      [`${a.title}, draft ${a.draftsUsed + 1} · `, when],
+      () => openAssignment(a.id)));
+  }
+  if (due.length > DUE_CAP) {
+    pills.push(pill('is-due', 'calendar', [`${due.length - DUE_CAP} more `, 'due this week'],
+      () => $('secCurrent').scrollIntoView({ block: 'start' })));
+  }
+
+  // An unread note, in the teacher's own words — the auditor's violet. Reading
+  // it is what clears it; the note flag on the draft's own row stays either
+  // way, because the note remains a property of that draft.
+  const unread = unreadNotes(home).filter((d) => !cls || d.classId === cls.id);
+  if (unread.length) {
+    const newest = unread[unread.length - 1];
+    pills.push(pill('is-note', 'chat', [unread.length === 1 ? 'Note from your teacher' : `${unread.length} notes from your teacher`],
+      () => { logUse('student-home', 'hero-note'); showReport(newest.submissionId); }));
+  }
+
+  const news = $('heroNews');
+  news.innerHTML = '';
+  news.className = pills.length ? 'waiting' : '';
+  news.setAttribute('role', 'list');
+  news.setAttribute('aria-label', 'Waiting on you');
+  for (const p of pills) {
+    const item = el('span', null);
+    item.setAttribute('role', 'listitem');
+    item.append(p);
+    news.append(item);
+  }
 }
 
 // The class-wide note is unread until the student opens Instructions, and
@@ -611,12 +637,6 @@ function renderHome(home) {
   renderRailNav(home, route);
   renderHero(home, route);
 
-  const crumbs = route.page === 'home'
-    ? [{ label: 'Home', current: true }]
-    : [{ label: 'Home', onClick: () => goHome('') }, { label: route.cls.name, current: true }];
-  renderNavCrumbs($('navCrumbs'), crumbs);
-  renderNavLocal($('navLocal'), []);
-
   const inScope = (a) => route.page !== 'class' || a.classId === route.cls.id;
   // A class page doesn't repeat its own name on every card.
   const showClass = multi && route.page !== 'class';
@@ -626,8 +646,10 @@ function renderHome(home) {
   list.innerHTML = '';
   const shown = renderOpenFilter(current);
   for (const a of shown) list.append(openCard(a, showClass));
-  if (route.page === 'class' && !current.length) list.append(el('p', 'home-empty', 'Nothing open in this class right now.'));
-  $('secCurrent').classList.toggle('hidden', (!current.length && route.page !== 'class'));
+  // Open always shows once there is any work, so "nothing open" is stated
+  // where open work would be — the cover's count line used to say it.
+  if (!current.length) list.append(el('p', 'home-empty', route.page === 'class' ? 'Nothing open in this class right now.' : 'Nothing open right now.'));
+  $('secCurrent').classList.toggle('hidden', route.page !== 'class' && !home.current.length && !home.past.length);
   $('currentCount').textContent = current.length ? String(current.length) : '';
 
   const past = home.past.filter(inScope);
@@ -648,6 +670,16 @@ async function showAssignments() {
   $('viewWorkspace').classList.add('hidden');
   $('viewAssignments').classList.remove('hidden');
   setRailToggle(true);
+  placeAccountChip('rail');
+  $('wsNavTitle').classList.add('hidden');
+  $('wsNavActions').classList.add('hidden');
+  $('tauNav').classList.remove('is-workspace');
+  // No breadcrumb on Home or a class page (2026-11-09, owner): the cover's
+  // label and title say where you are, and the rail is the way between them,
+  // as on the teacher dashboard. Cleared here, not on paint, so the
+  // workspace's trail never lingers while the home data loads.
+  renderNavCrumbs($('navCrumbs'), []);
+  renderNavLocal($('navLocal'), []);
 
   const paint = (home) => {
     lastHome = home;
@@ -690,25 +722,17 @@ async function openAssignment(id) {
   $('viewAssignments').classList.add('hidden');
   $('viewWorkspace').classList.remove('hidden');
   setRailToggle(false);
+  placeAccountChip('workspace');
   // The bar's scrolled state belongs to the home pane, which is now hidden —
   // left set, it would tint the bar over a workspace that never scrolls it.
   $('tauNav').classList.remove('scrolled');
-  const wsPrompt = $('wsPrompt');
-  wsPrompt.innerHTML = '';
-  wsPrompt.append(assignmentBriefBody(data.assignment));
-  // Reading the note here counts as reading it, so the home card's icon
-  // doesn't announce a note the student has already seen.
-  wsPrompt.closest('details').ontoggle = (e) => { if (e.target.open) markNoteRead(state.assignment); };
-  // A workshop's prompt IS the task — three steps a guest has never seen —
-  // so it starts open rather than behind the disclosure a term's students
-  // have already read in class.
-  if (isWorkshop()) wsPrompt.closest('details').open = true;
   document.querySelector('.composer-hint').textContent = isWorkshop()
     ? 'The facilitator can read this conversation. When you’re done, press End session to see your results.'
     : 'Your teacher can read this session';
 
   state.closed = Boolean(data.closed);
   applyClosedState();
+  renderWsCover();
 
   logEvent('episode-resume');
   renderSessionList();
@@ -724,6 +748,91 @@ async function openAssignment(id) {
     startNewSession();
   }
 }
+
+// ---------- the workspace cover ----------
+
+// THE START (2026-11-09, owner): with no session open, the assignment is a
+// cover above the chat — a label stating the draft and when it is due, the
+// name very large, and the instructions in full under it. Once a session
+// starts (a new one, or one picked from the list) the name folds into the
+// masthead (#wsNavTitle) at the chat pane's left edge and the instructions
+// into the button at the bar's right end — the large title becoming the
+// small one. Home is in the rail, above the account chip.
+function wsCoverLabel() {
+  const a = state.assignment;
+  if (isWorkshop()) return 'Workshop';
+  if (state.closed) return 'Closed';
+  if (!state.session) return 'All drafts submitted';
+  const ci = state.session.cycleIndex;
+  const due = dueInfo(a.draftDueDates?.[ci] || a.dueDate);
+  return [`Draft ${ci + 1} of ${a.draftBudget}`, due.text].filter(Boolean).join(' · ');
+}
+
+function renderWsCover() {
+  $('wsTitle').textContent = state.assignment.title;
+  $('wsNavName').textContent = state.assignment.title;
+  $('wsCoverLabel').textContent = wsCoverLabel();
+  const brief = $('wsBrief');
+  brief.innerHTML = '';
+  brief.append(assignmentBriefBody(state.assignment));
+  $('wsNavTitle').classList.remove('hidden');
+  $('wsNavActions').classList.remove('hidden');
+  $('tauNav').classList.add('is-workspace');
+  syncWsCover();
+  syncWsInstructions();
+}
+
+// Instructions open in the tray, as from the home card. While the teacher's
+// class-wide note is unread the button takes the note's icon and violet, and
+// goes plain once it has been read — the home card's rule.
+function syncWsInstructions() {
+  const unread = noteUnread(state.assignment);
+  document.querySelectorAll('[data-ws-instructions]').forEach((b) => {
+    // The word is dropped on a phone (style.css), so the name is in the label.
+    b.innerHTML = `${iconSVG(unread ? 'chat' : 'checklist')}<span class="ws-instructions-word">Instructions</span>`;
+    b.classList.toggle('ocard-instructions-note', unread);
+    b.setAttribute('aria-label', unread ? 'Instructions, new note from your teacher' : 'Instructions');
+  });
+}
+
+function openWsInstructions() {
+  const body = assignmentBriefBody(state.assignment);
+  body.classList.add('brief-body');
+  openTray({ title: 'Instructions', subtitle: state.assignment.title, body });
+  markNoteRead(state.assignment).then(syncWsInstructions);
+}
+
+// Large while no session is open; minimized once one is. On a phone the
+// start is the sessions list, not the cover (style.css), so the small title
+// and the button are always the ones shown there.
+function syncWsCover() {
+  const collapsed = Boolean(state.conv);
+  const compact = TAU_SIZE.compact.matches;
+  $('viewWorkspace').classList.toggle('ws-collapsed', collapsed);
+  // The start can begin something: the cover closes on "Start a new session"
+  // and the empty chat card goes (style.css). Closed, or every draft in,
+  // there is nothing to start, so the card stays to carry its banner.
+  $('viewWorkspace').classList.toggle('ws-can-start', !collapsed && Boolean(state.session) && !state.closed);
+  // Submit draft stands throughout; the name and Instructions wait for the
+  // cover to fold, since until then both are on the page in full.
+  const shown = collapsed || compact;
+  for (const id of ['wsNavTitle', 'wsNavInstructions']) {
+    $(id).classList.toggle('is-shown', shown);
+    $(id).setAttribute('aria-hidden', String(!shown));
+  }
+  // The instructions shown in full under the name count as read, as opening
+  // them does — the button would otherwise announce a note already on screen.
+  if (!collapsed && !compact && noteUnread(state.assignment)) markNoteRead(state.assignment).then(syncWsInstructions);
+}
+
+// Home means Home: a class page the student came from is cleared, so the
+// button lands where it says.
+const goHomeFromWorkspace = () => { history.replaceState(null, '', location.pathname); showAssignments(); };
+document.querySelectorAll('[data-ws-home]').forEach((b) => {
+  b.innerHTML = `${iconSVG('home')}<span>Home</span>`;
+  b.onclick = goHomeFromWorkspace;
+});
+document.querySelectorAll('[data-ws-instructions]').forEach((b) => { b.onclick = openWsInstructions; });
 
 // ---------- the deadline ----------
 
@@ -772,6 +881,7 @@ function applyClosedState() {
   banner.classList.toggle('hidden', !state.closed && !!state.session);
 
   renderSubmitButtons();
+  $('wsCoverLabel').textContent = wsCoverLabel();
   $('btnNewSession').disabled = state.closed || !state.session;
   if (state.closed) {
     $('composer').classList.add('hidden');
@@ -798,10 +908,8 @@ function renderSubmitButtons() {
   // A workshop submits no draft; what the button does for a guest is end the
   // conversation, so that is what it says.
   const label = isWorkshop() ? 'End session' : 'Submit draft';
-  for (const id of ['btnSubmit', 'btnSubmitCompact']) {
-    $(id).disabled = disabled;
-    $(id).textContent = label;
-  }
+  $('btnSubmit').disabled = disabled;
+  $('btnSubmit').textContent = label;
 }
 
 // A student sitting in the workspace as the deadline passes should watch it
@@ -826,18 +934,11 @@ function scheduleDeadlineFlip() {
 // which assignment/draft/session is on screen. The toggle only renders
 // while reading a locked, submitted draft: that's the one case where a
 // report genuinely exists for the same draft as the session in view.
+// No breadcrumb here either (2026-11-09, owner): the cover names the
+// assignment and its back arrow is the way Home. What stays in the masthead is
+// the Report/Session toggle, which belongs to the draft on screen.
 function renderWorkspaceNav() {
-  const draftNum = state.conv ? state.conv.cycleIndex + 1
-    : state.session ? state.session.cycleIndex + 1
-    : null;
-  const crumbs = [
-    // Home means Home: a class page the student came from is cleared, so the
-    // crumb lands where it says.
-    { label: 'Home', onClick: () => { history.replaceState(null, '', location.pathname); showAssignments(); } },
-    { label: state.assignment.title },
-  ];
-  if (draftNum != null) crumbs.push({ label: `Draft ${draftNum}`, current: true });
-  renderNavCrumbs($('navCrumbs'), crumbs);
+  renderNavCrumbs($('navCrumbs'), []);
 
   if (state.conv && state.conv.locked) {
     const submission = state.submissions.find((s) => s.cycleIndex === state.conv.cycleIndex);
@@ -879,6 +980,7 @@ function renderSessionList() {
     return;
   }
   const group = el('div', 'rail-group');
+  group.append(el('span', 'eyebrow', 'Previous sessions'));
   for (const c of convs) {
     const item = el('div', 'rail-item conv-item' + (c.locked ? ' locked' : '') + (state.conv?.id === c.id ? ' active' : ''));
     const text = el('span', 'rail-item-text');
@@ -1015,6 +1117,7 @@ function renderConversation() {
   if (!hasConv) {
     box.appendChild($('emptyState') || makeEmptyState());
     $('emptyState')?.classList.remove('hidden');
+    syncWsCover();
     return;
   }
   for (const t of state.turns) box.appendChild(renderTurn(t));
@@ -1029,6 +1132,7 @@ function renderConversation() {
   }
   updateActionButtons();
   box.scrollTop = box.scrollHeight;
+  syncWsCover();
 }
 
 // Replaces the old passive bottom-of-page note: a persistent header that
@@ -1312,7 +1416,6 @@ $('sessionsBackIcon').outerHTML = iconSVG('arrowBack');
 $('sessionList').addEventListener('click', (e) => { if (e.target.closest('.rail-item')) showPane('detail'); });
 // The same action as the list's own Submit draft; a second button, not a
 // second path.
-$('btnSubmitCompact').onclick = () => $('btnSubmit').click();
 
 // Copy from an AI/auditor message = observed extraction.
 document.addEventListener('copy', () => {

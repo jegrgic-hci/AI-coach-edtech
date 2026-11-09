@@ -27,6 +27,13 @@ class with zero CSS rules ever written for it. Retokenising without verifying wh
 called would have carried all of it forward under new variable names. Session 6 found the same
 shape again in `dashboard.html` (`sparklineSVG()`, zero callers) — see its log entry.
 
+**Latest state (2026-11-09).** Every top-level screen on both sides now opens with a **cover**
+(`components.css` §22): the teacher's Home, Class, Assignment and three list pages, the student's
+Home and class pages, and the workspace's start. **Pills route, chips filter, summaries are text.**
+The account chip sits at the foot of a navigation rail. The student masthead carries no breadcrumb.
+The Hard Constraints below carry the rules; *Decisions* in the tonal migration log carries the
+reasoning, day by day.
+
 If you are picking this up cold, read *Files and load order* and *Verifying visually* before
 touching anything. The second one is not optional — this migration's two real bugs were both
 invisible to every check except a screenshot.
@@ -193,6 +200,18 @@ not licence to improvise — say so and ask, don't invent.**
   switch; a bordered card is an object in its own right; both read louder than the ribbons under
   them. One tab component now serves the class overview's Overview/Patterns/Trends and Movement's
   dimensions.
+- **Three tab tiers, each louder than the one inside it** (2026-11-05). **`.page-tabs`** switch a
+  whole page between its views (the Class page's Overview / Assignments): a full-width white
+  (`--tau-container-lowest`) pill track with a 1px `--tau-line` edge, segments sharing the width, the
+  current view filled `--tau-select` with ink at 600 — the tonal selection, never forest. Full width and
+  white since 2026-11-06 (owner): the waiting pills above them on the Class page share the pill shape,
+  and a `--tau-container` track read as one more pill. **`.card-tabs`** switch a card's views. **`.card-tabs--secondary`**
+  choose a chart's reading. Never nest two of one tier.
+- **A chart's selector is M3 secondary tabs** (`.card-tabs--secondary`, no longer provisional — 2026-11-05):
+  48px targets, a 2px ink indicator across the whole tab, a `--tau-line-strong` rule. At 11.5px with a
+  1px rule the selected dimension differed by weight alone and could not be found at a glance. Still
+  an ink underline, so it stays quieter than the chart. On a pane under 600px the tabs share the width
+  and wrap their names to two lines, never scroll or truncate.
 - **Tabs belong on a SINGLETON card, never on a card that repeats in a list.** Added 2026-08-18. Six
   assignment cards each holding their own tab state means one shows Agency while the next shows
   Dimensions, and comparing across them is the only reason they are in a list. Where a repeated card
@@ -203,7 +222,9 @@ not licence to improvise — say so and ask, don't invent.**
   assignment summary each mount Movement **twice**: agency alone (no selector, because a selector
   offering one choice is not a selector), then the four behind tabs.
 - **A trend's finding is a sentence to the teacher, not a label on a chart.** Added 2026-08-18. Two
-  parts, in one paragraph, one ink colour: what happened (bold), then the detail that carries it,
+  parts, in one paragraph, one ink colour: what happened, then the detail that carries it (**no bold
+  lead-in** since 2026-11-05, owner: bold supporting text under a card title took the title's
+  salience; the same goes for every chart lede and foot),
   both naming the ends of the sequence — *"Your students handed more of the thinking over. More of
   them were taking what the AI gave them by Final than at Draft 1."* Then, in the tool's own blue
   block, **What to try**. Four rules, each a correction: **no counts** (the ribbons are the counts,
@@ -284,6 +305,10 @@ not licence to improvise — say so and ask, don't invent.**
   `teacher.html`) — never on a page a student sees. The moment what it's narrating collapses into
   an actual tier-worthy fact, that instance takes the matching tier colour instead — tool-info
   never sits underneath a red or amber finding pretending to be neutral.
+- **`--tau-schedule` (olive, hue 110) has one job: a draft coming due** (2026-11-09, owner). It fills
+  the due-draft pill under a cover (Home, Class, Assignment), and its text stays ink. It is not a
+  severity, since a deadline is not a problem, and it is not a voice. Hue 110 was the one gap on the
+  wheel that borrows no neighbour's meaning. The fill is `-bg`, and the solid colour is for the icon only.
 - **Colour is never the only channel** — pair with shape, weight, dash, or text.
 - **Every app masthead is the same object: wordmark, then `<h1>` page name, then controls — and its
   h1 is `.masthead-title`, title-medium, on every surface.** Added 2026-08-24; **collapsed onto one
@@ -291,6 +316,37 @@ not licence to improvise — say so and ask, don't invent.**
   rule). `dashboard.html` had been the lone dissenter at 22px / 600 / −0.4px. The h1 names the page
   and is deliberately subordinate to the Tau wordmark beside it in a 64px bar; a larger step
   out-weighs the brand mark.
+  **Except `dashboard.html`, from 2026-11-05 (product owner):** there the screen's own title is the
+  `<h1>` (`.content-title` — a class, an assignment, a student, a list), and the masthead carries **no
+  page name at all** — wordmark, search, account (owner, same day: the header lacked structure).
+  *Teacher dashboard* is the label above Home's date cover instead, the one place it says where you are. The page title is Headline
+  medium's size at title weight (26px / 700): the section headings under it are Title large, and at
+  one size the class name and *Class overview* read as peers. Home's `<h1>` is its date.
+  **And the student app (`index.html`), from 2026-11-09 (owner):** no page name and **no breadcrumb**.
+  On Home and a class page the masthead is the mark alone, and the cover's `<h1>` names the page.
+  In the workspace the mark spans the sessions rail (`.tau-nav.is-workspace`), so the bar's columns
+  match the page's. After it comes the assignment's name once the start cover has folded, in line
+  with the chat's own text, then **Instructions** and **Submit draft** at the right end. Way Home is
+  the rail's **Home** button, never a crumb and never a back arrow. `report.html` still carries its
+  breadcrumb.
+- **Every top-level screen opens with a cover** (`.page-cover`, `components.css` §22, 2026-11-05/09,
+  owner). It is a tracked label saying what the page is, then the page's name very large
+  (`.page-cover-title`: 800, `clamp(44px, 9cqi, 104px)`, 0.92 leading, −0.045em, 13ch, breaking
+  rather than shrinking, in the app's own face), then what is waiting. It is type on the ground: no
+  fill, no rule, no meta line. It is on the teacher's Home (the date), Class, Assignment, All
+  classes, All assignments and All students, and the student's Home (the date as label, the greeting
+  as title), class pages and the workspace's start. Its size reads the nearest size container's
+  width, so a page that has none makes the cover its own (`container-type: inline-size`).
+- **A pill is always a ROUTE; a chip is a FILTER; a summary is TEXT** (2026-11-09, owner). A
+  `.waiting-pill` takes you to what it names, with an arrow, and exists only when something waits.
+  It never filters a table on its own page: a filter that looks like a route was the first thing the
+  owner rejected. Narrowing a list is a chip in the list's own chip row (`.stu-chip`, with a
+  `.chip-sep` between view chips and flag chips; they combine). The pill's fill says what kind of thing
+  waits: attention for missing or overdue work, caution for Worth a chat, `--tau-auditor` for a
+  note in the teacher's words, and `--tau-schedule` for a draft coming due.
+- **A list page never states a count its chips filter on** (2026-11-09, owner). All classes and All
+  students have nothing under the title. All assignments has only its due drafts, as pills, because
+  those are routes. A count above a table that a chip below can produce says the same thing twice.
 - **A heading takes a title role, never a size token.** Added 2026-09-29. `font:
   var(--tau-type-title-lg | -md | -sm)` plus `letter-spacing: var(--tau-track-title)` — M3's title
   roles carrying this ramp's values (19 / 15.5 / 14.5px, all 700, all −0.01em). **Size carries rank;
@@ -299,8 +355,8 @@ not licence to improvise — say so and ask, don't invent.**
   card, a page section, a dialog. *Medium*: the masthead, a card inside a card, a tray, a group of
   cards on a page. *Small*: a heading inside a card. **Not titles, and not on these roles**: figures
   (a count, a score numeral), the guide pages' long-form scale (`levels`/`signals`/`dimensions`, their
-  own 18–34px literals, consistent across the three), the student home hero and login hero, and a
-  serif question or quote. The site map is under *Type roles* in the implementation plan.
+  own 18–34px literals, consistent across the three), the page cover's title (`.page-cover-title`,
+  its own scale, see the cover rule) and the login hero, and a serif question or quote. The site map is under *Type roles* in the implementation plan.
 - **`--tau-text-xs` (11.5px) is for labels, chips, counts and dates. A SENTENCE takes
   `--tau-text-sm` (13px) or larger, never xs.** Added 2026-08-24. The two label roles
   (`--tau-text-label-sm/md`) were carved out on 2026-08-22 for the naming job, which left xs with no
@@ -337,7 +393,9 @@ not licence to improvise — say so and ask, don't invent.**
   Never carry an alert through colour alone on a descriptive/positional/taxonomic label.
 - **A surface carries a severity signal exactly once.** If a chip already states "late," the row
   background doesn't also turn red for it.
-- **A dot is only used when no adjacent text or icon already states the same fact.**
+- **A dot is only used when no adjacent text or icon already states the same fact.** One stated
+  exception, by the product owner (2026-11-04): a zero row in the agency composition is a stub (a
+  level-coloured sliver at bar height) where its bar would start, beside a count that also says 0 — see *Tonal migration → Decisions*.
 - **Chip/badge/pill enclosure only when BOTH actionable AND rare in that context.** Otherwise use
   colour, weight, or an icon — never a filled boundary. "Matches existing chip styling" is not
   itself a reason to enclose a new value.
@@ -349,6 +407,15 @@ not licence to improvise — say so and ask, don't invent.**
   inside a card titles one rung down (15.5px)**, so it never outranks its parent — the chart pair
   inside a draft's timeline card was the case that showed it. The count beside a title stays small
   and grey: it is metadata. Eyebrows remain for sub-sections *inside* a card.
+- **A section's name sits on the page ground, above its cards, and names every card until the next
+  one** (`.group-title`, Title large, ink). Added 2026-11-05 by the product owner, first on Home. A
+  section is no longer one card holding everything it contains: the cards under a heading are peers on
+  the page, so none is a card inside a card. **Spacing carries the grouping** — sections far apart
+  (`--tau-s7`), cards within one close (`--tau-s3`). A card under a section heading titles **one rung
+  down** (`.card-title` at Title medium), so it never outranks its section. **The page ground does not
+  change**: headings sit on `--tau-page` and cards keep `--tau-card`; this is a layout rule, not a
+  colour one. Where a section's charts share a scope and an info dot, the section heading states them
+  once (Home's *Over time*).
 - **Voice is coach, not judge.** No "AI-generated content detected," no "risk" vocabulary, no
   verdicts. Integrity flags are conversation-starters, teacher-only, **never shown in student
   view**, no red, no alert iconography.
@@ -386,6 +453,18 @@ not licence to improvise — say so and ask, don't invent.**
 - **At phone width the page never scrolls sideways.** A wide *object* may scroll inside its own card
   (a flow, a conversation map — see *Conversation map encoding*); the document never does. A row
   that does not fit **reflows** (the name above its readings), it does not scroll.
+- **Nothing inside a pill enters its rounded end.** Added 2026-11-05 by the product owner. A pill's
+  end is a half-circle whose radius is half the pill's height (a 46px row rounds off over 23px), and
+  **text sits at least one radius in from each end** — horizontal padding ≥ radius. Text that starts
+  inside the curve reads as crammed against the edge, most visibly when the pill is a selection
+  highlight that only appears on click. Applies to every full-radius shape that holds content: rail
+  rows, chips, page tabs, buttons, pills. A shape too short to hold that padding gets a smaller radius,
+  never tighter padding. First applied to the teacher rail (`.rail-item-section` 23px,
+  `.rail-item-nested` 18px).
+- **An icon at a pill's end sits centred in that end's circle.** Added 2026-11-05 by the product owner.
+  Its centre is one radius in from the edge, so padding = radius − half the icon's width (a 20px icon in
+  a 40px pill: 20 − 10 = 10px). The icon is then concentric with the curve that frames it, and text
+  after it starts clear of the curve by the rule above.
 - **Tabs never scroll sideways, at any width — not on a phone either.** Added 2026-10-28 by the
   product owner. A set of tabs is a choice the reader has to see whole; a scrolling row hides some of
   the options and makes the reader hunt for the current one. Where the labels don't fit, the
@@ -427,6 +506,12 @@ not licence to improvise — say so and ask, don't invent.**
   brand) and the page `<h1>` stays. **The account chip moves into the drawer's foot**, name and all —
   the rail already has an identity slot, and the chip is never shrunk to initials (*components.css*
   §14: "the name is the identity"; a monogram was rejected as decoration standing in for one).
+  **Since 2026-11-05/09 it is there at every size, not only in the drawer:** the account chip sits at
+  the pinned foot of a navigation rail, under a rule (`.rail-foot--pinned`, §22), on the teacher
+  dashboard, the student home and the workspace, where Home stands above it. Where a page has no
+  navigation rail (`report.html`), it stays in the masthead. Its menu opens beside the rail,
+  bottom-aligned, so **a rail holding the chip is never a scroll container**: only `.rail-body`
+  scrolls, or the menu is clipped.
 - **Below expanded, every control is 44px.** `.btn-sm`'s 36px exception is expanded-only (decided
   2026-09-27 for phones, **extended to medium 2026-09-29**: the medium class is tablets, and a tablet
   is a touch screen). Below 840px it takes `--tau-target` like everything else.
@@ -435,8 +520,14 @@ not licence to improvise — say so and ask, don't invent.**
   panes, the list narrowing to 240px at medium. *Compact* shows **one pane at a time**: the
   conversation by default, and a back step labelled with where it goes ("Sessions (3)") to the list;
   the list is shown instead when no conversation is open, since then it is the only thing to act on.
-  **Submit draft is a required action and is visible from both panes** — in the conversation's header
-  and at the list's foot — never behind a step.
+  **Submit draft is a required action and is visible from both panes**, never behind a step. Since
+  2026-11-09 that is **one button in the masthead's right end**, after Instructions and the same size
+  (`btn-primary btn-sm`): it hands in the whole draft, so it is the assignment's action and not the
+  sessions rail's. The list is sessions only: **+ New session** (forest fill) leads, then *Previous
+  sessions*, then Home and the account chip under a rule. **With no session open, the workspace is
+  its start**: a cover with the assignment's name, its instructions in full, and *Start a new session*.
+  The empty chat card is not drawn while a session can be started. Once one starts, the name folds
+  into the masthead and the instructions into its Instructions button.
 - **The student home rail is navigation, and adapts to the student.** Added 2026-10-28 by the
   product owner. **Home, then one entry per class with its open count** ("2 open", "Nothing open")
   — never the assignments themselves, so the rail is the same length however much work there is.
@@ -1104,6 +1195,12 @@ single-property use M3's own CSS token guidance recommends.
   an element's size or position on screen uses `--tau-dur-medium` with `-decelerate` (appearing)
   or `-accelerate` (leaving). Don't reach for a third duration because something "feels" in
   between — pick the nearer rung.
+- **A card that grows to a new size in a grid uses a view transition** (2026-11-06, Behavioral
+  patterns on Home and the Class page). The browser animates snapshots by transform, so the width
+  rule above holds. Snapshots keep their own size (`object-fit: none`) and clip to the growing group, so
+  text is uncovered as the card grows and never stretched. `--tau-dur-medium`, `-decelerate` opening and
+  `-accelerate` closing. Reduced motion skips the transition in script, because the global rule does not
+  reach `::view-transition-*`.
 - Loading spinners (`@keyframes spin`/`rspin`) are a different category — continuous indicators,
   not interaction feedback — and stay outside this token set.
 - **A page that waits on data is held, not painted in pieces** (2026-10-30, option A of
@@ -1273,6 +1370,9 @@ expected shape between 3c and 3e, not a stall.
 | Global nav (`.tau-nav` + crumbs + local toggle) | `components.css` (2026-07-22) | index (home + workspace), report — see session log. Not on `dashboard.html`/`teacher.html`, which keep their own `.tab-nav`. |
 | Icon system (`.tau-icon`, M3-style) | `icons.js` (new file) + `.tau-icon` base in `components.css` | index home card (chat, close, description, arrowForward, checklist, expandMore) — replaces the ✉/✕/→ text glyphs that were standing in for icons. `chat` (not `mail`) for the teacher-note vocabulary specifically — a note reads as "someone said something," not correspondence. Self-hosted inline SVG, not the Material Symbols webfont/CDN: the app loads zero external resources today (system fonts only) and a font dependency would break that. Not yet on `teacher.js`/`dashboard.html` or the workspace's `reading-banner-return`. |
 | Rail (`.rail` + `-head`/`-body`/`-foot`, `.rail-group`, `.rail-item` + `-text`/`-name`/`-sub`/`-meta`, `.rail-item-nested`, `.rail-inset`) | `components.css` §13 (2026-08-07) | **all four vertical rails** — student home, workspace sessions, teacher dashboard, admin. Replaces `.dash-rail`, `.sidebar` (two different objects, same name), `.admin-nav*`, `.conv-item`, `.sb-shortcut`, `.rail-label`, `.rail-avatar`. Width is `--tau-rail-w`. See session log. |
+| Cover (`.page-cover`, `-top`, `-label`, `-title`, `-line`) | `components.css` §22 (moved from `dashboard.html`, 2026-11-09) | dashboard Home, Class, Assignment, All classes/assignments/students · index Home, class pages, workspace start (`.ws-cover`, which folds into `#wsNavTitle`) |
+| Waiting pills (`.waiting`, `.waiting-pill` + `.is-missing`/`.is-chat`/`.is-due`/`.is-note`, `.waiting-n`, `.waiting-none`) | `components.css` §22 (2026-11-09) | dashboard covers (`waitingRow`, `waitingPill`, `dueSoonPills`) · index Home and class covers (`renderHero`) |
+| Rail foot (`.rail-foot--pinned` + account chip, menu opening beside the rail) | `components.css` §22 (2026-11-09) | dashboard rail (with its "+"), index home rail (`#homeRailFoot`), workspace sessions rail (`#wsRailFoot`, Home above the chip) |
 | Assignment setup flow | **Missing** | |
 
 ---
@@ -1543,7 +1643,7 @@ Order, each step verified at 360 / 768 / 1280 before the next:
 
 | Role | Sites |
 |---|---|
-| **Title large** — 19 / 700 | `.card-title`, `.tl-title`, `.content-title`, `.report-section-title`, `.report-hero-title` (was 600), `.acard-title`, `.login-card h1`, `.agreement-card h1`, `.doc-dialog-head h2`, admin `.section-title` / `.modal-title` (were −0.3px) |
+| **Title large** — 19 / 700 | `.card-title`, `.tl-title`, ~~`.content-title`~~ (26 / 700 since 2026-11-05, see the masthead rule), `.report-section-title`, `.report-hero-title` (was 600), `.acard-title`, `.login-card h1`, `.agreement-card h1`, `.doc-dialog-head h2`, admin `.section-title` / `.modal-title` (were −0.3px) |
 | **Title medium** — 15.5 / 700 | `.masthead-title` (new; replaced six page rules), card-in-card `.card-title`, `.tray-title`, `.confirm h4` (was 17 / 600), `.chunk-head h2` (was 17), `.dim-quad-name` (was 600), `.provstrip-evidence-title` (was 600), `.pcard-head h3`, `.report-panel h3`, `.doc-prose h3` |
 | **Title small** — 14.5 / 700 | `.card-head h3/h4` (was 600), `.group-title` (was 800), `.roster-step-title` (was 650), `.pattern-title`, `.setup-title`, `.chat-header` (was 600) |
 
@@ -1551,7 +1651,7 @@ Order, each step verified at 360 / 768 / 1280 before the next:
 `.report-jump-score-n`, `.dim-quad-score-n .n`, `.draft-stat-val`, admin `.pattern-figure` /
 `.admin-lead-figure`, `.group-nav .n`); the retired-total numerals (`.report-total-n`, `.tau-score` —
 see CLAUDE.md, not to be restyled, to be deleted with the student-view rebuild); the guide pages'
-long-form scale; `.hero-greeting`, `.login-hero-title`, `.samr-hero .samr-level`; `.dim-card-q`
+long-form scale; `.page-cover-title` (the cover's own scale), `.login-hero-title`, `.samr-hero .samr-level`; `.dim-card-q`
 (serif question); `.level-name` (a selectable row, not a heading); `.title-field` (an input).
 
 ### Tonal migration — CURRENT, started 2026-10-26
@@ -1667,6 +1767,166 @@ straight to tauthinking.com.
   sentence) opens the existing run sheet with all eleven labels under the chart's four rows, each
   row's agency swatch beside it, the reader's own label on `--tau-select`. Reuses the sheet rather
   than adding a dialog. Applies to every report, not only the workshop's.
+- **2026-11-04 — a well flips with the card it sits in (`--tau-well`).** On the dashboard every
+  chip, bar track, tab count, origin pill, stat box and table header inside a green card was on
+  `--tau-surface-2/3`, which tonal maps to a green 2–4% below the card: green on green, found by a
+  rendered audit (every filled element within ΔL 0.05 of the fill under it, on all six screens).
+  Rule now: **a well is white inside a green card and green inside a white one.** Each card-like
+  block declares `--tau-well: var(--tau-card-well)`; `--tau-card-well` is white in the tonal scope
+  and flips to `--tau-container-high` wherever a container hands its children a white `--tau-card`,
+  so the two are always set together. Declared on the card, not the wrapper, so a non-painting
+  wrapper between them inherits the card's answer. Shared components in `components.css` §20; the
+  dashboard's own blocks (and `.drill-panel` joining the white handoff) in its tonal block. **A
+  table header takes the card's tone**, carried by type and its strong rule, not a darker strip.
+  **Origin pills lose their tint inside a card** — the dot and the label carry the origin. Not
+  taken: deeper wells (≈ L 0.86), which run into `--tau-select` and the pale measurement greens.
+  Re-audited clean at 1280 and 768, light and dark.
+- **2026-11-05 — "+ Add" became "+ New", and it and the account chip are the rail's pinned foot**
+  (owner, two steps the same day: first beside the account chip in the app bar, then both moved). The
+  drawer already put the account chip at its foot on a phone; now every size matches. The **app bar is
+  the mark and search only**; the **rail holds where you go (its body) and what you do and who you are
+  (its foot)**, set apart by a rule and pinned under the scrolling list. "+ New" spans the rail (forest,
+  the one primary action); the chip sits under it; both menus open upward. Not a Home pill: the pill row
+  means "this is waiting". `mountRailDrawer` is no longer handed the chip on the dashboard, so it
+  doesn't move it (`.rail-foot--pinned`, `dashboard.html`). **Sized as a pair**: the account chip is the same 40px
+  as "+ New" and full width, outlined where "+ New" is filled. **Their menus step out of the rail** —
+  offset to its right, bottom-aligned with their control, `--tau-shadow-lift`, `--tau-r-xl` — a layer
+  over the page rather than a drop-down inside the nav; in the drawer they open upward instead. **Then
+  one row** (owner, option B of https://claude.ai/artifact/QkF87fm6up5D7kcTMN8Sa2): a round 40px "+"
+  (its word kept as accessible name and tooltip — learned once, in one fixed place) beside the account
+  chip, which takes the rest of the row (initials tried and removed, owner). The "+" is a drawn icon
+  (`icons.js` `add`), not the character, which sits on the text baseline and never lands in the true
+  centre of a round button. Both menus anchor to the
+  foot, not their control, so they open just past the rail's edge.
+- **2026-11-05 — the teacher rail has two levels, set by type** (owner, from
+  https://claude.ai/artifact/MXJ74k3oDPZNtiYtGWDgMV, after two rounds). It read flat: group eyebrows,
+  destinations and filters were near one size, and only an indent separated them. Now **primary**
+  (`.rail-item-section`: Home, Classes, Assignments, Students) is **17px / 700** and each is the link
+  to its section's landing page; **secondary** (`.rail-item-nested`: each class, and the filters Open,
+  Archived, Worth a chat, Missing work) is **14.5px / 400**, indented, 600 when selected. A rule sets
+  each section apart. No icons (tried and removed, owner) and no count lines under classes. "All
+  assignments" / "All students" rows went — the section name is that link. Modifiers in
+  `components.css`, so the student app's rail is untouched.
+- **2026-11-05 — Home's behavioral patterns are one flat list, the tier a turn-plot square** (owner).
+  Most students first. The tier (passive / high agency) is a 14px square in the report turn plot's
+  ramp, `--tau-agency-N` (hue 162, more forest = more of the student's own thinking): **step 4 for
+  high agency, step 2 for passive** — step 1 is within a few percent of the tonal card and vanishes.
+  The tier is also a word on each card ("High agency · 5 students · …"), so colour is never the only
+  channel. Replaces the two groups under mono `.pattern-group-label`s on Home; the assignment page still
+  uses them. The ramp leaves the report for the first time here — its comment in `report.css` says it is
+  not yet settled for promotion, so it is used page-local, not as a component.
+- **2026-11-05 — Home's cover is the date, with what is waiting as pills under it** (owner). Same
+  cover as a class (`.page-cover*`, renamed from `.class-cover*`); the pills (`.waiting-pill`,
+  `dashboard.html`) take the page tabs' scale because they hold the same place. Each is actionable and
+  rare (it links to its list, and exists only when something waits), so it earns enclosure. **The time
+  word is the bold part**, read against the date. A due draft is neutral — a deadline is not a
+  severity; missing work and Worth a chat keep their colours. The visible date is Home's `<h1>`.
+- **2026-11-06 — the Assignment page takes the cover, and its pills count that assignment alone**
+  (owner). Third use of `.page-cover*`, after Home and the Class page, so the 2026-11-05 line below
+  saying every other screen keeps the 26px `.content-title` no longer holds for it. The tracked
+  label carries the status (*Open assignment* / *Closed assignment*), which replaces the chip, and names
+  the class or classes, which the page never stated. The actions are on the label's row, as on
+  the Class page. The pills are `waitingRow`'s, scoped by `assignmentId`: the draft pill names only
+  the draft and scrolls to its timeline card; *missing a draft* and *worth a chat* count this
+  assignment and open Browse Students narrowed to it. The old `.agg-chip-row` is gone from this page
+  (the class card and the drill keep it). Rendered at 1280 and 390.
+- **2026-11-09 — the workspace: the start is a cover, and it minimizes when a session starts**
+  (owner). With no session open, the assignment is a `.page-cover` on the ground above the chat card,
+  with the name very large (no arrow), the instructions in full under it at 68ch, and, after a
+  rule, *Start a new session* and its one line of guidance. The empty chat card is not drawn while a
+  session can be started; the cover is the whole start. When a session
+  starts it folds away (grid rows 1fr → 0fr with the padding, `--tau-dur-medium`, no transition under
+  reduced motion). The name moves into the masthead, in line with the chat's own text (the mark spans
+  the sessions rail plus the chat's gutter, so the bar's columns match the page's; no arrow, since
+  Home is in the rail), and the instructions become
+  the *Instructions* button at the bar's right end. This is M3's large-to-small top app bar, tied to the
+  start of work rather than to scroll, and it replaces the breadcrumb. *+ New session* is a forest fill
+  (a primary fill, one of forest's jobs), since sessions are the rail's whole job. **Home is a tonal
+  button** (`--tau-container` fill, forest text) above the account chip at the rail's foot, under a
+  rule: visible against the rail without competing with *+ New session*. **Submit draft is in the
+  masthead** at the right end, after Instructions and the same size (`btn-primary btn-sm`). It is the
+  assignment's action, since it hands in the whole draft, and it is one button at every size.
+  Rendered at 1280, 768 and 390.
+- **2026-11-09 — the student home takes the cover, the waiting pills and the rail foot** (owner).
+  `.page-cover*`, `.waiting*` and `.rail-foot--pinned` moved from `dashboard.html` to
+  `components.css` §22, now that two surfaces use them. The title rule is `.page-cover
+  .page-cover-title`, so a page's own heading class cannot out-cascade it. New pill kind: **`.is-note`,
+  auditor violet**, for a note in the teacher's words. It is the auditor's existing job, and the
+  student's old note chip already used it. Student Home's label is the date and its title is the
+  greeting. The student cover is its own `container-type: inline-size`, because the pane is not a size
+  container (it would trap the tray and menus). The account chip sits at the foot of a *navigation*
+  rail only. Where the column is something else (the workspace's sessions list, with Submit at its
+  foot), the chip stays in the masthead. Rendered at 1280 and 390.
+- **2026-11-09 — the Class overview's *Where ideas are coming from* has no card** (owner). A card
+  around one row of origin pills, right under `.page-tabs`, read as part of the tab track. The pills
+  now sit on the ground under their heading, with their own tint. Considered and not taken for now:
+  `.page-tabs` as an underline bar on a full-width rule, which would end the pill-on-pill stack
+  outright. Revisit it if the tabs still blur into the waiting pills.
+- **2026-11-09 — the due-draft pill gets its own hue, `--tau-schedule` (olive, 110)** (owner). It
+  had the neutral `--tau-container`, which read as the ground's green rather than as something to go
+  to. Rejected: blue (`--tau-tool-info` is the tool's voice, and line 756 says a teacher may discount
+  it, which a deadline must not be) and purple (`--tau-auditor` is the teacher's quoted words, and its
+  tint is nearly identical to the Passive level chip). Four hues were rendered in place: 340 and 355
+  read as the red *missing* pill beside them, and 125 was still green. Tokens are in all four theme
+  blocks of `tokens.css`. Contrast: light text 15.1:1, icon 6.3:1; dark text 12.6:1, icon 8.7:1.
+- **2026-11-09 — the three list pages take the cover; what is waiting is a line, and filters are
+  chips** (owner). **A pill is always a route; a chip is a filter; a summary is text.** All classes,
+  All assignments and All students (and its narrowed forms) use `listCover()`. The old meta line becomes
+  the tracked label. Under the title, `.waiting-line` states what is waiting in the table's own unit
+  (*3 classes with students worth a chat · 3 with missing drafts*), at the pills' scale, as text with
+  no enclosure or icon, and the numbers keep the pills' colours. It does nothing when clicked: the table is the way in.
+  The chip row is search · view chips (Active/Archived, All/Open/Closed) · a `.chip-sep` rule · *Worth
+  a chat* · *Missing work*. The view and flag chips combine. Superseded the same day: a first pass made
+  the pills themselves filter the table (pressed state, close mark). The owner rejected it because a
+  pill that filters and a pill that goes somewhere looked identical. Rendered at 1280 and 390.
+  **Later the same day, All assignments shows only the drafts coming due**, as Home's olive
+  `.waiting-pill.is-due`. They are routes, so they are pills, and a deadline looks the same on every
+  surface. (A text-link line, `.waiting-link`, was tried first and deleted.) Its *worth a chat* /
+  *missing* counts are gone because the chips below filter on the same facts, so the counts said them
+  twice. With nothing due, nothing renders under the title. **All classes and All students have no line at all**, for
+  the same reason. Their cover is the label and the title, then the chip row. **Rule: a list page never
+  states a count its chips filter on.**
+- **2026-11-05 — the Class page is a cover, two page tabs, and sections** (product owner, from
+  https://claude.ai/artifact/6xcDw2LzweAwEdrgNchkhr). The meta line and the ink rule under the name
+  are gone; each fact moved to where it is acted on (student count → Manage roster; assignment count →
+  the Assignments tab; Worth a chat → its card; the measurement-improvement date → the ⋯ menu item that
+  turns it off). **Overview** is one page of sections: Follow up · Where ideas are coming from ·
+  Coaching note · *Patterns in how students used the AI* · *Agency and dimensions across assignments*
+  (headings name their content, not a kind of thing — owner, same day). **Assignments** holds the Open and Closed groups.
+  The Class overview card and its Overview / Patterns / Trends tabs are deleted
+  (`renderClassAggregateCard` → `renderClassOverview`, `classTab` → `classView`). New component
+  `.page-tabs` (`components.css`). Rendered at 1280 and 390, both tabs.
+- **2026-11-05 — the class name is set as a cover** (product owner, option A of
+  https://claude.ai/artifact/ADggtUktyAXaRa37nK6C75, **in the app's own face** — no web font). Class
+  page only: a tracked *Class* label with the actions on its row, the name at 800 /
+  `clamp(44px, 9cqi, 104px)` / 0.92 / −0.045em, balanced, then an **ink rule** carrying the meta line
+  in place of the header's bottom border (`.class-cover*`, `dashboard.html`). Every other screen keeps
+  the 26px `.content-title`. Rendered at 1280 and 390.
+- **2026-11-05 — the Class page's overview is a section, and the screen title is the `<h1>`.** The
+  overview card is gone: *Class overview — progression across the term* is a `.group-title` on the
+  page, its Overview / Patterns / Trends tabs sit under it on the page, and each tab's blocks are
+  cards (`.section-card`, `.section-stack`). Trends is two cards, each keeping its own head with scope
+  and info dot, since the section heading also heads the other two tabs. The Home classes were renamed
+  `.page-section` / `.section-card` to be shared. The assignment cards below are unchanged.
+- **2026-11-05 — Home is sections of cards** (product owner, from
+  https://claude.ai/artifact/VJS8CPGdvJ8MhGY8BXzztY). Section headings moved out of the cards onto the
+  page ground (see *Hard Constraints*); `.home-band` is deleted. The three follow-up queues and each
+  class are their own cards (the card is the button); patterns sit directly under their heading; Agency
+  and Dimensions are two cards under one *Over time* heading that carries the scope and the info dot
+  (`renderMovement(..., { inCard: true })`, `movementTip()` in `viz.js`). The flow keeps its white
+  `.viz-card` inside the green card, because the ribbon opacities and legend mixes are validated
+  against white. The page ground stayed `--tau-page`, by the owner's instruction. Deleted with it:
+  `statRow()`, `.class-row*`, `.stat-group-lbl`, `.home-cols*`, `.stat-row-count` (the last still
+  referenced by `elevation-lab.html`, a lab). Rendered at 1280 and 390.
+- **2026-11-04 — the agency composition has no track** (product owner). First pass put its tracks on
+  the white well above; an empty level then drew a full-length white slab that read as a bar of its
+  own, and white everywhere took the page off the brand green. A recessed track was offered and
+  declined. Now: **the bar's length against the whole cohort is the count, and nothing is drawn
+  behind it**; a **zero row is a stub — the bar before it grows: 4px wide, the bar's full 18px height, in its level's own fill** (first an 8px neutral dot, then a level-coloured dot, the same day) (an
+  exception to the dot rule, recorded there); a non-zero bar is at least 10px, so a stub never passes for one student. *Not enough evidence*
+  follows the same geometry in **grey** (`--tau-ink-faint` at the levels' 65% mix, no hue — owner's
+  call; first drawn dashed and hatched like `.dbar-off-cell`), set apart by the dashed rule above it. `.comp-off-track` is deleted (`viz.js` `renderCompHTML`,
+  `components.css`). The dimension bars are unchanged: a stacked partition has no empty track.
 - **2026-11-02 — the workshop room's *How Tau decides a level* is four steps across**
   (`workshop-room.js` `buildHow`, `workshop-room.css` `.tf-*`; page-local, under the workshop
   exception). ① inputs → ② four dimensions → ③ **Read together** → ④ one level, from

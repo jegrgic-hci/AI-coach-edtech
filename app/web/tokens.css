@@ -306,6 +306,16 @@
   --tau-tool-info-bg: oklch(0.965 0.015 205);
 
   /* ---------------------------------------------------------------
+   * 5a2. SCHEDULE — a draft coming due (2026-11-09, owner). One job: the
+   * due-draft pill under a cover. Hue 110, the one gap on the wheel that
+   * borrows no neighbour's meaning — rose (340-355) read as the attention
+   * pill beside it, and 125 was still the ground's green. Not a severity:
+   * a deadline is not a problem. The fill carries it; text stays ink.
+   * --------------------------------------------------------------- */
+  --tau-schedule:    oklch(0.45 0.10 110);
+  --tau-schedule-bg: oklch(0.945 0.045 110);
+
+  /* ---------------------------------------------------------------
    * 5b. ORIGIN — where an idea in the essay came from.
    * Student-facing, so it inherits the coach-voice rule: this axis
    * describes authorship, not quality. The previous green/amber/red
@@ -610,6 +620,9 @@
     --tau-tool-info:    oklch(0.80 0.09 205);
     --tau-tool-info-bg: oklch(0.25 0.035 205);
 
+    --tau-schedule:    oklch(0.82 0.10 110);
+    --tau-schedule-bg: oklch(0.27 0.045 110);
+
     --tau-origin-you-bg:      oklch(0.27 0.035 162);
     --tau-origin-together-bg: oklch(0.25 0.022 162);
 
@@ -658,6 +671,7 @@
   --tau-positive-bg: oklch(0.26 0.032 158); --tau-caution-bg: oklch(0.26 0.034 72); --tau-attention-bg: oklch(0.26 0.032 18);
   --tau-auditor: oklch(0.80 0.09 300); --tau-auditor-bg: oklch(0.25 0.035 300);
   --tau-tool-info: oklch(0.80 0.09 205); --tau-tool-info-bg: oklch(0.25 0.035 205);
+  --tau-schedule: oklch(0.82 0.10 110); --tau-schedule-bg: oklch(0.27 0.045 110);
   --tau-origin-you-bg: oklch(0.27 0.035 162); --tau-origin-together-bg: oklch(0.25 0.022 162);
   --tau-meter-track: oklch(0.30 0.030 162);
   --tau-scrim: #00000099;
@@ -693,6 +707,7 @@
   --tau-positive-bg: oklch(0.96 0.022 158); --tau-caution-bg: oklch(0.96 0.024 72); --tau-attention-bg: oklch(0.96 0.022 18);
   --tau-auditor: oklch(0.42 0.09 300); --tau-auditor-bg: oklch(0.965 0.015 300);
   --tau-tool-info: oklch(0.42 0.09 205); --tau-tool-info-bg: oklch(0.965 0.015 205);
+  --tau-schedule: oklch(0.45 0.10 110); --tau-schedule-bg: oklch(0.945 0.045 110);
   --tau-origin-you-bg: oklch(0.955 0.022 162); --tau-origin-together-bg: oklch(0.962 0.014 162);
   --tau-meter-track: oklch(0.945 0.020 162);
   --tau-scrim: #16191C66;
@@ -722,6 +737,10 @@
   --tau-surface-2: var(--tau-container-high);
   --tau-surface-3: var(--tau-container-highest);
   --tau-shadow:    0 0 #0000;
+  /* The well inside a card (a chip, a bar track): white on the green card.
+     Wherever a container sets --tau-card white for its children it sets this
+     to --tau-container-high beside it. components.css §20 has the rule. */
+  --tau-card-well: var(--tau-container-lowest);
 }
 /* The workshop's faint ink. #686C71 measures 4.2:1 on --tau-container-high,
    where tonal puts wells; this clears 4.7 on every tonal step and the tint. */

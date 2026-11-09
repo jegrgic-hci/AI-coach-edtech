@@ -1358,11 +1358,28 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 .rail-item.active .rail-item-name { color: var(--tau-forest); font-weight: 600; }
 .rail-item.active .rail-item-meta { color: var(--tau-forest); }
 
-/* A row that filters the row above it rather than being its own destination
-   (Open under All assignments, Worth a chat under All students). Indented
-   and a step down in size so it doesn't visually tie with what it filters. */
-.rail-item-nested { padding-left: var(--tau-s6); min-height: 38px; }
-.rail-item-nested .rail-item-name { font-size: var(--tau-text-sm); }
+/* TWO LEVELS, BY TYPE (2026-11-05, the teacher rail). A section's name is
+   the PRIMARY row — 17px / 700, and itself a link to the section's landing
+   page. Everything under it is SECONDARY — a class, or a filter of the
+   section (Open, Worth a chat) — at 14.5px / 400, indented. Size and weight
+   carry the level; the indent only confirms it. Before this, only the indent
+   did, and the rail read flat. */
+/* Side padding = the pill's radius (half its height), so no text ever sits
+   inside the curve of its own highlight (owner, 2026-11-05). */
+.rail-item-section { min-height: 46px; padding-inline: 23px; }
+.rail-item-section .rail-item-name { font-size: 17px; font-weight: 700; letter-spacing: var(--tau-track-title); }
+.rail-item.rail-item-section.active .rail-item-name { font-weight: 700; }
+/* The indent is a MARGIN, not padding (2026-11-05, owner): the row's pill —
+   hover and selected — starts where the indent does, so the text sits with
+   the same space either side of it instead of floating right inside a pill
+   that runs to the rail's edge. Padding = radius, as on the section rows. */
+.rail-item-nested { margin-left: var(--tau-s4); width: calc(100% - var(--tau-s4)); min-height: 36px; padding-inline: 18px; }
+.rail-item-nested .rail-item-name { font-size: var(--tau-text-md); font-weight: 400; }
+.rail-item.rail-item-nested.active .rail-item-name { font-weight: 600; }
+/* Sections are set apart by a rule; rows within a section sit close. Only
+   on a rail built from sections — the student app's rail keeps its gap. */
+.rail-body:has(.rail-item-section) { gap: var(--tau-s2); }
+.rail-body > .rail-group:has(> .rail-item-section) { border-top: 1px solid var(--tau-line-strong); padding-top: var(--tau-s2); }
 
 /* Identity block — who you are, at the top of a rail that has one. */
 .rail-identity { display: flex; align-items: center; gap: var(--tau-s3); min-width: 0; }
@@ -1717,6 +1734,46 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
+/* --- .page-tabs — PRIMARY TABS: switch a whole page between its views.
+   Added 2026-11-05 for the Class page (Overview / Assignments), from
+   https://claude.ai/artifact/6xcDw2LzweAwEdrgNchkhr. The report jump nav's
+   construction (report.css .report-jump-track), sized for a page rather than
+   a sticky bar: a --tau-container pill track, the current view filled with
+   --tau-select and ink at 600 — the tonal selection, so it never reads as a
+   reading, and no forest (selection is chrome). Louder than .card-tabs on
+   purpose: these switch the page, .card-tabs switch a card's views, and the
+   secondary underline chooses a chart's reading.
+   FULL WIDTH ON A WHITE TRACK (2026-11-06, product owner): the waiting pills
+   above it on the Class page share the pill shape, fill and scale, so the
+   tabs read as one more pill. Spanning the pane is what separates them; the
+   white track makes --tau-select read as sage. White on --tau-page needs the
+   1px edge to be seen at all — it is the control's border, like an outlined
+   button's, not a surface separated by outline. The segments share the
+   width; never scrolling. */
+.page-tabs {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+  gap: 2px; padding: 4px; width: 100%;
+  background: var(--tau-container-lowest); border: 1px solid var(--tau-line);
+  border-radius: var(--tau-r-pill);
+}
+.page-tab {
+  min-width: 0; min-height: var(--tau-target); padding: 0 var(--tau-s6);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--tau-s2);
+  border: none; background: none; border-radius: var(--tau-r-pill); cursor: pointer;
+  font: inherit; font-size: var(--tau-text-lg); font-weight: 500; color: var(--tau-ink-soft);
+  white-space: nowrap;
+  transition: background var(--tau-dur-short) var(--tau-ease-standard), color var(--tau-dur-short) var(--tau-ease-standard);
+}
+.page-tab:hover { color: var(--tau-ink); background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
+.page-tab:focus-visible { outline: var(--tau-focus-ring); outline-offset: 2px; }
+.page-tab.active { background: var(--tau-select); color: var(--tau-on-select); font-weight: 600; }
+.page-tab-count {
+  font-size: var(--tau-text-label-sm); font-weight: 700; font-variant-numeric: tabular-nums;
+  background: var(--tau-container-lowest); color: var(--tau-ink-soft);
+  border-radius: var(--tau-r-pill); padding: 1px 8px;
+}
+@container pane (max-width: 479px) { .page-tab { padding: 0 var(--tau-s3); font-size: var(--tau-text-md); } }
+
 /* --- .card-tabs--secondary — tabs that choose WITHIN a view, after M3's
    primary/secondary tab split. PROVISIONAL, 2026-09-30: on trial on
    Movement's dimension selector, not yet a designsystem.md rule.
@@ -1725,11 +1782,25 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    carried "this is the main switch" steps down one notch: smaller, lighter
    type, an ink rather than forest underline, and a hairline instead of 2px.
    Active state is weight plus underline, never colour alone. */
-.card-tabs--secondary { gap: var(--tau-s4); }
-.card-tabs--secondary .card-tab { font-size: var(--tau-text-xs); font-weight: 500; padding-bottom: 7px; }
-.card-tabs--secondary .card-tab.active { color: var(--tau-ink); font-weight: 600; border-bottom-width: 1px; border-bottom-color: var(--tau-ink); }
-/* Between the two Movement mounts on the class Trends tab. */
-.movement-gap { height: var(--tau-s7); }
+/* 2026-11-05: M3 secondary tabs proper. At 11.5px with a 1px rule, the
+   selected dimension differed from the others by weight alone and could not
+   be found at a glance. Now a 48px target, a 2px ink indicator across the
+   whole tab, and a --tau-line-strong rule that holds on the tonal card green.
+   Still an underline and still ink, so it stays quieter than the chart. */
+.card-tabs--secondary { gap: 0; border-bottom-color: var(--tau-line-strong); }
+.card-tabs--secondary .card-tab {
+  font-size: var(--tau-text-sm); font-weight: 500; min-height: 48px;
+  padding: 0 var(--tau-s4); border-bottom-width: 2px;
+  transition: color var(--tau-dur-short) var(--tau-ease-standard), background var(--tau-dur-short) var(--tau-ease-standard);
+}
+.card-tabs--secondary .card-tab:first-child { padding-left: var(--tau-s1); }
+.card-tabs--secondary .card-tab:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
+.card-tabs--secondary .card-tab.active { color: var(--tau-ink); font-weight: 600; border-bottom-color: var(--tau-ink); }
+/* Never scroll sideways (Hard Constraints): on a narrow pane the four share
+   the width and their names wrap to two lines rather than truncate. */
+@container pane (max-width: 599px) {
+  .card-tabs--secondary .card-tab { flex: 1 1 0; min-width: 0; padding: 0 var(--tau-s1); line-height: 1.2; font-size: var(--tau-text-xs); }
+}
 
 /* --- .seg — THE TOGGLE. A fourth selector, and the justification for it is a
    distinction the other three do not cover: .card-tabs switches between views
@@ -1886,8 +1957,19 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
   align-items: center;
 }
 .comp-name { font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-ink); }
-.comp-track { background: var(--tau-surface-2); border-radius: var(--tau-r-sm); height: 18px; overflow: hidden; }
-.comp-fill { display: block; height: 100%; border-radius: var(--tau-r-sm); }
+/* NO TRACK (2026-11-04, product owner). A filled track behind every row drew
+   a full-length slab for each empty level, which on a tonal card read as a
+   bar of its own in whatever tone it took. The bar's length against the
+   whole cohort is the count; the plot line is only the space it grows in.
+   A zero row is a dot where the bar would start: a stated exception to the
+   dot rule (the count beside it says 0 too), taken so an empty level still
+   has a mark on the line and the column of starts stays legible. */
+.comp-track { display: flex; align-items: center; height: 18px; }
+.comp-fill { display: block; height: 100%; min-width: 10px; border-radius: var(--tau-r-sm); }
+/* The bar before it grows: full height, a sliver wide, in its level's own
+   colour (below), so the row keeps its identity at zero. 4px against the
+   10px floor above, so a zero never passes for one student in a big class. */
+.comp-zero { width: 4px; height: 100%; border-radius: 2px; flex-shrink: 0; }
 /* --tau-scale-N, not --tau-band-N-bg. The band tokens are a CHIP palette:
    four hues (280/205/242/162) at one lightness, built to identify one
    band at a time on one student's report. Four of them side by side as
@@ -1900,10 +1982,10 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
    their own multi-hue --tau-level-N: sharing a ramp put Passive and
    "didn't happen" in one colour on side-by-side charts measuring
    different things. See tokens.css. */
-.comp-1 .comp-fill { background: color-mix(in srgb, var(--tau-level-1) 65%, var(--tau-card)); }
-.comp-2 .comp-fill { background: color-mix(in srgb, var(--tau-level-2) 65%, var(--tau-card)); }
-.comp-3 .comp-fill { background: color-mix(in srgb, var(--tau-level-3) 65%, var(--tau-card)); }
-.comp-4 .comp-fill { background: color-mix(in srgb, var(--tau-level-4) 65%, var(--tau-card)); }
+.comp-1 :is(.comp-fill, .comp-zero) { background: color-mix(in srgb, var(--tau-level-1) 65%, var(--tau-card)); }
+.comp-2 :is(.comp-fill, .comp-zero) { background: color-mix(in srgb, var(--tau-level-2) 65%, var(--tau-card)); }
+.comp-3 :is(.comp-fill, .comp-zero) { background: color-mix(in srgb, var(--tau-level-3) 65%, var(--tau-card)); }
+.comp-4 :is(.comp-fill, .comp-zero) { background: color-mix(in srgb, var(--tau-level-4) 65%, var(--tau-card)); }
 /* Tabular so four rows read as a column of magnitudes. The unit is
    stated once by the section head; repeating "students" on four rows
    would be noise, which is the one place this departs from the
@@ -1936,7 +2018,12 @@ textarea.deemphasized { border-color: var(--tau-line); color: var(--tau-ink-soft
 }
 .comp-off .comp-name { color: var(--tau-ink-faint); font-weight: 500; }
 .comp-off .comp-count { color: var(--tau-ink-faint); font-weight: 600; }
-.comp-off-track { height: 18px; border-radius: var(--tau-r-sm); border: 1px dashed var(--tau-line-strong); }
+/* Off the scale, so grey: no hue, never a level fill (2026-11-04, product
+   owner; was dashed and hatched like .dbar-off-cell). The dashed rule above
+   the row still sets it apart from the four. Same 65% mix as the levels so
+   it carries the same weight. */
+.comp-off :is(.comp-off-fill, .comp-zero) { background: color-mix(in srgb, var(--tau-ink-faint) 65%, var(--tau-card)); }
+.comp-off-fill { display: block; height: 100%; min-width: 10px; border-radius: var(--tau-r-sm); }
 
 /* --- The band distribution: a DIVERGING STACKED BAR, split at the 2|3
    seam. Replaces the four coloured count-cells, which failed for a
@@ -2252,7 +2339,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
   padding: 1px 0 1px 13px; margin: 0 0 var(--tau-s4);
   font-size: var(--tau-text-sm); line-height: 1.55; color: var(--tau-ink);
 }
-.viz-lede b { font-weight: 700; }
+.viz-lede b { font-weight: inherit; }
 
 /* --- .dist-panel — the band-distribution panel. ONE card, four rows.
    NAMED .dist-*, NOT .dim-*, and that is load-bearing: dashboard.html's inline
@@ -2384,43 +2471,8 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
 /* .home-cols-2up deleted 2026-09-29 — no renderer uses it; .cols-2up above
    is what it was generalised into. */
 
-/* The top row: the triage counts, and the same counts per class. Same
-   1.45fr/1fr as .home-cols and for the same reason — but STRETCHED
-   rather than start-aligned, which .home-cols cannot be. That rule pairs
-   a grey band with a white card, where differing heights read as normal;
-   here it is two grey bands side by side, and a short one beside a tall
-   one reads as ragged rather than as two sections. */
-/* 1fr / 1fr, where every other split on this page is asymmetric. Equal
-   widths assert the two halves are a matched pair, and once the triage
-   queues are rows rather than tiles that is exactly what they are — two
-   lists of navigating count-rows over the same roster. The asymmetry was
-   right while one side was a metric readout and the other an entity
-   index; it stopped being right when they became the same component. */
-.home-cols-top {
-  display: grid; grid-template-columns: 1fr;
-  gap: var(--tau-s6); align-items: stretch;
-}
-.home-cols-top > .home-col { min-width: 0; }
-/* Two up when the pane holds ~340px a side — .feed-pair's threshold (§19c).
-   Was a 1200px window, which at 768 with the navigation rail stacked a pair
-   that fits, and asked nothing of the pane it sits in. */
-@container pane (min-width: 720px) { .home-cols-top { grid-template-columns: 1fr 1fr; } }
-/* The tiles used to be vertically centred here to disguise the fact that
-   their band started its content lower than the labelled band beside it.
-   Giving that band its own eyebrow fixes the cause — both now start at the
-   same y — so the centring is gone rather than kept as decoration. */
-
-/* The count keeps display weight — triage is the top of this page's
-   hierarchy — while the unit stays body-sized beside it, so the pair reads
-   as one phrase rather than as a number with a caption under it. */
-.stat-row-count { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); font-variant-numeric: tabular-nums; }
-/* Right-aligned in a fixed box so the three numerals form a column. Without
-   it the shared unit word right-aligns and the digits go ragged behind it,
-   which is the one comparison this list exists to support. */
-.stat-row-count b {
-  font-size: 17px; font-weight: 800; margin-right: 3px;
-  display: inline-block; min-width: 2.2ch; text-align: right;
-}
+/* .home-cols-top deleted 2026-11-05 — Home is sections of cards now
+   (dashboard.html, .home-section). */
 
 
 /* --- Pattern group heading. The tier's only colour channel: it rides the
@@ -2459,7 +2511,7 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
   font-size: var(--tau-text-sm); color: var(--tau-ink-faint); line-height: 1.5;
   margin: var(--tau-s4) 0 0;
 }
-.viz-card-foot b { color: var(--tau-ink-soft); }
+.viz-card-foot b { color: var(--tau-ink-soft); font-weight: inherit; }
 
 
 /* --- .flow-* / .trend-* — MOVEMENT. Graduated out of dashboard.html's inline
@@ -2534,14 +2586,19 @@ button.dbar-key-item:focus-visible { outline: var(--tau-focus-ring); outline-off
    as two unrelated notices — which is exactly the complaint that started this.
    One paragraph, no container, and the handoff carried by the writing.
 
-   Bold lead-in, plain continuation, ONE ink colour throughout. No tier colour
-   on the state word: green-up/red-down grades a room on improvement, which is
-   already forbidden on the ribbons this sits above. */
+   Plain throughout, ONE ink colour. No tier colour on the state word:
+   green-up/red-down grades a room on improvement, which is already forbidden
+   on the ribbons this sits above.
+   NO BOLD LEAD-IN since 2026-11-05 (product owner): a bold first sentence
+   under a card title competed with the title and took the card's salience.
+   The lead stays first in the sentence, which is what makes it the lead.
+   Same for .viz-lede and the chart foot. The markup keeps its <b> so the
+   lead is still marked; only the weight is gone. */
 .trend-lede {
   font-size: var(--tau-text-md); line-height: 1.55; color: var(--tau-ink);
   margin: 0 0 var(--tau-s4); max-width: 68ch;
 }
-.trend-lede b { font-weight: 700; }
+.trend-lede b { font-weight: inherit; }
 
 /* --- .trend-block — a distribution that opens onto its own trend. The cue is
  a labelled row under the chart, not a bare chevron: "How the class got here"
@@ -2769,8 +2826,9 @@ min-height: 24px;
   min-height: 0;
 }
 
-/* Visibility by window, for the one control that has to sit in two places
-   (Submit draft: the list's foot, and the conversation's header on compact).
+/* Visibility by window, for a control that has to sit in two places. (Its
+   first user, Submit draft, has one place since 2026-11-09: the workspace
+   masthead.)
    !important because it must beat any component's own display, and a
    utility that loses to the thing it is applied to does nothing. */
 @media (min-width: 600px) { .compact-only { display: none !important; } }
@@ -2937,6 +2995,23 @@ min-height: 24px;
 [data-surface="tonal"] .rail-item.active .rail-item-name,
 [data-surface="tonal"] .rail-item.active .rail-item-meta { color: var(--tau-on-select); }
 
+/* A well is one step off the surface it sits IN, and on tonal that step goes
+   both ways: white inside a green card, green inside a white one. The wells'
+   old token (--tau-surface-2) is a fixed green 2% below the card, so a chip
+   or a tab count inside a card read green on green (2026-11-04).
+   Each card-like block declares --tau-well from --tau-card-well, which is
+   white at the root and flips to green wherever a container hands its
+   children a white --tau-card — declared on the card, so a non-painting
+   wrapper between the card and the well inherits the card's answer, not the
+   wrapper's. A well on no card keeps --tau-surface-2. Pages add their own
+   card-like blocks to this list beside their --tau-card handoff. */
+[data-surface="tonal"] :is(.card, .dist-panel, .viz-card, .trend-block) { --tau-well: var(--tau-card-well); }
+[data-surface="tonal"] :is(.chip-grey, .card-tab .tab-count) {
+  background: var(--tau-well, var(--tau-surface-2)); border-color: transparent;
+}
+/* The active count keeps its own fill. */
+[data-surface="tonal"] .card-tab.active .tab-count { background: var(--tau-positive-bg); }
+
 /* ============================================================================
  * §20  PAGE LOADER — the leaf a page shows while its first data loads.
  * Added 2026-10-30, option A of https://claude.ai/artifact/Gnw324GpCWP2X5Mki32T99.
@@ -3017,3 +3092,96 @@ min-height: 24px;
   .tau-loader .leaf-fill { animation: none; clip-path: none; opacity: 1; }
   .tau-loader .leaf-line { display: none; }
 }
+
+/* ============================================================================
+ * §22  COVER · WAITING PILLS · RAIL FOOT — shared by the teacher dashboard
+ * and the student home (2026-11-09, when the student home took all three;
+ * they were page-local to dashboard.html until then).
+ * ========================================================================== */
+
+/* THE COVER (2026-11-05, product owner). The page's name is the image:
+   heavy, very tight, as large as the pane allows, breaking over two lines
+   rather than shrinking. A small tracked label says what the page is. The
+   app's own face, no web font. Two classes on the title so a page's own
+   heading class (.content-title) cannot out-cascade its size. */
+.page-cover { margin-bottom: var(--tau-s7); }
+.page-cover .page-tabs { margin-top: var(--tau-s6); }
+.page-cover-top { display: flex; align-items: center; justify-content: space-between; gap: var(--tau-s3); }
+.page-cover-label {
+  font-size: var(--tau-text-label-md); font-weight: 600; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--tau-ink-soft);
+}
+.page-cover .page-cover-title {
+  font: 800 clamp(44px, 9cqi, 104px)/0.92 var(--tau-font-ui);
+  letter-spacing: -0.045em; text-wrap: balance; max-width: 13ch;
+  margin: var(--tau-s3) 0 0; color: var(--tau-ink);
+  overflow-wrap: anywhere;
+}
+/* The cover's first line, kept on its own ("Thursday,"). */
+.page-cover-line { display: block; }
+
+/* WHAT IS WAITING — pills under a cover (2026-11-05). The page tabs' scale,
+   because they hold the same place. A pill is always a ROUTE: it takes you to
+   what it names, and exists only when something waits — actionable AND rare,
+   so it earns its enclosure. Filtering is a chip's job, never a pill's. The
+   time word is the bold part. Colour is the kind of thing waiting:
+   attention for missing or overdue work, caution for Worth a chat, the
+   auditor's violet for a note in the teacher's words, and --tau-schedule
+   for a draft coming due — its own hue, because a deadline is not a
+   severity (designsystem.md, Hard Constraints). */
+.waiting { display: flex; flex-wrap: wrap; gap: var(--tau-s2); margin-top: var(--tau-s6); }
+.waiting-pill {
+  display: inline-flex; align-items: center; gap: 10px; min-height: var(--tau-target);
+  padding: 0 var(--tau-s4) 0 14px; border: none; border-radius: var(--tau-r-pill);
+  background: var(--tau-container); color: var(--tau-ink); cursor: pointer; text-align: left;
+  font: inherit; font-size: var(--tau-text-lg);
+  transition: background var(--tau-dur-short) var(--tau-ease-standard);
+}
+.waiting-pill:hover { background: color-mix(in oklab, var(--tau-ink) var(--tau-state-hover), var(--tau-container)); }
+.waiting-pill:focus-visible { outline: var(--tau-focus-ring); outline-offset: 2px; }
+.waiting-pill .tau-icon { width: 18px; height: 18px; flex-shrink: 0; color: var(--tau-ink-soft); }
+.waiting-pill b { font-weight: 700; }
+.waiting-go { color: var(--tau-ink-soft); }
+.waiting-pill.is-missing { background: var(--tau-attention-bg); }
+.waiting-pill.is-missing :is(.tau-icon, .waiting-n) { color: var(--tau-attention); }
+.waiting-pill.is-chat { background: var(--tau-caution-bg); }
+.waiting-pill.is-chat :is(.tau-icon, .waiting-n) { color: var(--tau-caution); }
+.waiting-pill.is-due { background: var(--tau-schedule-bg); }
+.waiting-pill.is-due .tau-icon { color: var(--tau-schedule); }
+.waiting-pill.is-note { background: var(--tau-auditor-bg); }
+.waiting-pill.is-note .tau-icon { color: var(--tau-auditor); }
+.waiting-n { font-weight: 800; font-variant-numeric: tabular-nums; }
+.waiting-none { margin: var(--tau-s6) 0 0; font-size: var(--tau-text-lg); color: var(--tau-ink-soft); }
+
+/* THE RAIL'S FOOT (2026-11-05, owner): who you are, pinned under the rail's
+   destinations and set apart by a rule. The account chip takes the row; a
+   page with a primary action of its own (the dashboard's "+") puts it first.
+   The chip follows the pill rules: the name starts one radius (20px) in, the
+   chevron sits centred in the right end's circle. */
+.rail-foot--pinned {
+  position: relative; flex-direction: row; align-items: center; gap: var(--tau-s2);
+  padding-top: var(--tau-s3); border-top: 1px solid var(--tau-line-strong);
+}
+/* The menus anchor to the FOOT, not their own control, so every menu in it
+   opens from the same edge. */
+.rail-foot--pinned .menu-wrap { position: static; }
+.rail-foot--pinned .account-chip { margin-left: 0; flex: 1; min-width: 0; }
+.rail-foot--pinned .avatar-trigger {
+  width: 100%; min-height: var(--tau-h-control); padding: 0 15px 0 20px; gap: var(--tau-s2);
+  justify-content: flex-start; font-weight: 600; color: var(--tau-ink);
+  border-color: var(--tau-line-strong);
+}
+.rail-foot--pinned .avatar-trigger .whoami-name { max-width: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rail-foot--pinned .avatar-trigger .menu-chevron { margin-left: auto; }
+/* The menus step OUT of the rail (owner, 2026-11-05): offset to its right,
+   bottom-aligned with the control that opened them, at the lifted elevation —
+   a layer over the page, not a drop-down inside the nav. In the drawer there
+   is no room to the right, so they open upward instead. Bottom-anchored, so
+   a tall menu grows up; on a short screen it scrolls inside. */
+.rail-foot--pinned .menu-panel {
+  top: auto; right: auto; bottom: 0; left: calc(100% + var(--tau-s4));
+  min-width: 280px; border-radius: var(--tau-r-xl); padding: var(--tau-s2);
+  box-shadow: var(--tau-shadow-lift); z-index: 60;
+  max-height: calc(100vh - 96px); overflow-y: auto;
+}
+.rail[data-state="drawer"] .rail-foot--pinned .menu-panel { left: 0; bottom: calc(100% + 8px); min-width: 260px; }

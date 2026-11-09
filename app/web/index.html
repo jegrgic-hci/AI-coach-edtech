@@ -22,8 +22,23 @@
 <header class="tau-nav" id="tauNav" data-instant>
   <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="Tau" width="391" height="192">Thinking</span>
   <nav class="tau-nav-crumbs" id="navCrumbs"></nav>
+  <!-- The workspace's assignment title once its cover has collapsed
+       (2026-11-09): the name alone, in line with the chat's own text. Home
+       is in the rail. Always shown on a phone, where the cover is not. -->
+  <div class="ws-nav-title hidden" id="wsNavTitle" aria-hidden="true">
+    <span class="ws-nav-name" id="wsNavName"></span>
+  </div>
   <span class="tau-nav-fill"></span>
   <span class="tau-nav-local hidden" id="navLocal"></span>
+  <!-- The assignment's actions, at the bar's right end (2026-11-09, owner):
+       Instructions once a session has started and the cover's full
+       instructions have folded away, then Submit draft, always — it hands in
+       the whole draft, so it sits with the assignment, not in the sessions
+       rail. -->
+  <div class="ws-nav-actions hidden" id="wsNavActions">
+    <button type="button" class="btn btn-quiet btn-sm ws-instructions" id="wsNavInstructions" data-ws-instructions>Instructions</button>
+    <button type="button" class="btn btn-primary btn-sm ws-submit" id="btnSubmit">Submit draft</button>
+  </div>
   <div class="account-chip" id="accountChip"></div>
   <!-- Appearance lives in the account menu now, on every surface. -->
 </header>
@@ -36,19 +51,20 @@
   <div class="dash">
     <aside class="rail dash-rail" id="homeRail" aria-label="Navigation">
       <div class="rail-body" id="railNav"></div>
+      <!-- The rail's foot (2026-11-09, as the teacher dashboard's): the
+           account chip moves here while this view shows, and back to the
+           masthead for the workspace, which has no navigation rail. -->
+      <div class="rail-foot rail-foot--pinned" id="homeRailFoot"></div>
     </aside>
 
     <main class="dash-main" id="home">
-      <!-- Type on the page with no fill of its own: only content is raised,
-           and a filled bar here would out-pop the cards it introduces. It
-           names the page — the student's greeting on Home, the class on a
-           class page. -->
-      <header class="hero">
-        <div class="hero-text">
-          <h1 class="hero-greeting" id="heroGreeting"></h1>
-          <p class="hero-state" id="heroState"></p>
-        </div>
-        <div class="hero-news" id="heroNews"></div>
+      <!-- The cover (components.css §22, 2026-11-09): a tracked label, the
+           page's name very large, and what is waiting as pills that each go
+           somewhere. Type on the page, no fill of its own. -->
+      <header class="page-cover home-cover" id="homeCover">
+        <div class="page-cover-top"><span class="page-cover-label" id="coverLabel"></span></div>
+        <h1 class="page-cover-title" id="heroGreeting"></h1>
+        <div id="heroNews"></div>
       </header>
 
       <section class="chunk" id="secCurrent">
@@ -81,31 +97,52 @@
          pane shows at a time — data-pane, set by app.js — and Submit draft is
          in BOTH: the list's foot and, compact only, the conversation's header. -->
     <div class="tpl-list-detail" id="wsLayout" data-pane="detail">
+    <!-- Sessions are this rail's whole job (2026-11-09): + New session leads,
+         the draft's previous sessions under it, and Home and who you are
+         below a rule. Instructions and Submit draft are the assignment's, in
+         the masthead. -->
     <aside class="rail pane-list" aria-label="Sessions">
       <div class="rail-head">
-        <details class="acard-disclosure acard-disclosure-prompt ws-prompt">
-          <summary class="acard-disclosure-toggle">
-            <svg class="acard-disclosure-icon" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Instructions
-          </summary>
-          <div id="wsPrompt"></div>
-        </details>
         <button id="btnNewSession" class="new-session-btn">+ New session</button>
       </div>
       <nav class="rail-body" id="sessionList"></nav>
       <div class="rail-foot">
-        <button id="btnSubmit" class="submit-btn">Submit draft</button>
+        <!-- Home, then who you are, under a rule. The account chip is moved
+             in after Home by placeAccountChip('workspace'). -->
+        <div class="rail-foot--pinned ws-account" id="wsRailFoot">
+          <button type="button" class="ws-home-btn" data-ws-home>Home</button>
+        </div>
       </div>
     </aside>
 
-    <section class="chat pane-detail">
+    <div class="ws-detail pane-detail">
+    <!-- The start: the assignment as a cover on the ground above the chat,
+         its instructions in full under the name. Once a session starts, the
+         name folds into the masthead (#wsNavTitle) and the instructions into
+         its button — app.js, syncWsCover. -->
+    <header class="page-cover ws-cover" id="wsCover">
+      <div class="ws-cover-inner">
+        <div class="page-cover-top">
+          <span class="page-cover-label" id="wsCoverLabel"></span>
+        </div>
+        <h1 class="page-cover-title" id="wsTitle"></h1>
+        <div class="ws-brief brief-body" id="wsBrief"></div>
+        <!-- The start's last word, where the empty chat card used to say it:
+             shown only while a session can be started. -->
+        <div class="ws-start">
+          <p class="ws-start-title">Start a new session</p>
+          <p class="ws-start-sub">The AI starts with nothing — not your assignment, not your other chats. Tell it whatever it needs to know.</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="chat">
       <div class="chat-header">
         <!-- Compact only (the template shows it): the step back to the list,
              named for where it goes. -->
         <button type="button" class="pane-back" id="btnSessionsBack"><span id="sessionsBackIcon"></span><span id="sessionsLabel">Sessions</span></button>
         <span id="convTitle"></span>
         <button id="btnRename" title="Rename session">&#9998;</button>
-        <button type="button" id="btnSubmitCompact" class="submit-btn compact-only">Submit draft</button>
       </div>
       <div class="reading-banner hidden" id="readingBanner"></div>
       <div class="mode-banner hidden" id="draftsDoneBanner"></div>
@@ -137,6 +174,7 @@
         <p class="composer-hint">Your teacher can read this session</p>
       </div>
     </section>
+    </div>
     </div>
   </div>
 </div>

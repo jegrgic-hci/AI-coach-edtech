@@ -60,9 +60,6 @@ header {
   transition: background var(--tau-dur-medium) var(--tau-ease-standard);
 }
 .header-lead { display: flex; align-items: center; gap: var(--tau-s3); min-width: 0; }
-/* The title yields before the search field does — min-width:0 on the track
-   alone isn't enough to let a grid item shrink past its content. */
-.header-lead h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .header-end { display: flex; align-items: center; justify-content: flex-end; gap: var(--tau-s2); }
 header.scrolled { background: var(--tau-surface-2); }
 
@@ -588,12 +585,18 @@ header.scrolled { background: var(--tau-surface-2); }
 }
 .gs-empty { padding: var(--tau-s3); font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
 
-/* ── "+ Add", at the top of the rail ──
-   Full width so it reads as the rail's own primary action rather than a
-   floating chip, and .menu-trigger's own 40px/pill/forest treatment is left
-   completely alone — that shape is what stops it reading as a .rail-item. */
-.rail-actions { flex-shrink: 0; }
-.rail-actions .menu-trigger { width: 100%; justify-content: center; }
+/* ── The rail's foot: "+" and the account chip, one row (2026-11-05) ──
+   The foot and the account chip are components.css §22 (.rail-foot--pinned),
+   shared with the student home since 2026-11-09. What is here is the
+   dashboard's own "+": a round 40px button (forest, the one primary action)
+   beside the chip, a drawn icon centred in its circle. */
+.rail-foot--pinned #add-wrap { flex: none; }
+.rail-foot--pinned #add-wrap .menu-trigger {
+  width: var(--tau-h-control); height: var(--tau-h-control); padding: 0;
+  justify-content: center;
+}
+.rail-foot--pinned #add-wrap .add-icon { display: grid; place-items: center; width: 22px; height: 22px; }
+.rail-foot--pinned #add-wrap .add-icon .tau-icon { width: 22px; height: 22px; display: block; }
 /* .rail is the flex column and .rail-body's flex:1/overflow-y is what makes
    the class list scroll — so this wrapper, now sitting between them, has to
    carry the column itself or the rail stops scrolling and the gap collapses. */
@@ -609,7 +612,7 @@ header.scrolled { background: var(--tau-surface-2); }
    Overrides of components.css's .rail/.rail-item, NOT edits to it: .rail is
    shared with the student app (index.html) and admin.html, both of which
    still run the white-ground shell. Page-scoped until a second surface wants
-   this, which is the same placement rule .home-band states below.
+   this, the same placement rule the page-scoped Home cards follow.
 
    Three changes, and each is forced by the ground move rather than chosen:
 
@@ -677,11 +680,30 @@ header.scrolled { background: var(--tau-surface-2); }
      this is the one divider drawn on the ground itself. */
   border-bottom: 1px solid var(--tau-line-strong);
 }
+/* The screen's <h1> (2026-11-05), where the masthead's "Teacher Dashboard"
+   used to be. A step above Title large, because the section headings under
+   it (.group-title) are Title large: at one size the class name and
+   "Class overview" read as peers. Headline size at title weight — it names
+   the page, it is not a sentence, so 700 rather than the headline's 500. */
 .content-title {
-  font: var(--tau-type-title-lg);
+  font: var(--tau-type-headline-md); font-weight: 700;
   letter-spacing: var(--tau-track-title);
   color: var(--tau-ink);
+  margin: 0;
 }
+/* The cover (.page-cover*) and its waiting pills (.waiting*) live in
+   components.css §22 since 2026-11-09, when the student home took them too.
+   What stays here is the dashboard's own: the cover drops .content-header's
+   rule and its spacing, which this sheet sets after components.css loads. */
+.page-cover { border-bottom: none; padding-bottom: 0; margin-bottom: var(--tau-s7); }
+/* The class's sections, after the page tabs. Same rhythm as Home. */
+.page-sections { display: flex; flex-direction: column; gap: var(--tau-s7); }
+/* The coaching note under its own heading: no eyebrow, no lift. Full width
+   like every other block in the section run (owner, 2026-11-05). */
+.teach-note.class-note { box-shadow: none; padding: var(--tau-s4) var(--tau-s5); font-size: var(--tau-text-md); line-height: 1.6; }
+/* Between a list's view chips (All / Open / Closed) and its flag chips
+   (Worth a chat / Missing work): two different questions in one row. */
+.chip-sep { width: 1px; align-self: stretch; margin: 6px 4px; background: var(--tau-line); }
 .content-meta {
   font-size: var(--tau-text-sm);
   color: var(--tau-ink-soft);
@@ -856,7 +878,6 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 /* ── Assignment aggregate panel (Browse Assignments expand + Assignment
    Detail's persisted card) — no student names, trend not raw scores.
    See teacher-dashboard-design.md, "Assignment View — planned redesign". ── */
-.agg-stat-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: var(--tau-s5); }
 /* CHIPS, NOT TILES — 2026-08-22, on the assignment surface. These two counts
    are ROUTES: both exist to be clicked through to the students they name, and
    neither is a reading of the class. A .stat-tile sets a number at --tau-text-2xl
@@ -916,7 +937,7 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    origin chips already established that --tau-sage and --tau-ink-faint both
    fail contrast as text, so colour only ever carries in the dot + background,
    never the label. */
-.origin-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: var(--tau-r-pill); font-size: var(--tau-text-xs); font-weight: 600; color: var(--tau-ink); }
+.origin-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: var(--tau-r-pill); background: var(--origin-tint); font-size: var(--tau-text-xs); font-weight: 600; color: var(--tau-ink); }
 .origin-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
 /* White surface + elevation, not a flat --tau-surface-2 outline — per the
@@ -996,8 +1017,8 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .overview-eyebrow.section-lbl { margin: 0 0 var(--tau-s4); }
 /* A chart card inside a section card is the same object twice. The section
    card is the container now, so the chart draws straight onto it — the rule
-   .home-band .pattern-card states (a child must not float above its own
-   parent), applied to the other white-on-white pairing on this page.
+   that a child must not float above its own parent, applied to the
+   white-on-white pairing on this page.
    Direct child only: the class overview mounts renderMovement inside a
    .tab-panel, where the .viz-card is still the only edge there is. */
 .overview-card > .viz-card { box-shadow: none; padding: 0; }
@@ -1286,7 +1307,9 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    where --tau-surface-2 is a ~3% lightness step off white — added 2026-07-30. */
 .stu-chip[data-filter="all"].active,
 .stu-chip[data-filter="open"].active,
-.stu-chip[data-filter="closed"].active  { background: var(--tau-forest); border-color: var(--tau-forest); color: var(--tau-on-forest); }
+.stu-chip[data-filter="closed"].active,
+.stu-chip[data-filter="active"].active,
+.stu-chip[data-filter="archived"].active { background: var(--tau-forest); border-color: var(--tau-forest); color: var(--tau-on-forest); }
 .stu-chip[data-filter="review"].active  { background: var(--tau-caution-bg); border-color: var(--tau-caution); color: var(--tau-caution); }
 .stu-chip[data-filter="missing"].active { background: var(--tau-attention-bg); border-color: var(--tau-attention); color: var(--tau-attention); }
 
@@ -1330,10 +1353,33 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    The disclosure is the same <details> + chevron the reflection rows in the
    drill panel already use, not a second pattern invented for this. */
 .finding-list { display: flex; flex-direction: column; gap: 10px; }
-/* Elevated on the shell; inside a .home-band the shadow is stripped below and
-   the tint carries the edge instead, so the band case is the FILLED variant
-   and needs no border either. */
+/* Elevated on the page ground: on Home the pattern cards sit directly under
+   their section heading (2026-11-05), no longer inside a band. */
 .pattern-card { background: var(--tau-card); border: 1px solid transparent; border-radius: var(--tau-r-md); box-shadow: var(--tau-shadow); overflow: hidden; }
+/* BEHAVIORAL PATTERNS AS A GRID (2026-11-06, product owner), Home and the
+   Class page. Closed, a card per pattern, the Classes grid's track; open, the
+   card takes the whole FIRST row and the rest keep their order under it
+   (owner, same day — it was dense placement in its own row, which pulled
+   later cards ahead of it). One open at a time (togglePatternCard). Only the
+   open card is out of DOM order, and focus is already on it. */
+.pattern-grid {
+  display: grid; gap: var(--tau-s3);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  align-items: start;
+}
+.pattern-grid > .pattern-card { view-transition-class: pattern-card; }
+.pattern-grid > .pattern-card[open] { grid-column: 1 / -1; order: -1; }
+/* The grow is a view transition, so the browser moves snapshots by
+   transform rather than this CSS animating width (Motion rules). The
+   snapshots keep their own size and clip to the growing group, so a card's
+   text is uncovered as it grows, never stretched. Opening decelerates,
+   closing accelerates; one medium rung either way. */
+::view-transition-group(.pattern-card) { animation-duration: var(--tau-dur-medium); animation-timing-function: var(--tau-ease-decelerate); overflow: clip; border-radius: var(--tau-r-md); }
+html[data-pattern-vt="close"]::view-transition-group(.pattern-card) { animation-timing-function: var(--tau-ease-accelerate); }
+::view-transition-old(.pattern-card), ::view-transition-new(.pattern-card) {
+  height: 100%; object-fit: none; object-position: left top; animation-duration: var(--tau-dur-medium);
+}
+::view-transition-group(.pattern-section) { animation-duration: var(--tau-dur-medium); animation-timing-function: var(--tau-ease-decelerate); }
 .finding-summary {
   display: flex; align-items: center; gap: 14px;
   padding: var(--tau-s3) var(--tau-s5); min-height: var(--tau-target);
@@ -1345,6 +1391,12 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
 .finding-summary:focus-visible { outline: var(--tau-focus-ring); outline-offset: calc(-1 * var(--tau-focus-gap)); }
 .f-body { flex: 1; min-width: 0; }
 .pattern-title { font: var(--tau-type-title-sm); display: block; }
+/* The pattern's tier, as the report turn plot marks a turn: a square in
+   --tau-agency-N. Step 4 for high agency; step 2, not 1, for passive, because
+   step 1 is within a few percent of the tonal card and would not show. */
+.pattern-mark { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; align-self: flex-start; margin-top: 4px; }
+.pattern-mark.is-high { background: var(--tau-agency-4); }
+.pattern-mark.is-passive { background: var(--tau-agency-2); }
 /* The count never stands alone — it sits in the phrase that names its unit
    ("3 students"), weighted and coloured inside that sentence so it still
    reads first. A bare numeral in a column is a number the reader decodes. */
@@ -1405,34 +1457,44 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
    fill AND a shadow is three channels doing one job. --tau-shadow rather
    than -lift because six of these stack down Home and they are peers, not
    one takeaway. */
-.home-band {
-  background: var(--tau-surface-2);
-  border-radius: var(--tau-r-lg);
-  padding: var(--tau-s5);
-  box-shadow: var(--tau-shadow);
+/* HOME IS SECTIONS OF CARDS, 2026-11-05 — replacing .home-band, which put
+   each section's title inside one box and so made everything the section
+   held a card inside a card. The title now sits on the page ground as a
+   .group-title and names every card after it until the next one. Spacing
+   carries the grouping: sections far apart, cards in a section close.
+   The page ground does not change; the cards keep --tau-card. */
+.home-stack { display: flex; flex-direction: column; gap: var(--tau-s7); }
+.page-section { display: flex; flex-direction: column; gap: var(--tau-s3); min-width: 0; }
+.page-section-head {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+  gap: var(--tau-s1) var(--tau-s3);
 }
-/* A child must not float above its own parent. Inside the band the pattern
-   cards are white on sage — the strongest edge on the screen — so they need
-   no shadow of their own, and keeping one made them read as more elevated
-   than the band containing them. Scoped to the band, NOT removed from
-   .pattern-card itself: the class overview mounts the same card inside a
-   white .overview-card, where the shadow is the only separation there is. */
-.home-band .pattern-card { box-shadow: none; }
-.home-stack { display: flex; flex-direction: column; gap: var(--tau-s6); }
+.page-section-head .group-title { margin: 0; }
+.section-card {
+  background: var(--tau-card); border: 1px solid transparent;
+  border-radius: var(--tau-r-lg); box-shadow: var(--tau-shadow);
+  padding: var(--tau-s5); min-width: 0;
+}
+/* One rung under the section heading that names it (Title medium). */
+.section-card .card-title { font: var(--tau-type-title-md); margin: 0 0 var(--tau-s3); }
+.section-card .section-head .card-title { margin: 0; }
+/* Not a breakpoint: the pane decides how many fit. Classes keep one width
+   across rows (auto-fill). */
+.home-grid { display: grid; gap: var(--tau-s3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+.home-grid--classes { grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
 
-/* Asymmetric on purpose. The dimension column carries a long title plus a
-   caption sentence; the class column carries a name and a chip. 50/50 starves
-   one and strands the other — and equal widths would also assert the two are
-   a matched pair, which a metric readout and an entity index are not.
-   align-items: start so each band hugs its own content rather than stretching
-   to match, for the same reason. */
-.home-cols { display: grid; grid-template-columns: 1fr; gap: var(--tau-s6); align-items: start; }
-/* A size container, so a row inside a half-width column reflows on the
-   COLUMN's width (.class-row below) — at 1280 the column is half the pane. A
-   grid track sizes it, so containment costs nothing here. */
-.home-col { min-width: 0; container-type: inline-size; }
-/* The 1200px window this replaced left ~864px of content beside the rail. */
-@container pane (min-width: 860px) { .home-cols { grid-template-columns: 1.45fr 1fr; } }
+/* A class is a card that is also the button. */
+button.section-card { font: inherit; color: inherit; text-align: left; cursor: pointer;
+  transition: background var(--tau-dur-short) var(--tau-ease-standard); }
+button.section-card:hover { background: color-mix(in oklab, var(--tau-ink) var(--tau-state-hover), var(--tau-card)); }
+button.section-card:focus-visible { outline: var(--tau-focus-ring); outline-offset: 2px; }
+.home-class { display: flex; flex-direction: column; gap: var(--tau-s2); }
+.home-class-name { display: flex; justify-content: space-between; gap: var(--tau-s2); font: var(--tau-type-title-sm); color: var(--tau-forest); }
+.home-class-go { color: var(--tau-ink-soft); transition: transform var(--tau-dur-short) var(--tau-ease-standard), color var(--tau-dur-short) var(--tau-ease-standard); }
+.home-class:hover .home-class-go { transform: translateX(2px); color: var(--tau-forest); }
+.home-class-meta { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); }
+.home-class-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
 
 /* DELETED 2026-08-22 (m3-lab §1). This rule existed only because
    .finding-summary's hover fill was ground-dependent: --tau-hover-surface
@@ -1503,45 +1565,6 @@ table.roster tbody tr.drill-row td { background: var(--tau-surface); }
   margin-top: var(--tau-s4);
 }
 
-/* Classes at a glance: rows, not cards.
-   Every other card on Home expands in place; these navigate. Same chrome for
-   two different behaviours is the affordance failure, so the chrome itself
-   now carries the rule — cards expand, rows go somewhere — backed by the two
-   channels the app already uses for it: forest (interactive text, one of its
-   six jobs) and a trailing → (14 existing uses, all navigational).
-   No roster count on the row: a number belongs where its size changes the
-   finding, and a class's headcount never does. */
-.class-row {
-  display: flex; align-items: center; gap: var(--tau-s3);
-  min-height: var(--tau-target); padding: 0 var(--tau-s2);
-  border-bottom: 1px solid var(--tau-line); border-radius: var(--tau-r-sm);
-  cursor: pointer;
-  transition: background var(--tau-dur-short) var(--tau-ease-standard);
-}
-.class-row:last-child { border-bottom: 0; }
-/* The group label draws its own full-width rule, so the row above it must not
-   draw the between-rows one as well — two stacked lines read as a mistake. */
-.class-row:has(+ .stat-group-lbl) { border-bottom: 0; }
-.class-row:hover { background: color-mix(in oklab, currentColor var(--tau-state-hover), transparent); }
-.class-row-name { flex: 1; min-width: 0; font-size: var(--tau-text-sm); font-weight: 600; color: var(--tau-forest); }
-.class-row-go {
-  flex-shrink: 0; color: var(--tau-ink-faint); font-size: var(--tau-text-sm); line-height: 1;
-  transition: transform var(--tau-dur-short) var(--tau-ease-standard);
-}
-.class-row:hover .class-row-go { transform: translateX(2px); color: var(--tau-forest); }
-/* Narrow: the name keeps the first line with its →, the readings drop to the
-   second. Side by side at 390px the chips took the width and the name ran
-   under them. Compact-first, and asks the NEAREST container — the .home-col
-   the row sits in on Home, the pane anywhere else — since a row in a
-   half-width column is as narrow as a row on a phone. */
-.class-row { flex-wrap: wrap; row-gap: var(--tau-s1); padding-block: var(--tau-s2); }
-.class-row-name { flex-basis: calc(100% - 2em); }
-.class-row .chip { order: 1; }
-@container (min-width: 400px) {
-  .class-row { flex-wrap: nowrap; padding-block: 0; }
-  .class-row-name { flex-basis: auto; }
-  .class-row .chip { order: 0; }
-}
 
 /* .f-updated — the "Updated" marker on a finding card. All that survives of
    the fleet-wide "Dimension trends" section, deleted 2026-08-16: it averaged
@@ -1677,29 +1700,34 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
 .reflect-section { font-size: var(--tau-text-sm); color: var(--tau-ink-soft); line-height: 1.5; }
 .reflect-label { color: var(--tau-ink-soft); margin-right: 5px; }
 
-  /* Groups the two "we have no reading on this student" rows under the one
-     tile card. A label rather than a second card: they are the same follow-up
-     list, split by whether the gap is the student's thinking or our sight of
-     it. */
-  .stat-group-lbl {
-    font-size: var(--tau-text-label-sm); font-weight: 700; color: var(--tau-ink-faint);
-    margin: var(--tau-s6) 0 var(--tau-s1); padding-top: var(--tau-s4);
-    border-top: 1px solid var(--tau-line);
-  }
 
 /* ── Tonal ──
    This page on the tonal palette (tokens.css TONAL SCOPE, components.css §20).
    The tokens move the ground, the wells and the resting shadow, and every card
-   here reads --tau-card. What is left is the masthead, the home bands, and the
-   cards that sit inside another card. */
+   here reads --tau-card. What is left is the masthead and the cards that sit
+   inside another card. */
 [data-surface="tonal"] header { background: var(--tau-page); }
 [data-surface="tonal"] header.scrolled { background: var(--tau-container); }
-/* A band is a container on the page, like any card; the pattern cards and
-   charts inside it step up to white. */
-[data-surface="tonal"] .home-band { background: var(--tau-container); border-radius: var(--tau-r-xl); }
 /* A card inside a container is white. Set on the children: --tau-card set on
    the container itself would recolour the container too. */
-[data-surface="tonal"] :is(.home-band, .overview-card, .tl-card) > * { --tau-card: var(--tau-container-lowest); }
+[data-surface="tonal"] :is(.section-card, .overview-card, .tl-card, .drill-panel) > * {
+  --tau-card: var(--tau-container-lowest);
+  --tau-card-well: var(--tau-container-high);
+}
+/* This page's card-like blocks, for the well rule in components.css §20: a
+   chip or a stat box inside one is white while the block is
+   green, and green once a container has handed the block white. */
+[data-surface="tonal"] :is(.section-card, .overview-card, .tl-card, .tbl-wrap, .dim-panel,
+  .pattern-card, .drill-trace, .reflection-arc) { --tau-well: var(--tau-card-well); }
+[data-surface="tonal"] :is(.draft-stat, .goal-field-value, .origin-pill) {
+  background: var(--tau-well, var(--tau-surface-2)); border-color: transparent;
+}
+[data-surface="tonal"] .schedule-slot:not(.overdue) { background: var(--tau-well, var(--tau-surface-2)); }
+[data-surface="tonal"] .schedule-slot:not(.overdue, .live) { border-color: transparent; }
+/* A table is a card, and its header row takes the card's own tone: a darker
+   green strip on the green card was the same 2% step as the wells. Type and
+   the strong rule under it carry the header. */
+[data-surface="tonal"] table.roster th { background: transparent; }
 
 </style>
 </head>
@@ -1708,7 +1736,6 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
 <header>
   <div class="header-lead">
     <span class="tau-nav-mark"><img class="tau-nav-logo" src="assets/logo-mark.png" alt="Tau" width="391" height="192">Thinking</span>
-    <h1 class="masthead-title">Teacher Dashboard</h1>
   </div>
 
   <!-- The global search field, moved out of the rail 2026-08-24. It always
@@ -1735,7 +1762,6 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
     <!-- The shared account menu (api.js mountAccountChip -> components.css
          §14). Was hand-built here, which is why the other four surfaces had no
          menu at all and admin.html had nowhere to put a way back. -->
-    <div class="account-chip" id="accountChip"></div>
   </div>
 </header>
 
@@ -1748,60 +1774,62 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
   <nav class="rail-mini" id="rail-mini" aria-label="Destinations">
     <button type="button" class="rail-mini-menu" data-rail-open aria-label="All classes and filters"><span data-icon="menu"></span></button>
     <button type="button" class="rail-mini-item" data-mini="home" onclick="goHome()"><span class="rail-mini-pill"><span data-icon="home"></span></span>Home</button>
-    <button type="button" class="rail-mini-item" data-mini="classes" data-rail-open><span class="rail-mini-pill"><span data-icon="folder"></span></span>Classes</button>
+    <button type="button" class="rail-mini-item" data-mini="classes" onclick="gotoClasses('active')"><span class="rail-mini-pill"><span data-icon="folder"></span></span>Classes</button>
     <button type="button" class="rail-mini-item" data-mini="assignments" onclick="gotoAssignments('all')"><span class="rail-mini-pill"><span data-icon="description"></span></span>Assignments</button>
     <button type="button" class="rail-mini-item" data-mini="students" onclick="gotoStudents('all')"><span class="rail-mini-pill"><span data-icon="people"></span></span>Students</button>
   </nav>
   <aside id="sidebar" class="rail">
-    <!-- "+ Add" lives here, not in the app bar, since 2026-08-24 — the search
-         field took the header's centre and this is the better home for it
-         anyway: creation sits beside the index of the things it creates.
-         It stays a BUTTON and never takes .rail-item's shape. The rail is
-         otherwise pure navigation ("go somewhere"); this is a command ("do
-         something"), and form is what keeps the two from being confused —
-         position alone would just repeat the mistake we moved search to fix.
-         Static markup, outside #sidebar-nav, because renderSidebar() replaces
-         that node's innerHTML and would destroy the tauMenu binding. -->
-    <div class="rail-actions">
-      <div class="menu-wrap" id="add-wrap">
-        <!-- No chevron. The "+" already says this makes something, and at this
-             size the caret was a 7px mark carrying no information the button's
-             own aria-haspopup doesn't (tauMenu sets it), so a screen reader
-             still hears that it opens a menu. -->
-        <button class="menu-trigger menu-trigger-primary" id="trig-manage" type="button">
-          + Add
+    <div id="sidebar-nav"></div>
+    <!-- THE RAIL'S FOOT (2026-11-05, owner): "+ New" and the account chip,
+         pinned to the bottom of the rail at every size — the drawer already
+         put the account chip here on a phone, so this makes every size match.
+         The header is now the mark and search only; the rail holds where you
+         go (body) and what you do and who you are (foot). Static markup,
+         outside #sidebar-nav, so renderSidebar() cannot destroy the menus'
+         tauMenu bindings. -->
+    <div class="rail-foot rail-foot--pinned">
+    <div class="menu-wrap" id="add-wrap">
+      <!-- No chevron. The "+" already says this makes something, and at this
+           size the caret was a 7px mark carrying no information the button's
+           own aria-haspopup doesn't (tauMenu sets it), so a screen reader
+           still hears that it opens a menu. -->
+      <!-- A round "+" since 2026-11-05 (owner, option B of
+           https://claude.ai/artifact/QkF87fm6up5D7kcTMN8Sa2): learned once, in
+           one fixed place. The word survives as its accessible name and tooltip. -->
+      <button class="menu-trigger menu-trigger-primary" id="trig-manage" type="button" aria-label="New" title="New">
+        <span class="add-icon" data-icon="add" aria-hidden="true"></span>
+      </button>
+      <!-- Just a 3-way picker now — each choice opens a full-size modal
+           (same .scrim/.confirm.modal/.tray-* chrome the New assignment,
+           Goal, and per-class roster modals already use) rather than
+           cramming a form into this 240px dropdown. A roster paste or a
+           class-scope decision needs room to read, not a maze of small
+           panels — see teacher-dashboard-design.md, 2026-08-03. -->
+      <div class="menu-panel" id="panel-manage" hidden role="menu">
+      <!-- Icons come from icons.js, same set the object action menus use.
+           These were emoji (📄 👤 🗂) while that file sat unused beside
+           them — two icon systems across two menus that are meant to read
+           as one thing.
+           The greyed-out "Rename or archive a class" row and the footnote
+           pointing at a class's own page are both gone: both existed to
+           explain an absence, and those actions now live on the object
+           itself, where the menu no longer has to say where they are. -->
+        <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openNewAssignmentModal()">
+          <span class="mi-icon" data-icon="description"></span>
+          <span class="mi-body">New assignment<span class="mi-desc">Title, description, classes — pick or start one</span></span>
         </button>
-        <!-- Just a 3-way picker now — each choice opens a full-size modal
-             (same .scrim/.confirm.modal/.tray-* chrome the New assignment,
-             Goal, and per-class roster modals already use) rather than
-             cramming a form into this 240px dropdown. A roster paste or a
-             class-scope decision needs room to read, not a maze of small
-             panels — see teacher-dashboard-design.md, 2026-08-03. -->
-        <div class="menu-panel" id="panel-manage" hidden role="menu">
-        <!-- Icons come from icons.js, same set the object action menus use.
-             These were emoji (📄 👤 🗂) while that file sat unused beside
-             them — two icon systems across two menus that are meant to read
-             as one thing.
-             The greyed-out "Rename or archive a class" row and the footnote
-             pointing at a class's own page are both gone: both existed to
-             explain an absence, and those actions now live on the object
-             itself, where the menu no longer has to say where they are. -->
-          <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openNewAssignmentModal()">
-            <span class="mi-icon" data-icon="description"></span>
-            <span class="mi-body">New assignment<span class="mi-desc">Title, description, classes — pick or start one</span></span>
-          </button>
-          <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openAddStudentsModal()">
-            <span class="mi-icon" data-icon="personAdd"></span>
-            <span class="mi-body">Add students<span class="mi-desc">Paste a roster — pick a class or start one</span></span>
-          </button>
-          <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openNewClassModal()">
-            <span class="mi-icon" data-icon="folder"></span>
-            <span class="mi-body">New class<span class="mi-desc">Start an empty class — nobody on it yet</span></span>
-          </button>
-        </div>
+        <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openAddStudentsModal()">
+          <span class="mi-icon" data-icon="personAdd"></span>
+          <span class="mi-body">Add students<span class="mi-desc">Paste a roster — pick a class or start one</span></span>
+        </button>
+        <button type="button" class="menu-item" onclick="closeAllHeaderMenus();openNewClassModal()">
+          <span class="mi-icon" data-icon="folder"></span>
+          <span class="mi-body">New class<span class="mi-desc">Start an empty class — nobody on it yet</span></span>
+        </button>
       </div>
     </div>
-    <div id="sidebar-nav"></div>
+      <div class="account-chip" id="accountChip"></div>
+    </div>
   </aside>
   <!-- .pane-main: a size container (components.css §19), so anything in it
        can ask its own width rather than the window's. Nothing position:fixed
@@ -2086,7 +2114,7 @@ details[open] > .reflection-summary .reflect-chevron { transform: rotate(180deg)
       </div>
       </div>
       <div class="menu-confirm" id="add-students-confirm" hidden style="margin-top:12px"></div>
-      <div class="roadmap-next-hint">Next, once a roster's in place: assign work from the "+ Add" menu — it goes to everyone on this class automatically, no roster to hand-pick per assignment.</div>
+      <div class="roadmap-next-hint">Next, once a roster's in place: assign work from the + menu at the bottom of the sidebar — it goes to everyone on this class automatically, no roster to hand-pick per assignment.</div>
       </div>
     </div>
   </div>
@@ -2804,8 +2832,11 @@ function allSubsForStudent(studentId) {
 // foremost, overdue; the patterns are still there the moment they're
 // clicked into.
 function browseStudentRowTr(student) {
-  const co = currentlyOn(student.id);
-  const sig = getStudentSignal(student.id);
+  // Narrowed to one assignment, Signal is that assignment's — a student
+  // reached through its Worth a chat pill must not show a chip from other work.
+  const scopedA = browseScopedAssignment();
+  const co = scopedA ? { assignment: scopedA } : currentlyOn(student.id);
+  const sig = getStudentSignal(student.id, scopedA?.id ?? null);
   if (!co) {
     return `<tr class="row-clickable" onclick="gotoStudentFromClass('${student.id}')">
       <td><span style="font-weight:500">${student.name}</span></td>
@@ -2826,17 +2857,6 @@ function browseStudentRowTr(student) {
   </tr>`;
 }
 
-// ── Shared rail item ──────────────────────────────────────────────────────────
-// Chrome is components.css §13 (.rail-item); this only fills its three slots.
-function sidebarItem({ id, active, name, sub, trailing, onClick }) {
-  return `<div class="rail-item ${active ? 'active' : ''}" onclick="${onClick}">
-    <span class="rail-item-text">
-      <span class="rail-item-name">${name}</span>
-      ${sub ? `<span class="rail-item-sub">${sub}</span>` : ''}
-    </span>
-    ${trailing || ''}
-  </div>`;
-}
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -2846,20 +2866,27 @@ let activeAssignment    = null;
 let activeStudent       = null;
 let browseFilter        = 'all';    // 'all' | 'review' | 'missing'
 let browsePattern       = null;     // trend id or null
+let browseClass         = null;     // class id or null — set by a Class page's pills
+let browseAssignment    = null;     // assignment id or null — set by an Assignment page's pills
 let browseSearch        = '';
 let browseSort           = {};      // per-class { [classId]: { col, dir } }
 let browseAssignFilter  = 'all';    // 'all' | 'open' | 'closed' — Browse Assignments screen
+let browseClassFilter   = 'active'; // 'active' | 'archived' — All classes screen
+let browseClassSearch   = '';
 let browseAssignSearch  = '';
+// null | 'missing' | 'review' — set by the cover pills on All classes and All
+// assignments, and narrowing the table under them.
+let browseClassFlag     = null;
+let browseAssignFlag    = null;
 let browseAssignSort    = { col: null, dir: 'asc' };
 let expandedInBrowseAssignments = null;
 let expandedInStudent    = null;
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 
-// Fills #sidebar-nav, not #sidebar: "+ Add" is static chrome above it and its
-// tauMenu binding must survive a re-render.
+// Fills #sidebar-nav, not #sidebar.
 // Which of the navigation rail's four groups the current screen sits under.
-const RAIL_MINI_GROUP = { home: 'home', class: 'classes', assignment: 'assignments', assignments: 'assignments', students: 'students', student: 'students' };
+const RAIL_MINI_GROUP = { home: 'home', classes: 'classes', class: 'classes', assignment: 'assignments', assignments: 'assignments', students: 'students', student: 'students' };
 function syncRailMini() {
   const group = RAIL_MINI_GROUP[screen];
   document.querySelectorAll('#rail-mini .rail-mini-item').forEach((b) => {
@@ -2873,77 +2900,58 @@ function renderSidebar() {
   const el = document.getElementById('sidebar-nav');
   syncRailMini();
 
-  // No trailing dot on class/assignment rows (2026-07-28, designsystem.md's
-  // dot rule) — the row's own text carries nothing that names a flag or a
-  // missing checkpoint, so a colour-only circle here was decoration with no
-  // adjacent text to reinforce. Missing-first sort (below) and the bounded
-  // Students shortcuts (Worth a chat / Missing work counts) are the
-  // surfaces that actually carry this information now.
-  const classItems = CLASSES.map(c => {
-    const students = c.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
-    return sidebarItem({
-      active: screen === 'class' && activeClass === c.id,
-      name: c.name,
-      sub: `${students.length} student${students.length !== 1 ? 's' : ''}`,
-      onClick: `gotoClass('${c.id}')`,
-    });
-  }).join('');
+  // TWO LEVELS, BY TYPE (2026-11-05, product owner, from
+  // https://claude.ai/artifact/MXJ74k3oDPZNtiYtGWDgMV). The rail read flat:
+  // group labels were 13px grey eyebrows, destinations and filters the same
+  // 15px ink, and only an indent told them apart. Now each section's name is
+  // the PRIMARY row (17px / 700) and is itself the link to that section's
+  // landing page — so "All assignments" / "All students" went, and Classes got
+  // a landing page of its own (renderBrowseClasses) so all three behave the
+  // same. Everything under a section is SECONDARY (14.5px / 400, indented).
+  // No count lines under the classes: the size is on the page you land on.
+  //
+  // No trailing dot on class rows (2026-07-28, designsystem.md's dot rule).
+  const section = ({ active, name, count, onClick }) => `<div class="rail-item rail-item-section ${active ? 'active' : ''}" onclick="${onClick}">
+      <span class="rail-item-text"><span class="rail-item-name">${name}</span></span>${count != null ? `<span class="rail-item-meta">${count}</span>` : ''}
+    </div>`;
+  const sub = ({ active, name, count, onClick }) => `<div class="rail-item rail-item-nested ${active ? 'active' : ''}" onclick="${onClick}">
+      <span class="rail-item-text"><span class="rail-item-name">${name}</span></span>${count != null ? `<span class="rail-item-meta">${count}</span>` : ''}
+    </div>`;
+
+  const classItems = CLASSES.map(c => sub({
+    active: screen === 'class' && activeClass === c.id,
+    name: c.name,
+    onClick: `gotoClass('${c.id}')`,
+  })).join('');
 
   const openCount = ASSIGNMENTS.filter(a => a.status === 'open').length;
-
   const reviewCount  = STUDENTS.filter(s => getStudentSignal(s.id).status === 'review').length;
   const missingCount = new Set(ASSIGNMENTS.flatMap(a => studentsFor(a).filter(s => hasMissingCheckpoint(a, s.id)).map(s => s.id))).size;
 
   el.innerHTML = `
     <div class="rail-head">
       <div class="rail-group">
-        <div class="rail-item ${screen === 'home' ? 'active' : ''}" onclick="goHome()">
-          <span class="rail-item-text"><span class="rail-item-name">Home</span></span>
-        </div>
+        ${section({ active: screen === 'home', name: 'Home', onClick: 'goHome()' })}
       </div>
     </div>
 
     <div class="rail-body">
       <div class="rail-group">
-        <span class="eyebrow">Classes</span>
+        ${section({ active: screen === 'classes' && browseClassFilter === 'active', name: 'Classes', count: CLASSES.length, onClick: "gotoClasses('active')" })}
         ${classItems}
-        ${ARCHIVED_CLASSES.length ? `
-        <div class="rail-item rail-item-nested" onclick="openArchivedClasses()">
-          <span class="rail-item-text"><span class="rail-item-name">Archived</span></span><span class="rail-item-meta">${ARCHIVED_CLASSES.length}</span>
-        </div>` : ''}
+        ${ARCHIVED_CLASSES.length ? sub({ active: screen === 'classes' && browseClassFilter === 'archived', name: 'Archived', count: ARCHIVED_CLASSES.length, onClick: "gotoClasses('archived')" }) : ''}
       </div>
 
       <div class="rail-group">
-        <span class="eyebrow">Assignments</span>
-        ${sidebarItem({
-          active: screen === 'assignments' && browseAssignFilter === 'all',
-          name: 'All assignments',
-          sub: `${ASSIGNMENTS.length} assignment${ASSIGNMENTS.length !== 1 ? 's' : ''}`,
-          onClick: "gotoAssignments('all')",
-        })}
-        <div class="rail-item rail-item-nested ${screen === 'assignments' && browseAssignFilter === 'open' ? 'active' : ''}" onclick="gotoAssignments('open')">
-          <span class="rail-item-text"><span class="rail-item-name">Open</span></span><span class="rail-item-meta">${openCount}</span>
-        </div>
-        ${ARCHIVED_ASSIGNMENTS.length ? `
-        <div class="rail-item rail-item-nested" onclick="openArchivedAssignments()">
-          <span class="rail-item-text"><span class="rail-item-name">Archived</span></span><span class="rail-item-meta">${ARCHIVED_ASSIGNMENTS.length}</span>
-        </div>` : ''}
+        ${section({ active: screen === 'assignments' && browseAssignFilter === 'all', name: 'Assignments', count: ASSIGNMENTS.length, onClick: "gotoAssignments('all')" })}
+        ${sub({ active: screen === 'assignments' && browseAssignFilter === 'open', name: 'Open', count: openCount, onClick: "gotoAssignments('open')" })}
+        ${ARCHIVED_ASSIGNMENTS.length ? sub({ name: 'Archived', count: ARCHIVED_ASSIGNMENTS.length, onClick: 'openArchivedAssignments()' }) : ''}
       </div>
 
       <div class="rail-group">
-        <span class="eyebrow">Students</span>
-        ${sidebarItem({
-          active: screen === 'students' && browseFilter === 'all' && !browsePattern,
-          name: 'All students',
-          sub: `${STUDENTS.length} student${STUDENTS.length !== 1 ? 's' : ''}`,
-          onClick: "gotoStudents('all')",
-        })}
-        <div class="rail-item rail-item-nested ${screen === 'students' && browseFilter === 'review' ? 'active' : ''}" onclick="gotoStudents('review')">
-          <span class="rail-item-text"><span class="rail-item-name">Worth a chat</span></span><span class="rail-item-meta">${reviewCount}</span>
-        </div>
-        <div class="rail-item rail-item-nested ${screen === 'students' && browseFilter === 'missing' ? 'active' : ''}" onclick="gotoStudents('missing')">
-          <span class="rail-item-text"><span class="rail-item-name">Missing work</span></span><span class="rail-item-meta">${missingCount}</span>
-        </div>
+        ${section({ active: screen === 'students' && browseFilter === 'all' && !browsePattern, name: 'Students', count: STUDENTS.length, onClick: "gotoStudents('all')" })}
+        ${sub({ active: screen === 'students' && browseFilter === 'review', name: 'Worth a chat', count: reviewCount, onClick: "gotoStudents('review')" })}
+        ${sub({ active: screen === 'students' && browseFilter === 'missing', name: 'Missing work', count: missingCount, onClick: "gotoStudents('missing')" })}
       </div>
     </div>
   `;
@@ -3119,7 +3127,7 @@ function gsMove(delta) {
 function renderFirstRun() {
   return `
     <div class="content-header">
-      <div class="content-title">Welcome</div>
+      <h1 class="content-title">Welcome</h1>
       <div class="content-meta">${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
     </div>
     <div class="setup-section">
@@ -3136,7 +3144,7 @@ function renderFirstRun() {
     </div>
     ${newHereBlock()}
     <div class="setup-foot">
-      Everything here also lives in <strong>+ Add</strong>, top of the sidebar, once you're running.
+      Everything here also lives in the <strong>+</strong> button at the bottom of the sidebar, once you're running.
     </div>`;
 }
 
@@ -3352,9 +3360,11 @@ const PATTERN_META = {
 // Aggregates the stored per-submission patterns across students. Replaces the
 // old REASON_TO_TREND path, which grouped dimension thresholds under prose
 // names rather than detecting anything (see patterns.md, "The finding").
-function detectPatternGroups(minCount = 2) {
+// The Class page passes its roster and its assignments, so a pattern there is
+// read off the student's latest session IN THAT CLASS, not one from another.
+function detectPatternGroups(minCount = 2, students = STUDENTS, assignments = ASSIGNMENTS) {
   const byPattern = {};
-  homeCohort().forEach(row => {
+  homeCohort(students, assignments).forEach(row => {
     (row.patterns || []).forEach(id => {
       if (!PATTERN_META[id]) return;
       (byPattern[id] = byPattern[id] || []).push(row.student);
@@ -3388,10 +3398,10 @@ function detectPatternGroups(minCount = 2) {
 // assignment. "Most recent" rather than an average because a band is a reading
 // of a session, and averaging four ordinal readings is the operation this whole
 // scale change exists to remove.
-function homeCohort() {
-  return STUDENTS.map(st => {
+function homeCohort(students = STUDENTS, assignments = ASSIGNMENTS) {
+  return students.map(st => {
     let latest = null;
-    for (const a of ASSIGNMENTS) {
+    for (const a of assignments) {
       for (const sub of getSubs(st.id, a.id)) {
         if (sub.analysisStatus !== 'complete') continue;
         if (!latest || sub.ts > latest.ts) latest = sub;
@@ -3408,15 +3418,6 @@ function homeCohort() {
 }
 
 
-// Same object as a class row — a count of students, click to go to them — so
-// it is one component used twice rather than two that happen to sit together.
-// The count sits in a phrase naming its unit, never as a bare numeral.
-function statRow(value, label, color, onclickFn) {
-  return `<div class="class-row"${onclickFn ? ` onclick="${onclickFn}"` : ''}>
-    <span class="class-row-name">${label}</span>
-    <span class="stat-row-count"><b style="color:${color}">${value}</b> student${value === 1 ? '' : 's'}</span>
-    <span class="class-row-go">→</span></div>`;
-}
 
 // ── Movement over time: cohort trajectories + the flow diagram ───────────────
 //
@@ -3798,6 +3799,156 @@ function assignmentBandNote(a, students) {
 }
 
 
+// What is waiting on the teacher, as a pill row under a cover: drafts coming
+// due this week, then missing work, then Worth a chat. Home passes everything;
+// the Class page passes its own assignments and roster and a classId, which
+// scopes every link to that class and drops the class name from the draft
+// pills, since the cover already says it. The Assignment page passes its one
+// assignment and an assignmentId: Worth a chat then counts flags on THIS
+// assignment only, and each pill lands on exactly the students it counted.
+function waitingRow(assignments, students, { classId = null, assignmentId = null } = {}) {
+  const ids = new Set(students.map(s => s.id));
+  const missingIds = new Set(assignments.flatMap(a => studentsFor(a).filter(s => ids.has(s.id) && hasMissingCheckpoint(a, s.id)).map(s => s.id)));
+  const reviewCount = students.filter(s => getStudentSignal(s.id, assignmentId).status === 'review').length;
+  const scope = assignmentId ? `, null, null, '${assignmentId}'` : classId ? `, null, '${classId}'` : '';
+  return waitingList([
+    ...dueSoonPills(assignments, {
+      classId, assignmentId,
+      moreOnclick: classId ? `setClassView('${classId}','assignments')` : "gotoAssignments('open')",
+    }),
+    missingIds.size ? waitingPill('is-missing', 'description', `<b class="waiting-n">${missingIds.size}</b> student${missingIds.size === 1 ? '' : 's'} missing a draft`, `gotoStudents('missing'${scope})`) : '',
+    reviewCount ? waitingPill('is-chat', 'chat', `<b class="waiting-n">${reviewCount}</b> student${reviewCount === 1 ? '' : 's'} worth a chat`, `gotoStudents('review'${scope})`) : '',
+  ]);
+}
+
+// One pill, and a pill is always a ROUTE: it takes you to what it counts.
+// Filtering a table on the same page is a chip's job (2026-11-09, owner).
+function waitingPill(cls, icon, body, onclick) {
+  return `<button type="button" class="waiting-pill${cls ? ` ${cls}` : ''}" onclick="${onclick}">
+      ${iconSVG(icon)}<span>${body}</span><span class="waiting-go" aria-hidden="true">→</span></button>`;
+}
+
+function waitingList(pills) {
+  pills = pills.filter(Boolean);
+  return pills.length
+    ? `<div class="waiting" role="list" aria-label="Waiting on you">${pills.map(p => `<span role="listitem">${p}</span>`).join('')}</div>`
+    : `<p class="waiting-none">Nothing waiting on you.</p>`;
+}
+
+// Drafts coming due within seven days, soonest first, three at most and then
+// a "+N more" pill that runs `moreOnclick`.
+function dueSoonPills(assignments, { classId = null, assignmentId = null, moreOnclick }) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const DAY = 864e5;
+  const dueSoon = assignments.filter(a => a.status === 'open').map(a => {
+    const live = draftSchedule(a).find(sl => sl.state === 'live');
+    if (!live || !live.due) return null;
+    const d = new Date(live.due); d.setHours(0, 0, 0, 0);
+    const days = Math.round((d - today) / DAY);
+    return days >= 0 && days <= 7 ? { a, live, days } : null;
+  }).filter(Boolean).sort((x, y) => x.days - y.days);
+  // The class only when another pill has the same assignment name, so the
+  // common case stays short.
+  const sameName = name => !classId && !assignmentId && dueSoon.filter(x => x.a.name === name).length > 1;
+  // A weekday alone only within six days: at seven, "due Thu" on a Thursday
+  // reads as today.
+  const whenStr = (days, due) => days === 0 ? 'due today' : days === 1 ? 'due tomorrow'
+    : `due ${days === 7 ? 'next ' : ''}${due.toLocaleDateString('en-US', { weekday: 'short' })}`;
+  const DUE_CAP = 3;
+  return [
+    // On the assignment's own page the draft pill names only the draft, and
+    // goes to that draft's card in the timeline rather than to the page it is on.
+    ...dueSoon.slice(0, DUE_CAP).map(({ a, live, days }) => assignmentId
+      ? waitingPill('is-due', 'calendar', `${live.label} · <b>${whenStr(days, live.due)}</b>`,
+        `document.getElementById('tl-live')?.scrollIntoView({ block: 'start' })`)
+      : waitingPill('is-due', 'calendar',
+      `${sameName(a.name) ? `${esc(classesFor(a).map(c => c.name).join(', '))} · ` : ''}${esc(a.name)}, ${live.label.toLowerCase()} · <b>${whenStr(days, live.due)}</b>`,
+      `gotoAssignment('${a.id}')`)),
+    dueSoon.length > DUE_CAP ? waitingPill('is-due', 'calendar', `+${dueSoon.length - DUE_CAP} more <b>due this week</b>`, moreOnclick) : '',
+  ];
+}
+
+// Behavioral patterns, Home's and the Class page's. ONE FLAT LIST since
+// 2026-11-05 (product owner), most students first, where it was two groups
+// under mono labels. A passive pattern says who needs help, a high-agency one
+// who can help, and that tier rides a square in the report turn plot's own
+// ramp (--tau-agency-N, hue 162: more forest, more of the student's own
+// thinking) — the mark a student sees on their own turns, so the two surfaces
+// read one way. Never on the count: amber on "8 students held their ground"
+// states a caution the tier contradicts. The tier is also a WORD on the card,
+// so colour is never the only channel.
+// classId: the Class page. Its card drops the per-class breakdown (one class
+// is the whole breakdown) and its link opens Browse Students scoped to it.
+function homePatternCard({ id, students, meta }, classId = null) {
+  const high = meta.tier === 'high';
+  const classCounts = classId ? '' : CLASSES.map(cls => {
+    const c = students.filter(x => cls.studentIds.includes(x.id)).length;
+    return c ? `${cls.name} ${c}` : null;
+  }).filter(Boolean).join(' · ');
+  const c = students.length;
+  return `<details class="pattern-card" style="view-transition-name:pattern-${id}">
+    <summary class="finding-summary" onclick="togglePatternCard(event)">
+      <span class="pattern-mark ${high ? 'is-high' : 'is-passive'}" aria-hidden="true"></span>
+      <span class="f-body">
+        <span class="pattern-title">${meta.label}</span>
+        <span class="f-where neutral">${high ? 'High agency' : 'Passive'} · <span class="num">${c}</span> student${c !== 1 ? 's' : ''}${classCounts ? ` · ${classCounts}` : ''}</span>
+      </span>
+    </summary>
+    <div class="f-detail">
+      <p class="pattern-body"><b>What this looks like:</b> ${meta.what}</p>
+      <div class="pattern-try"><b>What to try:</b> ${meta.tryThis}</div>
+      <span class="pattern-link" onclick="event.stopPropagation();logUse('dashboard','patterns-worth-noticing');gotoStudents('pattern', '${id}'${classId ? `, '${classId}'` : ''})">View the ${c} student${c !== 1 ? 's' : ''} →</span>
+    </div>
+  </details>`;
+}
+
+// Opens one pattern card, closing any other in its grid, inside a view
+// transition so the card grows to the row and its neighbours slide. The
+// sections after the grid are named for the length of the transition only,
+// so they slide down with it instead of cross-fading in place. No transition
+// (an older browser, or reduced motion, which the global rule cannot reach on
+// view-transition pseudo-elements) is the same change, instant.
+function togglePatternCard(e) {
+  e.preventDefault();
+  const card = e.currentTarget.closest('.pattern-card');
+  const grid = card.closest('.pattern-grid');
+  const opening = !card.open;
+  const apply = () => {
+    if (grid) grid.querySelectorAll('.pattern-card[open]').forEach(d => { if (d !== card) d.open = false; });
+    card.open = opening;
+  };
+  // The card moves to the grid's top, which can be off screen when it was
+  // opened from a lower row.
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reveal = () => { if (opening) card.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' }); };
+  if (!document.startViewTransition || reduce || !grid) { apply(); reveal(); return; }
+  const section = grid.closest('.page-section');
+  const after = [];
+  for (let el = section && section.nextElementSibling; el; el = el.nextElementSibling) after.push(el);
+  after.forEach((el, i) => { el.style.viewTransitionName = `pattern-after-${i}`; el.style.viewTransitionClass = 'pattern-section'; });
+  document.documentElement.dataset.patternVt = opening ? 'open' : 'close';
+  const vt = document.startViewTransition(apply);
+  vt.finished.finally(() => {
+    after.forEach(el => { el.style.viewTransitionName = ''; el.style.viewTransitionClass = ''; });
+    delete document.documentElement.dataset.patternVt;
+    reveal();
+  });
+}
+
+function patternListHTML(groups, classId = null) {
+  return groups.all.length
+    ? `<div class="finding-list pattern-grid">${groups.all.map(g => homePatternCard(g, classId)).join('')}</div>`
+    : `<p class="pattern-group-empty">None showing across two or more students yet.</p>`;
+}
+
+function patternSummary(groups, n) {
+  const ids = new Set(groups.all.flatMap(t => t.students.map(s => s.id)));
+  return [
+    `${groups.all.length} pattern${groups.all.length !== 1 ? 's' : ''}`,
+    ids.size ? `${ids.size} of ${n} students` : null,
+  ].filter(Boolean).join(' · ');
+}
+
 function renderHome() {
   // Home IS the set-up guide until all three exist — not a dashboard with a
   // hint on it. There is nothing for the triage surface to show before then by
@@ -3812,8 +3963,6 @@ function renderHome() {
   const cohort   = homeCohort();
   const n        = cohort.length;
   const groups   = detectPatternGroups(2);
-  const missingIds = new Set(ASSIGNMENTS.flatMap(a => studentsFor(a).filter(s => hasMissingCheckpoint(a, s.id)).map(s => s.id)));
-  const reviewCount = STUDENTS.filter(s => getStudentSignal(s.id).status === 'review').length;
   // Students unreadable on at least one dimension. Its own queue with its own
   // conversation behind it — never added to the Worth-a-chat count, because
   // that turns "we could not see it" into "you did not do it".
@@ -3829,10 +3978,25 @@ function renderHome() {
   // about them yet. A teacher's response to an overdue draft and to a session
   // too thin to score is the same response, and it is not the response to a
   // student who is working passively.
-  const tiles = statRow(reviewCount, 'Worth a chat', reviewCount ? 'var(--tau-caution)' : 'var(--tau-positive)', "gotoStudents('review')")
-    + `<div class="stat-group-lbl">No read on them yet</div>`
-    + statRow(notEnough, 'Sessions too thin to read', 'var(--tau-ink)', null)
-    + (missingIds.size ? statRow(missingIds.size, 'No draft submitted', 'var(--tau-attention)', "gotoStudents('missing')") : '');
+  // ── 1. The date, and what is waiting (2026-11-05, product owner, from
+  // https://claude.ai/artifact/R8eb9hYGyad3Pnnprn3Q51) ─────────────────────
+  // The masthead no longer names the page (2026-11-05): "Teacher dashboard"
+  // is this cover's label, the one place it says where you are.
+  // Home's cover is today's date, set like a class name, so every time word in
+  // the pills under it reads against it at a glance. The pills are only what
+  // the teacher can act on, soonest first: drafts coming due this week, then
+  // missing work, then Worth a chat. "Sessions too thin to read" is not here:
+  // nobody can act on it, so it is stated on the Over time heading instead —
+  // and never beside Worth a chat, which would turn "we could not see it"
+  // into "you did not do it".
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const dateStr = today.toLocaleDateString('en-US', { weekday: 'long' });
+  const dayStr  = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const cover = `<div class="content-header page-cover">
+      <div class="page-cover-top"><span class="page-cover-label">Teacher dashboard</span></div>
+      <h1 class="content-title page-cover-title"><span class="page-cover-line">${dateStr},</span> ${dayStr}</h1>
+      ${waitingRow(ASSIGNMENTS, STUDENTS)}
+    </div>`;
 
   const classesSection = CLASSES.map(cls => {
     const students  = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
@@ -3844,47 +4008,17 @@ function renderHome() {
     const pill = flagCount
       ? `<span class="chip chip-caution signal-pill-review">${flagCount} worth a chat</span>`
       : `<span class="chip chip-positive">✓ On track</span>`;
-    return `<div class="class-row" onclick="gotoClass('${cls.id}')">
-      <span class="class-row-name">${cls.name}</span>
-      ${rows.length ? `<span class="chip chip-grey">Most at ${LEVEL_NAMES[modal]}</span>` : ''}
-      ${pill}
-      <span class="class-row-go">→</span>
-    </div>`;
+    return `<button type="button" class="section-card home-class" onclick="gotoClass('${cls.id}')">
+      <span class="home-class-name">${cls.name}<span class="home-class-go" aria-hidden="true">→</span></span>
+      <span class="home-class-meta">${students.length} student${students.length === 1 ? '' : 's'}</span>
+      <span class="home-class-chips">
+        ${rows.length ? `<span class="chip chip-grey">Most at ${LEVEL_NAMES[modal]}</span>` : ''}
+        ${pill}
+      </span>
+    </button>`;
   }).join('');
 
-  // ── 2. Behavioral patterns ────────────────────────────────────────────────
-  // Two groups. A passive pattern says who needs help; a high-agency one says
-  // who can help. The tier colour rides the GROUP LABEL, on the band ramp —
-  // never on the count, because amber on "8 students held their ground" states
-  // a caution the label contradicts, and amber already means "worth a chat" on
-  // the tiles above (Hard Constraints: one severity signal per surface).
-  const patternCard = ({ id, students, meta }) => {
-    const classCounts = CLASSES.map(cls => {
-      const c = students.filter(x => cls.studentIds.includes(x.id)).length;
-      return c ? `${cls.name} ${c}` : null;
-    }).filter(Boolean).join(' · ');
-    const c = students.length;
-    return `<details class="pattern-card">
-      <summary class="finding-summary">
-        <span class="f-body">
-          <span class="pattern-title">${meta.label}</span>
-          <span class="f-where neutral"><span class="num">${c}</span> student${c !== 1 ? 's' : ''}${classCounts ? ` · ${classCounts}` : ''}</span>
-        </span>
-      </summary>
-      <div class="f-detail">
-        <p class="pattern-body"><b>What this looks like:</b> ${meta.what}</p>
-        <div class="pattern-try"><b>What to try:</b> ${meta.tryThis}</div>
-        <span class="pattern-link" onclick="event.stopPropagation();logUse('dashboard','patterns-worth-noticing');gotoStudents('pattern', '${id}')">View the ${c} student${c !== 1 ? 's' : ''} →</span>
-      </div>
-    </details>`;
-  };
-
-  const patternGroup = (cards, label, colorVar, empty) => `
-    <div class="pattern-group-label" style="color:var(${colorVar})">${label}</div>
-    ${cards.length
-      ? `<div class="finding-list">${cards.map(patternCard).join('')}</div>`
-      : `<p class="pattern-group-empty">${empty}</p>`}`;
-
+  // ── 2. Behavioral patterns (patternListHTML, shared with the Class page) ──
   // The "Missing checkpoints" card used to render here, below the pattern
   // groups. Deleted 2026-08-16: it sat under an eyebrow reading "Behavioral
   // patterns", and its own comment said it was not one. The separation it
@@ -3894,19 +4028,8 @@ function renderHome() {
   // dashboard already made once. The count now lives only in the tiles above,
   // grouped with the other gap in the read.
 
-  const patternStudentIds = new Set(groups.all.flatMap(t => t.students.map(s => s.id)));
-  const patternsSummary = [
-    `${groups.all.length} pattern${groups.all.length !== 1 ? 's' : ''}`,
-    patternStudentIds.size ? `${patternStudentIds.size} of ${n} students` : null,
-  ].filter(Boolean).join(' · ');
-
-  const patternsSection = `<div class="section-head">
-      <div class="card-title">Behavioral patterns</div>
-      <div class="section-summary">${patternsSummary}</div>
-    </div>
-    ${patternGroup(groups.low, 'Passive patterns', '--tau-band-1-fg', 'None showing across two or more students.')}
-    <div style="height:var(--tau-s5)"></div>
-    ${patternGroup(groups.high, 'High-agency patterns', '--tau-band-4-fg', 'None showing across two or more students yet.')}`;
+  const patternsSummary = patternSummary(groups, n);
+  const patternsSection = patternListHTML(groups);
 
   // ── 3. Movement over time ─────────────────────────────────────────────────
   // The Movement organism, the same one the class overview's Trends tab mounts.
@@ -3927,13 +4050,18 @@ function renderHome() {
   // construct, so agency is not their peer and does not belong in a selector
   // with them. Same argument that keeps Composition off the band panel.
   const nStr = `${n} student${n !== 1 ? 's' : ''}`;
-  const scopeStr = `${nStr} · ${CLASSES.length} class${CLASSES.length !== 1 ? 'es' : ''}`;
+  const scopeStr = `${nStr} · ${CLASSES.length} class${CLASSES.length !== 1 ? 'es' : ''}`
+    + (notEnough ? ` · ${notEnough} too thin to read` : '');
+  // ONE SECTION, TWO CARDS since 2026-11-05: the scope and the info dot are
+  // the same for both charts, so the section heading states them once. Agency
+  // and the four stay separate cards, so they are still not peers in a
+  // selector.
   const agencySection = renderMovement('home-agency',
     agencyEntries(cohortFlow(STUDENTS, sub => subLevel(sub))),
-    scopeStr, FLOW_AXIS_TIME, { title: 'Agency over time' });
+    scopeStr, FLOW_AXIS_TIME, { title: 'Agency', inCard: true });
   const dimensionSection = renderMovement('home-dims',
     dimensionEntries(DIM_KEYS.map(key => cohortFlow(STUDENTS, sub => subBand(sub, key)))),
-    scopeStr, FLOW_AXIS_TIME, { title: 'Dimensions over time' });
+    scopeStr, FLOW_AXIS_TIME, { title: 'Dimensions', inCard: true });
 
   // Layout: triage beside its own breakdown, then everything that carries a
   // chart full width, one per row.
@@ -3951,22 +4079,31 @@ function renderHome() {
   // Home has room to spare. See newHereBlock().
   const newHere = cohort.some(c => c.level) ? '' : newHereBlock();
 
+  // SECTIONS ON THE PAGE, CARDS UNDER THEM (2026-11-05). Each heading is a
+  // .group-title on the page ground and names every card after it until the
+  // next one. Was a band per section with the title inside it, which forced
+  // everything a section held into one box and every card in it to be a
+  // card-in-a-card. The page ground stays --tau-page; the cards keep --tau-card.
+  const section = (title, summary, body, extra = '') => `
+    <section class="page-section">
+      <div class="page-section-head">
+        <h2 class="group-title"><span class="head-with-info">${title}${extra}</span></h2>
+        ${summary ? `<span class="section-summary">${summary}</span>` : ''}
+      </div>
+      ${body}
+    </section>`;
+  const timeTip = `<button class="info-dot tip-trigger" type="button" aria-expanded="false"
+      aria-label="How to read these charts" data-tip="${movementTip(FLOW_AXIS_TIME, true)}">i</button>`;
+
   return `
+    ${cover}
     <div class="home-stack">
       ${newHere}
-      <div class="home-cols-top">
-        <div class="home-band home-col">
-          <div class="section-head"><div class="card-title">Students to follow up</div></div>
-          <div>${tiles}</div>
-        </div>
-        <div class="home-band home-col">
-          <div class="section-head"><div class="card-title">Classes at a glance</div></div>
-          <div>${classesSection}</div>
-        </div>
-      </div>
-      <div class="home-band">${patternsSection}</div>
-      <div class="home-band">${agencySection}</div>
-      <div class="home-band">${dimensionSection}</div>
+      ${section('Classes', `${CLASSES.length} class${CLASSES.length !== 1 ? 'es' : ''}`, `<div class="home-grid home-grid--classes">${classesSection}</div>`)}
+      ${section('Behavioral patterns', patternsSummary, patternsSection)}
+      ${section('Over time', scopeStr, `
+        <div class="section-card">${agencySection}</div>
+        <div class="section-card">${dimensionSection}</div>`, timeTip)}
     </div>
   `;
 }
@@ -3976,12 +4113,24 @@ function renderHome() {
 function renderBrowseStudents() {
   // Looser than Home's >=2: a pattern can be real and worth filtering on
   // before it is common enough to earn a card.
-  const patterns = detectPatternGroups(1).all;
+  const scopedA = browseScopedAssignment();
+  const scoped = !scopedA && browseClass ? CLASSES.find(c => c.id === browseClass) : null;
+  if (browseClass && !scoped) browseClass = null;
+  const patterns = scopedA
+    ? detectPatternGroups(1, studentsFor(scopedA), [scopedA]).all
+    : scoped
+    ? detectPatternGroups(1, scoped.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean), classAssignments(scoped.id)).all
+    : detectPatternGroups(1).all;
+  const inScope = scopedA ? studentsFor(scopedA)
+    : scoped ? scoped.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean)
+    : STUDENTS;
+  const total = inScope.length;
 
   const chips = ['all', 'review', 'missing'].map(f => {
-    const label = f === 'all' ? `All (${STUDENTS.length})` : f === 'review' ? 'Worth a chat' : 'Missing work';
-    return `<span class="stu-chip ${browseFilter === f ? 'active' : ''}" data-filter="${f}" onclick="setBrowseFilter('${f}')">${label}</span>`;
+    const label = f === 'all' ? `All (${total})` : f === 'review' ? 'Worth a chat' : 'Missing work';
+    return `<span class="stu-chip ${browseFilter === f && !browsePattern ? 'active' : ''}" data-filter="${f}" onclick="setBrowseFilter('${f}')">${label}</span>`;
   }).join('');
+  const showAll = `<button type="button" class="btn btn-quiet btn-sm" onclick="setBrowseClass(null)">Show all students</button>`;
 
   const patternMenu = patterns.length
     ? patterns.map(p => `<div class="chip-dd-item" onclick="setBrowsePattern('${p.id}')"><span>${p.meta.label}</span><span class="cnt">${p.students.length}</span></div>`).join('')
@@ -3991,10 +4140,11 @@ function renderBrowseStudents() {
   const ddLabel = activePattern ? activePattern.meta.label : 'Patterns';
 
   return `
-    <div class="content-header">
-      <div class="content-title">All students</div>
-      <div class="content-meta">${STUDENTS.length} students across ${CLASSES.length} class${CLASSES.length !== 1 ? 'es' : ''}</div>
-    </div>
+    ${scopedA
+      ? listCover(`${total} student${total !== 1 ? 's' : ''} · ${esc(classesFor(scopedA).map(c => c.name).join(', '))}`, `Students on ${esc(scopedA.name)}`, [], showAll)
+      : scoped
+      ? listCover(`${total} student${total !== 1 ? 's' : ''}`, `Students in ${esc(scoped.name)}`, [], showAll)
+      : listCover(`${total} student${total !== 1 ? 's' : ''} · ${CLASSES.length} class${CLASSES.length !== 1 ? 'es' : ''}`, 'All students')}
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
       <input id="browseSearchInput" type="text" placeholder="Search by name…" value="${browseSearch}" oninput="setBrowseSearch(this.value)"
              style="padding:6px 10px;min-height:var(--tau-target);border:1px solid var(--tau-line);border-radius:var(--tau-r-sm);font-size:var(--tau-text-sm);background:var(--tau-surface);color:var(--tau-ink);font-family:inherit;min-width:180px">
@@ -4011,23 +4161,60 @@ function renderBrowseStudents() {
 function browseRosterMatches(student) {
   const q = browseSearch.toLowerCase().trim();
   if (q && !student.name.toLowerCase().includes(q)) return false;
+  const scopedA = browseScopedAssignment();
+  if (scopedA && !studentsFor(scopedA).includes(student)) return false;
   if (browsePattern) {
     // Reads the stored detector output, not a dimension threshold wearing a
     // prose name — see patterns.md, "The finding".
-    const row = homeCohort().find(c => c.student.id === student.id);
+    // Scoped, the student's latest session in that class — what the Class
+    // page's pattern card counted.
+    const row = homeCohort([student], scopedA ? [scopedA] : browseClass ? classAssignments(browseClass) : ASSIGNMENTS)[0];
     return !!row && (row.patterns || []).includes(browsePattern);
   }
-  if (browseFilter === 'review')   return getStudentSignal(student.id).status === 'review';
-  if (browseFilter === 'missing')  return ASSIGNMENTS.some(a => studentsFor(a).includes(student) && hasMissingCheckpoint(a, student.id));
-  return true;
+  return browseFilter === 'all' || browseStudentHasFlag(student, browseFilter);
+}
+
+// 'missing' or 'review', read in the list's scope. The cover pills count with
+// this and the table filters with it, so a pill lands on exactly its count.
+function browseStudentHasFlag(student, flag) {
+  const scopedA = browseScopedAssignment();
+  if (flag === 'review') return getStudentSignal(student.id, scopedA?.id ?? null).status === 'review';
+  // Scoped, only the class's or the assignment's work counts — the same set
+  // that page's pill counted.
+  if (scopedA) return hasMissingCheckpoint(scopedA, student.id);
+  return (browseClass ? classAssignments(browseClass) : ASSIGNMENTS)
+    .some(a => studentsFor(a).includes(student) && hasMissingCheckpoint(a, student.id));
+}
+
+function classAssignments(cid) {
+  return ASSIGNMENTS.filter(a => classesFor(a).some(c => c.id === cid));
+}
+
+function setBrowseClass(cid) {
+  browseClass = cid;
+  browseAssignment = null;
+  renderContent();
+}
+
+// The assignment the list is narrowed to, or null. Narrowed, every filter and
+// the Signal column read that assignment alone — the same counts its pills made.
+function browseScopedAssignment() {
+  const a = browseAssignment ? ASSIGNMENTS.find(x => x.id === browseAssignment) : null;
+  if (browseAssignment && !a) browseAssignment = null;
+  return a;
 }
 
 // One table per class, each independently sortable — a flat cross-class list
 // made "sort by score" ambiguous (whose 15/20 are you comparing?), and a
 // teacher thinks in terms of one class's roster at a time anyway.
 function browseRosterTables() {
-  const tables = CLASSES.map(cls => {
+  const scopedA = browseScopedAssignment();
+  // Narrowed to one assignment, a student in two of its classes is listed
+  // once, under the first: the pill counted them once.
+  const listed = new Set();
+  const tables = CLASSES.filter(cls => scopedA ? classesFor(scopedA).some(c => c.id === cls.id) : !browseClass || cls.id === browseClass).map(cls => {
     let students = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean).filter(browseRosterMatches);
+    if (scopedA) students = students.filter(s => !listed.has(s.id) && listed.add(s.id));
     if (!students.length) return '';
     students = sortBrowseStudents(students, cls.id);
     const state = browseSortState(cls.id);
@@ -4073,8 +4260,13 @@ function setBrowsePattern(id) {
   if (id) browseFilter = 'all';
   renderContent();
 }
-function gotoStudents(filter, patternId) {
+// classId scopes the list to one class, and assignmentId to one assignment, so
+// a count on a Class or Assignment page lands on exactly the students it
+// counted. Every other entry point clears both.
+function gotoStudents(filter, patternId, classId, assignmentId) {
   screen = 'students';
+  browseClass = classId || null;
+  browseAssignment = assignmentId || null;
   browsePattern = patternId || null;
   browseFilter = patternId ? 'all' : filter;
   browseSearch = '';
@@ -4227,65 +4419,28 @@ function classCoachingNote(students, assignments) {
 // Reuses the exact .card-tabs/.tab-panel component
 // the assignment tier already established, not a second
 // tab idiom invented for this card.
-function renderClassAggregateCard(cid, students, assignments, missingCount, flagCount) {
-  const patterns = detectTrends(2, new Set(students.map(s => s.id)));
+// The class's Overview tab (2026-11-05, replacing the Class overview card and
+// its Overview / Patterns / Trends tabs): everything on one page, as sections
+// on the page ground, most actionable first. Same content the three tabs held.
+function renderClassOverview(cid, students, assignments) {
+  const groups = detectPatternGroups(2, students, assignments);
   const origin = classProvenanceMix(students, assignments);
   const note   = classCoachingNote(students, assignments);
 
-  const statTile = (value, label, color, bg, onclick) => `<div class="stat-tile${onclick ? ' stat-tile-clickable' : ''}" style="background:${bg};border:1px solid ${color}"${onclick ? ` onclick="${onclick}"` : ''}>
-    <div class="stat-tile-val" style="color:${color}">${value}</div>
-    <div class="stat-tile-label" style="color:${color}">${label}</div>
-  </div>`;
+  const section = (title, summary, body, extra = '') => `<section class="page-section">
+      <div class="page-section-head">
+        <h2 class="group-title"><span class="head-with-info">${title}${extra}</span></h2>
+        ${summary ? `<span class="section-summary">${summary}</span>` : ''}
+      </div>
+      ${body}
+    </section>`;
 
-  // Students isn't repeated here — the content-header's meta line
-  // (renderClassDetail) already states "N students" one line above this
-  // card, so a third copy of the same count in the stat row would be the
-  // exact duplication the Home stat row was just cut down for.
-  const statRow = (missingCount || flagCount) ? `<div class="agg-stat-row">
-    ${missingCount ? statTile(missingCount, 'Missing work', 'var(--tau-attention)', 'var(--tau-attention-bg)', `event.stopPropagation();gotoStudents('missing')`) : ''}
-    ${flagCount ? statTile(flagCount, 'Worth a chat', 'var(--tau-caution)', 'var(--tau-caution-bg)', `event.stopPropagation();gotoStudents('review')`) : ''}
-  </div>` : '';
+  // The section heading names it, so the note drops its own eyebrow.
+  const noteBlock = note ? `<div class="teach-note class-note">${note}</div>` : '';
 
-  const noteBlock = note ? `<div class="teach-note stacked"><span class="eyebrow-lbl">${iconSVG('chat')}Coaching note</span>${note}</div>` : '';
 
-  const originBlock = origin ? `
-    <div class="agg-block-lbl">Where this class's ideas are coming from right now</div>
-    <div class="origin-mix">
-      <span class="origin-pill" style="background:var(--tau-origin-you-bg)"><span class="origin-dot" style="background:var(--tau-origin-you)"></span>Student-born ${origin.studentBornPct}%</span>
-      <span class="origin-pill" style="background:var(--tau-origin-together-bg)"><span class="origin-dot" style="background:var(--tau-origin-together)"></span>Synthesized ${origin.synthesizedPct}%</span>
-      <span class="origin-pill" style="background:var(--tau-origin-coach-bg)"><span class="origin-dot" style="background:var(--tau-ink-faint)"></span>AI-born ${origin.aiBornPct}%</span>
-    </div>` : '';
-
-  const overviewPanel = `${statRow}${noteBlock}${originBlock}`;
-
-  // Same card as Home's Behavioral patterns — same object, so the same shape
-  // and the same disclosure, rather than this surface keeping a second,
-  // always-expanded rendering of the identical finding. It gains "What this
-  // looks like," which it never showed and Home always did.
-  const patternsPanel = patterns.length ? `
-    <div class="finding-list">
-      ${patterns.map(({ id, students: pStudents, meta }) => `<details class="pattern-card">
-        <summary class="finding-summary">
-          <span class="f-body">
-            <span class="pattern-title">${meta.label}</span>
-            <span class="f-where"><span class="num">${pStudents.length}</span> student${pStudents.length !== 1 ? 's' : ''} in this class</span>
-          </span>
-        </summary>
-        <div class="f-detail">
-          <p class="pattern-body"><b>What this looks like:</b> ${meta.what}</p>
-          <div class="pattern-try"><b>What to try:</b> ${meta.whatToTry}</div>
-          <span class="pattern-link" onclick="event.stopPropagation();gotoStudents('pattern', '${id}')">View the ${pStudents.length} student${pStudents.length !== 1 ? 's' : ''} →</span>
-        </div>
-      </details>`).join('')}
-    </div>` : `<p class="agg-sample-note">No recurring patterns across this class's assignments yet.</p>`;
-
-  // TRENDS — the same two movement sections Home runs, on the assignment axis.
-  // Replaces an arc line chart (one metric at a time, behind a chip row, y-axis
-  // 0-20 or 1-5) and, below three closed assignments, a three-column table of
-  // trend badges off a mean delta. A line asserted a rate of change through the
-  // gap between two assignments and nothing was measured in that gap; the badge
-  // table classified an average of ordinals. The ribbons assert only
-  // membership, which is the only claim the readings support.
+  // OVER TIME — Home's two cards, on the assignment axis. The scope and the
+  // info dot are stated once, on the section heading.
   const nStr = `${students.length} student${students.length !== 1 ? 's' : ''}`;
   const closedCount = assignments.filter(a => a.status === 'closed').length;
   const lvFlow = classFlow(students, assignments, sub => subLevel(sub));
@@ -4294,29 +4449,34 @@ function renderClassAggregateCard(cid, students, assignments, missingCount, flag
   const scopeStr = lvFlow && closedCount > lvFlow.stages
     ? `${nStr} · last ${lvFlow.stages} of ${closedCount} closed assignments`
     : `${nStr} · ${closedCount} closed assignment${closedCount !== 1 ? 's' : ''}`;
-  // Same two mounts Home has; this tier only swaps the flows and the axis.
-  // Was ONE strip of five until 2026-09-30, the last place agency sat in a
-  // selector beside the four dimensions — the peerage Home and the assignment
-  // summary had already been split to stop asserting.
-  const trendsPanel = renderMovement(`class-agency:${cid}`,
-      agencyEntries(lvFlow), scopeStr, FLOW_AXIS_ASSIGNMENT, { title: 'Agency across assignments' })
-    + `<div class="movement-gap"></div>`
-    + renderMovement(`class:${cid}`,
+  const timeTip = `<button class="info-dot tip-trigger" type="button" aria-expanded="false"
+      aria-label="How to read these charts" data-tip="${movementTip(FLOW_AXIS_ASSIGNMENT, true)}">i</button>`;
+  const overTime = `<div class="section-card">${renderMovement(`class-agency:${cid}`,
+      agencyEntries(lvFlow), scopeStr, FLOW_AXIS_ASSIGNMENT, { title: 'Agency', inCard: true })}</div>
+    <div class="section-card">${renderMovement(`class:${cid}`,
       dimensionEntries(DIM_KEYS.map(key => classFlow(students, assignments, sub => subBand(sub, key)))),
-      scopeStr, FLOW_AXIS_ASSIGNMENT, { title: 'Dimensions across assignments' });
+      scopeStr, FLOW_AXIS_ASSIGNMENT, { title: 'Dimensions', inCard: true })}</div>`;
 
-  const tab = classTab[cid] || 'overview';
-  const panels = { overview: overviewPanel, patterns: patternsPanel, trends: trendsPanel };
+  // No card (2026-11-09, owner): a card around one row of pills, right under
+  // the page tabs, read as part of the tab track. The pills sit under their
+  // heading on the ground and keep their origin tints.
+  const originBody = origin ? `<div>
+      <div class="origin-mix">
+        <span class="origin-pill" style="--origin-tint:var(--tau-origin-you-bg)"><span class="origin-dot" style="background:var(--tau-origin-you)"></span>Student-born ${origin.studentBornPct}%</span>
+        <span class="origin-pill" style="--origin-tint:var(--tau-origin-together-bg)"><span class="origin-dot" style="background:var(--tau-origin-together)"></span>Synthesized ${origin.synthesizedPct}%</span>
+        <span class="origin-pill" style="--origin-tint:var(--tau-origin-coach-bg)"><span class="origin-dot" style="background:var(--tau-ink-faint)"></span>AI-born ${origin.aiBornPct}%</span>
+      </div>
+    </div>` : '';
 
-  return `<div class="overview-card">
-    <div class="card-title">Class overview — progression across the term</div>
-    <div class="card-tabs" role="tablist" aria-label="Class overview sections">
-      <button class="card-tab ${tab === 'overview' ? 'active' : ''}" onclick="event.stopPropagation();setClassTab('${cid}','overview')" role="tab" aria-selected="${tab === 'overview'}">Overview</button>
-      <button class="card-tab ${tab === 'patterns' ? 'active' : ''}" onclick="event.stopPropagation();setClassTab('${cid}','patterns')" role="tab" aria-selected="${tab === 'patterns'}">Patterns${patterns.length ? ` <span class="tab-count">${patterns.length}</span>` : ''}</button>
-      <button class="card-tab ${tab === 'trends' ? 'active' : ''}" onclick="event.stopPropagation();setClassTab('${cid}','trends')" role="tab" aria-selected="${tab === 'trends'}">Trends</button>
-    </div>
-    <div class="tab-panel active">${panels[tab]}</div>
-  </div>`;
+  // Headings name what is under them (2026-11-05): "Patterns" and "Over time"
+  // named a kind of thing, and a teacher had to open them to learn which.
+  return [
+    originBody ? section('Where ideas are coming from', 'Most recent work', originBody) : '',
+    noteBlock ? section('Coaching note', '', noteBlock) : '',
+    // Home's section exactly, scoped to this class's roster and assignments.
+    section('Behavioral patterns', patternSummary(groups, students.length), patternListHTML(groups, cid)),
+    section('Agency and dimensions across assignments', scopeStr, overTime, timeTip),
+  ].join('');
 }
 
 // One card per assignment, rendering renderAssignmentAggregateContent() —
@@ -4360,55 +4520,58 @@ function renderClassAssignmentCard(a, students) {
 // Open group first, then Closed — a teacher jumping into a class wants
 // what's actionable now before what's already settled, not chronological
 // order across the two groups (see teacher-dashboard-design.md, Class View).
-function renderClassAssignmentGroup(label, list, students) {
-  if (!list.length) return '';
-  return `
-    <h2 class="group-title">${label}<span class="group-count">${list.length}</span></h2>
-    <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:var(--tau-s5)">
-      ${list.map(a => renderClassAssignmentCard(a, students)).join('')}
-    </div>`;
+// `empty` keeps the section with a line in place of cards — Open always
+// renders (2026-11-09, owner), so a class with nothing open reads as that,
+// not as a missing section.
+function renderClassAssignmentGroup(label, list, students, empty = null) {
+  if (!list.length && !empty) return '';
+  return `<section class="page-section">
+    <div class="page-section-head"><h2 class="group-title">${label}${list.length ? `<span class="group-count">${list.length}</span>` : ''}</h2></div>
+    ${list.length ? list.map(a => renderClassAssignmentCard(a, students)).join('') : `<p class="agg-sample-note">${empty}</p>`}
+  </section>`;
 }
 
 function renderClassDetail(cid) {
   const cls = CLASSES.find(c => c.id === cid);
   if (!cls) { screen = 'home'; return renderHome(); }
   const students   = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
-  const n          = students.length;
   const assignments = ASSIGNMENTS.filter(a => classesFor(a).some(c => c.id === cid));
-  const openCount  = assignments.filter(a => a.status === 'open').length;
-  const totalFlags = students.filter(s => hasOpenFlag(s.id)).length;
-  const missingIds = new Set(assignments.flatMap(a => students.filter(s => hasMissingCheckpoint(a, s.id)).map(s => s.id)));
-
   const byDueDesc = (a, b) => b.due - a.due;
   const open   = assignments.filter(a => a.status === 'open').sort(byDueDesc);
   const closed = assignments.filter(a => a.status === 'closed').sort(byDueDesc);
 
-  const metaParts = [
-    `${n} student${n !== 1 ? 's' : ''}`,
-    `${assignments.length} assignment${assignments.length !== 1 ? 's' : ''}`,
-    openCount ? `${openCount} open` : 'all closed',
-  ];
-  if (totalFlags) metaParts.push(`<span style="color:var(--tau-caution)">Worth a chat</span>`);
-  // Plain text in the meta line, not a chip: rare here but not actionable, and
-  // enclosure is reserved for values that are both (designsystem.md, Hard
-  // Constraints). It states the date because the stamp covers the class from
-  // then on, and that is the fact a teacher would want to check.
-  if (cls.improvement) {
-    const since = new Date(cls.improvement.grantedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    metaParts.push(`Improving the measurement since ${since}`);
-  }
+  // NO META LINE (2026-11-05, product owner, from
+  // https://claude.ai/artifact/6xcDw2LzweAwEdrgNchkhr). Each fact it carried
+  // has a home that acts on it: the student count is Manage roster's, the
+  // assignment count and open/closed are the Assignments tab's, Worth a chat
+  // and missing work are pills on the cover (waitingRow, the same row as
+  // Home's), and the measurement-improvement date is on
+  // the ⋯ menu item that turns it off.
+  const view = classView[cid] || 'overview';
+  const tab = (key, label, count) => `<button type="button" role="tab" class="page-tab${view === key ? ' active' : ''}"
+      aria-selected="${view === key}" onclick="setClassView('${cid}','${key}')">${label}${count != null ? `<span class="page-tab-count">${count}</span>` : ''}</button>`;
 
+  const body = view === 'assignments'
+    ? assignments.length
+      ? `${renderClassAssignmentGroup('Open', open, students, 'No open assignments.')}${renderClassAssignmentGroup('Closed', closed, students)}`
+      : `<p class="agg-sample-note">No assignments on this class yet.</p>`
+    : renderClassOverview(cid, students, assignments);
+
+  // The class name set like a book cover (2026-11-05, option A of
+  // https://claude.ai/artifact/ADggtUktyAXaRa37nK6C75, in the app's own face).
   return `
-    <div class="content-header">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-        <div class="content-title">${cls.name}</div>
+    <div class="content-header page-cover">
+      <div class="page-cover-top">
+        <span class="page-cover-label">Class</span>
         ${classActionRow(cls)}
       </div>
-      <div class="content-meta" style="margin-top:8px">${metaParts.join(' · ')}</div>
+      <h1 class="content-title page-cover-title">${cls.name}</h1>
+      ${waitingRow(assignments, students, { classId: cid })}
+      <div class="page-tabs" role="tablist" aria-label="${esc(cls.name)}">
+        ${tab('overview', 'Overview')}${tab('assignments', 'Assignments', assignments.length)}
+      </div>
     </div>
-    ${renderClassAggregateCard(cid, students, assignments, missingIds.size, totalFlags)}
-    ${renderClassAssignmentGroup('Open assignments', open, students)}
-    ${renderClassAssignmentGroup('Closed assignments', closed, students)}
+    <div class="page-sections">${body}</div>
   `;
 }
 
@@ -4562,11 +4725,11 @@ function setAssignDraftTab(key, tab) {
 // Class overview card's tab state, keyed by class id. The metric half of this
 // pair went with the arc line chart it selected a series for (2026-08-16) —
 // the Trends tab now renders every dimension at once, as flows.
-let classTab = {};
+let classView = {};
 
 
-function setClassTab(cid, tab) {
-  classTab[cid] = tab;
+function setClassView(cid, view) {
+  classView[cid] = view;
   renderContent();
 }
 function setFlowMetric(scope, key) {
@@ -4651,7 +4814,7 @@ function renderDraftLive(a, slot, students, schedule) {
     ? 'Last round, submission timing and score varied together on at least one dimension — worth checking whether that pattern shows up again once this draft closes.'
     : null;
 
-  return `<div class="tl-card live">
+  return `<div class="tl-card live" id="tl-live">
     <div class="tl-head">
       <div class="tl-title">${slot.label} — in progress</div>
       <div class="tl-when">Due ${draftDueStr(slot.due)}${daysOut !== null ? ` · ${daysOut} day${daysOut !== 1 ? 's' : ''} out` : ''}</div>
@@ -4760,18 +4923,18 @@ function renderAssignmentDetail(aid) {
   const closed = a.status === 'closed';
   const allStudents = studentsFor(a);
 
+  // The Class page's cover, for one assignment (2026-11-06, product owner).
+  // The status chip became the label's first word, and the label names the
+  // class, which this page never stated. The pills count this assignment only.
+  const classNames = classesFor(a).map(c => c.name).join(', ');
   return `
-    <div class="content-header">
-      <!-- Actions right-aligned on the title row, not stacked beneath it —
-           same corner of the header as Class and Student detail, which is the
-           whole point of there being one action row. -->
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <div class="content-title">${a.name}</div>
-          <span class="chip ${closed ? 'chip-grey' : 'chip-neutral'}">${closed ? 'Closed' : 'Open'}</span>
-        </div>
+    <div class="content-header page-cover">
+      <div class="page-cover-top">
+        <span class="page-cover-label">${closed ? 'Closed' : 'Open'} assignment${classNames ? ` · ${esc(classNames)}` : ''}</span>
         ${assignmentActionRow(a)}
       </div>
+      <h1 class="content-title page-cover-title">${esc(a.name)}</h1>
+      ${waitingRow([a], allStudents, { assignmentId: a.id })}
     </div>
     ${renderDraftScheduleCard(a)}
     ${closed ? renderFinalAssignmentSummary(a, allStudents) : renderAssignmentOverviewCard(a, allStudents)}
@@ -4786,6 +4949,7 @@ function renderAssignmentDetail(aid) {
 // same reasoning as Browse Students for a growing name list.
 
 function assignmentMatchesBrowseFilter(a) {
+  if (browseAssignFlag && !assignmentFlagCounts(a)[browseAssignFlag]) return false;
   if (browseAssignFilter === 'open')   return a.status === 'open';
   if (browseAssignFilter === 'closed') return a.status === 'closed';
   return true;
@@ -4830,6 +4994,21 @@ function toggleBrowseAssignmentDrill(aid) {
 function setBrowseAssignFilter(f) {
   browseAssignFilter = f;
   renderContent();
+}
+// A flag chip: combines with the status view; pressed again, it clears.
+function setBrowseAssignFlag(f) {
+  browseAssignFlag = browseAssignFlag === f ? null : f;
+  renderContent();
+}
+
+// The two facts an assignment's row and its cover pill both read, so they
+// cannot disagree.
+function assignmentFlagCounts(a) {
+  const students = studentsFor(a);
+  return {
+    missing: students.filter(s => hasMissingCheckpoint(a, s.id)).length,
+    review: students.filter(s => hasOpenFlagOn(s.id, a.id)).length,
+  };
 }
 
 function setBrowseAssignSearch(q) {
@@ -4889,7 +5068,8 @@ function renderAssignmentAggregateContent(a, students, variant = 'full') {
   const chip = (n, noun, cls, filter) => `<button type="button" class="chip ${cls} chip-action"
       onclick="event.stopPropagation();gotoStudents('${filter}')">${n} student${n !== 1 ? 's' : ''} ${noun}</button>`;
 
-  const statRow = (missingTotal || flagTotal) ? `<div class="agg-chip-row">
+  // Not on the assignment's own page: its cover carries these as pills.
+  const statRow = variant !== 'full' && (missingTotal || flagTotal) ? `<div class="agg-chip-row">
     ${missingTotal ? chip(missingTotal, 'missing work', 'chip-attention', 'missing') : ''}
     ${flagTotal ? chip(flagTotal, 'worth a chat', 'chip-caution', 'review') : ''}
   </div>` : '';
@@ -4899,7 +5079,7 @@ function renderAssignmentAggregateContent(a, students, variant = 'full') {
   // charts and the pattern cards are also white: no edge between them, so
   // "Behavioural patterns" read as a tail of the dimension chart above it
   // rather than a section of its own. The card is what separates them now, the
-  // same job .home-band does on Home with a toned ground instead.
+  // same job the section headings do on Home.
   //
   // Only on the page. In the class card and the Browse Assignments drill this
   // content is already INSIDE a card, and a card per section there would nest
@@ -5161,8 +5341,7 @@ function browseAssignmentRowTr(a) {
   const dueStr = a.due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const classNames = classesFor(a).map(c => c.name).join(', ');
   const allStudents = studentsFor(a);
-  const missingTotal = allStudents.filter(s => hasMissingCheckpoint(a, s.id)).length;
-  const flagTotal = allStudents.filter(s => hasOpenFlagOn(s.id, a.id)).length;
+  const { missing: missingTotal, review: flagTotal } = assignmentFlagCounts(a);
   const expanded = expandedInBrowseAssignments === a.id;
 
   const mainRow = `<tr class="row-clickable ${expanded ? 'expanded-row' : ''}" onclick="toggleBrowseAssignmentDrill('${a.id}')">
@@ -5203,21 +5382,132 @@ function browseAssignmentTable() {
   </div>`;
 }
 
+// ── All classes ──────────────────────────────────────────────────────────────
+// Added 2026-11-05 so the rail's three section names all land on a page:
+// Assignments and Students had one, Classes did not. Built on All
+// assignments' pattern — title and count, search, filter chips, a
+// table.roster — and reads nothing new: every column is something Home's
+// class cards or the Class page already computes. Archived replaces the old
+// "Archived classes" modal as a filter of this page.
+// The two facts a class's row and its cover pill both read, so they cannot
+// disagree: students missing a draft on any of its assignments, and students
+// worth a chat — the Class page's own pills, counted the same way.
+function classFlagCounts(cls) {
+  const students = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
+  const assignments = classAssignments(cls.id);
+  return {
+    missing: new Set(assignments.flatMap(a => students.filter(s => hasMissingCheckpoint(a, s.id)).map(s => s.id))).size,
+    review: students.filter(s => getStudentSignal(s.id).status === 'review').length,
+  };
+}
+
+// The cover on the three list pages (2026-11-09): the old meta line becomes
+// the tracked label, `aside` sits at its right, and `pills` — routes only,
+// All assignments' due drafts — sit under the title when there are any. No
+// "Nothing waiting" line: the chips under the cover filter, and a list page
+// never states a count its chips filter on.
+function listCover(label, title, pills = [], aside = '') {
+  return `<div class="content-header page-cover list-cover">
+      <div class="page-cover-top"><span class="page-cover-label">${label}</span>${aside}</div>
+      <h1 class="content-title page-cover-title">${title}</h1>
+      ${pills.some(Boolean) ? waitingList(pills) : ''}
+    </div>`;
+}
+
+// A list's two flag chips, after its view chips and a rule. They combine with
+// the view (Open + Missing work is the open assignments with missing work).
+function flagChips(current, setter) {
+  return `<span class="chip-sep" aria-hidden="true"></span>`
+    + [['review', 'Worth a chat'], ['missing', 'Missing work']].map(([f, label]) =>
+      `<span class="stu-chip ${current === f ? 'active' : ''}" data-filter="${f}" onclick="${setter}('${f}')">${label}</span>`).join('');
+}
+
+function browseClassTable() {
+  const q = browseClassSearch.toLowerCase().trim();
+  const match = c => !q || c.name.toLowerCase().includes(q);
+
+  if (browseClassFilter === 'archived') {
+    const list = ARCHIVED_CLASSES.filter(match);
+    if (!list.length) return `<div style="text-align:center;color:var(--tau-ink-soft);padding:20px">No archived classes match</div>`;
+    return `<div class="tbl-wrap">
+      <table class="roster">
+        <thead><tr><th>Class</th><th>Students</th><th></th></tr></thead>
+        <tbody>${list.map(c => {
+          const n = (c.studentIds || []).length;
+          return `<tr>
+            <td style="font-weight:500">${esc(c.name)}</td>
+            <td class="n">${n}<span class="cell-unit"> student${n !== 1 ? 's' : ''}</span></td>
+            <td style="text-align:right"><button type="button" class="btn btn-quiet btn-sm" onclick="restoreClass('${c.id}')">Restore</button></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+  }
+
+  const cohort = homeCohort();
+  const list = CLASSES.filter(match).filter(c => !browseClassFlag || classFlagCounts(c)[browseClassFlag]);
+  if (!list.length) return `<div style="text-align:center;color:var(--tau-ink-soft);padding:20px">No classes match</div>`;
+  const rows = list.map(cls => {
+    const students = cls.studentIds.map(sid => STUDENTS.find(s => s.id === sid)).filter(Boolean);
+    const assignments = ASSIGNMENTS.filter(a => classesFor(a).some(c => c.id === cls.id));
+    const open = assignments.filter(a => a.status === 'open').length;
+    const { missing, review: flagCount } = classFlagCounts(cls);
+    // "Most at", as Home's class cards say it — the modal level of each
+    // student's latest reading. Nothing when nobody has one yet.
+    const read = cohort.filter(c => cls.studentIds.includes(c.student.id) && c.level);
+    const lv = [0, 0, 0, 0];
+    read.forEach(r => lv[r.level - 1]++);
+    const modal = lv.indexOf(Math.max(...lv));
+    return `<tr class="row-clickable" onclick="gotoClass('${cls.id}')">
+      <td style="font-weight:500">${esc(cls.name)}</td>
+      <td class="n">${students.length}<span class="cell-unit"> student${students.length !== 1 ? 's' : ''}</span></td>
+      <td>${assignments.length}<span class="cell-unit"> assignment${assignments.length !== 1 ? 's' : ''}</span>${assignments.length ? ` · ${open ? `${open} open` : 'all closed'}` : ''}</td>
+      <td>${read.length ? `<span class="chip chip-grey">Most at ${LEVEL_NAMES[modal]}</span>` : '<span class="no-signal">—</span>'}</td>
+      <td>${missing ? `<span class="chip chip-attention">${missing}<span class="cell-unit"> missing</span></span>` : '<span class="no-signal">—</span>'}</td>
+      <td>${flagCount ? `<span class="chip chip-caution signal-pill-review">${flagCount}<span class="cell-unit"> worth a chat</span></span>` : '<span class="no-signal">—</span>'}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="tbl-wrap">
+    <table class="roster">
+      <thead><tr><th>Class</th><th>Students</th><th>Assignments</th><th>Agency</th><th>Missing</th><th>Worth a chat</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+function renderBrowseClasses() {
+  const chips = [['active', `Active (${CLASSES.length})`], ['archived', `Archived (${ARCHIVED_CLASSES.length})`]]
+    .map(([f, label]) => `<span class="stu-chip ${browseClassFilter === f ? 'active' : ''}" data-filter="${f}" onclick="setBrowseClassFilter('${f}')">${label}</span>`).join('');
+  const nStudents = new Set(CLASSES.flatMap(c => c.studentIds)).size;
+  return `
+    ${listCover(`${CLASSES.length} class${CLASSES.length !== 1 ? 'es' : ''} · ${nStudents} student${nStudents !== 1 ? 's' : ''}`, 'All classes')}
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+      <input id="browseClassSearchInput" type="text" placeholder="Search by name…" value="${esc(browseClassSearch)}" oninput="setBrowseClassSearch(this.value)"
+             style="padding:6px 10px;min-height:var(--tau-target);border:1px solid var(--tau-line);border-radius:var(--tau-r-sm);font-size:var(--tau-text-sm);background:var(--tau-surface);color:var(--tau-ink);font-family:inherit;min-width:180px">
+      ${chips}${flagChips(browseClassFlag, 'setBrowseClassFlag')}
+    </div>
+    <div id="browse-classes-container">${browseClassTable()}</div>
+  `;
+}
+
 function renderBrowseAssignments() {
   const chips = ['all', 'open', 'closed'].map(f => {
     const label = f === 'all' ? `All (${ASSIGNMENTS.length})` : f === 'open' ? 'Open' : 'Closed';
     return `<span class="stu-chip ${browseAssignFilter === f ? 'active' : ''}" data-filter="${f}" onclick="setBrowseAssignFilter('${f}')">${label}</span>`;
   }).join('');
 
+  const nOpen = ASSIGNMENTS.filter(a => a.status === 'open').length;
+  // Only what is coming due, as Home's olive pills — routes, so pills. Worth
+  // a chat and missing work are not stated here (2026-11-09, owner): the
+  // chips below filter on them. Nothing due, nothing under the title.
+  const summary = dueSoonPills(ASSIGNMENTS, { moreOnclick: "setBrowseAssignFilter('open')" });
+
   return `
-    <div class="content-header">
-      <div class="content-title">All assignments</div>
-      <div class="content-meta">${ASSIGNMENTS.length} assignment${ASSIGNMENTS.length !== 1 ? 's' : ''} across ${CLASSES.length} class${CLASSES.length !== 1 ? 'es' : ''}</div>
-    </div>
+    ${listCover(`${ASSIGNMENTS.length} assignment${ASSIGNMENTS.length !== 1 ? 's' : ''} · ${nOpen} open`, 'All assignments', summary)}
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
       <input id="browseAssignSearchInput" type="text" placeholder="Search by name…" value="${browseAssignSearch}" oninput="setBrowseAssignSearch(this.value)"
              style="padding:6px 10px;min-height:var(--tau-target);border:1px solid var(--tau-line);border-radius:var(--tau-r-sm);font-size:var(--tau-text-sm);background:var(--tau-surface);color:var(--tau-ink);font-family:inherit;min-width:180px">
-      ${chips}
+      ${chips}${flagChips(browseAssignFlag, 'setBrowseAssignFlag')}
     </div>
     <div id="browse-assignments-container">${browseAssignmentTable()}</div>
   `;
@@ -5270,7 +5560,7 @@ function renderStudentDetail(sid) {
           <div class="avatar" style="width:40px;height:40px;font-size:var(--tau-text-md)">${s.initials}</div>
           <div>
             <div style="display:flex;align-items:center;gap:8px">
-              <div class="content-title">${s.name}</div>
+              <h1 class="content-title">${s.name}</h1>
               ${signalPill(sig)}
             </div>
             <div class="content-meta">${classes.map(c => c.name).join(' · ') || 'Not enrolled in any class'}</div>
@@ -5527,10 +5817,11 @@ function sortBrowseStudents(students, clsId) {
       // so this sort puts rows in the order the Signal cell actually shows,
       // not just the order getStudentSignal happens to return.
       const order = { review: 2, attention: 1, 'on-track': 0 };
+      const scopedA = browseScopedAssignment();
       const priority = s => {
-        const co = currentlyOn(s.id);
+        const co = scopedA ? { assignment: scopedA } : currentlyOn(s.id);
         if (co && hasMissingCheckpoint(co.assignment, s.id)) return 3;
-        return order[getStudentSignal(s.id).status] || 0;
+        return order[getStudentSignal(s.id, scopedA?.id ?? null).status] || 0;
       };
       return m * (priority(a) - priority(b));
     }
@@ -5564,7 +5855,7 @@ function renderContent() {
   // #content IS the scroll container (`.content { overflow-y: auto }`), and the
   // whole screen is re-rendered through innerHTML — so every in-place update
   // threw the reader back to the top. Reported 2026-08-18 against Home's
-  // dimension tabs, but it was never about tabs: setClassTab, setAssignDraftTab,
+  // dimension tabs, but it was never about tabs: setClassView, setAssignDraftTab,
   // toggleStudentDrill and the browse filters all did it.
   //
   // PRESERVED HERE, RESET IN render(). The split those two already make is
@@ -5573,6 +5864,7 @@ function renderContent() {
   // and arriving at a new screen is the exception.
   const keepY = el.scrollTop;
   if      (screen === 'home')        el.innerHTML = renderHome();
+  else if (screen === 'classes')     el.innerHTML = renderBrowseClasses();
   else if (screen === 'class')       el.innerHTML = renderClassDetail(activeClass);
   else if (screen === 'assignment')  el.innerHTML = renderAssignmentDetail(activeAssignment);
   else if (screen === 'assignments') el.innerHTML = renderBrowseAssignments();
@@ -5635,6 +5927,29 @@ function render() {
 
 function goHome() { screen = 'home'; render(); }
 
+function gotoClasses(filter) {
+  screen = 'classes';
+  browseClassFilter = filter || 'active';
+  browseClassSearch = '';
+  browseClassFlag = null;
+  render();
+}
+// render(), not renderContent(): the rail marks Archived as its own row.
+function setBrowseClassFilter(f) { browseClassFilter = f; browseClassFlag = null; render(); }
+// A flag chip: narrows the active classes to those with that flag; pressed
+// again, it clears. Archived classes carry neither flag, so it returns to
+// Active, and choosing Archived clears it.
+function setBrowseClassFlag(f) {
+  browseClassFlag = browseClassFlag === f ? null : f;
+  browseClassFilter = 'active';
+  render();
+}
+function setBrowseClassSearch(q) {
+  browseClassSearch = q;
+  const c = document.getElementById('browse-classes-container');
+  if (c) c.innerHTML = browseClassTable();
+}
+
 function gotoClass(cid) {
   screen = 'class';
   activeClass = cid;
@@ -5643,7 +5958,7 @@ function gotoClass(cid) {
   // Only THIS class's Movement selection is cleared, not the whole map: Home's
   // mount shares it now, and blowing it away here would silently reset a
   // surface the teacher did not navigate to.
-  classTab = {};
+  classView = {};
   delete flowMetric[`class:${cid}`];
   render();
 }
@@ -5659,6 +5974,7 @@ function gotoAssignments(filter) {
   screen = 'assignments';
   browseAssignFilter = filter || 'all';
   browseAssignSearch = '';
+  browseAssignFlag = null;
   expandedInBrowseAssignments = null;
   render();
 }
@@ -5944,7 +6260,9 @@ function classActionRow(cls) {
           // see a control that implies they can give this consent. The server
           // refuses the field on the same rule.
           VIEWER.improvementEligible ? (cls.improvement
-            ? { icon: 'checklist', title: 'Stop helping improve the measurement', desc: 'Work already exported is unaffected', onClick: `openImprovementClass('${cls.id}')` }
+            // The date lives here since the meta line went (2026-11-05): the
+            // item that states the stamp is on is also where it is turned off.
+            ? { icon: 'checklist', title: 'Stop helping improve the measurement', desc: `On since ${new Date(cls.improvement.grantedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}. Work already exported is unaffected`, onClick: `openImprovementClass('${cls.id}')` }
             : { icon: 'checklist', title: 'Help improve the measurement', desc: 'Lets this class’s work improve how the tool reads sessions', onClick: `openImprovementClass('${cls.id}')` }) : null,
           { icon: 'archive', title: 'Archive class', desc: 'Keeps its records, clears it from the sidebar', onClick: `openArchiveClass('${cls.id}')` },
         ],
@@ -6211,6 +6529,9 @@ async function restoreClass(cid) {
     return;
   }
   await loadDashboardData();
+  // From All classes > Archived the row simply leaves the list; the modal
+  // path is kept for any caller that still opens it.
+  if (screen === 'classes') { if (!ARCHIVED_CLASSES.length) browseClassFilter = 'active'; render(); return; }
   render();
   if (ARCHIVED_CLASSES.length) openArchivedClasses();
   else closeObjModal();
@@ -7857,7 +8178,6 @@ const addMenu = tauMenu(document.getElementById('trig-manage'), document.getElem
 mountRailDrawer({
   rail: document.getElementById('sidebar'),
   slot: document.querySelector('.header-lead'),
-  identity: document.getElementById('accountChip'),
   mini: document.getElementById('rail-mini'),
 });
 
@@ -8122,7 +8442,7 @@ document.getElementById('hdrNewClassForm').onsubmit = async (e) => {
     try {
       assignmentCreated = await api('/api/assignments', { method: 'POST', body: { ...assignBody, classIds: [created.id] } });
     } catch (err) {
-      alert(err.message || 'Class created, but the assignment could not be saved — add it separately from the "+ Add" menu.');
+      alert(err.message || 'Class created, but the assignment could not be saved — add it separately from the + menu at the bottom of the sidebar.');
     }
   }
 

@@ -46,13 +46,15 @@ not as a spec. This table is authoritative; where it and a body section disagree
 
 | Surface | What it renders now | Entry point |
 |---|---|---|
-| **Home** | triage tiles · classes · **patterns (Layer 1)** · **two Movement mounts** — agency alone (no selector), then the four dimensions behind tabs. Calendar buckets. | `renderHome()` |
-| **Class** | overview card with Overview / Patterns / **Trends** (the same Movement organism, assignment axis) · then Open and Closed assignment cards | `renderClassDetail()` |
+| **Home** | a **date cover** (2026-11-05): today's date set like a class name, then **pills for what is waiting**, soonest first — drafts due within 7 days (one each, up to three, then "+N more", olive `--tau-schedule` since 2026-11-09), students missing a draft, students worth a chat; "Nothing waiting on you." when empty. Then sections on the page: *Classes* (one card per class) · *Behavioral patterns* (one flat list, each tier a turn-plot square) · *Over time* (two cards; the scope line carries "N too thin to read"). Calendar buckets. | `renderHome()` |
+| **All classes** | (2026-11-05) the rail's *Classes* lands here. A **cover** (2026-11-09: label *5 classes · 28 students*, the title, **nothing under it**), then search, **Active / Archived** chips, a rule, **Worth a chat / Missing work** chips (`browseClassFlag`), a `table.roster`: Class · Students · Assignments ("4 · 1 open") · Agency ("Most at …") · Missing · Worth a chat; a row opens the class. **Archived** lists archived classes with **Restore**, replacing the *Archived classes* modal as the rail's route. | `renderBrowseClasses()` |
+| **Class** | a **cover** (the class name, very large), **Home's waiting pills scoped to the class** (2026-11-06: drafts due within 7 days, missing a draft, worth a chat; the student pills open Browse Students filtered to this class), then **page tabs** (2026-11-05): **Overview** — sections on the page: Where ideas are coming from (origin pills on the ground, no card — 2026-11-09) · Coaching note · *Behavioral patterns* (Home's list and card, scoped to the class — 2026-11-06) · *Agency and dimensions across assignments* (two cards, assignment axis); **Assignments** — Open and Closed assignment cards; **Open always shows**, with "No open assignments." when empty (2026-11-09). No meta line. | `renderClassDetail()` · `renderClassOverview()` |
+| **All assignments** | (2026-11-09) a **cover**: label *8 assignments · 1 open*, the title, then **only the drafts coming due, as olive pills** that each open their assignment (none, nothing under the title). Search, **All / Open / Closed** chips, a rule, **Worth a chat / Missing work** chips (`browseAssignFlag`, combining with the status view), a `table.roster`; the row's counts and the chips both read `assignmentFlagCounts`. | `renderBrowseAssignments()` |
 | **Assignment card — open** | tiles · submitted-vs-readable pace line · patterns (Layer 1). **No distribution, no origin mix.** | `renderAssignmentAggregateContent(a, s, 'summary')` |
 | **Assignment card — closed** | tiles · **agency composition, and nothing else** (2026-08-18). No bands, no finding prose, no flows — the card repeats in a list, so it carries one chart and the link out. | same, `'summary'` |
-| **Assignment Detail** | draft schedule · **the summary is two Movement mounts on the draft axis** (2026-08-18) — agency, then the four dimensions behind tabs — plus coaching note, patterns, origin mix · timeline of per-draft snapshots, each closed one carrying **agency + bands side by side** (`.cols-2up`) | `renderAssignmentDetail()` |
+| **Assignment Detail** | a **cover** (2026-11-06): *Open/Closed assignment · class* label with the actions, the name very large, then **waiting pills for this assignment only** — the live draft if due within 7 days (scrolls to its timeline card), missing a draft, worth a chat (flags on this assignment); the student pills open Browse Students **narrowed to the assignment**. Then draft schedule · **the summary is two Movement mounts on the draft axis** (2026-08-18) — agency, then the four dimensions behind tabs — plus coaching note, patterns, origin mix · timeline of per-draft snapshots, each closed one carrying **agency + bands side by side** (`.cols-2up`) | `renderAssignmentDetail()` |
 | **Student** | rows and drill panel read **level**, not a total. Each expanded assignment leads with a **Trace** — the finding, then agency + four dimension rows across the closed drafts (2026-08-17). Each draft row carries the teacher's rulings — per flag, and 👍/👎 on the level (2026-09-30, `rulings.js`, shared with the report) | `renderStudentDetail()` · `renderStudentTrace()` |
-| **Browse Students** | Student · **Agency** (latest readable level) · Signal. The mean-of-totals column is gone. | `renderBrowseStudents()` |
+| **Browse Students** | A **cover** (2026-11-09: *All students* / *Students on …* / *Students in …*, with *Show all students* on the label row; nothing under the title), then search, **All / Worth a chat / Missing work** chips and Patterns. Student · **Agency** (latest readable level) · Signal. The mean-of-totals column is gone. Narrowed by a Class page's pills (`browseClass`) or an Assignment page's (`browseAssignment`, 2026-11-06). Narrowed to an assignment, its filters, Signal and Late read that assignment alone, and a student in two of its classes is listed once — so every pill lands on exactly the students it counted. | `renderBrowseStudents()` |
 
 **There is no line chart anywhere in `dashboard.html`.** `svgLineChart`, `FINAL_METRICS`,
 `classAssignmentSeries`, `classSeriesOutlierNote`, `classDimensionTrend`, `dimensionRowsFromCohort`,
@@ -219,6 +221,13 @@ rendered in the band ramp, and the *words* around it carry that it's a problem.
 ---
 
 ## Navigation Model
+
+> **⚠ The sidebar described below is SUPERSEDED (2026-11-05).** Kept for the argument in it. The
+> rail now has two levels set by type — section names (Home, Classes, Assignments, Students) at
+> 17px / 700, each the link to its own landing page, and classes and filters at 14.5px / 400 under
+> them — with no group eyebrows, no "All assignments" / "All students" rows, and no "+ Add" at its
+> top. Its foot holds a round "+" and the account chip. See the session log's 2026-11-05 entries and
+> `designsystem.md`, Tonal migration → Decisions.
 
 **Rebuilt 2026-07-28 — tab bar replaced with one persistent sidebar.** The previous four-tab
 structure (Overview / Class / Assignment / Student, each with its own sidebar) independently
@@ -2158,6 +2167,262 @@ see `app/README.md`'s file map if you need to work on that surface instead.
 *Added 2026-07-27. Going forward, log dashboard-affecting sessions here — same convention
 `designsystem.md` uses for the rest of `app/`. Retroactive entries below reconstruct what's
 already landed; write new ones going forward rather than editing history in place.*
+
+**2026-11-09 — Class › Assignments always shows Open**
+
+`renderClassAssignmentGroup(label, list, students, empty)` keeps an empty group when `empty` is given.
+Open always passes it, so a class with nothing open shows *Open* and "No open assignments." (no count)
+rather than starting at *Closed*. Closed still drops out when empty. A class with no assignments at
+all keeps its single "No assignments on this class yet." line.
+
+**2026-11-09 — Class overview: the origin pills lose their card**
+
+`renderClassOverview`'s `originBody` is no longer a `.section-card`, so the first section under the
+page tabs is no longer a green slab. See `designsystem.md`'s log for the underline-tabs alternative,
+which is not taken for now.
+
+**2026-11-09 — the due-draft pill is olive (`--tau-schedule`)**
+
+`dueSoonPills` gives its pills `is-due`, which carries the new token, on Home, Class and Assignment.
+The reasoning and the rejected hues are in `designsystem.md` (Hard Constraints, and its log).
+
+**2026-11-09 — All classes, All assignments and All students get the cover; a summary line, and
+filters as chips**
+
+- **`listCover(label, title, pills, aside)`** is shared by the three pages. **`waitingRow` was
+  split** into `waitingPill` (always a route), `waitingList` and `dueSoonPills`.
+- **Filters are chips:** `flagChips()` adds *Worth a chat* · *Missing work* after the view chips on
+  Classes and Assignments. The Students page keeps its existing All / Worth a chat / Missing work
+  chips. New state: `browseClassFlag` and `browseAssignFlag`. On Assignments the flag combines with
+  Open/Closed. On Classes it returns to Active, since archived classes carry neither flag.
+- **A count and its chip read one function.** On All classes it's `classFlagCounts(cls)`, on
+  All assignments `assignmentFlagCounts(a)` (which the row's columns read too), and on All students
+  `browseStudentHasFlag(student, flag)`, which `browseRosterMatches` now calls.
+- **All assignments, follow-up:** under the title there are only `dueSoonPills(ASSIGNMENTS, …)`,
+  Home's olive due pills. "+N more" sets the view to Open. The counts were cut as duplicates of the
+  chips. With nothing due, nothing renders. (A text-link line, `waitingSummary`/`.waiting-link`, came
+  between these two versions and was deleted.) **All classes and All students have nothing under the
+  title** (owner, same day): every count they had is a chip below. Only All assignments passes `pills`
+  to `listCover`.
+- **First pass, same day, replaced:** the pills themselves filtered the table. The owner rejected it
+  because a filter pill and a route pill looked identical. See `designsystem.md`.
+- **Open:** on unnarrowed All students, a student in two classes is listed under both class tables,
+  so *8 missing a draft* shows 10 rows. This predates the change.
+
+**2026-11-06 — the Assignment page gets the cover; its pills read one assignment**
+
+- **Cover, as on the Class page.** The label is *Open/Closed assignment · class names* and replaces
+  the status chip. Actions are on its row. The name is set in `.page-cover-title`.
+- **`waitingRow(assignments, students, { classId, assignmentId })`.** Its third argument became an
+  options object. With `assignmentId`, *worth a chat* reads `getStudentSignal(sid, aid)`, which means
+  flags on this assignment and not the student-wide signal. The draft pill drops the assignment name
+  and scrolls to `#tl-live`.
+- **Browse Students narrowed to one assignment** (`browseAssignment`, the fourth argument of
+  `gotoStudents`). The list keeps the assignment's students, in the classes it's set for. *Missing
+  work* is `hasMissingCheckpoint(a, …)`, *Worth a chat* and the Signal column read the
+  assignment's signal, and Late and the Signal sort follow. A student in two of the
+  assignment's classes is listed once. Before that fix, *Bicycle maintenance guide*'s "1 worth a
+  chat" landed on two rows of the same student. Verified that every pill on every seeded
+  assignment lands on exactly its count (11 of 11).
+- **Removed:** the `.agg-chip-row` from the `'full'` variant of `renderAssignmentAggregateContent`.
+  The cover carries those counts now.
+- **Not done:** the page's section headings still use the old eyebrows (*Assignment overview — where
+  things stand today*, *How we got here — a timeline*). Moving them to `.page-section` headings, as
+  on the Class overview, is a separate pass.
+
+**2026-11-05 — the header, the rail's foot, and the smaller rules that touched every screen**
+
+Owner's calls through the day, after the rail and All classes landed. Rules live in `designsystem.md`
+(Hard Constraints, and Tonal migration → Decisions); this records what changed on this page.
+
+- **The masthead names no page.** It is the mark and search only. *Teacher dashboard* became the label
+  above Home's date cover — the one place the page says where you are. Each screen's own title is its
+  `<h1>`; Home's is the date.
+- **"+ Add" → "+ New" → a round "+", and it and the account chip are the rail's pinned foot.** It moved
+  to the app bar beside the account chip first, then both moved to the bottom of the rail (the drawer
+  already put the chip there on a phone). Not a Home pill: the pill row means "this is waiting". Now
+  one row — a 40px forest "+" (a drawn `icons.js` `add`, centred; the word kept as its accessible name
+  and tooltip) and the account chip filling the rest, name only (initials tried and removed). Both menus
+  anchor to the foot and open **just past the rail's edge**, at `--tau-shadow-lift`, bottom-aligned;
+  in the drawer they open upward. `mountRailDrawer` is no longer handed the chip on this page, so it
+  does not move it. The first-run copy that said "+ Add, top of the sidebar" now says "the + button
+  at the bottom of the sidebar".
+- **Rail pills follow the new pill rule** (`designsystem.md` Hard Constraints): side padding = the
+  pill's radius, so text never enters the rounded end — 23px on section rows, 18px on secondary rows,
+  whose pill is indented by a margin so the selection hugs the text evenly. An icon at a pill's end sits
+  centred in that end's circle. The rail was the rule's first application.
+- **No bold lead-in on any chart finding or foot** (`.trend-lede`, `.viz-lede`, `.viz-card-foot`): a
+  bold first sentence under *Agency* or *Dimensions* competed with the card's title. Amends the trend
+  finding's Hard Constraint, which had said "what happened (bold)". *What to try:* and *What this looks
+  like:* stay bold — they label a block, not a sentence.
+- **Class page: the coaching note is full width**, as every other block in the section run.
+- **Home's patterns are one flat list**, most students first, the tier a 14px square in the turn plot's
+  `--tau-agency-N` ramp (step 4 high agency, step 2 passive) plus the tier as a word on each card. The
+  assignment page still groups them under the two mono labels.
+
+**Open from this pass:** the rail's *Archived* under Assignments still opens a modal where Classes'
+now filters its page; a sweep of every pill shape against the
+new pill rule (the rail is done; chips, page tabs, the waiting pills and buttons are not checked).
+
+**2026-11-05 — the rail's two levels, and an All classes page so every section lands somewhere**
+
+The rail is two levels by type (`designsystem.md`, Tonal migration → Decisions): section names at
+17px / 700, each the link to its landing page; classes and filters at 14.5px / 400 under it. Classes
+had no landing page while Assignments and Students did, so the section names could not all behave the
+same — hence **All classes** (`renderBrowseClasses`, screen `classes`), built on All assignments'
+pattern and reading only what Home's class cards and the Class page already compute. Its Archived
+filter replaces the rail's route to the *Archived classes* modal (`openArchivedClasses` still exists;
+`restoreClass` stays on the page when called from it). The mini rail's Classes button now goes to the
+page instead of opening the drawer. **Not changed:** the rail's *Archived* under Assignments still opens
+its modal — the same move for assignments is open.
+
+**2026-11-05 — Home: the date is the cover, and triage is pills under it**
+
+Owner's call, from https://claude.ai/artifact/R8eb9hYGyad3Pnnprn3Q51. *Students to follow up* was not
+accurate for its three cards: *Sessions too thin to read* is not a student to follow up and has nothing
+to act on. Triage is now the header: today's date set like a class name (so every time word reads
+against it), and under it one pill per thing waiting, soonest first — each open draft whose live slot
+is due within 7 days ("due tomorrow", "due Fri", "due next Thu" at exactly seven), capped at three plus
+"+N more due this week" → All assignments, Open; then missing a draft; then worth a chat. A pill exists
+only when something is waiting; none at all reads "Nothing waiting on you." The class name is added to
+a draft pill only when two pills share an assignment name. *Too thin to read* moved to the Over time
+scope line. **Not built:** "since Monday" on Worth a chat — flags carry no date on the client.
+
+**2026-11-05 — Home: section headings leave the cards**
+
+Owner's call, from https://claude.ai/artifact/VJS8CPGdvJ8MhGY8BXzztY. Each section's title was inside
+a `.home-band`, so everything the section held had to sit in that one box, and every card in it was a
+card inside a card. Now a `.group-title` on the page ground names every card after it until the next
+heading, and the cards are peers on the page. The page ground did not change (owner: no green
+background); cards keep `--tau-card`.
+- **Students to follow up**: three cards, one per queue; a card with a count and somewhere to go is
+  the button. The two gaps in the read keep the shared line *No read on them yet*; Worth a chat has no
+  line rather than one written to fill the slot.
+- **Classes**: one card per class (name →, headcount, the existing chips), in a grid that keeps one
+  width across rows. Headcount is back on the class: as a card it identifies the class at a glance.
+- **Behavioral patterns**: the pattern cards sit directly under the heading.
+- **Over time**: one heading carrying the scope and the info dot once, then an Agency card and a
+  Dimensions card. Agency is still not a tab beside the four.
+- Movement's dimension selector is M3 secondary tabs now (everywhere it mounts, not only Home).
+
+**Same day — the Class page's top.** *Class overview* became a section on the page with its tabs under
+the heading and its blocks as cards; the class name became the page's `<h1>` (26px / 700), with the
+masthead's *Teacher Dashboard* demoted to a span on every screen (see `designsystem.md`, masthead
+rule). Every screen's `.content-title` is an `<h1>` now. **Superseded later the same day:** the
+masthead carries no page name at all — see the *header and rail foot* entry above.
+
+Then the class name became a **cover**: label, very large heavy name, an ink rule over the meta
+(`designsystem.md`, Tonal migration → Decisions). Class page only; other screens keep 26px.
+
+**Then the Class page lost its overview card** (owner, https://claude.ai/artifact/6xcDw2LzweAwEdrgNchkhr):
+under the cover, two page tabs — Overview and Assignments. Overview runs Follow up → Coaching note →
+Patterns → Over time → Where ideas are coming from, all visible at once; the old Patterns and Trends
+tabs are sections now. The meta line is gone, each fact moved to where it is acted on, the
+measurement-improvement date into the ⋯ menu. Class patterns stay one list: `detectTrends` cards carry
+no passive/high-agency tier.
+
+**Open:** the assignment cards on the Class page, and the Assignment Detail page, still put their
+titles inside their cards.
+
+**2026-11-06 — Class page: Follow up becomes the cover's pills**
+
+Owner's call. The Class page's *Follow up* section showed the same two counts Home had dropped as
+tile cards. It is now Home's pill row (`waitingRow()`, shared) under the class name and above the page
+tabs, so it shows on both tabs, built from this class's assignments and roster. Same order, same "Nothing
+waiting on you." when empty. A draft pill never adds the class name, since the cover already shows it;
+"+N more due this week" opens the Assignments tab. The `.home-tile` queue card is deleted.
+- **Fixed with it:** the tiles' counts covered only this class, but their links opened the whole-school
+  student list. `gotoStudents(filter, patternId, classId)` now takes a class: Browse Students shows that
+  class's table only, titled *Students in {class}* with **Show all classes**, and *Missing work* checks only
+  that class's assignments. Every other entry point clears the scope.
+- Worth a chat on the Class page now counts `getStudentSignal().status === 'review'`, the same test the
+  Browse filter uses, replacing `hasOpenFlag()`. The old count could differ from the list it opened.
+
+**2026-11-06 — Class page: Behavioral patterns are Home's**
+
+Owner's call. The Class page ran a different detector from Home: `detectTrends()`, the four
+threshold-named `TREND_META` cards with no tier, under *Patterns in how students used the AI*. It now
+renders Home's section: `detectPatternGroups(2, students, assignments)`, which reads the stored detector
+output (`PATTERN_META`), with Home's card (tier square and tier word, count), summary ("N patterns · X of
+n students"), and empty line. The cohort is each student's latest session **among this class's
+assignments**, so a student in two classes is read from the work in this one. The card drops Home's
+per-class breakdown and its link opens Browse Students scoped to the class. When it is scoped, Browse's
+pattern filter and Patterns menu read that same class-scoped cohort. `detectTrends()` has no caller now.
+`TREND_META` still labels the Signal chips.
+
+**2026-11-06 — Behavioral patterns are a grid of cards that grow**
+
+Owner's call, Home and the Class page (the shared `patternListHTML()`). The list is a grid on the
+Classes track (`auto-fill`, 260px). An open card spans the row, and opening one closes any other
+(`togglePatternCard()`). The open card moves to the top of the grid (`order: -1`), and the rest
+keep their order under it. This replaced `dense` placement the same day (owner), which pulled later cards
+ahead of the open one. A card opened from a lower row is scrolled into view. The grow is a view transition
+(see `designsystem.md`, *Motion*). The Assignment page's pattern lists (`patternCardHTML()`) are still
+rows.
+
+**2026-11-04 — tonal pass two: the fill inside a card, and the agency bars without a track**
+
+**Context — the page went tonal on 2026-10-27** (retroactive; `tonal` branch, logged until now only in
+`designsystem.md` → *Tonal migration*). `dashboard.html` opts in with `data-surface="tonal"`: the page
+and rail are `#FAFCFB`, every card is the green container, and every card-like block reads
+`--tau-card`, including the flow ribbons' seams, the bar segments' seams and the agency bars' 65% level
+mix. A container whose children are cards (`.home-band`, `.overview-card`, `.tl-card`) hands them
+white. **The rules for all of this live in `designsystem.md`; this entry records what changed on this
+page.**
+
+**Green on green, found by a rendered audit.** Every filled element within ΔL 0.05 of the fill under
+it, on all six screens: the "Closed" chip, the Patterns tab count, the class overview's origin pills,
+the agency bar tracks, the roster table header, the timeline's draft-stat boxes, and the student
+view's trace card on its drill panel. All were on `--tau-surface-2/3`, which tonal maps to a green 2–4%
+below the card. Fixed with one token, `--tau-well`: a fill inside a card is white while the card is
+green and green once the card has been handed white (`components.css` §20 for the shared pieces;
+this page's tonal block lists its own card-like blocks and adds `.drill-panel` to the white handoff).
+The table header takes the card's tone, carried by type and its strong rule. Origin pills set their
+tint through `--origin-tint` so the tonal rule can override it; inside a card they are white, the dot
+and label carrying the origin. Re-audited clean at 1280 and 768, light and dark.
+
+**The agency composition lost its track** (product owner, four rounds). White tracks drew a
+full-length slab for every empty level, which read as a bar in its own right ("a faux bar"), and white
+across every card took the page off the brand green. A recessed track on `--tau-container-highest` was
+offered and declined. Now, in `viz.js` `renderCompHTML`:
+- **Length against the whole cohort is the count; nothing is drawn behind the bar.**
+- **A zero is a stub**: 4px wide, the bar's full 18px, **in its level's own colour**, so every row keeps
+  its identity at zero. A non-zero bar floors at 10px so a stub never passes for one student. It
+  breaks the dot rule (the "0" beside it says the same), recorded as an owner exception in
+  `designsystem.md` Hard Constraints.
+- **Not enough evidence is grey** (`--tau-ink-faint` at the levels' 65% mix), solid, same geometry,
+  set apart by the dashed rule above it. `.comp-off-track` is deleted.
+
+**Open from this pass:**
+- The dimension bars still draw *Not enough evidence* dashed and hatched (`.dbar-off-cell`), so one
+  state is grey in the agency chart and hatched beside it. Unify or keep deliberately.
+- Still white from the well rule: the "Closed" chip, tab counts, origin pills, draft-stat and schedule
+  boxes. Proposed instead, not built: drop the enclosure on the chips, pills and counts (none is
+  actionable, so *chip enclosure only when actionable AND rare* says they should never have been
+  pills) and let the stat boxes sit as plain figures on the card.
+- The Transformative zero stub is the faintest of the four on the green card — `designsystem.md`
+  *Tonal migration* open item 1 (level colours tuned for white).
+
+**A clarity and support review was also run, and is awaiting the product owner — none of it is
+built.** Screenshots of every screen against the dashboard's own job (a teacher finding what they need,
+and the page being supportive):
+1. **Worth a chat says who, never why or what to say.** The signal column is a stack of amber tags in a
+   judge's voice ("Low critical evaluation", "AI-originated ideas"); the student view lists the reasons
+   as dash bullets. Proposed: one plain sentence of what was seen, one quoted moment, one opener — the
+   conversation prompt *Evidence on the teacher surface* already specifies — on Home, the filtered list
+   and the student view. Touches item 3b's signal copy.
+2. **Empty states wear the populated scaffold.** A closed assignment nobody submitted stacks three
+   cards each saying there is nothing to read, and none says what to do about 0 of 3.
+3. **Labels that need translating**: "Class overview — progression across the term" over a tab with no
+   progression, "1 sub", "+3", a bare "—" in the agency column, "Avg conversations / student",
+   "How we got here — a timeline".
+4. **Severity carried twice on the class page**: red and amber filled tiles, then the same facts as
+   chips on every assignment card.
+5. **Browse Students is mostly "No assignments yet"** (20 of 28 rows in the demo) above the students
+   with readings.
+6. **Bugs**: flow column headers follow the browser locale ("août / sept.") because line ~3490 calls
+   `toLocaleDateString(undefined, …)` where every other date passes `'en-US'`; the signal chip in the
+   student view's assignment row clips ("Passive engagement +").
 
 **2026-09-30 — a teacher's read of the agency level; rulings on the report; score spike retired**
 

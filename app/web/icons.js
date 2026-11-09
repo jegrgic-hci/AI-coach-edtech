@@ -96,6 +96,11 @@ const ICONS = {
   swap:
     '<path d="M4 8.5h13M13.5 5 17 8.5 13.5 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>'
     + '<path d="M20 15.5H7M10.5 12 7 15.5 10.5 19" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+  // close's strokes turned upright — the rail foot's "New" button (2026-11-05).
+  // A drawn icon, not the "+" character: a glyph sits on the text baseline and
+  // never lands in the true centre of a round button.
+  add:
+    '<path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
   plusCircle:
     '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>'
     + '<path d="M12 8.5v7M8.5 12h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
